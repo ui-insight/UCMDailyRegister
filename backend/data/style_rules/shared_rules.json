@@ -1,0 +1,98 @@
+[
+  {
+    "category": "voice",
+    "rule_key": "third_person",
+    "rule_text": "All items must be written in third person. Avoid use of 'I', 'us', 'our', 'we', 'my'. Replace with the organization name or neutral phrasing.",
+    "severity": "error"
+  },
+  {
+    "category": "voice",
+    "rule_key": "concise_clear",
+    "rule_text": "All submissions must be concise and clear. This is not the space to be witty or poetic.",
+    "severity": "warning"
+  },
+  {
+    "category": "voice",
+    "rule_key": "no_exclamation_marks",
+    "rule_text": "Avoid exclamation marks in headlines and minimize them in body text. Use professional, neutral tone.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "event_details_required",
+    "rule_text": "All event-related listings must include the time, date, and location of the event. If an activity is not free, a price must be included.",
+    "severity": "error"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "today_tomorrow",
+    "rule_text": "Use 'Today' and 'Tomorrow' instead of the specific date when appropriate. This applies to dates in both headlines and body text.",
+    "severity": "info"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "link_embedding",
+    "rule_text": "Embed hyperlinks in meaningful anchor text rather than displaying raw URLs. Use descriptive link text like 'Learn more', 'Register', 'Apply now'.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "ap_style_dates",
+    "rule_text": "Use AP style for dates: abbreviate months with 6+ letters (Jan., Feb., Aug., Sept., Oct., Nov., Dec.). Spell out March, April, May, June, July. Use numerals for dates (Jan. 5, not January fifth).",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "ap_style_times",
+    "rule_text": "Use AP style for times: lowercase a.m. and p.m. with periods. Use noon and midnight instead of 12 p.m. and 12 a.m. Use figures: 1 p.m., 3:30 p.m. Use 'to' for ranges: 9 a.m. to 5 p.m.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "trim_lengthy",
+    "rule_text": "Lengthy submissions should display with a few sentences in the newsletter and a link to a website containing the entire message. UCM reserves the right to trim lengthy submissions.",
+    "severity": "info"
+  },
+  {
+    "category": "scheduling",
+    "rule_key": "run_once_default",
+    "rule_text": "Items generally run once. They can run twice if there is an RSVP or registration component.",
+    "severity": "info"
+  },
+  {
+    "category": "scheduling",
+    "rule_key": "no_altered_resubmission",
+    "rule_text": "Items running more than once should not be resubmitted with altered text unless the original has an error.",
+    "severity": "warning"
+  },
+  {
+    "category": "scheduling",
+    "rule_key": "chronological_ordering",
+    "rule_text": "Announcements should be chronological, with more important items at the top (e.g., university-wide announcements, urgent notices).",
+    "severity": "info"
+  },
+  {
+    "category": "content_filtering",
+    "rule_key": "university_affiliated",
+    "rule_text": "All submissions must be affiliated with the University of Idaho.",
+    "severity": "error"
+  },
+  {
+    "category": "content_filtering",
+    "rule_key": "no_thesis_defenses",
+    "rule_text": "Thesis defenses are not included in the newsletter.",
+    "severity": "error"
+  },
+  {
+    "category": "content_filtering",
+    "rule_key": "no_nonlocal_sports",
+    "rule_text": "Sports competitions outside the Moscow-Pullman, Lewiston-Clarkston area are not included.",
+    "severity": "warning"
+  },
+  {
+    "category": "content_filtering",
+    "rule_key": "no_limited_audience",
+    "rule_text": "Limited-audience application deadlines and items intended for a small subset of the audience should be handled through other means.",
+    "severity": "warning"
+  }
+]

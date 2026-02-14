@@ -1,0 +1,65 @@
+[
+  {
+    "name": "Employee News",
+    "slug": "employee-news",
+    "display_order": 1,
+    "description": "Timely notices of events, deadlines and activities of general employee interest. Items not on consecutive days. Chronological with important items at top.",
+    "requires_image": false
+  },
+  {
+    "name": "Feature Stories",
+    "slug": "feature-stories",
+    "display_order": 2,
+    "description": "Feature stories, videos, podcasts from college or central pages. Use first paragraph with CTA. One photo/screenshot may be included.",
+    "requires_image": false
+  },
+  {
+    "name": "U of I in the News",
+    "slug": "uofi-in-the-news",
+    "display_order": 3,
+    "description": "Curated by UCM. Stories run as appropriate.",
+    "requires_image": false
+  },
+  {
+    "name": "Today's Events",
+    "slug": "todays-events",
+    "display_order": 4,
+    "description": "Copy/paste from Events Calendar with permalink links. Indicate time zones for non-Moscow events. Exclude thesis defenses, most student recitals, non-local sports.",
+    "requires_image": false
+  },
+  {
+    "name": "Kudos",
+    "slug": "kudos",
+    "display_order": 5,
+    "description": "Awards, honors, retirements, major scholarships, non-press-release research papers. Run once.",
+    "requires_image": false
+  },
+  {
+    "name": "News Releases",
+    "slug": "news-releases",
+    "display_order": 6,
+    "description": "News releases sent to media from the day prior. Run headline, first sentence, and Read more CTA.",
+    "requires_image": false
+  },
+  {
+    "name": "In Memoriam",
+    "slug": "in-memoriam",
+    "display_order": 7,
+    "description": "Current or retired employees who have passed. Content from college, family, or published obituary. Link to obituary if provided.",
+    "requires_image": false
+  },
+  {
+    "name": "Job Opportunities",
+    "slug": "job-opportunities",
+    "display_order": 8,
+    "description": "Jobs posted for two weeks from PeopleAdmin. Can repost after two-week removal. Newest at top. Must be listed with HR.",
+    "requires_image": false
+  },
+  {
+    "name": "Employee Announcements",
+    "slug": "employee-announcements",
+    "display_order": 9,
+    "description": "Recurring notices and reminders: tobacco-free, spirit days, sabbatical/tenure, risk control, recycling, etc.",
+    "requires_image": false
+  }
+]

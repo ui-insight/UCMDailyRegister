@@ -1,0 +1,46 @@
+[
+  {
+    "newsletter_type": "tdr",
+    "mode": "academic_year",
+    "submission_deadline_description": "Submissions due by 2:30 p.m. for the next day's edition",
+    "deadline_day_of_week": null,
+    "deadline_time": "14:30:00",
+    "publish_day_of_week": null,
+    "is_daily": true,
+    "active_start_month": 8,
+    "active_end_month": 5
+  },
+  {
+    "newsletter_type": "tdr",
+    "mode": "summer",
+    "submission_deadline_description": "Submissions due by noon Thursday for the Monday edition",
+    "deadline_day_of_week": 3,
+    "deadline_time": "12:00:00",
+    "publish_day_of_week": 0,
+    "is_daily": false,
+    "active_start_month": 5,
+    "active_end_month": 8
+  },
+  {
+    "newsletter_type": "myui",
+    "mode": "academic_year",
+    "submission_deadline_description": "Submissions due by noon Wednesday for Monday's edition",
+    "deadline_day_of_week": 2,
+    "deadline_time": "12:00:00",
+    "publish_day_of_week": 0,
+    "is_daily": false,
+    "active_start_month": 8,
+    "active_end_month": 5
+  },
+  {
+    "newsletter_type": "myui",
+    "mode": "summer",
+    "submission_deadline_description": "My UI is not published during summer break",
+    "deadline_day_of_week": null,
+    "deadline_time": "12:00:00",
+    "publish_day_of_week": null,
+    "is_daily": false,
+    "active_start_month": null,
+    "active_end_month": null
+  }
+]

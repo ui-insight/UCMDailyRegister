@@ -1,0 +1,68 @@
+[
+  {
+    "category": "headlines",
+    "rule_key": "title_case",
+    "rule_text": "Headlines must be title case (capitalize major words). Example: 'Register for Spring Break Activities' not 'Register for spring break activities'.",
+    "severity": "error"
+  },
+  {
+    "category": "headlines",
+    "rule_key": "active_complete",
+    "rule_text": "Headlines should be active and complete, having both a subject and verb.",
+    "severity": "warning"
+  },
+  {
+    "category": "content_filtering",
+    "rule_key": "student_focused",
+    "rule_text": "Items should be of general student interest and open to all students. Items intended for a small subset of students should be handled through other means.",
+    "severity": "warning"
+  },
+  {
+    "category": "content_filtering",
+    "rule_key": "no_student_recitals",
+    "rule_text": "Student recitals are not included in My UI.",
+    "severity": "warning"
+  },
+  {
+    "category": "scheduling",
+    "rule_key": "weekly_rotation",
+    "rule_text": "My UI items rotate weekly with different events featured in Highlighted Events each week. Submissions are curated based on timeliness.",
+    "severity": "info"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "week_span_events",
+    "rule_text": "Weekly Events cover Monday through the following Sunday. Events are organized chronologically by day. Include dates for events outside the publication cycle week.",
+    "severity": "info"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "calendar_permalinks",
+    "rule_text": "Calendar items are linked to the permalink address, not the entire calendar.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "non_moscow_location",
+    "rule_text": "All calendar items outside of Moscow should indicate location. Items are Pacific time unless otherwise noted.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "highlighted_events_image",
+    "rule_text": "Highlighted events need a photo or art that can be cropped to 600x600 pixel square.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "academic_dates_30_days",
+    "rule_text": "Academic Dates and Deadlines section should include 30 days of upcoming information from the U of I academic calendar.",
+    "severity": "info"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "help_wanted_two_weeks",
+    "rule_text": "Student job postings are listed for two weeks. Off-campus jobs link to VandalWeb Career Center page.",
+    "severity": "info"
+  }
+]

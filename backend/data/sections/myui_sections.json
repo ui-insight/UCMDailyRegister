@@ -1,0 +1,38 @@
+[
+  {
+    "name": "Highlighted Events",
+    "slug": "highlighted-events",
+    "display_order": 1,
+    "description": "Featured events selected by UCM. Must have photo or art available that can be cropped to 600x600 pixel square. Can link to more information.",
+    "requires_image": true,
+    "image_dimensions": "600x600"
+  },
+  {
+    "name": "Weekly Events",
+    "slug": "weekly-events",
+    "display_order": 2,
+    "description": "Student-specific events from university calendar. Permalink links. Non-Moscow events indicate location. Chronological by day, Monday through following Sunday. Exclude thesis defenses, student recitals, non-local competitions.",
+    "requires_image": false
+  },
+  {
+    "name": "News and Updates",
+    "slug": "news-and-updates",
+    "display_order": 3,
+    "description": "Timely notices of events, deadlines and activities of general student interest. No repeat of Weekly Events items. Chronological with important items at top.",
+    "requires_image": false
+  },
+  {
+    "name": "Help Wanted",
+    "slug": "help-wanted",
+    "display_order": 4,
+    "description": "Student job postings from online form. Listed for two weeks. Off-campus jobs link to VandalWeb Career Center page.",
+    "requires_image": false
+  },
+  {
+    "name": "Academic Dates and Deadlines",
+    "slug": "academic-dates-and-deadlines",
+    "display_order": 5,
+    "description": "Pulled from U of I academic calendar. Include 30 days of upcoming information.",
+    "requires_image": false
+  }
+]

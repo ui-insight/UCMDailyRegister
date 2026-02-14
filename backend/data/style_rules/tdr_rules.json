@@ -1,0 +1,62 @@
+[
+  {
+    "category": "headlines",
+    "rule_key": "sentence_case",
+    "rule_text": "Headlines must be sentence case (capitalize only the first word and proper nouns). Example: 'Attend the research awards ceremony' not 'Attend the Research Awards Ceremony'.",
+    "severity": "error"
+  },
+  {
+    "category": "headlines",
+    "rule_key": "active_complete",
+    "rule_text": "Headlines should be active and complete, having both a subject and verb. Example: 'Register for Pilates' not 'Pilates Registration'.",
+    "severity": "warning"
+  },
+  {
+    "category": "scheduling",
+    "rule_key": "no_consecutive_days",
+    "rule_text": "Items will not be published in back-to-back editions. Readership data shows engagement decreases on subsequent days.",
+    "severity": "warning"
+  },
+  {
+    "category": "scheduling",
+    "rule_key": "rsvp_runs_twice",
+    "rule_text": "Events with an RSVP deadline can run with that RSVP date and again in proximity to the event. Events without RSVP run in reasonable proximity to the date of the event.",
+    "severity": "info"
+  },
+  {
+    "category": "content_filtering",
+    "rule_key": "employee_focused",
+    "rule_text": "Items should be of general employee interest. Student-focused messages should be submitted to My UI. Postdoc and graduate student info is included in both newsletters.",
+    "severity": "warning"
+  },
+  {
+    "category": "content_filtering",
+    "rule_key": "no_student_recitals",
+    "rule_text": "Student recitals (unless they are a larger group performance) are not included.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "calendar_permalinks",
+    "rule_text": "Calendar items must be linked to the event's permalink address, not the entire calendar page.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "time_zones",
+    "rule_text": "All calendar items outside of Moscow should indicate location and include the time in that time zone. Items are Pacific time unless otherwise noted.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "news_release_format",
+    "rule_text": "News releases display the headline, the first sentence, and a 'Read more' CTA linking to the full release.",
+    "severity": "info"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "job_posting_format",
+    "rule_text": "Job postings are linked to PeopleAdmin listings. Must be listed with Human Resources. Posted for two weeks, newest at top.",
+    "severity": "info"
+  }
+]
