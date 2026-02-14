@@ -4,6 +4,7 @@ import SubmitPage from './pages/SubmitPage';
 import DashboardPage from './pages/DashboardPage';
 import BuilderPage from './pages/BuilderPage';
 import StyleRulesPage from './pages/StyleRulesPage';
+import EditPage from './pages/EditPage';
 import SettingsPage from './pages/SettingsPage';
 
 export default function App() {
@@ -14,6 +15,7 @@ export default function App() {
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/submit" element={<SubmitPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/edit/:id" element={<EditPage />} />
           <Route path="/builder" element={<BuilderPage />} />
           <Route path="/style-rules" element={<StyleRulesPage />} />
           <Route path="/settings" element={<SettingsPage />} />

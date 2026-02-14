@@ -1,6 +1,11 @@
 from fastapi import APIRouter
 
 from app.api.v1.submissions import router as submissions_router
+from app.api.v1.style_rules import router as style_rules_router
+from app.api.v1.ai_edits import router as ai_edits_router
+from app.api.v1.newsletters import router as newsletters_router
+from app.api.v1.sections import router as sections_router
+from app.api.v1.schedule import router as schedule_router
 
 router = APIRouter(prefix="/api/v1")
 
@@ -11,3 +16,8 @@ async def health_check():
 
 
 router.include_router(submissions_router)
+router.include_router(style_rules_router)
+router.include_router(ai_edits_router)
+router.include_router(newsletters_router)
+router.include_router(sections_router)
+router.include_router(schedule_router)
