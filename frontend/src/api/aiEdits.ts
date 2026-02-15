@@ -7,7 +7,7 @@ export async function triggerAIEdit(
 ): Promise<AIEditResponse> {
   return apiFetch<AIEditResponse>(`/ai-edits/${submissionId}/edit`, {
     method: 'POST',
-    body: JSON.stringify({ newsletter_type: newsletterType }),
+    body: JSON.stringify({ Newsletter_Type: newsletterType }),
   });
 }
 
@@ -24,7 +24,7 @@ export async function getEditVersion(
 
 export async function saveEditorFinal(
   submissionId: string,
-  data: { headline: string; body: string; headline_case?: string },
+  data: { Headline: string; Body: string; Headline_Case?: string },
 ): Promise<EditVersion> {
   return apiFetch<EditVersion>(`/ai-edits/${submissionId}/finalize`, {
     method: 'POST',

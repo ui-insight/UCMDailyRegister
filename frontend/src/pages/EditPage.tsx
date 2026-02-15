@@ -58,24 +58,24 @@ export default function EditPage() {
         const vers = await listEditVersions(id);
         setVersions(vers);
         // If there's an AI suggested version, pre-populate editor fields
-        const aiVersion = vers.find((v) => v.version_type === 'ai_suggested');
-        const editorVersion = vers.find((v) => v.version_type === 'editor_final');
+        const aiVersion = vers.find((v) => v.Version_Type === 'ai_suggested');
+        const editorVersion = vers.find((v) => v.Version_Type === 'editor_final');
         if (editorVersion) {
-          setEditHeadline(editorVersion.headline);
-          setEditBody(editorVersion.body);
+          setEditHeadline(editorVersion.Headline);
+          setEditBody(editorVersion.Body);
           setActiveTab('editor');
         } else if (aiVersion) {
-          setEditHeadline(aiVersion.headline);
-          setEditBody(aiVersion.body);
+          setEditHeadline(aiVersion.Headline);
+          setEditBody(aiVersion.Body);
           setActiveTab('ai_edit');
         } else {
-          setEditHeadline(sub.original_headline);
-          setEditBody(sub.original_body);
+          setEditHeadline(sub.Original_Headline);
+          setEditBody(sub.Original_Body);
         }
       } catch {
         // No versions yet — that's fine
-        setEditHeadline(sub.original_headline);
-        setEditBody(sub.original_body);
+        setEditHeadline(sub.Original_Headline);
+        setEditBody(sub.Original_Body);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load submission');
@@ -91,8 +91,8 @@ export default function EditPage() {
     try {
       const result = await triggerAIEdit(id, newsletterType);
       setAiEditResult(result);
-      setEditHeadline(result.edited_headline);
-      setEditBody(result.edited_body);
+      setEditHeadline(result.Edited_Headline);
+      setEditBody(result.Edited_Body);
       setActiveTab('ai_edit');
       // Refresh data
       const sub = await getSubmission(id);
@@ -113,11 +113,11 @@ export default function EditPage() {
     if (!id) return;
     setSaveLoading(true);
     try {
-      const aiVersion = versions.find((v) => v.version_type === 'ai_suggested');
+      const aiVersion = versions.find((v) => v.Version_Type === 'ai_suggested');
       await saveEditorFinal(id, {
-        headline: aiVersion?.headline || editHeadline,
-        body: aiVersion?.body || editBody,
-        headline_case: aiVersion?.headline_case || undefined,
+        Headline: aiVersion?.Headline || editHeadline,
+        Body: aiVersion?.Body || editBody,
+        Headline_Case: aiVersion?.Headline_Case || undefined,
       });
       showToast('Edit accepted and finalized');
       await loadData();
@@ -137,11 +137,11 @@ export default function EditPage() {
     if (!id) return;
     setSaveLoading(true);
     try {
-      const aiVersion = versions.find((v) => v.version_type === 'ai_suggested');
+      const aiVersion = versions.find((v) => v.Version_Type === 'ai_suggested');
       await saveEditorFinal(id, {
-        headline: editHeadline,
-        body: editBody,
-        headline_case: aiVersion?.headline_case || undefined,
+        Headline: editHeadline,
+        Body: editBody,
+        Headline_Case: aiVersion?.Headline_Case || undefined,
       });
       showToast('Final version saved');
       await loadData();
@@ -155,7 +155,7 @@ export default function EditPage() {
   const handleApprove = async () => {
     if (!id) return;
     try {
-      await updateSubmission(id, { status: 'approved' });
+      await updateSubmission(id, { Status: 'approved' } as Partial<Submission>);
       showToast('Submission approved');
       await loadData();
     } catch (err) {
@@ -188,15 +188,15 @@ export default function EditPage() {
 
   if (!submission) return null;
 
-  const aiVersion = versions.find((v) => v.version_type === 'ai_suggested');
+  const aiVersion = versions.find((v) => v.Version_Type === 'ai_suggested');
   const hasAIEdit = !!aiVersion || !!aiEditResult;
 
   // Build diff data from aiEditResult or reconstruct from versions
-  const headlineDiff: TextDiff | null = aiEditResult?.headline_diff || null;
-  const bodyDiff: TextDiff | null = aiEditResult?.body_diff || null;
-  const flags: AIFlag[] = aiEditResult?.flags || aiVersion?.flags || [];
-  const changesMade: string[] = aiEditResult?.changes_made || aiVersion?.changes_made || [];
-  const confidence = aiEditResult?.confidence;
+  const headlineDiff: TextDiff | null = aiEditResult?.Headline_Diff || null;
+  const bodyDiff: TextDiff | null = aiEditResult?.Body_Diff || null;
+  const flags: AIFlag[] = aiEditResult?.Flags || aiVersion?.Flags || [];
+  const changesMade: string[] = aiEditResult?.Changes_Made || aiVersion?.Changes_Made || [];
+  const confidence = aiEditResult?.Confidence;
 
   const tabs: { id: Tab; label: string; available: boolean }[] = [
     { id: 'original', label: 'Original', available: true },
@@ -226,13 +226,13 @@ export default function EditPage() {
           </button>
           <div>
             <h2 className="text-xl font-bold text-gray-900">Edit Submission</h2>
-            <p className="text-xs text-gray-500">ID: {submission.id}</p>
+            <p className="text-xs text-gray-500">ID: {submission.Id}</p>
           </div>
         </div>
         <span
-          className={`text-xs px-3 py-1 rounded-full font-medium ${STATUS_COLORS[submission.status] || 'bg-gray-100'}`}
+          className={`text-xs px-3 py-1 rounded-full font-medium ${STATUS_COLORS[submission.Status] || 'bg-gray-100'}`}
         >
-          {submission.status.replace('_', ' ')}
+          {submission.Status.replace('_', ' ')}
         </span>
       </div>
 
@@ -282,7 +282,7 @@ export default function EditPage() {
                     Original Headline
                   </label>
                   <p className="text-sm font-medium text-gray-900 bg-gray-50 p-3 rounded">
-                    {submission.original_headline}
+                    {submission.Original_Headline}
                   </p>
                 </div>
                 <div>
@@ -290,7 +290,7 @@ export default function EditPage() {
                     Original Body
                   </label>
                   <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded whitespace-pre-wrap">
-                    {submission.original_body}
+                    {submission.Original_Body}
                   </p>
                 </div>
               </div>
@@ -308,7 +308,7 @@ export default function EditPage() {
                       AI Headline
                     </label>
                     <p className="text-sm font-medium text-gray-900 bg-green-50 p-3 rounded">
-                      {aiVersion.headline}
+                      {aiVersion.Headline}
                     </p>
                   </div>
                 )}
@@ -320,7 +320,7 @@ export default function EditPage() {
                       AI Body
                     </label>
                     <p className="text-sm text-gray-700 bg-green-50 p-3 rounded whitespace-pre-wrap">
-                      {aiVersion.body}
+                      {aiVersion.Body}
                     </p>
                   </div>
                 )}
@@ -352,7 +352,7 @@ export default function EditPage() {
                 <HeadlineEditor
                   value={editHeadline}
                   onChange={setEditHeadline}
-                  headlineCase={aiVersion?.headline_case || null}
+                  headlineCase={aiVersion?.Headline_Case || null}
                 />
                 <BodyEditor value={editBody} onChange={setEditBody} />
                 <div className="flex justify-end gap-3 pt-2">
@@ -363,7 +363,7 @@ export default function EditPage() {
                   >
                     {saveLoading ? 'Saving...' : 'Save Final Version'}
                   </button>
-                  {submission.status === 'in_review' && (
+                  {submission.Status === 'in_review' && (
                     <button
                       onClick={handleApprove}
                       className="px-4 py-2 text-sm font-medium rounded-md bg-green-600 text-white hover:bg-green-700"
@@ -385,7 +385,7 @@ export default function EditPage() {
             onRejectEdit={handleRejectEdit}
             loading={aiLoading}
             hasAIEdit={hasAIEdit}
-            targetNewsletter={submission.target_newsletter}
+            targetNewsletter={submission.Target_Newsletter}
             confidence={confidence}
           />
           <SubmissionMeta submission={submission} />

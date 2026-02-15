@@ -1,3 +1,5 @@
+"""Submission CRUD and related operations."""
+
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -8,47 +10,47 @@ from app.schemas.submission import SubmissionCreate, SubmissionUpdate
 
 async def create_submission(db: AsyncSession, data: SubmissionCreate) -> Submission:
     submission = Submission(
-        category=data.category,
-        target_newsletter=data.target_newsletter,
-        original_headline=data.original_headline,
-        original_body=data.original_body,
-        submitter_name=data.submitter_name,
-        submitter_email=data.submitter_email,
-        submitter_notes=data.submitter_notes,
+        Category=data.Category,
+        Target_Newsletter=data.Target_Newsletter,
+        Original_Headline=data.Original_Headline,
+        Original_Body=data.Original_Body,
+        Submitter_Name=data.Submitter_Name,
+        Submitter_Email=data.Submitter_Email,
+        Submitter_Notes=data.Submitter_Notes,
     )
     db.add(submission)
     await db.flush()
 
-    for i, link_data in enumerate(data.links):
+    for i, link_data in enumerate(data.Links):
         link = SubmissionLink(
-            submission_id=submission.id,
-            url=link_data.url,
-            anchor_text=link_data.anchor_text,
-            display_order=link_data.display_order or i,
+            Submission_Id=submission.Id,
+            Url=link_data.Url,
+            Anchor_Text=link_data.Anchor_Text,
+            Display_Order=link_data.Display_Order or i,
         )
         db.add(link)
 
-    for sched_data in data.schedule_requests:
+    for sched_data in data.Schedule_Requests:
         sched = SubmissionScheduleRequest(
-            submission_id=submission.id,
-            requested_date=sched_data.requested_date,
-            repeat_count=sched_data.repeat_count,
-            repeat_note=sched_data.repeat_note,
+            Submission_Id=submission.Id,
+            Requested_Date=sched_data.Requested_Date,
+            Repeat_Count=sched_data.Repeat_Count,
+            Repeat_Note=sched_data.Repeat_Note,
         )
         db.add(sched)
 
     await db.commit()
-    return await get_submission(db, submission.id)
+    return await get_submission(db, submission.Id)
 
 
 async def get_submission(db: AsyncSession, submission_id: str) -> Submission | None:
     result = await db.execute(
         select(Submission)
-        .where(Submission.id == submission_id)
+        .where(Submission.Id == submission_id)
         .options(
-            selectinload(Submission.links),
-            selectinload(Submission.schedule_requests),
-            selectinload(Submission.edit_versions),
+            selectinload(Submission.Links),
+            selectinload(Submission.Schedule_Requests),
+            selectinload(Submission.Edit_Versions),
         )
     )
     return result.scalar_one_or_none()
@@ -64,27 +66,27 @@ async def list_submissions(
     limit: int = 50,
 ) -> tuple[list[Submission], int]:
     query = select(Submission).options(
-        selectinload(Submission.links),
-        selectinload(Submission.schedule_requests),
+        selectinload(Submission.Links),
+        selectinload(Submission.Schedule_Requests),
     )
     count_query = select(func.count()).select_from(Submission)
 
     if status:
-        query = query.where(Submission.status == status)
-        count_query = count_query.where(Submission.status == status)
+        query = query.where(Submission.Status == status)
+        count_query = count_query.where(Submission.Status == status)
     if category:
-        query = query.where(Submission.category == category)
-        count_query = count_query.where(Submission.category == category)
+        query = query.where(Submission.Category == category)
+        count_query = count_query.where(Submission.Category == category)
     if target_newsletter:
-        query = query.where(Submission.target_newsletter == target_newsletter)
-        count_query = count_query.where(Submission.target_newsletter == target_newsletter)
+        query = query.where(Submission.Target_Newsletter == target_newsletter)
+        count_query = count_query.where(Submission.Target_Newsletter == target_newsletter)
     if search:
         pattern = f"%{search}%"
-        search_filter = Submission.original_headline.ilike(pattern) | Submission.original_body.ilike(pattern) | Submission.submitter_name.ilike(pattern)
+        search_filter = Submission.Original_Headline.ilike(pattern) | Submission.Original_Body.ilike(pattern) | Submission.Submitter_Name.ilike(pattern)
         query = query.where(search_filter)
         count_query = count_query.where(search_filter)
 
-    query = query.order_by(Submission.created_at.desc()).offset(offset).limit(limit)
+    query = query.order_by(Submission.Created_At.desc()).offset(offset).limit(limit)
 
     total = (await db.execute(count_query)).scalar()
     items = (await db.execute(query)).scalars().all()
@@ -126,10 +128,10 @@ async def add_link(
     if not submission:
         return None
     link = SubmissionLink(
-        submission_id=submission_id,
-        url=url,
-        anchor_text=anchor_text,
-        display_order=display_order,
+        Submission_Id=submission_id,
+        Url=url,
+        Anchor_Text=anchor_text,
+        Display_Order=display_order,
     )
     db.add(link)
     await db.commit()
@@ -138,7 +140,7 @@ async def add_link(
 
 
 async def delete_link(db: AsyncSession, link_id: str) -> bool:
-    result = await db.execute(select(SubmissionLink).where(SubmissionLink.id == link_id))
+    result = await db.execute(select(SubmissionLink).where(SubmissionLink.Id == link_id))
     link = result.scalar_one_or_none()
     if not link:
         return False
@@ -161,10 +163,10 @@ async def add_schedule_request(
     if not submission:
         return None
     sched = SubmissionScheduleRequest(
-        submission_id=submission_id,
-        requested_date=requested_date,
-        repeat_count=repeat_count,
-        repeat_note=repeat_note,
+        Submission_Id=submission_id,
+        Requested_Date=requested_date,
+        Repeat_Count=repeat_count,
+        Repeat_Note=repeat_note,
     )
     db.add(sched)
     await db.commit()
@@ -174,7 +176,7 @@ async def add_schedule_request(
 
 async def delete_schedule_request(db: AsyncSession, schedule_id: str) -> bool:
     result = await db.execute(
-        select(SubmissionScheduleRequest).where(SubmissionScheduleRequest.id == schedule_id)
+        select(SubmissionScheduleRequest).where(SubmissionScheduleRequest.Id == schedule_id)
     )
     sched = result.scalar_one_or_none()
     if not sched:
@@ -191,7 +193,7 @@ async def set_image(db: AsyncSession, submission_id: str, image_path: str) -> Su
     submission = await get_submission(db, submission_id)
     if not submission:
         return None
-    submission.has_image = True
-    submission.image_path = image_path
+    submission.Has_Image = True
+    submission.Image_Path = image_path
     await db.commit()
     return await get_submission(db, submission_id)

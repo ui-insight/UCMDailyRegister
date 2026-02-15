@@ -22,42 +22,42 @@ export interface TextDiff {
 }
 
 export interface AIEditResponse {
-  submission_id: string;
-  newsletter_type: 'tdr' | 'myui';
-  edited_headline: string;
-  edited_body: string;
-  headline_case: 'sentence_case' | 'title_case';
-  changes_made: string[];
-  flags: AIFlag[];
-  embedded_links: AIEditLink[];
-  confidence: number;
-  ai_provider: string;
-  ai_model: string;
-  headline_diff: TextDiff;
-  body_diff: TextDiff;
-  edit_version_id: string;
+  Submission_Id: string;
+  Newsletter_Type: 'tdr' | 'myui';
+  Edited_Headline: string;
+  Edited_Body: string;
+  Headline_Case: 'sentence_case' | 'title_case';
+  Changes_Made: string[];
+  Flags: AIFlag[];
+  Embedded_Links: AIEditLink[];
+  Confidence: number;
+  AI_Provider: string;
+  AI_Model: string;
+  Headline_Diff: TextDiff;
+  Body_Diff: TextDiff;
+  Edit_Version_Id: string;
 }
 
 export interface EditVersion {
-  id: string;
-  submission_id: string;
-  version_type: 'original' | 'ai_suggested' | 'editor_final';
-  headline: string;
-  body: string;
-  headline_case: 'sentence_case' | 'title_case' | null;
-  flags: AIFlag[] | null;
-  changes_made: string[] | null;
-  ai_provider: string | null;
-  ai_model: string | null;
-  created_at: string;
+  Id: string;
+  Submission_Id: string;
+  Version_Type: 'original' | 'ai_suggested' | 'editor_final';
+  Headline: string;
+  Body: string;
+  Headline_Case: 'sentence_case' | 'title_case' | null;
+  Flags: AIFlag[] | null;
+  Changes_Made: string[] | null;
+  AI_Provider: string | null;
+  AI_Model: string | null;
+  Created_At: string;
 }
 
 export interface StyleRule {
-  id: string;
-  rule_set: 'shared' | 'tdr' | 'myui';
-  category: string;
-  rule_key: string;
-  rule_text: string;
-  is_active: boolean;
-  severity: 'error' | 'warning' | 'info';
+  Id: string;
+  Rule_Set: 'shared' | 'tdr' | 'myui';
+  Category: string;
+  Rule_Key: string;
+  Rule_Text: string;
+  Is_Active: boolean;
+  Severity: 'error' | 'warning' | 'info';
 }

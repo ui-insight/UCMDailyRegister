@@ -19,45 +19,45 @@ export type SubmissionStatus =
   | 'rejected';
 
 export interface SubmissionLink {
-  id: string;
-  url: string;
-  anchor_text: string | null;
-  display_order: number;
+  Id: string;
+  Url: string;
+  Anchor_Text: string | null;
+  Display_Order: number;
 }
 
 export interface SubmissionScheduleRequest {
-  id: string;
-  requested_date: string | null;
-  repeat_count: number;
-  repeat_note: string | null;
+  Id: string;
+  Requested_Date: string | null;
+  Repeat_Count: number;
+  Repeat_Note: string | null;
 }
 
 export interface Submission {
-  id: string;
-  category: SubmissionCategory;
-  target_newsletter: TargetNewsletter;
-  original_headline: string;
-  original_body: string;
-  submitter_name: string;
-  submitter_email: string;
-  submitter_notes: string | null;
-  has_image: boolean;
-  image_path: string | null;
-  status: SubmissionStatus;
-  created_at: string;
-  updated_at: string;
-  links: SubmissionLink[];
-  schedule_requests: SubmissionScheduleRequest[];
+  Id: string;
+  Category: SubmissionCategory;
+  Target_Newsletter: TargetNewsletter;
+  Original_Headline: string;
+  Original_Body: string;
+  Submitter_Name: string;
+  Submitter_Email: string;
+  Submitter_Notes: string | null;
+  Has_Image: boolean;
+  Image_Path: string | null;
+  Status: SubmissionStatus;
+  Created_At: string;
+  Updated_At: string;
+  Links: SubmissionLink[];
+  Schedule_Requests: SubmissionScheduleRequest[];
 }
 
 export interface SubmissionCreate {
-  category: SubmissionCategory;
-  target_newsletter: TargetNewsletter;
-  original_headline: string;
-  original_body: string;
-  submitter_name: string;
-  submitter_email: string;
-  submitter_notes?: string;
-  links?: { url: string; anchor_text?: string }[];
-  schedule_requests?: { requested_date?: string; repeat_count?: number; repeat_note?: string }[];
+  Category: SubmissionCategory;
+  Target_Newsletter: TargetNewsletter;
+  Original_Headline: string;
+  Original_Body: string;
+  Submitter_Name: string;
+  Submitter_Email: string;
+  Submitter_Notes?: string;
+  Links?: { Url: string; Anchor_Text?: string }[];
+  Schedule_Requests?: { Requested_Date?: string; Repeat_Count?: number; Repeat_Note?: string }[];
 }

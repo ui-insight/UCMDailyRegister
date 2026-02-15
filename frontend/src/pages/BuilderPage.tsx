@@ -52,11 +52,11 @@ export default function BuilderPage() {
     setError(null);
     try {
       const nl = await assembleNewsletter({
-        newsletter_type: newsletterType,
-        publish_date: publishDate,
+        Newsletter_Type: newsletterType,
+        Publish_Date: publishDate,
       });
       setNewsletter(nl);
-      showToast(`Newsletter assembled with ${nl.items.length} items`);
+      showToast(`Newsletter assembled with ${nl.Items.length} items`);
       loadNewsletters();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Assembly failed');
@@ -70,7 +70,7 @@ export default function BuilderPage() {
     try {
       const nl = await getNewsletter(id);
       setNewsletter(nl);
-      setPublishDate(nl.publish_date);
+      setPublishDate(nl.Publish_Date);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load');
     } finally {
@@ -81,8 +81,8 @@ export default function BuilderPage() {
   const handleRemoveItem = async (itemId: string) => {
     if (!newsletter) return;
     try {
-      await removeNewsletterItem(newsletter.id, itemId);
-      const nl = await getNewsletter(newsletter.id);
+      await removeNewsletterItem(newsletter.Id, itemId);
+      const nl = await getNewsletter(newsletter.Id);
       setNewsletter(nl);
       showToast('Item removed');
     } catch (err) {
@@ -93,27 +93,27 @@ export default function BuilderPage() {
   const handleMoveItem = async (itemId: string, direction: 'up' | 'down') => {
     if (!newsletter) return;
 
-    const item = newsletter.items.find((i) => i.id === itemId);
+    const item = newsletter.Items.find((i) => i.Id === itemId);
     if (!item) return;
 
     // Get items in same section, sorted by position
-    const sectionItems = newsletter.items
-      .filter((i) => i.section_id === item.section_id)
-      .sort((a, b) => a.position - b.position);
+    const sectionItems = newsletter.Items
+      .filter((i) => i.Section_Id === item.Section_Id)
+      .sort((a, b) => a.Position - b.Position);
 
-    const idx = sectionItems.findIndex((i) => i.id === itemId);
+    const idx = sectionItems.findIndex((i) => i.Id === itemId);
     const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
     if (swapIdx < 0 || swapIdx >= sectionItems.length) return;
 
     const positions = sectionItems.map((i, index) => {
-      if (index === idx) return { id: i.id, position: swapIdx };
-      if (index === swapIdx) return { id: i.id, position: idx };
-      return { id: i.id, position: index };
+      if (index === idx) return { Id: i.Id, Position: swapIdx };
+      if (index === swapIdx) return { Id: i.Id, Position: idx };
+      return { Id: i.Id, Position: index };
     });
 
     try {
-      await reorderNewsletterItems(newsletter.id, positions);
-      const nl = await getNewsletter(newsletter.id);
+      await reorderNewsletterItems(newsletter.Id, positions);
+      const nl = await getNewsletter(newsletter.Id);
       setNewsletter(nl);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to reorder');
@@ -123,8 +123,8 @@ export default function BuilderPage() {
   const handleStatusChange = async (status: string) => {
     if (!newsletter) return;
     try {
-      await updateNewsletterStatus(newsletter.id, status);
-      const nl = await getNewsletter(newsletter.id);
+      await updateNewsletterStatus(newsletter.Id, status);
+      const nl = await getNewsletter(newsletter.Id);
       setNewsletter(nl);
       showToast(`Status updated to ${status.replace('_', ' ')}`);
     } catch (err) {
@@ -139,16 +139,16 @@ export default function BuilderPage() {
 
   // Group items by section
   const sectionMap = new Map<string, NewsletterSection>();
-  sections.forEach((s) => sectionMap.set(s.id, s));
+  sections.forEach((s) => sectionMap.set(s.Id, s));
 
   const itemsBySection = new Map<string, NewsletterItemResponse[]>();
   if (newsletter) {
     for (const section of sections) {
-      const items = newsletter.items
-        .filter((i) => i.section_id === section.id)
-        .sort((a, b) => a.position - b.position);
+      const items = newsletter.Items
+        .filter((i) => i.Section_Id === section.Id)
+        .sort((a, b) => a.Position - b.Position);
       if (items.length > 0) {
-        itemsBySection.set(section.id, items);
+        itemsBySection.set(section.Id, items);
       }
     }
   }
@@ -208,14 +208,14 @@ export default function BuilderPage() {
           {newsletter && (
             <>
               <a
-                href={getExportUrl(newsletter.id)}
+                href={getExportUrl(newsletter.Id)}
                 className="px-4 py-2 text-sm font-medium rounded-md bg-indigo-600 text-white hover:bg-indigo-700"
                 download
               >
                 Export Word Doc
               </a>
               <select
-                value={newsletter.status}
+                value={newsletter.Status}
                 onChange={(e) => handleStatusChange(e.target.value)}
                 className="rounded-md border border-gray-300 px-3 py-2 text-sm"
               >
@@ -255,7 +255,7 @@ export default function BuilderPage() {
                     {newsletterType === 'tdr' ? 'The Daily Register' : 'My UI'}
                   </h3>
                   <p className="text-sm text-gray-500">
-                    {new Date(newsletter.publish_date).toLocaleDateString('en-US', {
+                    {new Date(newsletter.Publish_Date).toLocaleDateString('en-US', {
                       weekday: 'long',
                       year: 'numeric',
                       month: 'long',
@@ -265,24 +265,24 @@ export default function BuilderPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span
-                    className={`text-xs px-2 py-1 rounded-full font-medium ${STATUS_COLORS[newsletter.status] || 'bg-gray-100'}`}
+                    className={`text-xs px-2 py-1 rounded-full font-medium ${STATUS_COLORS[newsletter.Status] || 'bg-gray-100'}`}
                   >
-                    {newsletter.status.replace(/_/g, ' ')}
+                    {newsletter.Status.replace(/_/g, ' ')}
                   </span>
                   <span className="text-xs text-gray-400">
-                    {newsletter.items.length} item{newsletter.items.length !== 1 ? 's' : ''}
+                    {newsletter.Items.length} item{newsletter.Items.length !== 1 ? 's' : ''}
                   </span>
                 </div>
               </div>
 
               {/* Sections with items */}
               {sections.map((section) => {
-                const items = itemsBySection.get(section.id) || [];
+                const items = itemsBySection.get(section.Id) || [];
                 return (
-                  <div key={section.id} className="bg-white rounded-lg shadow">
+                  <div key={section.Id} className="bg-white rounded-lg shadow">
                     <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                       <h4 className="text-sm font-semibold text-gray-900">
-                        {section.name}
+                        {section.Name}
                       </h4>
                       <span className="text-xs text-gray-400">
                         {items.length} item{items.length !== 1 ? 's' : ''}
@@ -296,26 +296,26 @@ export default function BuilderPage() {
                       <div className="divide-y divide-gray-50">
                         {items.map((item, idx) => (
                           <div
-                            key={item.id}
+                            key={item.Id}
                             className="px-4 py-3 hover:bg-gray-50 group"
                           >
                             <div className="flex items-start justify-between">
                               <div className="flex-1 min-w-0">
                                 <p className="text-sm font-medium text-gray-900">
-                                  {item.final_headline}
+                                  {item.Final_Headline}
                                 </p>
                                 <p className="text-xs text-gray-600 mt-1 line-clamp-2">
-                                  {item.final_body.replace(/<[^>]+>/g, '')}
+                                  {item.Final_Body.replace(/<[^>]+>/g, '')}
                                 </p>
-                                {item.run_number > 1 && (
+                                {item.Run_Number > 1 && (
                                   <span className="text-xs text-amber-600 mt-1 inline-block">
-                                    Run #{item.run_number}
+                                    Run #{item.Run_Number}
                                   </span>
                                 )}
                               </div>
                               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
                                 <button
-                                  onClick={() => handleMoveItem(item.id, 'up')}
+                                  onClick={() => handleMoveItem(item.Id, 'up')}
                                   disabled={idx === 0}
                                   className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30"
                                   title="Move up"
@@ -323,7 +323,7 @@ export default function BuilderPage() {
                                   &#x25B2;
                                 </button>
                                 <button
-                                  onClick={() => handleMoveItem(item.id, 'down')}
+                                  onClick={() => handleMoveItem(item.Id, 'down')}
                                   disabled={idx === items.length - 1}
                                   className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30"
                                   title="Move down"
@@ -331,7 +331,7 @@ export default function BuilderPage() {
                                   &#x25BC;
                                 </button>
                                 <button
-                                  onClick={() => handleRemoveItem(item.id)}
+                                  onClick={() => handleRemoveItem(item.Id)}
                                   className="p-1 text-red-400 hover:text-red-600"
                                   title="Remove"
                                 >
@@ -360,20 +360,20 @@ export default function BuilderPage() {
               <div className="space-y-2">
                 {newsletters.map((nl) => (
                   <button
-                    key={nl.id}
-                    onClick={() => handleLoadNewsletter(nl.id)}
+                    key={nl.Id}
+                    onClick={() => handleLoadNewsletter(nl.Id)}
                     className={`w-full text-left p-2 rounded text-sm hover:bg-gray-50 ${
-                      newsletter?.id === nl.id ? 'bg-amber-50 border border-amber-200' : ''
+                      newsletter?.Id === nl.Id ? 'bg-amber-50 border border-amber-200' : ''
                     }`}
                   >
                     <p className="font-medium text-gray-900">
-                      {new Date(nl.publish_date).toLocaleDateString()}
+                      {new Date(nl.Publish_Date).toLocaleDateString()}
                     </p>
                     <p className="text-xs text-gray-500">
                       <span
-                        className={`inline-block px-1.5 py-0.5 rounded text-xs ${STATUS_COLORS[nl.status] || 'bg-gray-100'}`}
+                        className={`inline-block px-1.5 py-0.5 rounded text-xs ${STATUS_COLORS[nl.Status] || 'bg-gray-100'}`}
                       >
-                        {nl.status.replace(/_/g, ' ')}
+                        {nl.Status.replace(/_/g, ' ')}
                       </span>
                     </p>
                   </button>

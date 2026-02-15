@@ -13,37 +13,31 @@ async def get_active_config(
     newsletter_type: str,
     for_date: date | None = None,
 ) -> ScheduleConfig | None:
-    """Get the active schedule config for a newsletter type based on the date.
-
-    Determines if we're in academic year or summer mode based on the month.
-    """
+    """Get the active schedule config for a newsletter type based on the date."""
     if for_date is None:
         for_date = date.today()
 
     month = for_date.month
 
-    # Load all configs for this newsletter type
     result = await db.execute(
         sa.select(ScheduleConfig).where(
-            ScheduleConfig.newsletter_type == newsletter_type,
+            ScheduleConfig.Newsletter_Type == newsletter_type,
         )
     )
     configs = list(result.scalars().all())
 
     for config in configs:
-        if config.active_start_month is None or config.active_end_month is None:
+        if config.Active_Start_Month is None or config.Active_End_Month is None:
             continue
-        start = config.active_start_month
-        end = config.active_end_month
+        start = config.Active_Start_Month
+        end = config.Active_End_Month
         if start <= end:
             if start <= month <= end:
                 return config
         else:
-            # Wraps around year (e.g., Aug-May = 8-5)
             if month >= start or month <= end:
                 return config
 
-    # Fallback: return the first one
     return configs[0] if configs else None
 
 
@@ -55,21 +49,18 @@ def get_next_publish_date(
     if from_date is None:
         from_date = date.today()
 
-    if config.is_daily:
-        # Daily: next weekday (skip weekends)
+    if config.Is_Daily:
         next_day = from_date + timedelta(days=1)
-        while next_day.weekday() >= 5:  # Saturday=5, Sunday=6
+        while next_day.weekday() >= 5:
             next_day += timedelta(days=1)
         return next_day
 
-    if config.publish_day_of_week is not None:
-        # Weekly: find next occurrence of publish_day_of_week
-        days_ahead = config.publish_day_of_week - from_date.weekday()
+    if config.Publish_Day_Of_Week is not None:
+        days_ahead = config.Publish_Day_Of_Week - from_date.weekday()
         if days_ahead <= 0:
             days_ahead += 7
         return from_date + timedelta(days=days_ahead)
 
-    # Fallback: tomorrow
     return from_date + timedelta(days=1)
 
 
@@ -78,21 +69,18 @@ def get_submission_deadline(
     publish_date: date,
 ) -> datetime:
     """Calculate the submission deadline for a given publish date."""
-    if config.is_daily:
-        # Deadline is the day before at the configured time
+    if config.Is_Daily:
         deadline_date = publish_date - timedelta(days=1)
-        return datetime.combine(deadline_date, config.deadline_time)
+        return datetime.combine(deadline_date, config.Deadline_Time)
 
-    if config.deadline_day_of_week is not None:
-        # Find the deadline day before the publish date
-        days_back = publish_date.weekday() - config.deadline_day_of_week
+    if config.Deadline_Day_Of_Week is not None:
+        days_back = publish_date.weekday() - config.Deadline_Day_Of_Week
         if days_back <= 0:
             days_back += 7
         deadline_date = publish_date - timedelta(days=days_back)
-        return datetime.combine(deadline_date, config.deadline_time)
+        return datetime.combine(deadline_date, config.Deadline_Time)
 
-    # Fallback: day before at the configured time
-    return datetime.combine(publish_date - timedelta(days=1), config.deadline_time)
+    return datetime.combine(publish_date - timedelta(days=1), config.Deadline_Time)
 
 
 async def list_configs(
@@ -102,6 +90,6 @@ async def list_configs(
     """List all schedule configs, optionally filtered by newsletter type."""
     query = sa.select(ScheduleConfig)
     if newsletter_type:
-        query = query.where(ScheduleConfig.newsletter_type == newsletter_type)
-    result = await db.execute(query.order_by(ScheduleConfig.newsletter_type, ScheduleConfig.mode))
+        query = query.where(ScheduleConfig.Newsletter_Type == newsletter_type)
+    result = await db.execute(query.order_by(ScheduleConfig.Newsletter_Type, ScheduleConfig.Mode))
     return list(result.scalars().all())

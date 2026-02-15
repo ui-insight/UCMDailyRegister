@@ -47,3 +47,14 @@ htmlcov/
 
 # Alembic
 backend/alembic/versions/__pycache__/
+
+# MkDocs
+site/
+
+# Binary documents (don't track in repo)
+*.pdf
+*.docx
+*.xlsx
+*.pptx
+# Exception: docs directory may have assets
+!docs/**

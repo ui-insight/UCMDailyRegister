@@ -53,17 +53,17 @@ class AIEditor:
         """Load active style rules for a newsletter type (shared + type-specific)."""
         result = await session.execute(
             sa.select(StyleRule).where(
-                StyleRule.is_active == True,  # noqa: E712
-                StyleRule.rule_set.in_(["shared", newsletter_type]),
+                StyleRule.Is_Active == True,  # noqa: E712
+                StyleRule.Rule_Set.in_(["shared", newsletter_type]),
             )
         )
         rules = result.scalars().all()
         return [
             {
-                "category": r.category,
-                "rule_key": r.rule_key,
-                "rule_text": r.rule_text,
-                "severity": r.severity,
+                "category": r.Category,
+                "rule_key": r.Rule_Key,
+                "rule_text": r.Rule_Text,
+                "severity": r.Severity,
             }
             for r in rules
         ]
@@ -71,13 +71,9 @@ class AIEditor:
     def pre_analyze(
         self, headline: str, body: str, category: str, submitter_notes: str | None
     ) -> list[dict]:
-        """Run rule-based pre-analysis before sending to LLM.
-
-        Returns flags that can be included in the edit result.
-        """
+        """Run rule-based pre-analysis before sending to LLM."""
         flags = []
 
-        # Check for first-person usage
         for text_label, text in [("headline", headline), ("body", body)]:
             findings = detect_first_person(text)
             if findings:
@@ -88,7 +84,6 @@ class AIEditor:
                     "message": f"First-person usage detected in {text_label}: {words}",
                 })
 
-        # Check for exclamation marks
         for text_label, text in [("headline", headline), ("body", body)]:
             findings = detect_exclamation_marks(text)
             if findings:
@@ -98,7 +93,6 @@ class AIEditor:
                     "message": f"Exclamation mark(s) found in {text_label} ({len(findings)} occurrence(s))",
                 })
 
-        # Check for required event details
         if is_event_category(category):
             details = check_event_details(body)
             if details["missing"]:
@@ -109,7 +103,6 @@ class AIEditor:
                     "message": f"Event listing may be missing: {missing}",
                 })
 
-        # Parse submitter notes for link instructions
         if submitter_notes:
             parsed_links = parse_submitter_notes(submitter_notes)
             if parsed_links:
@@ -127,50 +120,37 @@ class AIEditor:
         submission: Submission,
         newsletter_type: str,
     ) -> EditResult:
-        """Run the full AI editing pipeline on a submission.
-
-        Args:
-            session: Database session
-            submission: The Submission ORM object
-            newsletter_type: "tdr" or "myui"
-
-        Returns:
-            EditResult with edited text, flags, and diffs
-        """
+        """Run the full AI editing pipeline on a submission."""
         headline_case = "sentence_case" if newsletter_type == "tdr" else "title_case"
 
-        # 1. Load active style rules
         style_rules = await self.load_style_rules(session, newsletter_type)
 
-        # 2. Pre-analyze for rule-based issues
         pre_flags = self.pre_analyze(
-            submission.original_headline,
-            submission.original_body,
-            submission.category,
-            submission.submitter_notes,
+            submission.Original_Headline,
+            submission.Original_Body,
+            submission.Category,
+            submission.Submitter_Notes,
         )
 
-        # 3. Build prompts
         system_prompt = build_system_prompt(
             newsletter_type=newsletter_type,
             style_rules=style_rules,
-            category=submission.category,
+            category=submission.Category,
         )
 
         links = [
-            {"url": link.url, "anchor_text": link.anchor_text}
-            for link in submission.links
+            {"url": link.Url, "anchor_text": link.Anchor_Text}
+            for link in submission.Links
         ]
 
         user_prompt = build_edit_user_prompt(
-            headline=submission.original_headline,
-            body=submission.original_body,
-            submitter_notes=submission.submitter_notes,
+            headline=submission.Original_Headline,
+            body=submission.Original_Body,
+            submitter_notes=submission.Submitter_Notes,
             links=links if links else None,
-            category=submission.category,
+            category=submission.Category,
         )
 
-        # 4. Call LLM
         try:
             ai_result = await self.llm.complete_json(
                 system_prompt=system_prompt,
@@ -179,11 +159,10 @@ class AIEditor:
                 max_tokens=3000,
             )
         except Exception as e:
-            logger.error(f"LLM call failed for submission {submission.id}: {e}")
-            # Return a minimal result with error flag
+            logger.error(f"LLM call failed for submission {submission.Id}: {e}")
             return EditResult(
-                edited_headline=submission.original_headline,
-                edited_body=submission.original_body,
+                edited_headline=submission.Original_Headline,
+                edited_body=submission.Original_Body,
                 headline_case=headline_case,
                 flags=[
                     *pre_flags,
@@ -198,29 +177,25 @@ class AIEditor:
                 ai_model="error",
             )
 
-        # 5. Extract and validate AI response
-        edited_headline = ai_result.get("edited_headline", submission.original_headline)
-        edited_body = ai_result.get("edited_body", submission.original_body)
+        edited_headline = ai_result.get("edited_headline", submission.Original_Headline)
+        edited_body = ai_result.get("edited_body", submission.Original_Body)
         changes_made = ai_result.get("changes_made", [])
         ai_flags = ai_result.get("flags", [])
         embedded_links = ai_result.get("embedded_links", [])
         confidence = ai_result.get("confidence", 0.5)
 
-        # 6. Post-process: enforce headline case
         if headline_case == "sentence_case":
             edited_headline = to_sentence_case(edited_headline)
         else:
             edited_headline = to_title_case(edited_headline)
 
-        # 7. Generate diffs
         headline_diff = diff_to_dict(
-            generate_word_diff(submission.original_headline, edited_headline)
+            generate_word_diff(submission.Original_Headline, edited_headline)
         )
         body_diff = diff_to_dict(
-            generate_word_diff(submission.original_body, edited_body)
+            generate_word_diff(submission.Original_Body, edited_body)
         )
 
-        # 8. Merge flags (pre-analysis + AI flags)
         all_flags = pre_flags + ai_flags
 
         return EditResult(
@@ -245,38 +220,34 @@ class AIEditor:
         original_headline: str,
         original_body: str,
     ) -> tuple[EditVersion, EditVersion]:
-        """Save the original and AI-suggested versions to the database.
-
-        Returns (original_version, ai_version) tuple.
-        """
-        # Check if original version already exists
+        """Save the original and AI-suggested versions to the database."""
         existing = await session.execute(
             sa.select(EditVersion).where(
-                EditVersion.submission_id == submission_id,
-                EditVersion.version_type == "original",
+                EditVersion.Submission_Id == submission_id,
+                EditVersion.Version_Type == "original",
             )
         )
         original_version = existing.scalar_one_or_none()
 
         if not original_version:
             original_version = EditVersion(
-                submission_id=submission_id,
-                version_type="original",
-                headline=original_headline,
-                body=original_body,
+                Submission_Id=submission_id,
+                Version_Type="original",
+                Headline=original_headline,
+                Body=original_body,
             )
             session.add(original_version)
 
         ai_version = EditVersion(
-            submission_id=submission_id,
-            version_type="ai_suggested",
-            headline=edit_result.edited_headline,
-            body=edit_result.edited_body,
-            headline_case=edit_result.headline_case,
-            flags=edit_result.flags,
-            changes_made=edit_result.changes_made,
-            ai_provider=edit_result.ai_provider,
-            ai_model=edit_result.ai_model,
+            Submission_Id=submission_id,
+            Version_Type="ai_suggested",
+            Headline=edit_result.edited_headline,
+            Body=edit_result.edited_body,
+            Headline_Case=edit_result.headline_case,
+            Flags=edit_result.flags,
+            Changes_Made=edit_result.changes_made,
+            AI_Provider=edit_result.ai_provider,
+            AI_Model=edit_result.ai_model,
         )
         session.add(ai_version)
 

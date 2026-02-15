@@ -1,3 +1,20 @@
+"""Newsletter assembly models for the UCM Newsletter Builder.
+
+A Newsletter represents a single edition of either The Daily Register (TDR) or
+My UI, identified by its type and publish date. The editor dashboard assembles
+a newsletter by placing approved submissions into section slots, producing an
+ordered collection of NewsletterItem rows.
+
+Each NewsletterItem binds a submission to a specific section within the
+newsletter, records its final (possibly editor-tweaked) headline and body, and
+tracks its position within the section and its run number (how many times the
+item has appeared in previous editions).
+
+Newsletter_Type and Status values are governed by the AllowedValue table rather
+than hard-coded enums. A unique constraint on (Newsletter_Type, Publish_Date)
+prevents duplicate editions for the same day and newsletter.
+"""
+
 import uuid
 from datetime import date, datetime
 from typing import TYPE_CHECKING
@@ -6,72 +23,63 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
-from app.models.section import NewsletterSection
 
 if TYPE_CHECKING:
+    from app.models.section import NewsletterSection
     from app.models.submission import Submission
 
 
 class Newsletter(Base):
+    """A single edition of a UCM newsletter (TDR or My UI) for a specific publish date."""
+
     __tablename__ = "newsletters"
 
-    id: Mapped[str] = mapped_column(
+    __table_args__ = (
+        sa.UniqueConstraint("Newsletter_Type", "Publish_Date", name="uq_newsletter_type_date"),
+    )
+
+    Id: Mapped[str] = mapped_column(
         sa.String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
-    newsletter_type: Mapped[str] = mapped_column(
-        sa.Enum("tdr", "myui", name="newsletter_type_nl", native_enum=False),
-        nullable=False,
-    )
-    publish_date: Mapped[date] = mapped_column(sa.Date, nullable=False)
-    status: Mapped[str] = mapped_column(
-        sa.Enum(
-            "draft",
-            "in_progress",
-            "ready_for_review",
-            "submitted",
-            "published",
-            name="newsletter_status",
-            native_enum=False,
-        ),
-        nullable=False,
-        default="draft",
-    )
-    created_at: Mapped[datetime] = mapped_column(
+    Newsletter_Type: Mapped[str] = mapped_column(sa.String(50), nullable=False)
+    Publish_Date: Mapped[date] = mapped_column(sa.Date, nullable=False)
+    Status: Mapped[str] = mapped_column(sa.String(50), nullable=False, default="draft")
+    Created_At: Mapped[datetime] = mapped_column(
         sa.DateTime, nullable=False, server_default=sa.func.now()
     )
-    updated_at: Mapped[datetime] = mapped_column(
+    Updated_At: Mapped[datetime] = mapped_column(
         sa.DateTime, nullable=False, server_default=sa.func.now(), onupdate=sa.func.now()
     )
 
-    items: Mapped[list["NewsletterItem"]] = relationship(
-        back_populates="newsletter", cascade="all, delete-orphan"
-    )
-
-    __table_args__ = (
-        sa.UniqueConstraint("newsletter_type", "publish_date", name="uq_newsletter_type_date"),
+    Items: Mapped[list["NewsletterItem"]] = relationship(
+        back_populates="Newsletter_Rel", cascade="all, delete-orphan", lazy="selectin"
     )
 
 
 class NewsletterItem(Base):
+    """A placed submission within a newsletter edition, assigned to a section and position."""
+
     __tablename__ = "newsletter_items"
 
-    id: Mapped[str] = mapped_column(
+    Id: Mapped[str] = mapped_column(
         sa.String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
-    newsletter_id: Mapped[str] = mapped_column(
-        sa.String(36), sa.ForeignKey("newsletters.id"), nullable=False
+    Newsletter_Id: Mapped[str] = mapped_column(
+        sa.String(36), sa.ForeignKey("newsletters.Id"), nullable=False
     )
-    submission_id: Mapped[str] = mapped_column(
-        sa.String(36), sa.ForeignKey("submissions.id"), nullable=False
+    Submission_Id: Mapped[str] = mapped_column(
+        sa.String(36), sa.ForeignKey("submissions.Id"), nullable=False
     )
-    section_id: Mapped[str] = mapped_column(
-        sa.String(36), sa.ForeignKey("newsletter_sections.id"), nullable=False
+    Section_Id: Mapped[str] = mapped_column(
+        sa.String(36), sa.ForeignKey("newsletter_sections.Id"), nullable=False
     )
-    position: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
-    final_headline: Mapped[str] = mapped_column(sa.Text, nullable=False)
-    final_body: Mapped[str] = mapped_column(sa.Text, nullable=False)
-    run_number: Mapped[int] = mapped_column(sa.Integer, default=1)
+    Position: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
+    Final_Headline: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    Final_Body: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    Run_Number: Mapped[int] = mapped_column(sa.Integer, default=1)
 
-    newsletter: Mapped["Newsletter"] = relationship(back_populates="items")
-    submission: Mapped["Submission"] = relationship()
-    section: Mapped["NewsletterSection"] = relationship()
+    Newsletter_Rel: Mapped["Newsletter"] = relationship(
+        back_populates="Items", lazy="selectin"
+    )
+    Submission_Rel: Mapped["Submission"] = relationship(lazy="selectin")
+    Section_Rel: Mapped["NewsletterSection"] = relationship(lazy="selectin")

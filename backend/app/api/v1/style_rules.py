@@ -1,7 +1,5 @@
 """Style rules CRUD API endpoints."""
 
-import uuid
-
 import sqlalchemy as sa
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,13 +19,13 @@ async def list_style_rules(
     session: AsyncSession = Depends(get_db),
 ):
     """List style rules, optionally filtered by rule_set, category, or active status."""
-    query = sa.select(StyleRule).order_by(StyleRule.rule_set, StyleRule.category, StyleRule.rule_key)
+    query = sa.select(StyleRule).order_by(StyleRule.Rule_Set, StyleRule.Category, StyleRule.Rule_Key)
     if rule_set:
-        query = query.where(StyleRule.rule_set == rule_set)
+        query = query.where(StyleRule.Rule_Set == rule_set)
     if category:
-        query = query.where(StyleRule.category == category)
+        query = query.where(StyleRule.Category == category)
     if active_only:
-        query = query.where(StyleRule.is_active == True)  # noqa: E712
+        query = query.where(StyleRule.Is_Active == True)  # noqa: E712
     result = await session.execute(query)
     return result.scalars().all()
 
@@ -39,13 +37,12 @@ async def create_style_rule(
 ):
     """Create a new style rule."""
     rule = StyleRule(
-        id=str(uuid.uuid4()),
-        rule_set=data.rule_set,
-        category=data.category,
-        rule_key=data.rule_key,
-        rule_text=data.rule_text,
-        severity=data.severity,
-        is_active=True,
+        Rule_Set=data.Rule_Set,
+        Category=data.Category,
+        Rule_Key=data.Rule_Key,
+        Rule_Text=data.Rule_Text,
+        Severity=data.Severity,
+        Is_Active=True,
     )
     session.add(rule)
     await session.commit()
@@ -60,7 +57,7 @@ async def get_style_rule(
 ):
     """Get a single style rule."""
     result = await session.execute(
-        sa.select(StyleRule).where(StyleRule.id == rule_id)
+        sa.select(StyleRule).where(StyleRule.Id == rule_id)
     )
     rule = result.scalar_one_or_none()
     if not rule:
@@ -76,7 +73,7 @@ async def update_style_rule(
 ):
     """Update a style rule."""
     result = await session.execute(
-        sa.select(StyleRule).where(StyleRule.id == rule_id)
+        sa.select(StyleRule).where(StyleRule.Id == rule_id)
     )
     rule = result.scalar_one_or_none()
     if not rule:
@@ -98,7 +95,7 @@ async def delete_style_rule(
 ):
     """Delete a style rule."""
     result = await session.execute(
-        sa.select(StyleRule).where(StyleRule.id == rule_id)
+        sa.select(StyleRule).where(StyleRule.Id == rule_id)
     )
     rule = result.scalar_one_or_none()
     if not rule:

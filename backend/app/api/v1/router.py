@@ -6,6 +6,7 @@ from app.api.v1.ai_edits import router as ai_edits_router
 from app.api.v1.newsletters import router as newsletters_router
 from app.api.v1.sections import router as sections_router
 from app.api.v1.schedule import router as schedule_router
+from app.api.v1.allowed_values import router as allowed_values_router
 
 router = APIRouter(prefix="/api/v1")
 
@@ -21,3 +22,4 @@ router.include_router(ai_edits_router)
 router.include_router(newsletters_router)
 router.include_router(sections_router)
 router.include_router(schedule_router)
+router.include_router(allowed_values_router)

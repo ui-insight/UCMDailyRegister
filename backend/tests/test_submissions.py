@@ -1,0 +1,144 @@
+"""Tests for Submission CRUD endpoints."""
+
+import pytest
+from httpx import AsyncClient
+
+from tests.conftest import make_submission_data
+
+
+@pytest.mark.asyncio
+class TestSubmissionCRUD:
+    async def test_create_submission(self, client: AsyncClient):
+        data = make_submission_data()
+        resp = await client.post("/api/v1/submissions/", json=data)
+        assert resp.status_code == 201
+        body = resp.json()
+        assert body["Original_Headline"] == data["Original_Headline"]
+        assert body["Category"] == "faculty_staff"
+        assert body["Status"] == "new"
+        assert body["Id"]
+
+    async def test_create_submission_with_links(self, client: AsyncClient):
+        data = make_submission_data(
+            Links=[{"Url": "https://example.com", "Anchor_Text": "Example"}]
+        )
+        resp = await client.post("/api/v1/submissions/", json=data)
+        assert resp.status_code == 201
+        body = resp.json()
+        assert len(body["Links"]) == 1
+        assert body["Links"][0]["Url"] == "https://example.com"
+
+    async def test_create_submission_with_schedule(self, client: AsyncClient):
+        data = make_submission_data(
+            Schedule_Requests=[{"Requested_Date": "2026-03-15", "Repeat_Count": 3}]
+        )
+        resp = await client.post("/api/v1/submissions/", json=data)
+        assert resp.status_code == 201
+        body = resp.json()
+        assert len(body["Schedule_Requests"]) == 1
+        assert body["Schedule_Requests"][0]["Repeat_Count"] == 3
+
+    async def test_list_submissions(self, client: AsyncClient):
+        # Create two submissions
+        await client.post("/api/v1/submissions/", json=make_submission_data())
+        await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(Original_Headline="Second one"),
+        )
+        resp = await client.get("/api/v1/submissions/")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["Total"] == 2
+        assert len(body["Items"]) == 2
+
+    async def test_list_submissions_filter_status(self, client: AsyncClient):
+        await client.post("/api/v1/submissions/", json=make_submission_data())
+        resp = await client.get("/api/v1/submissions/?status=new")
+        assert resp.status_code == 200
+        assert resp.json()["Total"] == 1
+
+        resp = await client.get("/api/v1/submissions/?status=approved")
+        assert resp.json()["Total"] == 0
+
+    async def test_get_submission(self, client: AsyncClient):
+        create_resp = await client.post("/api/v1/submissions/", json=make_submission_data())
+        sub_id = create_resp.json()["Id"]
+
+        resp = await client.get(f"/api/v1/submissions/{sub_id}")
+        assert resp.status_code == 200
+        assert resp.json()["Id"] == sub_id
+
+    async def test_get_submission_not_found(self, client: AsyncClient):
+        resp = await client.get("/api/v1/submissions/nonexistent")
+        assert resp.status_code == 404
+
+    async def test_update_submission(self, client: AsyncClient):
+        create_resp = await client.post("/api/v1/submissions/", json=make_submission_data())
+        sub_id = create_resp.json()["Id"]
+
+        resp = await client.patch(
+            f"/api/v1/submissions/{sub_id}",
+            json={"Status": "approved"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["Status"] == "approved"
+
+    async def test_delete_submission(self, client: AsyncClient):
+        create_resp = await client.post("/api/v1/submissions/", json=make_submission_data())
+        sub_id = create_resp.json()["Id"]
+
+        resp = await client.delete(f"/api/v1/submissions/{sub_id}")
+        assert resp.status_code == 204
+
+        resp = await client.get(f"/api/v1/submissions/{sub_id}")
+        assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+class TestSubmissionLinks:
+    async def test_add_link(self, client: AsyncClient):
+        create_resp = await client.post("/api/v1/submissions/", json=make_submission_data())
+        sub_id = create_resp.json()["Id"]
+
+        resp = await client.post(
+            f"/api/v1/submissions/{sub_id}/links",
+            json={"Url": "https://test.com", "Anchor_Text": "Test"},
+        )
+        assert resp.status_code == 201
+        assert resp.json()["Url"] == "https://test.com"
+
+    async def test_delete_link(self, client: AsyncClient):
+        data = make_submission_data(
+            Links=[{"Url": "https://delete-me.com", "Anchor_Text": "Delete"}]
+        )
+        create_resp = await client.post("/api/v1/submissions/", json=data)
+        link_id = create_resp.json()["Links"][0]["Id"]
+        sub_id = create_resp.json()["Id"]
+
+        resp = await client.delete(f"/api/v1/submissions/{sub_id}/links/{link_id}")
+        assert resp.status_code == 204
+
+
+@pytest.mark.asyncio
+class TestSubmissionSchedule:
+    async def test_add_schedule_request(self, client: AsyncClient):
+        create_resp = await client.post("/api/v1/submissions/", json=make_submission_data())
+        sub_id = create_resp.json()["Id"]
+
+        resp = await client.post(
+            f"/api/v1/submissions/{sub_id}/schedule",
+            json={"Requested_Date": "2026-04-01", "Repeat_Count": 2},
+        )
+        assert resp.status_code == 201
+        assert resp.json()["Repeat_Count"] == 2
+
+    async def test_delete_schedule_request(self, client: AsyncClient):
+        data = make_submission_data(
+            Schedule_Requests=[{"Requested_Date": "2026-05-01", "Repeat_Count": 1}]
+        )
+        create_resp = await client.post("/api/v1/submissions/", json=data)
+        sched_id = create_resp.json()["Schedule_Requests"][0]["Id"]
+        sub_id = create_resp.json()["Id"]
+
+        resp = await client.delete(f"/api/v1/submissions/{sub_id}/schedule/{sched_id}")
+        assert resp.status_code == 204

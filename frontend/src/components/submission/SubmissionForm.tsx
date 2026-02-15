@@ -8,14 +8,14 @@ import ImageUpload from './ImageUpload';
 import SchedulePrefs from './SchedulePrefs';
 
 interface LinkEntry {
-  url: string;
-  anchor_text: string;
+  Url: string;
+  Anchor_Text: string;
 }
 
 interface ScheduleEntry {
-  requested_date: string;
-  repeat_count: number;
-  repeat_note: string;
+  Requested_Date: string;
+  Repeat_Count: number;
+  Repeat_Note: string;
 }
 
 export default function SubmissionForm() {
@@ -29,9 +29,9 @@ export default function SubmissionForm() {
   const [links, setLinks] = useState<LinkEntry[]>([]);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [schedule, setSchedule] = useState<ScheduleEntry>({
-    requested_date: '',
-    repeat_count: 1,
-    repeat_note: '',
+    Requested_Date: '',
+    Repeat_Count: 1,
+    Repeat_Note: '',
   });
 
   const [submitting, setSubmitting] = useState(false);
@@ -46,22 +46,22 @@ export default function SubmissionForm() {
 
     try {
       const data: SubmissionCreate = {
-        category,
-        target_newsletter: targetNewsletter,
-        original_headline: headline,
-        original_body: body,
-        submitter_name: submitterName,
-        submitter_email: submitterEmail,
-        submitter_notes: notes || undefined,
-        links: links
-          .filter((l) => l.url.trim())
-          .map((l) => ({ url: l.url, anchor_text: l.anchor_text || undefined })),
-        schedule_requests: schedule.requested_date
+        Category: category,
+        Target_Newsletter: targetNewsletter,
+        Original_Headline: headline,
+        Original_Body: body,
+        Submitter_Name: submitterName,
+        Submitter_Email: submitterEmail,
+        Submitter_Notes: notes || undefined,
+        Links: links
+          .filter((l) => l.Url.trim())
+          .map((l) => ({ Url: l.Url, Anchor_Text: l.Anchor_Text || undefined })),
+        Schedule_Requests: schedule.Requested_Date
           ? [
               {
-                requested_date: schedule.requested_date,
-                repeat_count: schedule.repeat_count,
-                repeat_note: schedule.repeat_note || undefined,
+                Requested_Date: schedule.Requested_Date,
+                Repeat_Count: schedule.Repeat_Count,
+                Repeat_Note: schedule.Repeat_Note || undefined,
               },
             ]
           : [],
@@ -70,7 +70,7 @@ export default function SubmissionForm() {
       const submission = await createSubmission(data);
 
       if (imageFile) {
-        await uploadImage(submission.id, imageFile);
+        await uploadImage(submission.Id, imageFile);
       }
 
       setSuccess(true);
@@ -80,7 +80,7 @@ export default function SubmissionForm() {
       setNotes('');
       setLinks([]);
       setImageFile(null);
-      setSchedule({ requested_date: '', repeat_count: 1, repeat_note: '' });
+      setSchedule({ Requested_Date: '', Repeat_Count: 1, Repeat_Note: '' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Submission failed');
     } finally {

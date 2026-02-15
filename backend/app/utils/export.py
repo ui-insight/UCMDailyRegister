@@ -63,8 +63,8 @@ def export_newsletter_docx(
 
         # Items
         for item in section["items"]:
-            headline = item["final_headline"]
-            body = item["final_body"]
+            headline = item["Final_Headline"]
+            body = item["Final_Body"]
 
             # Headline as bold paragraph
             h_para = doc.add_paragraph()

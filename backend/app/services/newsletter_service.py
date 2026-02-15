@@ -19,9 +19,9 @@ async def create_newsletter(
 ) -> Newsletter:
     """Create a new newsletter draft."""
     newsletter = Newsletter(
-        newsletter_type=newsletter_type,
-        publish_date=publish_date,
-        status="draft",
+        Newsletter_Type=newsletter_type,
+        Publish_Date=publish_date,
+        Status="draft",
     )
     db.add(newsletter)
     await db.commit()
@@ -32,8 +32,8 @@ async def create_newsletter(
 async def get_newsletter(db: AsyncSession, newsletter_id: str) -> Newsletter | None:
     result = await db.execute(
         sa.select(Newsletter)
-        .where(Newsletter.id == newsletter_id)
-        .options(selectinload(Newsletter.items))
+        .where(Newsletter.Id == newsletter_id)
+        .options(selectinload(Newsletter.Items))
     )
     return result.scalar_one_or_none()
 
@@ -44,12 +44,12 @@ async def list_newsletters(
     status: str | None = None,
     limit: int = 20,
 ) -> list[Newsletter]:
-    query = sa.select(Newsletter).options(selectinload(Newsletter.items))
+    query = sa.select(Newsletter).options(selectinload(Newsletter.Items))
     if newsletter_type:
-        query = query.where(Newsletter.newsletter_type == newsletter_type)
+        query = query.where(Newsletter.Newsletter_Type == newsletter_type)
     if status:
-        query = query.where(Newsletter.status == status)
-    query = query.order_by(Newsletter.publish_date.desc()).limit(limit)
+        query = query.where(Newsletter.Status == status)
+    query = query.order_by(Newsletter.Publish_Date.desc()).limit(limit)
     result = await db.execute(query)
     return list(result.scalars().all())
 
@@ -60,7 +60,7 @@ async def update_newsletter_status(
     newsletter = await get_newsletter(db, newsletter_id)
     if not newsletter:
         return None
-    newsletter.status = status
+    newsletter.Status = status
     await db.commit()
     await db.refresh(newsletter)
     return newsletter
@@ -89,13 +89,13 @@ async def add_item(
     run_number: int = 1,
 ) -> NewsletterItem:
     item = NewsletterItem(
-        newsletter_id=newsletter_id,
-        submission_id=submission_id,
-        section_id=section_id,
-        final_headline=final_headline,
-        final_body=final_body,
-        position=position,
-        run_number=run_number,
+        Newsletter_Id=newsletter_id,
+        Submission_Id=submission_id,
+        Section_Id=section_id,
+        Final_Headline=final_headline,
+        Final_Body=final_body,
+        Position=position,
+        Run_Number=run_number,
     )
     db.add(item)
     await db.commit()
@@ -109,7 +109,7 @@ async def update_item(
     **kwargs,
 ) -> NewsletterItem | None:
     result = await db.execute(
-        sa.select(NewsletterItem).where(NewsletterItem.id == item_id)
+        sa.select(NewsletterItem).where(NewsletterItem.Id == item_id)
     )
     item = result.scalar_one_or_none()
     if not item:
@@ -124,7 +124,7 @@ async def update_item(
 
 async def remove_item(db: AsyncSession, item_id: str) -> bool:
     result = await db.execute(
-        sa.select(NewsletterItem).where(NewsletterItem.id == item_id)
+        sa.select(NewsletterItem).where(NewsletterItem.Id == item_id)
     )
     item = result.scalar_one_or_none()
     if not item:
@@ -139,19 +139,21 @@ async def reorder_items(
     newsletter_id: str,
     item_positions: list[dict],
 ) -> None:
-    """Update positions for multiple items. item_positions: [{"id": "...", "position": 0}, ...]"""
+    """Update positions for multiple items."""
     for pos in item_positions:
+        item_id = pos.get("Id") or pos.get("id")
         result = await db.execute(
             sa.select(NewsletterItem).where(
-                NewsletterItem.id == pos["id"],
-                NewsletterItem.newsletter_id == newsletter_id,
+                NewsletterItem.Id == item_id,
+                NewsletterItem.Newsletter_Id == newsletter_id,
             )
         )
         item = result.scalar_one_or_none()
         if item:
-            item.position = pos["position"]
-            if "section_id" in pos:
-                item.section_id = pos["section_id"]
+            item.Position = pos.get("Position", pos.get("position", item.Position))
+            section_id = pos.get("Section_Id") or pos.get("section_id")
+            if section_id:
+                item.Section_Id = section_id
     await db.commit()
 
 
@@ -163,106 +165,85 @@ async def assemble_newsletter(
     newsletter_type: str,
     publish_date: date,
 ) -> Newsletter:
-    """Auto-populate a newsletter from approved submissions.
-
-    Steps:
-    1. Create or get existing newsletter for this type+date
-    2. Find approved submissions targeting this newsletter type
-    3. Get the best available text (editor_final > ai_suggested > original)
-    4. Map submissions to sections based on category
-    5. Order chronologically within each section
-    6. Skip submissions already in this newsletter (dedup)
-    """
-    # 1. Get or create newsletter
+    """Auto-populate a newsletter from approved submissions."""
     result = await db.execute(
         sa.select(Newsletter)
         .where(
-            Newsletter.newsletter_type == newsletter_type,
-            Newsletter.publish_date == publish_date,
+            Newsletter.Newsletter_Type == newsletter_type,
+            Newsletter.Publish_Date == publish_date,
         )
-        .options(selectinload(Newsletter.items))
+        .options(selectinload(Newsletter.Items))
     )
     newsletter = result.scalar_one_or_none()
 
     if not newsletter:
         newsletter = Newsletter(
-            newsletter_type=newsletter_type,
-            publish_date=publish_date,
-            status="draft",
+            Newsletter_Type=newsletter_type,
+            Publish_Date=publish_date,
+            Status="draft",
         )
-        newsletter.items = []  # Initialize to avoid lazy load in async
+        newsletter.Items = []
         db.add(newsletter)
         await db.flush()
 
-    # 2. Find approved submissions
     target_filter = sa.or_(
-        Submission.target_newsletter == newsletter_type,
-        Submission.target_newsletter == "both",
+        Submission.Target_Newsletter == newsletter_type,
+        Submission.Target_Newsletter == "both",
     )
     subs_result = await db.execute(
         sa.select(Submission)
         .where(
-            Submission.status.in_(["approved", "scheduled"]),
+            Submission.Status.in_(["approved", "scheduled"]),
             target_filter,
         )
         .options(
-            selectinload(Submission.edit_versions),
-            selectinload(Submission.schedule_requests),
+            selectinload(Submission.Edit_Versions),
+            selectinload(Submission.Schedule_Requests),
         )
-        .order_by(Submission.created_at.asc())
+        .order_by(Submission.Created_At.asc())
     )
     submissions = list(subs_result.scalars().all())
 
-    # 3. Get existing item submission IDs for dedup
-    existing_sub_ids = {item.submission_id for item in newsletter.items}
+    existing_sub_ids = {item.Submission_Id for item in newsletter.Items}
 
-    # 4. Load sections for mapping
     sections_result = await db.execute(
         sa.select(NewsletterSection)
-        .where(NewsletterSection.newsletter_type == newsletter_type, NewsletterSection.is_active == True)  # noqa: E712
-        .order_by(NewsletterSection.display_order)
+        .where(NewsletterSection.Newsletter_Type == newsletter_type, NewsletterSection.Is_Active == True)  # noqa: E712
+        .order_by(NewsletterSection.Display_Order)
     )
     sections = list(sections_result.scalars().all())
-    section_map = {s.slug: s for s in sections}
-
-    # Category -> section slug mapping
+    section_map = {s.Slug: s for s in sections}
     category_section_map = _get_category_section_map(newsletter_type)
 
-    # 5. Add submissions
     for sub in submissions:
-        if sub.id in existing_sub_ids:
+        if sub.Id in existing_sub_ids:
             continue
 
-        # Get best text
         headline, body = _get_best_text(sub)
-
-        # Determine section
-        section_slug = category_section_map.get(sub.category)
+        section_slug = category_section_map.get(sub.Category)
         section = section_map.get(section_slug) if section_slug else None
         if not section:
-            # Default to first section
             section = sections[0] if sections else None
         if not section:
             continue
 
-        # Count existing items in this section for positioning
-        section_items = [it for it in newsletter.items if it.section_id == section.id]
+        section_items = [it for it in newsletter.Items if it.Section_Id == section.Id]
         position = len(section_items)
 
         item = NewsletterItem(
-            newsletter_id=newsletter.id,
-            submission_id=sub.id,
-            section_id=section.id,
-            final_headline=headline,
-            final_body=body,
-            position=position,
-            run_number=1,
+            Newsletter_Id=newsletter.Id,
+            Submission_Id=sub.Id,
+            Section_Id=section.Id,
+            Final_Headline=headline,
+            Final_Body=body,
+            Position=position,
+            Run_Number=1,
         )
         db.add(item)
-        newsletter.items.append(item)
+        newsletter.Items.append(item)
 
     await db.commit()
-    return await get_newsletter(db, newsletter.id)
+    return await get_newsletter(db, newsletter.Id)
 
 
 def _get_category_section_map(newsletter_type: str) -> dict[str, str]:
@@ -277,7 +258,7 @@ def _get_category_section_map(newsletter_type: str) -> dict[str, str]:
             "job_opportunity": "job-opportunities",
             "student": "employee-news",
         }
-    else:  # myui
+    else:
         return {
             "student": "news-and-updates",
             "calendar_event": "weekly-events",
@@ -290,15 +271,11 @@ def _get_category_section_map(newsletter_type: str) -> dict[str, str]:
 
 
 def _get_best_text(submission: Submission) -> tuple[str, str]:
-    """Get the best available headline/body from edit versions.
-
-    Priority: editor_final > ai_suggested > original
-    """
-    if submission.edit_versions:
-        # Sort by priority
+    """Get the best available headline/body from edit versions."""
+    if submission.Edit_Versions:
         for vtype in ("editor_final", "ai_suggested", "original"):
-            for v in submission.edit_versions:
-                if v.version_type == vtype:
-                    return v.headline, v.body
+            for v in submission.Edit_Versions:
+                if v.Version_Type == vtype:
+                    return v.Headline, v.Body
 
-    return submission.original_headline, submission.original_body
+    return submission.Original_Headline, submission.Original_Body

@@ -60,8 +60,8 @@ export default function DashboardPage() {
         target_newsletter: newsletterFilter || undefined,
         search: searchQuery || undefined,
       });
-      setSubmissions(data.items);
-      setTotal(data.total);
+      setSubmissions(data.Items);
+      setTotal(data.Total);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load submissions');
     } finally {
@@ -181,42 +181,42 @@ export default function DashboardPage() {
         <div className="space-y-3">
           {submissions.map((sub) => (
             <div
-              key={sub.id}
+              key={sub.Id}
               className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => navigate(`/edit/${sub.id}`)}
+              onClick={() => navigate(`/edit/${sub.Id}`)}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <span
-                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[sub.status] || 'bg-gray-100'}`}
+                      className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[sub.Status] || 'bg-gray-100'}`}
                     >
-                      {STATUS_LABELS[sub.status] || sub.status}
+                      {STATUS_LABELS[sub.Status] || sub.Status}
                     </span>
                     <span className="text-xs bg-gray-50 text-gray-600 px-2 py-0.5 rounded">
-                      {CATEGORY_LABELS[sub.category] || sub.category}
+                      {CATEGORY_LABELS[sub.Category] || sub.Category}
                     </span>
                     <span className="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded font-medium">
-                      {NEWSLETTER_LABELS[sub.target_newsletter]}
+                      {NEWSLETTER_LABELS[sub.Target_Newsletter]}
                     </span>
                   </div>
                   <h3 className="text-sm font-semibold text-gray-900 truncate">
-                    {sub.original_headline}
+                    {sub.Original_Headline}
                   </h3>
                   <p className="text-sm text-gray-600 mt-1 line-clamp-2">
-                    {sub.original_body}
+                    {sub.Original_Body}
                   </p>
                   <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
-                    <span>{sub.submitter_name}</span>
-                    <span>{new Date(sub.created_at).toLocaleDateString()}</span>
-                    {sub.links.length > 0 && (
-                      <span>{sub.links.length} link{sub.links.length > 1 ? 's' : ''}</span>
+                    <span>{sub.Submitter_Name}</span>
+                    <span>{new Date(sub.Created_At).toLocaleDateString()}</span>
+                    {sub.Links.length > 0 && (
+                      <span>{sub.Links.length} link{sub.Links.length > 1 ? 's' : ''}</span>
                     )}
-                    {sub.has_image && <span>Has image</span>}
-                    {sub.schedule_requests.length > 0 && (
+                    {sub.Has_Image && <span>Has image</span>}
+                    {sub.Schedule_Requests.length > 0 && (
                       <span>
-                        {sub.schedule_requests[0].requested_date
-                          ? `Run: ${new Date(sub.schedule_requests[0].requested_date).toLocaleDateString()}`
+                        {sub.Schedule_Requests[0].Requested_Date
+                          ? `Run: ${new Date(sub.Schedule_Requests[0].Requested_Date).toLocaleDateString()}`
                           : 'Schedule prefs'}
                       </span>
                     )}
@@ -226,10 +226,10 @@ export default function DashboardPage() {
                   className="ml-4 px-3 py-1.5 text-xs font-medium rounded-md bg-amber-50 text-amber-700 hover:bg-amber-100 whitespace-nowrap"
                   onClick={(e) => {
                     e.stopPropagation();
-                    navigate(`/edit/${sub.id}`);
+                    navigate(`/edit/${sub.Id}`);
                   }}
                 >
-                  {getStatusAction(sub.status)}
+                  {getStatusAction(sub.Status)}
                 </button>
               </div>
             </div>

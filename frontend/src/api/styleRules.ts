@@ -17,11 +17,11 @@ export async function listStyleRules(params?: {
 }
 
 export async function createStyleRule(data: {
-  rule_set: string;
-  category: string;
-  rule_key: string;
-  rule_text: string;
-  severity?: string;
+  Rule_Set: string;
+  Category: string;
+  Rule_Key: string;
+  Rule_Text: string;
+  Severity?: string;
 }): Promise<StyleRule> {
   return apiFetch<StyleRule>('/style-rules', {
     method: 'POST',
@@ -31,7 +31,7 @@ export async function createStyleRule(data: {
 
 export async function updateStyleRule(
   id: string,
-  data: Partial<{ rule_text: string; is_active: boolean; severity: string; category: string }>,
+  data: Partial<{ Rule_Text: string; Is_Active: boolean; Severity: string; Category: string }>,
 ): Promise<StyleRule> {
   return apiFetch<StyleRule>(`/style-rules/${id}`, {
     method: 'PATCH',

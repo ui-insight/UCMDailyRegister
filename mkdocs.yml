@@ -1,0 +1,44 @@
+site_name: UCM Daily Register
+site_description: AI-assisted newsletter production for the University of Idaho
+repo_url: https://github.com/ui-insight/UCMDailyRegister
+repo_name: ui-insight/UCMDailyRegister
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: amber
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: amber
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - content.code.copy
+    - navigation.sections
+    - navigation.expand
+    - toc.integrate
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Architecture: architecture.md
+  - Data Model: data-model.md
+  - AI Editing: ai-editing.md
+  - API Reference: api-reference.md
+  - Deployment: deployment.md
+  - Contributing: contributing.md

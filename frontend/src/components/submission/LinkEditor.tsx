@@ -1,6 +1,6 @@
 interface LinkEntry {
-  url: string;
-  anchor_text: string;
+  Url: string;
+  Anchor_Text: string;
 }
 
 interface Props {
@@ -10,7 +10,7 @@ interface Props {
 
 export default function LinkEditor({ links, onChange }: Props) {
   const addLink = () => {
-    onChange([...links, { url: '', anchor_text: '' }]);
+    onChange([...links, { Url: '', Anchor_Text: '' }]);
   };
 
   const removeLink = (index: number) => {
@@ -37,15 +37,15 @@ export default function LinkEditor({ links, onChange }: Props) {
           <input
             type="url"
             placeholder="https://..."
-            value={link.url}
-            onChange={(e) => updateLink(index, 'url', e.target.value)}
+            value={link.Url}
+            onChange={(e) => updateLink(index, 'Url', e.target.value)}
             className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
           />
           <input
             type="text"
             placeholder="Link text (e.g., 'Learn more')"
-            value={link.anchor_text}
-            onChange={(e) => updateLink(index, 'anchor_text', e.target.value)}
+            value={link.Anchor_Text}
+            onChange={(e) => updateLink(index, 'Anchor_Text', e.target.value)}
             className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
           />
           <button

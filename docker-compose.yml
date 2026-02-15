@@ -2,9 +2,9 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: ucm
-      POSTGRES_PASSWORD: ucm_dev
       POSTGRES_DB: ucm_newsletter
+      POSTGRES_USER: ucm
+      POSTGRES_PASSWORD: ucm_dev_password
     ports:
       - "5432:5432"
     volumes:

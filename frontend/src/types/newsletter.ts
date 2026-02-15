@@ -1,31 +1,31 @@
 export interface NewsletterSection {
-  id: string;
-  newsletter_type: 'tdr' | 'myui';
-  name: string;
-  slug: string;
-  display_order: number;
-  description: string | null;
-  requires_image: boolean;
-  image_dimensions: string | null;
-  is_active: boolean;
+  Id: string;
+  Newsletter_Type: 'tdr' | 'myui';
+  Name: string;
+  Slug: string;
+  Display_Order: number;
+  Description: string | null;
+  Requires_Image: boolean;
+  Image_Dimensions: string | null;
+  Is_Active: boolean;
 }
 
 export interface Newsletter {
-  id: string;
-  newsletter_type: 'tdr' | 'myui';
-  publish_date: string;
-  status: 'draft' | 'in_progress' | 'ready_for_review' | 'submitted' | 'published';
-  created_at: string;
-  updated_at: string;
+  Id: string;
+  Newsletter_Type: 'tdr' | 'myui';
+  Publish_Date: string;
+  Status: 'draft' | 'in_progress' | 'ready_for_review' | 'submitted' | 'published';
+  Created_At: string;
+  Updated_At: string;
 }
 
 export interface NewsletterItem {
-  id: string;
-  newsletter_id: string;
-  submission_id: string;
-  section_id: string;
-  position: number;
-  final_headline: string;
-  final_body: string;
-  run_number: number;
+  Id: string;
+  Newsletter_Id: string;
+  Submission_Id: string;
+  Section_Id: string;
+  Position: number;
+  Final_Headline: string;
+  Final_Body: string;
+  Run_Number: number;
 }

@@ -1,3 +1,22 @@
+"""Submission intake models for the UCM Newsletter Builder.
+
+A Submission represents a single piece of content submitted by a university
+department, faculty member, or student organization for inclusion in one or
+both UCM newsletters (The Daily Register and My UI). Submissions flow through
+a multi-stage pipeline: intake, AI editing, human review, scheduling, and
+finally publication in a built newsletter edition.
+
+Each submission captures the original headline and body text, submitter contact
+information, an optional image, and metadata about the target newsletter and
+content category. Category and status values are governed by the AllowedValue
+table rather than hard-coded enums, allowing administrators to extend the
+vocabulary without code changes.
+
+SubmissionLink stores hyperlinks that should be embedded in the published item.
+SubmissionScheduleRequest lets submitters indicate preferred publication dates
+and repeat-run preferences.
+"""
+
 import uuid
 from datetime import date, datetime
 from typing import TYPE_CHECKING
@@ -12,96 +31,76 @@ if TYPE_CHECKING:
 
 
 class Submission(Base):
+    """A content submission destined for one or both UCM newsletters."""
+
     __tablename__ = "submissions"
 
-    id: Mapped[str] = mapped_column(
+    Id: Mapped[str] = mapped_column(
         sa.String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
-    category: Mapped[str] = mapped_column(
-        sa.Enum(
-            "faculty_staff",
-            "student",
-            "job_opportunity",
-            "kudos",
-            "in_memoriam",
-            "news_release",
-            "calendar_event",
-            name="submission_category",
-            native_enum=False,
-        ),
-        nullable=False,
-    )
-    target_newsletter: Mapped[str] = mapped_column(
-        sa.Enum("tdr", "myui", "both", name="target_newsletter", native_enum=False),
-        nullable=False,
-    )
-    original_headline: Mapped[str] = mapped_column(sa.Text, nullable=False)
-    original_body: Mapped[str] = mapped_column(sa.Text, nullable=False)
-    submitter_name: Mapped[str] = mapped_column(sa.String(255), nullable=False)
-    submitter_email: Mapped[str] = mapped_column(sa.String(255), nullable=False)
-    submitter_notes: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
-    has_image: Mapped[bool] = mapped_column(sa.Boolean, default=False)
-    image_path: Mapped[str | None] = mapped_column(sa.String(512), nullable=True)
-    status: Mapped[str] = mapped_column(
-        sa.Enum(
-            "new",
-            "ai_edited",
-            "in_review",
-            "approved",
-            "scheduled",
-            "published",
-            "rejected",
-            name="submission_status",
-            native_enum=False,
-        ),
-        nullable=False,
-        default="new",
-    )
-    created_at: Mapped[datetime] = mapped_column(
+    Category: Mapped[str] = mapped_column(sa.String(50), nullable=False)
+    Target_Newsletter: Mapped[str] = mapped_column(sa.String(50), nullable=False)
+    Original_Headline: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    Original_Body: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    Submitter_Name: Mapped[str] = mapped_column(sa.String(255), nullable=False)
+    Submitter_Email: Mapped[str] = mapped_column(sa.String(255), nullable=False)
+    Submitter_Notes: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    Has_Image: Mapped[bool] = mapped_column(sa.Boolean, default=False)
+    Image_Path: Mapped[str | None] = mapped_column(sa.String(512), nullable=True)
+    Status: Mapped[str] = mapped_column(sa.String(50), nullable=False, default="new")
+    Created_At: Mapped[datetime] = mapped_column(
         sa.DateTime, nullable=False, server_default=sa.func.now()
     )
-    updated_at: Mapped[datetime] = mapped_column(
+    Updated_At: Mapped[datetime] = mapped_column(
         sa.DateTime, nullable=False, server_default=sa.func.now(), onupdate=sa.func.now()
     )
 
-    links: Mapped[list["SubmissionLink"]] = relationship(
-        back_populates="submission", cascade="all, delete-orphan"
+    Links: Mapped[list["SubmissionLink"]] = relationship(
+        back_populates="Submission_Rel", cascade="all, delete-orphan", lazy="selectin"
     )
-    schedule_requests: Mapped[list["SubmissionScheduleRequest"]] = relationship(
-        back_populates="submission", cascade="all, delete-orphan"
+    Schedule_Requests: Mapped[list["SubmissionScheduleRequest"]] = relationship(
+        back_populates="Submission_Rel", cascade="all, delete-orphan", lazy="selectin"
     )
-    edit_versions: Mapped[list["EditVersion"]] = relationship(
-        back_populates="submission", cascade="all, delete-orphan"
+    Edit_Versions: Mapped[list["EditVersion"]] = relationship(
+        back_populates="Submission_Rel", cascade="all, delete-orphan", lazy="selectin"
     )
 
 
 class SubmissionLink(Base):
+    """A hyperlink associated with a submission for embedding in the published item."""
+
     __tablename__ = "submission_links"
 
-    id: Mapped[str] = mapped_column(
+    Id: Mapped[str] = mapped_column(
         sa.String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
-    submission_id: Mapped[str] = mapped_column(
-        sa.String(36), sa.ForeignKey("submissions.id"), nullable=False
+    Submission_Id: Mapped[str] = mapped_column(
+        sa.String(36), sa.ForeignKey("submissions.Id"), nullable=False
     )
-    url: Mapped[str] = mapped_column(sa.Text, nullable=False)
-    anchor_text: Mapped[str | None] = mapped_column(sa.String(500), nullable=True)
-    display_order: Mapped[int] = mapped_column(sa.Integer, default=0)
+    Url: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    Anchor_Text: Mapped[str | None] = mapped_column(sa.String(500), nullable=True)
+    Display_Order: Mapped[int] = mapped_column(sa.Integer, default=0)
 
-    submission: Mapped["Submission"] = relationship(back_populates="links")
+    Submission_Rel: Mapped["Submission"] = relationship(
+        back_populates="Links", lazy="selectin"
+    )
 
 
 class SubmissionScheduleRequest(Base):
+    """A submitter's preferred publication date and repeat-run preferences."""
+
     __tablename__ = "submission_schedule_requests"
 
-    id: Mapped[str] = mapped_column(
+    Id: Mapped[str] = mapped_column(
         sa.String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
-    submission_id: Mapped[str] = mapped_column(
-        sa.String(36), sa.ForeignKey("submissions.id"), nullable=False
+    Submission_Id: Mapped[str] = mapped_column(
+        sa.String(36), sa.ForeignKey("submissions.Id"), nullable=False
     )
-    requested_date: Mapped[date | None] = mapped_column(sa.Date, nullable=True)
-    repeat_count: Mapped[int] = mapped_column(sa.Integer, default=1)
-    repeat_note: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    Requested_Date: Mapped[date | None] = mapped_column(sa.Date, nullable=True)
+    Repeat_Count: Mapped[int] = mapped_column(sa.Integer, default=1)
+    Repeat_Note: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
 
-    submission: Mapped["Submission"] = relationship(back_populates="schedule_requests")
+    Submission_Rel: Mapped["Submission"] = relationship(
+        back_populates="Schedule_Requests", lazy="selectin"
+    )

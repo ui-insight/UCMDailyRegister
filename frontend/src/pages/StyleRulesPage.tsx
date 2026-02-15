@@ -59,17 +59,17 @@ export default function StyleRulesPage() {
   };
 
   const handleStartEdit = (rule: StyleRule) => {
-    setEditingId(rule.id);
-    setEditText(rule.rule_text);
-    setEditSeverity(rule.severity);
+    setEditingId(rule.Id);
+    setEditText(rule.Rule_Text);
+    setEditSeverity(rule.Severity);
   };
 
   const handleSaveEdit = async () => {
     if (!editingId) return;
     try {
       await updateStyleRule(editingId, {
-        rule_text: editText,
-        severity: editSeverity,
+        Rule_Text: editText,
+        Severity: editSeverity,
       });
       setEditingId(null);
       showToast('Rule updated');
@@ -81,8 +81,8 @@ export default function StyleRulesPage() {
 
   const handleToggleActive = async (rule: StyleRule) => {
     try {
-      await updateStyleRule(rule.id, { is_active: !rule.is_active });
-      showToast(rule.is_active ? 'Rule deactivated' : 'Rule activated');
+      await updateStyleRule(rule.Id, { Is_Active: !rule.Is_Active });
+      showToast(rule.Is_Active ? 'Rule deactivated' : 'Rule activated');
       loadRules();
     } catch (err) {
       console.error('Failed to toggle rule:', err);
@@ -104,11 +104,11 @@ export default function StyleRulesPage() {
     if (!newCategory || !newRuleKey || !newRuleText) return;
     try {
       await createStyleRule({
-        rule_set: newRuleSet,
-        category: newCategory,
-        rule_key: newRuleKey,
-        rule_text: newRuleText,
-        severity: newSeverity,
+        Rule_Set: newRuleSet,
+        Category: newCategory,
+        Rule_Key: newRuleKey,
+        Rule_Text: newRuleText,
+        Severity: newSeverity,
       });
       setShowAddForm(false);
       setNewCategory('');
@@ -127,14 +127,14 @@ export default function StyleRulesPage() {
   };
 
   // Get unique categories for filter
-  const categories = [...new Set(rules.map((r) => r.category))].sort();
+  const categories = [...new Set(rules.map((r) => r.Category))].sort();
 
   // Group rules by category
   const rulesByCategory = new Map<string, StyleRule[]>();
   for (const rule of rules) {
-    const existing = rulesByCategory.get(rule.category) || [];
+    const existing = rulesByCategory.get(rule.Category) || [];
     existing.push(rule);
-    rulesByCategory.set(rule.category, existing);
+    rulesByCategory.set(rule.Category, existing);
   }
 
   return (
@@ -294,10 +294,10 @@ export default function StyleRulesPage() {
               <div className="divide-y divide-gray-50">
                 {catRules.map((rule) => (
                   <div
-                    key={rule.id}
-                    className={`px-4 py-3 ${!rule.is_active ? 'opacity-50' : ''}`}
+                    key={rule.Id}
+                    className={`px-4 py-3 ${!rule.Is_Active ? 'opacity-50' : ''}`}
                   >
-                    {editingId === rule.id ? (
+                    {editingId === rule.Id ? (
                       /* Editing mode */
                       <div className="space-y-2">
                         <textarea
@@ -336,18 +336,18 @@ export default function StyleRulesPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <span
-                              className={`text-xs px-1.5 py-0.5 rounded font-medium ${SEVERITY_COLORS[rule.severity]}`}
+                              className={`text-xs px-1.5 py-0.5 rounded font-medium ${SEVERITY_COLORS[rule.Severity]}`}
                             >
-                              {rule.severity}
+                              {rule.Severity}
                             </span>
                             <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
-                              {RULE_SET_LABELS[rule.rule_set]}
+                              {RULE_SET_LABELS[rule.Rule_Set]}
                             </span>
                             <span className="text-xs text-gray-400 font-mono">
-                              {rule.rule_key}
+                              {rule.Rule_Key}
                             </span>
                           </div>
-                          <p className="text-sm text-gray-700">{rule.rule_text}</p>
+                          <p className="text-sm text-gray-700">{rule.Rule_Text}</p>
                         </div>
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2 shrink-0">
                           <button
@@ -360,12 +360,12 @@ export default function StyleRulesPage() {
                           <button
                             onClick={() => handleToggleActive(rule)}
                             className="p-1 text-gray-400 hover:text-blue-600 text-xs"
-                            title={rule.is_active ? 'Deactivate' : 'Activate'}
+                            title={rule.Is_Active ? 'Deactivate' : 'Activate'}
                           >
-                            {rule.is_active ? 'Off' : 'On'}
+                            {rule.Is_Active ? 'Off' : 'On'}
                           </button>
                           <button
-                            onClick={() => handleDelete(rule.id)}
+                            onClick={() => handleDelete(rule.Id)}
                             className="p-1 text-gray-400 hover:text-red-600 text-xs"
                             title="Delete"
                           >

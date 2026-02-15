@@ -38,18 +38,18 @@ async def trigger_ai_edit(
     # Load submission with links
     result = await session.execute(
         sa.select(Submission)
-        .where(Submission.id == submission_id)
-        .options(selectinload(Submission.links))
+        .where(Submission.Id == submission_id)
+        .options(selectinload(Submission.Links))
     )
     submission = result.scalar_one_or_none()
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
 
     # Validate newsletter type matches submission target
-    if submission.target_newsletter not in (request.newsletter_type, "both"):
+    if submission.Target_Newsletter not in (request.Newsletter_Type, "both"):
         raise HTTPException(
             status_code=400,
-            detail=f"Submission targets '{submission.target_newsletter}', not '{request.newsletter_type}'",
+            detail=f"Submission targets '{submission.Target_Newsletter}', not '{request.Newsletter_Type}'",
         )
 
     # Get LLM provider
@@ -63,7 +63,7 @@ async def trigger_ai_edit(
     edit_result = await editor.edit_submission(
         session=session,
         submission=submission,
-        newsletter_type=request.newsletter_type,
+        newsletter_type=request.Newsletter_Type,
     )
 
     # Save edit versions
@@ -71,39 +71,39 @@ async def trigger_ai_edit(
         session=session,
         submission_id=submission_id,
         edit_result=edit_result,
-        original_headline=submission.original_headline,
-        original_body=submission.original_body,
+        original_headline=submission.Original_Headline,
+        original_body=submission.Original_Body,
     )
 
     # Update submission status
-    submission.status = "ai_edited"
+    submission.Status = "ai_edited"
     await session.commit()
     await session.refresh(ai_version)
 
     # Build response
     return AIEditResponse(
-        submission_id=submission_id,
-        newsletter_type=request.newsletter_type,
-        edited_headline=edit_result.edited_headline,
-        edited_body=edit_result.edited_body,
-        headline_case=edit_result.headline_case,
-        changes_made=edit_result.changes_made,
-        flags=[AIEditFlag(**f) for f in edit_result.flags],
-        embedded_links=[AIEditLink(**l) for l in edit_result.embedded_links],
-        confidence=edit_result.confidence,
-        ai_provider=edit_result.ai_provider,
-        ai_model=edit_result.ai_model,
-        headline_diff=TextDiffResponse(
+        Submission_Id=submission_id,
+        Newsletter_Type=request.Newsletter_Type,
+        Edited_Headline=edit_result.edited_headline,
+        Edited_Body=edit_result.edited_body,
+        Headline_Case=edit_result.headline_case,
+        Changes_Made=edit_result.changes_made,
+        Flags=[AIEditFlag(**f) for f in edit_result.flags],
+        Embedded_Links=[AIEditLink(**l) for l in edit_result.embedded_links],
+        Confidence=edit_result.confidence,
+        AI_Provider=edit_result.ai_provider,
+        AI_Model=edit_result.ai_model,
+        Headline_Diff=TextDiffResponse(
             segments=[DiffSegment(**s) for s in edit_result.headline_diff.get("segments", [])],
             change_count=edit_result.headline_diff.get("change_count", 0),
             similarity_ratio=edit_result.headline_diff.get("similarity_ratio", 1.0),
         ),
-        body_diff=TextDiffResponse(
+        Body_Diff=TextDiffResponse(
             segments=[DiffSegment(**s) for s in edit_result.body_diff.get("segments", [])],
             change_count=edit_result.body_diff.get("change_count", 0),
             similarity_ratio=edit_result.body_diff.get("similarity_ratio", 1.0),
         ),
-        edit_version_id=ai_version.id,
+        Edit_Version_Id=ai_version.Id,
     )
 
 
@@ -115,8 +115,8 @@ async def list_edit_versions(
     """List all edit versions for a submission."""
     result = await session.execute(
         sa.select(EditVersion)
-        .where(EditVersion.submission_id == submission_id)
-        .order_by(EditVersion.created_at)
+        .where(EditVersion.Submission_Id == submission_id)
+        .order_by(EditVersion.Created_At)
     )
     versions = result.scalars().all()
     if not versions:
@@ -133,8 +133,8 @@ async def get_edit_version(
     """Get a specific edit version."""
     result = await session.execute(
         sa.select(EditVersion).where(
-            EditVersion.id == version_id,
-            EditVersion.submission_id == submission_id,
+            EditVersion.Id == version_id,
+            EditVersion.Submission_Id == submission_id,
         )
     )
     version = result.scalar_one_or_none()
@@ -155,7 +155,7 @@ async def save_editor_final(
     """
     # Verify submission exists
     result = await session.execute(
-        sa.select(Submission).where(Submission.id == submission_id)
+        sa.select(Submission).where(Submission.Id == submission_id)
     )
     submission = result.scalar_one_or_none()
     if not submission:
@@ -163,16 +163,16 @@ async def save_editor_final(
 
     # Create final version
     version = EditVersion(
-        submission_id=submission_id,
-        version_type="editor_final",
-        headline=data.headline,
-        body=data.body,
-        headline_case=data.headline_case,
+        Submission_Id=submission_id,
+        Version_Type="editor_final",
+        Headline=data.Headline,
+        Body=data.Body,
+        Headline_Case=data.Headline_Case,
     )
     session.add(version)
 
     # Update submission status
-    submission.status = "in_review"
+    submission.Status = "in_review"
     await session.commit()
     await session.refresh(version)
     return version

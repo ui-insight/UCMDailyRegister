@@ -42,7 +42,7 @@ async def list_submissions(
         db, status=status, category=category, target_newsletter=target_newsletter,
         search=search, offset=offset, limit=limit,
     )
-    return SubmissionListResponse(items=items, total=total)
+    return SubmissionListResponse(Items=items, Total=total)
 
 
 @router.get("/{submission_id}", response_model=SubmissionResponse)
@@ -78,7 +78,7 @@ async def add_link(
     submission_id: str, data: LinkCreate, db: AsyncSession = Depends(get_db)
 ):
     link = await submission_service.add_link(
-        db, submission_id, url=data.url, anchor_text=data.anchor_text, display_order=data.display_order,
+        db, submission_id, url=data.Url, anchor_text=data.Anchor_Text, display_order=data.Display_Order,
     )
     if not link:
         raise HTTPException(status_code=404, detail="Submission not found")
@@ -101,9 +101,9 @@ async def add_schedule_request(
 ):
     sched = await submission_service.add_schedule_request(
         db, submission_id,
-        requested_date=data.requested_date,
-        repeat_count=data.repeat_count,
-        repeat_note=data.repeat_note,
+        requested_date=data.Requested_Date,
+        repeat_count=data.Repeat_Count,
+        repeat_note=data.Repeat_Note,
     )
     if not sched:
         raise HTTPException(status_code=404, detail="Submission not found")
@@ -143,9 +143,9 @@ async def upload_image(
 @router.get("/{submission_id}/image")
 async def get_image(submission_id: str, db: AsyncSession = Depends(get_db)):
     submission = await submission_service.get_submission(db, submission_id)
-    if not submission or not submission.image_path:
+    if not submission or not submission.Image_Path:
         raise HTTPException(status_code=404, detail="Image not found")
-    filepath = os.path.join(settings.upload_dir, submission.image_path)
+    filepath = os.path.join(settings.upload_dir, submission.Image_Path)
     if not os.path.exists(filepath):
         raise HTTPException(status_code=404, detail="Image file not found")
     return FileResponse(filepath)

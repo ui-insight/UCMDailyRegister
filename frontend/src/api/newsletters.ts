@@ -2,27 +2,27 @@ import { apiFetch } from './client';
 import type { NewsletterSection } from '../types/newsletter';
 
 interface NewsletterResponse {
-  id: string;
-  newsletter_type: 'tdr' | 'myui';
-  publish_date: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
+  Id: string;
+  Newsletter_Type: 'tdr' | 'myui';
+  Publish_Date: string;
+  Status: string;
+  Created_At: string;
+  Updated_At: string;
 }
 
 export interface NewsletterItemResponse {
-  id: string;
-  newsletter_id: string;
-  submission_id: string;
-  section_id: string;
-  position: number;
-  final_headline: string;
-  final_body: string;
-  run_number: number;
+  Id: string;
+  Newsletter_Id: string;
+  Submission_Id: string;
+  Section_Id: string;
+  Position: number;
+  Final_Headline: string;
+  Final_Body: string;
+  Run_Number: number;
 }
 
 export interface NewsletterDetailResponse extends NewsletterResponse {
-  items: NewsletterItemResponse[];
+  Items: NewsletterItemResponse[];
 }
 
 export async function listNewsletters(params?: {
@@ -41,8 +41,8 @@ export async function getNewsletter(id: string): Promise<NewsletterDetailRespons
 }
 
 export async function createNewsletter(data: {
-  newsletter_type: string;
-  publish_date: string;
+  Newsletter_Type: string;
+  Publish_Date: string;
 }): Promise<NewsletterResponse> {
   return apiFetch<NewsletterResponse>('/newsletters', {
     method: 'POST',
@@ -51,8 +51,8 @@ export async function createNewsletter(data: {
 }
 
 export async function assembleNewsletter(data: {
-  newsletter_type: string;
-  publish_date: string;
+  Newsletter_Type: string;
+  Publish_Date: string;
 }): Promise<NewsletterDetailResponse> {
   return apiFetch<NewsletterDetailResponse>('/newsletters/assemble', {
     method: 'POST',
@@ -72,12 +72,12 @@ export async function updateNewsletterStatus(
 export async function addNewsletterItem(
   newsletterId: string,
   data: {
-    submission_id: string;
-    section_id: string;
-    position: number;
-    final_headline: string;
-    final_body: string;
-    run_number?: number;
+    Submission_Id: string;
+    Section_Id: string;
+    Position: number;
+    Final_Headline: string;
+    Final_Body: string;
+    Run_Number?: number;
   },
 ): Promise<NewsletterItemResponse> {
   return apiFetch<NewsletterItemResponse>(`/newsletters/${newsletterId}/items`, {
@@ -90,10 +90,10 @@ export async function updateNewsletterItem(
   newsletterId: string,
   itemId: string,
   data: Partial<{
-    section_id: string;
-    position: number;
-    final_headline: string;
-    final_body: string;
+    Section_Id: string;
+    Position: number;
+    Final_Headline: string;
+    Final_Body: string;
   }>,
 ): Promise<NewsletterItemResponse> {
   return apiFetch<NewsletterItemResponse>(`/newsletters/${newsletterId}/items/${itemId}`, {
@@ -111,7 +111,7 @@ export async function removeNewsletterItem(
 
 export async function reorderNewsletterItems(
   newsletterId: string,
-  positions: { id: string; position: number; section_id?: string }[],
+  positions: { Id: string; Position: number; Section_Id?: string }[],
 ): Promise<void> {
   await apiFetch(`/newsletters/${newsletterId}/reorder`, {
     method: 'PUT',

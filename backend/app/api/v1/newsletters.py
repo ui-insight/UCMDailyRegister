@@ -30,7 +30,7 @@ router = APIRouter(prefix="/newsletters", tags=["newsletters"])
 async def create_newsletter(data: NewsletterCreate, db: AsyncSession = Depends(get_db)):
     """Create a new newsletter draft."""
     newsletter = await newsletter_service.create_newsletter(
-        db, data.newsletter_type, data.publish_date
+        db, data.Newsletter_Type, data.Publish_Date
     )
     return newsletter
 
@@ -91,12 +91,12 @@ async def add_item(
     item = await newsletter_service.add_item(
         db,
         newsletter_id=newsletter_id,
-        submission_id=data.submission_id,
-        section_id=data.section_id,
-        final_headline=data.final_headline,
-        final_body=data.final_body,
-        position=data.position,
-        run_number=data.run_number,
+        submission_id=data.Submission_Id,
+        section_id=data.Section_Id,
+        final_headline=data.Final_Headline,
+        final_body=data.Final_Body,
+        position=data.Position,
+        run_number=data.Run_Number,
     )
     return item
 
@@ -145,7 +145,7 @@ async def reorder_items(
 async def assemble_newsletter(data: AssembleRequest, db: AsyncSession = Depends(get_db)):
     """Auto-populate a newsletter from approved submissions."""
     newsletter = await newsletter_service.assemble_newsletter(
-        db, data.newsletter_type, data.publish_date
+        db, data.Newsletter_Type, data.Publish_Date
     )
     return newsletter
 
@@ -164,37 +164,37 @@ async def export_newsletter(newsletter_id: str, db: AsyncSession = Depends(get_d
     sections_result = await db.execute(
         sa.select(NewsletterSection)
         .where(
-            NewsletterSection.newsletter_type == newsletter.newsletter_type,
-            NewsletterSection.is_active == True,  # noqa: E712
+            NewsletterSection.Newsletter_Type == newsletter.Newsletter_Type,
+            NewsletterSection.Is_Active == True,  # noqa: E712
         )
-        .order_by(NewsletterSection.display_order)
+        .order_by(NewsletterSection.Display_Order)
     )
     sections = list(sections_result.scalars().all())
-    section_map = {s.id: s for s in sections}
+    section_map = {s.Id: s for s in sections}
 
     # Organize items by section
     export_sections = []
     for section in sections:
         section_items = sorted(
-            [it for it in newsletter.items if it.section_id == section.id],
-            key=lambda it: it.position,
+            [it for it in newsletter.Items if it.Section_Id == section.Id],
+            key=lambda it: it.Position,
         )
         if section_items:
             export_sections.append({
-                "name": section.name,
+                "name": section.Name,
                 "items": [
-                    {"final_headline": it.final_headline, "final_body": it.final_body}
+                    {"Final_Headline": it.Final_Headline, "Final_Body": it.Final_Body}
                     for it in section_items
                 ],
             })
 
     buffer = export_newsletter_docx(
-        newsletter_type=newsletter.newsletter_type,
-        publish_date=newsletter.publish_date,
+        newsletter_type=newsletter.Newsletter_Type,
+        publish_date=newsletter.Publish_Date,
         sections=export_sections,
     )
 
-    filename = f"{newsletter.newsletter_type}_{newsletter.publish_date.isoformat()}.docx"
+    filename = f"{newsletter.Newsletter_Type}_{newsletter.Publish_Date.isoformat()}.docx"
     return StreamingResponse(
         buffer,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",

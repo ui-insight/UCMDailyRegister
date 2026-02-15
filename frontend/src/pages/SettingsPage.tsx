@@ -2,22 +2,22 @@ import { useEffect, useState } from 'react';
 import { apiFetch } from '../api/client';
 
 interface ScheduleConfig {
-  id: string;
-  newsletter_type: string;
-  mode: string;
-  submission_deadline_description: string;
-  deadline_day_of_week: number | null;
-  deadline_time: string;
-  publish_day_of_week: number | null;
-  is_daily: boolean;
-  active_start_month: number | null;
-  active_end_month: number | null;
+  Id: string;
+  Newsletter_Type: string;
+  Mode: string;
+  Submission_Deadline_Description: string;
+  Deadline_Day_Of_Week: number | null;
+  Deadline_Time: string;
+  Publish_Day_Of_Week: number | null;
+  Is_Daily: boolean;
+  Active_Start_Month: number | null;
+  Active_End_Month: number | null;
 }
 
 interface ActiveSchedule {
-  config: ScheduleConfig;
-  next_publish_date: string;
-  submission_deadline: string;
+  Config: ScheduleConfig;
+  Next_Publish_Date: string;
+  Submission_Deadline: string;
 }
 
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -118,16 +118,16 @@ export default function SettingsPage() {
               <dl className="text-sm space-y-2">
                 <div>
                   <dt className="text-xs text-gray-500">Mode</dt>
-                  <dd className="text-gray-900 capitalize">{activeTdr.config.mode.replace('_', ' ')}</dd>
+                  <dd className="text-gray-900 capitalize">{activeTdr.Config.Mode.replace('_', ' ')}</dd>
                 </div>
                 <div>
                   <dt className="text-xs text-gray-500">Schedule</dt>
-                  <dd className="text-gray-700 text-xs">{activeTdr.config.submission_deadline_description}</dd>
+                  <dd className="text-gray-700 text-xs">{activeTdr.Config.Submission_Deadline_Description}</dd>
                 </div>
                 <div>
                   <dt className="text-xs text-gray-500">Next Publish Date</dt>
                   <dd className="text-gray-900 font-medium">
-                    {new Date(activeTdr.next_publish_date).toLocaleDateString('en-US', {
+                    {new Date(activeTdr.Next_Publish_Date).toLocaleDateString('en-US', {
                       weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
                     })}
                   </dd>
@@ -135,7 +135,7 @@ export default function SettingsPage() {
                 <div>
                   <dt className="text-xs text-gray-500">Submission Deadline</dt>
                   <dd className="text-amber-700 font-medium">
-                    {new Date(activeTdr.submission_deadline).toLocaleString('en-US', {
+                    {new Date(activeTdr.Submission_Deadline).toLocaleString('en-US', {
                       weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit',
                     })}
                   </dd>
@@ -153,16 +153,16 @@ export default function SettingsPage() {
               <dl className="text-sm space-y-2">
                 <div>
                   <dt className="text-xs text-gray-500">Mode</dt>
-                  <dd className="text-gray-900 capitalize">{activeMyui.config.mode.replace('_', ' ')}</dd>
+                  <dd className="text-gray-900 capitalize">{activeMyui.Config.Mode.replace('_', ' ')}</dd>
                 </div>
                 <div>
                   <dt className="text-xs text-gray-500">Schedule</dt>
-                  <dd className="text-gray-700 text-xs">{activeMyui.config.submission_deadline_description}</dd>
+                  <dd className="text-gray-700 text-xs">{activeMyui.Config.Submission_Deadline_Description}</dd>
                 </div>
                 <div>
                   <dt className="text-xs text-gray-500">Next Publish Date</dt>
                   <dd className="text-gray-900 font-medium">
-                    {new Date(activeMyui.next_publish_date).toLocaleDateString('en-US', {
+                    {new Date(activeMyui.Next_Publish_Date).toLocaleDateString('en-US', {
                       weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
                     })}
                   </dd>
@@ -170,7 +170,7 @@ export default function SettingsPage() {
                 <div>
                   <dt className="text-xs text-gray-500">Submission Deadline</dt>
                   <dd className="text-amber-700 font-medium">
-                    {new Date(activeMyui.submission_deadline).toLocaleString('en-US', {
+                    {new Date(activeMyui.Submission_Deadline).toLocaleString('en-US', {
                       weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit',
                     })}
                   </dd>
@@ -199,26 +199,26 @@ export default function SettingsPage() {
             </thead>
             <tbody className="divide-y">
               {scheduleConfigs.map((config) => (
-                <tr key={config.id}>
+                <tr key={config.Id}>
                   <td className="py-2 font-medium text-gray-900">
-                    {config.newsletter_type === 'tdr' ? 'TDR' : 'My UI'}
+                    {config.Newsletter_Type === 'tdr' ? 'TDR' : 'My UI'}
                   </td>
                   <td className="py-2 text-gray-700 capitalize">
-                    {config.mode.replace('_', ' ')}
+                    {config.Mode.replace('_', ' ')}
                   </td>
                   <td className="py-2 text-gray-700">
-                    {config.is_daily
+                    {config.Is_Daily
                       ? 'Daily (weekdays)'
-                      : config.publish_day_of_week !== null
-                        ? `Weekly (${DAY_NAMES[config.publish_day_of_week]})`
+                      : config.Publish_Day_Of_Week !== null
+                        ? `Weekly (${DAY_NAMES[config.Publish_Day_Of_Week]})`
                         : 'Not published'}
                   </td>
                   <td className="py-2 text-gray-700 text-xs">
-                    {config.submission_deadline_description}
+                    {config.Submission_Deadline_Description}
                   </td>
                   <td className="py-2 text-gray-700">
-                    {config.active_start_month && config.active_end_month
-                      ? `${MONTH_NAMES[config.active_start_month]} - ${MONTH_NAMES[config.active_end_month]}`
+                    {config.Active_Start_Month && config.Active_End_Month
+                      ? `${MONTH_NAMES[config.Active_Start_Month]} - ${MONTH_NAMES[config.Active_End_Month]}`
                       : 'N/A'}
                   </td>
                 </tr>

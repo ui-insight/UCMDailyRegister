@@ -1,3 +1,20 @@
+"""Style rule definitions for the UCM Newsletter Builder.
+
+Style rules encode the UCM writing-guide requirements that the AI editing
+pipeline enforces when revising submissions. Each rule belongs to a Rule_Set
+(shared across both newsletters, or specific to TDR or My UI), a Category
+grouping (e.g., "punctuation," "capitalization," "links"), and carries a
+human-readable Rule_Text that is injected into the LLM system prompt.
+
+The Severity column (error, warning, info) tells the AI how strongly to
+enforce the rule and how prominently to flag violations in its structured
+output. The Is_Active flag lets editors temporarily disable rules without
+deleting them.
+
+Rule_Set and Severity values are governed by the AllowedValue table rather
+than hard-coded enums.
+"""
+
 import uuid
 
 import sqlalchemy as sa
@@ -7,21 +24,16 @@ from app.db.base import Base
 
 
 class StyleRule(Base):
+    """A single writing-style rule enforced by the AI editing pipeline."""
+
     __tablename__ = "style_rules"
 
-    id: Mapped[str] = mapped_column(
+    Id: Mapped[str] = mapped_column(
         sa.String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
-    rule_set: Mapped[str] = mapped_column(
-        sa.Enum("shared", "tdr", "myui", name="rule_set", native_enum=False),
-        nullable=False,
-    )
-    category: Mapped[str] = mapped_column(sa.String(100), nullable=False)
-    rule_key: Mapped[str] = mapped_column(sa.String(100), nullable=False)
-    rule_text: Mapped[str] = mapped_column(sa.Text, nullable=False)
-    is_active: Mapped[bool] = mapped_column(sa.Boolean, default=True)
-    severity: Mapped[str] = mapped_column(
-        sa.Enum("error", "warning", "info", name="rule_severity", native_enum=False),
-        nullable=False,
-        default="warning",
-    )
+    Rule_Set: Mapped[str] = mapped_column(sa.String(50), nullable=False)
+    Category: Mapped[str] = mapped_column(sa.String(100), nullable=False)
+    Rule_Key: Mapped[str] = mapped_column(sa.String(100), nullable=False)
+    Rule_Text: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    Is_Active: Mapped[bool] = mapped_column(sa.Boolean, default=True)
+    Severity: Mapped[str] = mapped_column(sa.String(50), nullable=False, default="warning")

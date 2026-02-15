@@ -1,29 +1,22 @@
 from datetime import date, datetime
 
-from pydantic import BaseModel, EmailStr, Field
-
-
-# --- Enums as literals for Pydantic ---
-
-SubmissionCategory = str  # faculty_staff, student, job_opportunity, kudos, etc.
-TargetNewsletter = str  # tdr, myui, both
-SubmissionStatus = str  # new, ai_edited, in_review, approved, scheduled, published, rejected
+from pydantic import BaseModel, Field
 
 
 # --- Link schemas ---
 
 
 class LinkCreate(BaseModel):
-    url: str
-    anchor_text: str | None = None
-    display_order: int = 0
+    Url: str
+    Anchor_Text: str | None = None
+    Display_Order: int = 0
 
 
 class LinkResponse(BaseModel):
-    id: str
-    url: str
-    anchor_text: str | None
-    display_order: int
+    Id: str
+    Url: str
+    Anchor_Text: str | None
+    Display_Order: int
 
     model_config = {"from_attributes": True}
 
@@ -32,16 +25,16 @@ class LinkResponse(BaseModel):
 
 
 class ScheduleRequestCreate(BaseModel):
-    requested_date: date | None = None
-    repeat_count: int = 1
-    repeat_note: str | None = None
+    Requested_Date: date | None = None
+    Repeat_Count: int = 1
+    Repeat_Note: str | None = None
 
 
 class ScheduleRequestResponse(BaseModel):
-    id: str
-    requested_date: date | None
-    repeat_count: int
-    repeat_note: str | None
+    Id: str
+    Requested_Date: date | None
+    Repeat_Count: int
+    Repeat_Note: str | None
 
     model_config = {"from_attributes": True}
 
@@ -50,46 +43,46 @@ class ScheduleRequestResponse(BaseModel):
 
 
 class SubmissionCreate(BaseModel):
-    category: str = Field(..., pattern=r"^(faculty_staff|student|job_opportunity|kudos|in_memoriam|news_release|calendar_event)$")
-    target_newsletter: str = Field(..., pattern=r"^(tdr|myui|both)$")
-    original_headline: str = Field(..., min_length=1, max_length=500)
-    original_body: str = Field(..., min_length=1)
-    submitter_name: str = Field(..., min_length=1, max_length=255)
-    submitter_email: str = Field(..., max_length=255)
-    submitter_notes: str | None = None
-    links: list[LinkCreate] = []
-    schedule_requests: list[ScheduleRequestCreate] = []
+    Category: str = Field(..., pattern=r"^(faculty_staff|student|job_opportunity|kudos|in_memoriam|news_release|calendar_event)$")
+    Target_Newsletter: str = Field(..., pattern=r"^(tdr|myui|both)$")
+    Original_Headline: str = Field(..., min_length=1, max_length=500)
+    Original_Body: str = Field(..., min_length=1)
+    Submitter_Name: str = Field(..., min_length=1, max_length=255)
+    Submitter_Email: str = Field(..., max_length=255)
+    Submitter_Notes: str | None = None
+    Links: list[LinkCreate] = []
+    Schedule_Requests: list[ScheduleRequestCreate] = []
 
 
 class SubmissionUpdate(BaseModel):
-    status: str | None = Field(None, pattern=r"^(new|ai_edited|in_review|approved|scheduled|published|rejected)$")
-    original_headline: str | None = None
-    original_body: str | None = None
-    submitter_notes: str | None = None
-    category: str | None = Field(None, pattern=r"^(faculty_staff|student|job_opportunity|kudos|in_memoriam|news_release|calendar_event)$")
-    target_newsletter: str | None = Field(None, pattern=r"^(tdr|myui|both)$")
+    Status: str | None = Field(None, pattern=r"^(new|ai_edited|in_review|approved|scheduled|published|rejected)$")
+    Original_Headline: str | None = None
+    Original_Body: str | None = None
+    Submitter_Notes: str | None = None
+    Category: str | None = Field(None, pattern=r"^(faculty_staff|student|job_opportunity|kudos|in_memoriam|news_release|calendar_event)$")
+    Target_Newsletter: str | None = Field(None, pattern=r"^(tdr|myui|both)$")
 
 
 class SubmissionResponse(BaseModel):
-    id: str
-    category: str
-    target_newsletter: str
-    original_headline: str
-    original_body: str
-    submitter_name: str
-    submitter_email: str
-    submitter_notes: str | None
-    has_image: bool
-    image_path: str | None
-    status: str
-    created_at: datetime
-    updated_at: datetime
-    links: list[LinkResponse]
-    schedule_requests: list[ScheduleRequestResponse]
+    Id: str
+    Category: str
+    Target_Newsletter: str
+    Original_Headline: str
+    Original_Body: str
+    Submitter_Name: str
+    Submitter_Email: str
+    Submitter_Notes: str | None
+    Has_Image: bool
+    Image_Path: str | None
+    Status: str
+    Created_At: datetime
+    Updated_At: datetime
+    Links: list[LinkResponse]
+    Schedule_Requests: list[ScheduleRequestResponse]
 
     model_config = {"from_attributes": True}
 
 
 class SubmissionListResponse(BaseModel):
-    items: list[SubmissionResponse]
-    total: int
+    Items: list[SubmissionResponse]
+    Total: int

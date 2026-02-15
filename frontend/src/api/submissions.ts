@@ -2,8 +2,8 @@ import { apiFetch } from './client';
 import type { Submission, SubmissionCreate } from '../types/submission';
 
 interface SubmissionListResponse {
-  items: Submission[];
-  total: number;
+  Items: Submission[];
+  Total: number;
 }
 
 export async function createSubmission(data: SubmissionCreate): Promise<Submission> {

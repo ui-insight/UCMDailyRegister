@@ -21,56 +21,56 @@ export default function SubmissionMeta({ submission }: SubmissionMetaProps) {
       <dl className="space-y-2 text-sm">
         <div>
           <dt className="text-xs text-gray-500">Submitter</dt>
-          <dd className="text-gray-900">{submission.submitter_name}</dd>
-          <dd className="text-xs text-gray-500">{submission.submitter_email}</dd>
+          <dd className="text-gray-900">{submission.Submitter_Name}</dd>
+          <dd className="text-xs text-gray-500">{submission.Submitter_Email}</dd>
         </div>
         <div>
           <dt className="text-xs text-gray-500">Category</dt>
           <dd className="text-gray-900">
-            {CATEGORY_LABELS[submission.category] || submission.category}
+            {CATEGORY_LABELS[submission.Category] || submission.Category}
           </dd>
         </div>
         <div>
           <dt className="text-xs text-gray-500">Submitted</dt>
           <dd className="text-gray-900">
-            {new Date(submission.created_at).toLocaleString()}
+            {new Date(submission.Created_At).toLocaleString()}
           </dd>
         </div>
-        {submission.links.length > 0 && (
+        {submission.Links.length > 0 && (
           <div>
             <dt className="text-xs text-gray-500">Links</dt>
-            {submission.links.map((link) => (
-              <dd key={link.id} className="text-xs">
+            {submission.Links.map((link) => (
+              <dd key={link.Id} className="text-xs">
                 <a
-                  href={link.url}
+                  href={link.Url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:underline break-all"
                 >
-                  {link.anchor_text || link.url}
+                  {link.Anchor_Text || link.Url}
                 </a>
               </dd>
             ))}
           </div>
         )}
-        {submission.submitter_notes && (
+        {submission.Submitter_Notes && (
           <div>
             <dt className="text-xs text-gray-500">Submitter Notes</dt>
             <dd className="text-gray-700 text-xs bg-gray-50 p-2 rounded mt-1">
-              {submission.submitter_notes}
+              {submission.Submitter_Notes}
             </dd>
           </div>
         )}
-        {submission.schedule_requests.length > 0 && (
+        {submission.Schedule_Requests.length > 0 && (
           <div>
             <dt className="text-xs text-gray-500">Schedule Requests</dt>
-            {submission.schedule_requests.map((req) => (
-              <dd key={req.id} className="text-xs text-gray-700">
-                {req.requested_date
-                  ? new Date(req.requested_date).toLocaleDateString()
+            {submission.Schedule_Requests.map((req) => (
+              <dd key={req.Id} className="text-xs text-gray-700">
+                {req.Requested_Date
+                  ? new Date(req.Requested_Date).toLocaleDateString()
                   : 'No specific date'}{' '}
-                &middot; Run {req.repeat_count}x
-                {req.repeat_note && ` (${req.repeat_note})`}
+                &middot; Run {req.Repeat_Count}x
+                {req.Repeat_Note && ` (${req.Repeat_Note})`}
               </dd>
             ))}
           </div>

@@ -18,10 +18,10 @@ async def list_sections(
 ):
     """List newsletter sections, optionally filtered by newsletter type."""
     query = sa.select(NewsletterSection).order_by(
-        NewsletterSection.newsletter_type,
-        NewsletterSection.display_order,
+        NewsletterSection.Newsletter_Type,
+        NewsletterSection.Display_Order,
     )
     if newsletter_type:
-        query = query.where(NewsletterSection.newsletter_type == newsletter_type)
+        query = query.where(NewsletterSection.Newsletter_Type == newsletter_type)
     result = await db.execute(query)
     return result.scalars().all()
