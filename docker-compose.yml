@@ -21,7 +21,7 @@ services:
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o}
       UPLOAD_DIR: /app/uploads
-      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      CORS_ORIGINS: '${CORS_ORIGINS:-["*"]}'
     volumes:
       - uploads:/app/uploads
     depends_on:
