@@ -4,11 +4,49 @@ services:
     environment:
       POSTGRES_DB: ucm_newsletter
       POSTGRES_USER: ucm
-      POSTGRES_PASSWORD: ucm_dev_password
-    ports:
-      - "5432:5432"
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ucm_dev_password}
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks:
+      - ucmnews-net
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql+asyncpg://ucm:${POSTGRES_PASSWORD:-ucm_dev_password}@db:5432/ucm_newsletter
+      LLM_PROVIDER: ${LLM_PROVIDER:-claude}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CLAUDE_MODEL: ${CLAUDE_MODEL:-claude-sonnet-4-20250514}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o}
+      UPLOAD_DIR: /app/uploads
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      - db
+    networks:
+      - ucmnews-net
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "${HOST_PORT:-9280}:80"
+    depends_on:
+      - backend
+    networks:
+      - ucmnews-net
+    restart: unless-stopped
 
 volumes:
   pgdata:
+  uploads:
+
+networks:
+  ucmnews-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.20.9.0/24

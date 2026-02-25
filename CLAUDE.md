@@ -80,6 +80,41 @@ frontend/
 docs/               # MkDocs documentation source
 ```
 
+## Deployment
+
+**Target server:** `devops@openera.insight.uidaho.edu`
+**Network:** Custom 10.x.x.x subnet (not Docker default 172.x.x.x)
+**Only the web-facing frontend port is mapped to the host.**
+
+| Environment | URL | Host Port |
+|---|---|---|
+| prod | `https://ucmnews.insight.uidaho.edu` | 9280 |
+| dev | `https://ucmnews-dev.insight.uidaho.edu` | 9290 |
+
+### Deploy command pattern
+
+```
+Deploy ucmnews in <prod|dev> using docker on the remote server
+accessible via devops@openera.insight.uidaho.edu.
+Map it to host port <PORT>. Use 10.x.x.x address space.
+```
+
+### Docker architecture
+
+- **frontend** (nginx) — the only container with a host port mapping (`HOST_PORT`). Serves the React build and proxies `/api/` to the backend.
+- **backend** (uvicorn) — internal only, port 8001 on the Docker network.
+- **db** (postgres:16) — internal only, port 5432 on the Docker network.
+
+### Quick deploy
+
+```bash
+# On the remote server
+HOST_PORT=9280 POSTGRES_PASSWORD=<secure> ANTHROPIC_API_KEY=<key> \
+  docker compose up -d --build
+```
+
+Set `HOST_PORT=9290` for dev.
+
 ## Environment Variables
 
 See `.env.example` for all configuration options.
