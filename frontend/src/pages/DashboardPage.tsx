@@ -8,7 +8,7 @@ const STATUS_COLORS: Record<string, string> = {
   ai_edited: 'bg-purple-100 text-purple-800',
   in_review: 'bg-yellow-100 text-yellow-800',
   approved: 'bg-green-100 text-green-800',
-  scheduled: 'bg-indigo-100 text-indigo-800',
+  scheduled: 'bg-ui-clearwater-100 text-ui-clearwater-800',
   published: 'bg-gray-100 text-gray-800',
   rejected: 'bg-red-100 text-red-800',
 };
@@ -196,7 +196,7 @@ export default function DashboardPage() {
                     <span className="text-xs bg-gray-50 text-gray-600 px-2 py-0.5 rounded">
                       {CATEGORY_LABELS[sub.Category] || sub.Category}
                     </span>
-                    <span className="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded font-medium">
+                    <span className="text-xs bg-ui-gold-50 text-ui-gold-700 px-2 py-0.5 rounded font-medium">
                       {NEWSLETTER_LABELS[sub.Target_Newsletter]}
                     </span>
                   </div>
@@ -223,7 +223,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <button
-                  className="ml-4 px-3 py-1.5 text-xs font-medium rounded-md bg-amber-50 text-amber-700 hover:bg-amber-100 whitespace-nowrap"
+                  className="ml-4 px-3 py-1.5 text-xs font-medium rounded-md bg-ui-gold-50 text-ui-gold-700 hover:bg-ui-gold-100 whitespace-nowrap"
                   onClick={(e) => {
                     e.stopPropagation();
                     navigate(`/edit/${sub.Id}`);

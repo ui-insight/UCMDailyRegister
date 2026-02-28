@@ -134,7 +134,7 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <dt className="text-xs text-gray-500">Submission Deadline</dt>
-                  <dd className="text-amber-700 font-medium">
+                  <dd className="text-ui-gold-700 font-medium">
                     {new Date(activeTdr.Submission_Deadline).toLocaleString('en-US', {
                       weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit',
                     })}
@@ -169,7 +169,7 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <dt className="text-xs text-gray-500">Submission Deadline</dt>
-                  <dd className="text-amber-700 font-medium">
+                  <dd className="text-ui-gold-700 font-medium">
                     {new Date(activeMyui.Submission_Deadline).toLocaleString('en-US', {
                       weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit',
                     })}

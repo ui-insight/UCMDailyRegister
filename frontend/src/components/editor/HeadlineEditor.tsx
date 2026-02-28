@@ -46,7 +46,7 @@ export default function HeadlineEditor({
         onBlur={handleBlur}
         disabled={disabled}
         className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm font-medium
-                   focus:border-amber-500 focus:ring-1 focus:ring-amber-500
+                   focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500
                    disabled:bg-gray-50 disabled:text-gray-500"
         placeholder="Enter headline..."
       />

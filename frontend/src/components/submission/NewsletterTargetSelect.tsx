@@ -25,7 +25,7 @@ export default function NewsletterTargetSelect({ value, onChange }: Props) {
             onClick={() => onChange(target.value)}
             className={`flex-1 rounded-lg border-2 p-3 text-left transition-colors ${
               value === target.value
-                ? 'border-amber-500 bg-amber-50'
+                ? 'border-ui-gold-500 bg-ui-gold-50'
                 : 'border-gray-200 hover:border-gray-300'
             }`}
           >

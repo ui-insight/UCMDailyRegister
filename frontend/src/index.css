@@ -1,1 +1,36 @@
 @import "tailwindcss";
+
+@theme {
+  /* === University of Idaho Brand Colors === */
+
+  /* Pride Gold — Primary brand color (base: #F1B300) */
+  --color-ui-gold-50:  #FFF9EB;
+  --color-ui-gold-100: #FEF0CD;
+  --color-ui-gold-200: #FDE08B;
+  --color-ui-gold-300: #FBCD48;
+  --color-ui-gold-400: #F6BD17;
+  --color-ui-gold-500: #F1B300;
+  --color-ui-gold-600: #D49B00;
+  --color-ui-gold-700: #A87700;
+  --color-ui-gold-800: #7C5800;
+  --color-ui-gold-900: #4D3600;
+
+  /* Clearwater — Secondary brand color (base: #008080) */
+  --color-ui-clearwater-50:  #EEFBFB;
+  --color-ui-clearwater-100: #D0F4F4;
+  --color-ui-clearwater-200: #A3E8E8;
+  --color-ui-clearwater-300: #5FD4D4;
+  --color-ui-clearwater-400: #29B8B8;
+  --color-ui-clearwater-500: #008080;
+  --color-ui-clearwater-600: #006B6B;
+  --color-ui-clearwater-700: #005555;
+  --color-ui-clearwater-800: #004040;
+  --color-ui-clearwater-900: #002B2B;
+
+  /* Brand neutrals */
+  --color-ui-black: #323232;
+  --color-ui-silver: #808080;
+
+  /* === Typography === */
+  --font-sans: 'Public Sans', ui-sans-serif, system-ui, sans-serif;
+}
