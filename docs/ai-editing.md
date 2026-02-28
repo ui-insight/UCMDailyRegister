@@ -17,7 +17,7 @@ Submission text
  LLM Prompt Construction
       |
       v
- LLM Call (Claude or OpenAI)
+ LLM Call (Claude, OpenAI, or MindRouter)
       |
       v
  Post-Processing (headline case, diff)
@@ -116,30 +116,59 @@ This produces a complete, auditable trail of every change made to a submission.
 
 The LLM provider is selected at startup via the `LLM_PROVIDER` environment variable:
 
-| Value     | Provider                | Model (default)         |
-|-----------|-------------------------|-------------------------|
-| `claude`  | Anthropic Claude API    | claude-sonnet-4-20250514  |
-| `openai`  | OpenAI API              | gpt-4o                  |
+| Value        | Provider                     | Model (default)            | Notes                            |
+|--------------|------------------------------|----------------------------|----------------------------------|
+| `claude`     | Anthropic Claude API         | claude-sonnet-4-20250514   | Cloud API, requires API key      |
+| `openai`     | OpenAI API                   | gpt-4o                     | Cloud API, requires API key      |
+| `mindrouter` | U of I MindRouter (on-prem)  | Qwen/Qwen3-32B             | On-prem, OpenAI-compatible API   |
 
-Both providers implement the same interface:
+All providers implement a common `LLMProvider` interface with two methods:
 
 ```python
-async def generate_edit(
-    system_prompt: str,
-    user_prompt: str,
-    max_tokens: int = 2000
-) -> str:
-    ...
+class LLMProvider(ABC):
+    async def complete(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        temperature: float = 0.3,
+        max_tokens: int = 2000,
+    ) -> LLMResponse: ...
+
+    async def complete_json(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        temperature: float = 0.2,
+        max_tokens: int = 2000,
+    ) -> dict: ...
 ```
 
 Switching providers requires only changing the environment variable and restarting the backend. No code changes are needed.
 
+### MindRouter Details
+
+MindRouter is the University of Idaho's institutional AI services platform, hosted at `mindrouter.uidaho.edu`. It exposes an OpenAI-compatible `/v1/chat/completions` endpoint, which the `MindRouterProvider` calls using `httpx`.
+
+Key implementation details:
+
+- **`<think>` block stripping** -- Qwen3 models emit reasoning tokens wrapped in `<think>...</think>` tags before their actual response. The provider strips these automatically.
+- **Markdown fence stripping** -- JSON responses sometimes arrive wrapped in ` ```json ... ``` ` fences, which are removed before parsing.
+- **Timeout** -- 120-second timeout for the HTTP call (on-prem inference can be slower than cloud APIs).
+- **Bearer token auth** -- set via `MINDROUTER_API_KEY`.
+
 ??? example "Environment Configuration"
     ```bash
-    # .env
+    # .env — Claude
     LLM_PROVIDER=claude
     ANTHROPIC_API_KEY=sk-ant-...
-    # or
+
+    # .env — OpenAI
     LLM_PROVIDER=openai
     OPENAI_API_KEY=sk-...
+
+    # .env — MindRouter (on-prem)
+    LLM_PROVIDER=mindrouter
+    MINDROUTER_API_KEY=mr2_...
+    MINDROUTER_ENDPOINT_URL=https://mindrouter.uidaho.edu/v1/chat/completions
+    MINDROUTER_MODEL=Qwen/Qwen3-32B
     ```

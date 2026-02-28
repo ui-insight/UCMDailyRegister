@@ -3,8 +3,9 @@
 ## Development Setup
 
 1. Clone the repository and follow the [Deployment guide](deployment.md) to set up backend and frontend environments.
-2. Seed the database with `python -m app.db.seed`.
-3. Verify both servers start cleanly before making changes.
+2. Install backend with `pip install -e ".[dev]"` (includes test and lint tools).
+3. Seed the database with `python -m app.db.seed`.
+4. Verify both servers start cleanly before making changes.
 
 ## Code Conventions
 
@@ -62,7 +63,7 @@ async def get_submission(db: AsyncSession, submission_id: UUID) -> Submission:
 ### Frontend
 
 - Components use TypeScript with explicit prop interfaces.
-- Styling uses TailwindCSS utility classes.
+- Styling uses TailwindCSS v4 utility classes with University of Idaho brand tokens (see [Branding](branding.md)).
 - API calls go through dedicated client functions in `src/api/`.
 
 ## AllowedValue Pattern
@@ -122,6 +123,6 @@ When adding a new resource (e.g., `Comment`):
 2. Create Pydantic schemas in `backend/app/schemas/`.
 3. Create a service module in `backend/app/services/`.
 4. Create a route module in `backend/app/api/v1/`.
-5. Register the router in `backend/app/api/v1/__init__.py`.
+5. Register the router in `backend/app/api/v1/router.py`.
 6. Generate an Alembic migration: `alembic revision --autogenerate -m "add comments"`.
 7. Write tests covering CRUD operations and edge cases.

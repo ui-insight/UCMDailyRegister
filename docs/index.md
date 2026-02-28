@@ -14,21 +14,22 @@ Submission Intake --> AI Editing --> Human Review --> Newsletter Assembly --> Wo
 ```
 
 1. **Submission Intake** -- campus contributors submit announcements through a web form with scheduling preferences, links, and optional images.
-2. **AI Editing** -- submissions are processed by an LLM (Claude or OpenAI) guided by UCM style rules stored in the database.
+2. **AI Editing** -- submissions are processed by an LLM (Claude, OpenAI, or MindRouter) guided by UCM style rules stored in the database.
 3. **Human Review** -- editors review AI suggestions in a side-by-side diff view, accept or revise edits, and finalize copy.
 4. **Newsletter Assembly** -- finalized items are placed into newsletter sections, reordered, and previewed.
 5. **Word Export** -- the assembled newsletter is exported to a `.docx` file matching UCM's existing templates.
 
 ## Tech Stack
 
-| Layer      | Technology                              |
-|------------|-----------------------------------------|
-| Frontend   | React, TypeScript, TailwindCSS, Vite    |
-| Backend    | FastAPI, Python 3.12+                   |
-| ORM        | SQLAlchemy 2.x (async)                  |
-| Database   | SQLite (development), PostgreSQL (prod) |
-| AI         | Abstracted LLM layer (Claude + OpenAI)  |
-| Export     | python-docx                             |
+| Layer      | Technology                                        |
+|------------|---------------------------------------------------|
+| Frontend   | React, TypeScript, TailwindCSS v4, Vite           |
+| Backend    | FastAPI, Python 3.12+                              |
+| ORM        | SQLAlchemy 2.x (async)                             |
+| Database   | SQLite (development), PostgreSQL (prod)            |
+| AI         | Abstracted LLM layer (Claude, OpenAI, MindRouter) |
+| Export     | python-docx                                        |
+| Deployment | Docker Compose (nginx + uvicorn + PostgreSQL)      |
 
 ## Quick Start
 
@@ -36,7 +37,7 @@ Submission Intake --> AI Editing --> Human Review --> Newsletter Assembly --> Wo
 # Backend
 cd backend
 python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+pip install -e ".[dev]"
 python -m app.db.seed
 uvicorn app.main:app --port 8001 --reload
 
@@ -54,9 +55,15 @@ npm run dev
 | Phase | Description                    | Status      |
 |-------|--------------------------------|-------------|
 | 1     | Foundation & Scaffold          | Complete    |
-| 2     | Submission Intake              | Not Started |
-| 3     | AI Editing Pipeline            | Not Started |
-| 4     | Editor Dashboard               | Not Started |
-| 5     | Newsletter Builder & Export    | Not Started |
-| 6     | Style Rules & Settings UI      | Not Started |
-| 7     | Polish & Testing               | Not Started |
+| 2     | Submission Intake              | Complete    |
+| 3     | AI Editing Pipeline            | Complete    |
+| 4     | Editor Dashboard               | Complete    |
+| 5     | Newsletter Builder & Export    | Complete    |
+| 6     | Style Rules & Settings UI      | Complete    |
+| 7     | Polish & Testing               | Complete    |
+
+## Recent Updates
+
+- **Feb 2026** -- MindRouter integration: on-prem AI via the University of Idaho's `mindrouter.uidaho.edu` service, switchable alongside Claude and OpenAI.
+- **Feb 2026** -- UI branding alignment: Pride Gold, Clearwater colors, Public Sans typography, and official U of I logo throughout the frontend.
+- **Feb 2026** -- Settings page shows active LLM provider, model, and endpoint configuration in real time.

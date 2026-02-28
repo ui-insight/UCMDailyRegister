@@ -46,12 +46,15 @@ All endpoints are prefixed with `/api/v1`. Responses use JSON. Errors return sta
 
 | Method | Path                                                  | Description                            |
 |--------|-------------------------------------------------------|----------------------------------------|
-| POST   | `/api/v1/submissions/{id}/edit`                       | Trigger AI edit for a submission       |
-| GET    | `/api/v1/submissions/{id}/versions`                   | List all edit versions                 |
-| POST   | `/api/v1/submissions/{id}/versions/{version_id}/finalize` | Finalize an editor version         |
+| POST   | `/api/v1/ai-edits/{id}/edit`                          | Trigger AI edit for a submission       |
+| GET    | `/api/v1/ai-edits/{id}/versions`                      | List all edit versions                 |
+| GET    | `/api/v1/ai-edits/{id}/versions/{version_id}`         | Get a specific edit version            |
+| POST   | `/api/v1/ai-edits/{id}/finalize`                      | Save the editor's final version        |
 
 !!! info "Edit Triggering"
-    `POST /submissions/{id}/edit` is an asynchronous operation. It creates an `AI_Suggested` EditVersion and returns immediately with the new version ID.
+    `POST /ai-edits/{id}/edit` triggers the full AI editing pipeline: pre-analysis, LLM call, post-processing, and diff generation. The response includes the edited text, confidence score, flags, embedded links, and the provider/model used.
+
+The edit response includes `AI_Provider` and `AI_Model` fields so the UI can display which LLM produced the suggestion.
 
 ## Newsletters
 
@@ -99,8 +102,8 @@ All endpoints are prefixed with `/api/v1`. Responses use JSON. Errors return sta
 
 | Method | Path                                          | Description                          |
 |--------|-----------------------------------------------|--------------------------------------|
-| GET    | `/api/v1/schedule-configs`                    | List all schedule configs            |
-| GET    | `/api/v1/schedule-configs/active`             | Get the currently active config      |
+| GET    | `/api/v1/schedule/configs`                    | List all schedule configs            |
+| GET    | `/api/v1/schedule/active`                     | Get the currently active config      |
 
 ## Allowed Values
 
@@ -113,3 +116,40 @@ All endpoints are prefixed with `/api/v1`. Responses use JSON. Errors return sta
     GET /api/v1/allowed-values?group=Submission_Category
     ```
     Returns all allowed values for submission categories (Event, Announcement, Deadline, Opportunity, etc.).
+
+## Settings
+
+| Method | Path                                          | Description                                |
+|--------|-----------------------------------------------|--------------------------------------------|
+| GET    | `/api/v1/settings/ai`                         | Get active LLM provider and configuration  |
+
+The settings endpoint returns read-only configuration data for the frontend Settings page. No secrets are exposed.
+
+??? example "Response Example"
+    ```json
+    {
+      "active_provider": "mindrouter",
+      "active_model": "GPT-OSS-120B",
+      "endpoint_url": "https://mindrouter.uidaho.edu/v1/chat/completions",
+      "providers": {
+        "claude": {
+          "model": "claude-sonnet-4-20250514",
+          "configured": false
+        },
+        "openai": {
+          "model": "gpt-4o",
+          "configured": false
+        },
+        "mindrouter": {
+          "model": "GPT-OSS-120B",
+          "endpoint_url": "https://mindrouter.uidaho.edu/v1/chat/completions",
+          "configured": true
+        }
+      }
+    }
+    ```
+
+    - `active_provider` -- the `LLM_PROVIDER` environment variable value
+    - `active_model` -- the model string for the active provider
+    - `endpoint_url` -- present only when provider is `mindrouter`
+    - `providers[*].configured` -- `true` if the API key environment variable is set (non-empty)

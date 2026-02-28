@@ -7,14 +7,14 @@ theme:
   name: material
   palette:
     - scheme: default
-      primary: amber
-      accent: amber
+      primary: custom
+      accent: teal
       toggle:
         icon: material/brightness-7
         name: Switch to dark mode
     - scheme: slate
-      primary: amber
-      accent: amber
+      primary: custom
+      accent: teal
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
@@ -23,6 +23,9 @@ theme:
     - navigation.sections
     - navigation.expand
     - toc.integrate
+
+extra_css:
+  - stylesheets/extra.css
 
 markdown_extensions:
   - admonition
@@ -39,6 +42,7 @@ nav:
   - Architecture: architecture.md
   - Data Model: data-model.md
   - AI Editing: ai-editing.md
+  - UI Branding: branding.md
   - API Reference: api-reference.md
   - Deployment: deployment.md
   - Contributing: contributing.md
