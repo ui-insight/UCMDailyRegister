@@ -58,7 +58,7 @@ export default function ImageUpload({ file, onChange }: Props) {
       ) : (
         <div
           onClick={() => inputRef.current?.click()}
-          className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-amber-400 transition-colors"
+          className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-ui-gold-400 transition-colors"
         >
           <p className="text-sm text-gray-500">Click to upload an image</p>
           <p className="text-xs text-gray-400 mt-1">JPG, PNG, GIF, WebP up to 10MB</p>

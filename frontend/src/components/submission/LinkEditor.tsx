@@ -39,14 +39,14 @@ export default function LinkEditor({ links, onChange }: Props) {
             placeholder="https://..."
             value={link.Url}
             onChange={(e) => updateLink(index, 'Url', e.target.value)}
-            className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+            className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
           />
           <input
             type="text"
             placeholder="Link text (e.g., 'Learn more')"
             value={link.Anchor_Text}
             onChange={(e) => updateLink(index, 'Anchor_Text', e.target.value)}
-            className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+            className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
           />
           <button
             type="button"
@@ -60,7 +60,7 @@ export default function LinkEditor({ links, onChange }: Props) {
       <button
         type="button"
         onClick={addLink}
-        className="text-sm text-amber-600 hover:text-amber-700 font-medium"
+        className="text-sm text-ui-gold-600 hover:text-ui-gold-700 font-medium"
       >
         + Add Link
       </button>

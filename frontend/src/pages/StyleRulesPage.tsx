@@ -9,7 +9,7 @@ import type { StyleRule } from '../types/aiEdit';
 
 const SEVERITY_COLORS: Record<string, string> = {
   error: 'bg-red-100 text-red-800',
-  warning: 'bg-amber-100 text-amber-800',
+  warning: 'bg-ui-gold-100 text-ui-gold-800',
   info: 'bg-blue-100 text-blue-800',
 };
 
@@ -151,7 +151,7 @@ export default function StyleRulesPage() {
           <span className="text-sm text-gray-500">{rules.length} rules</span>
           <button
             onClick={() => setShowAddForm(true)}
-            className="px-3 py-1.5 text-sm font-medium rounded-md bg-amber-600 text-white hover:bg-amber-700"
+            className="px-3 py-1.5 text-sm font-medium rounded-md bg-ui-gold-600 text-white hover:bg-ui-gold-700"
           >
             + Add Rule
           </button>
@@ -203,7 +203,7 @@ export default function StyleRulesPage() {
 
       {/* Add Rule Form */}
       {showAddForm && (
-        <div className="bg-white rounded-lg shadow p-4 mb-6 border-2 border-amber-200">
+        <div className="bg-white rounded-lg shadow p-4 mb-6 border-2 border-ui-gold-200">
           <h3 className="text-sm font-semibold text-gray-900 mb-3">Add New Rule</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
             <div>
@@ -261,7 +261,7 @@ export default function StyleRulesPage() {
             </select>
             <button
               onClick={handleAddRule}
-              className="px-4 py-2 text-sm font-medium rounded-md bg-amber-600 text-white hover:bg-amber-700"
+              className="px-4 py-2 text-sm font-medium rounded-md bg-ui-gold-600 text-white hover:bg-ui-gold-700"
             >
               Add Rule
             </button>
@@ -318,7 +318,7 @@ export default function StyleRulesPage() {
                           </select>
                           <button
                             onClick={handleSaveEdit}
-                            className="px-3 py-1 text-xs font-medium rounded bg-amber-600 text-white hover:bg-amber-700"
+                            className="px-3 py-1 text-xs font-medium rounded bg-ui-gold-600 text-white hover:bg-ui-gold-700"
                           >
                             Save
                           </button>
@@ -352,7 +352,7 @@ export default function StyleRulesPage() {
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2 shrink-0">
                           <button
                             onClick={() => handleStartEdit(rule)}
-                            className="p-1 text-gray-400 hover:text-amber-600 text-xs"
+                            className="p-1 text-gray-400 hover:text-ui-gold-600 text-xs"
                             title="Edit"
                           >
                             Edit

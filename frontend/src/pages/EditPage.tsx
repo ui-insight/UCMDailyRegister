@@ -19,7 +19,7 @@ const STATUS_COLORS: Record<string, string> = {
   ai_edited: 'bg-purple-100 text-purple-800',
   in_review: 'bg-yellow-100 text-yellow-800',
   approved: 'bg-green-100 text-green-800',
-  scheduled: 'bg-indigo-100 text-indigo-800',
+  scheduled: 'bg-ui-clearwater-100 text-ui-clearwater-800',
   published: 'bg-gray-100 text-gray-800',
   rejected: 'bg-red-100 text-red-800',
 };
@@ -178,7 +178,7 @@ export default function EditPage() {
         <p className="text-red-600 mb-4">{error}</p>
         <button
           onClick={() => navigate('/dashboard')}
-          className="text-sm text-amber-600 hover:text-amber-700"
+          className="text-sm text-ui-gold-600 hover:text-ui-gold-700"
         >
           Back to Dashboard
         </button>
@@ -261,7 +261,7 @@ export default function EditPage() {
                   disabled={!tab.available}
                   className={`pb-2 text-sm font-medium border-b-2 transition-colors ${
                     activeTab === tab.id
-                      ? 'border-amber-500 text-amber-600'
+                      ? 'border-ui-gold-500 text-ui-gold-600'
                       : tab.available
                         ? 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                         : 'border-transparent text-gray-300 cursor-not-allowed'
@@ -359,7 +359,7 @@ export default function EditPage() {
                   <button
                     onClick={handleSaveFinal}
                     disabled={saveLoading}
-                    className="px-4 py-2 text-sm font-medium rounded-md bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50"
+                    className="px-4 py-2 text-sm font-medium rounded-md bg-ui-gold-600 text-white hover:bg-ui-gold-700 disabled:opacity-50"
                   >
                     {saveLoading ? 'Saving...' : 'Save Final Version'}
                   </button>

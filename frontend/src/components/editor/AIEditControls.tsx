@@ -23,7 +23,7 @@ export default function AIEditControls({
       : confidence >= 0.8
         ? 'text-green-600'
         : confidence >= 0.5
-          ? 'text-amber-600'
+          ? 'text-ui-gold-600'
           : 'text-red-600';
 
   return (
@@ -31,12 +31,12 @@ export default function AIEditControls({
       <h3 className="text-sm font-semibold text-gray-900 mb-3">AI Edit Controls</h3>
 
       {loading && (
-        <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-md">
+        <div className="mb-3 p-3 bg-ui-gold-50 border border-ui-gold-200 rounded-md">
           <div className="flex items-center gap-2">
-            <div className="animate-spin h-4 w-4 border-2 border-amber-600 border-t-transparent rounded-full" />
-            <span className="text-sm text-amber-700 font-medium">AI is editing...</span>
+            <div className="animate-spin h-4 w-4 border-2 border-ui-gold-600 border-t-transparent rounded-full" />
+            <span className="text-sm text-ui-gold-700 font-medium">AI is editing...</span>
           </div>
-          <p className="text-xs text-amber-600 mt-1">This may take a few seconds.</p>
+          <p className="text-xs text-ui-gold-600 mt-1">This may take a few seconds.</p>
         </div>
       )}
 
@@ -49,7 +49,7 @@ export default function AIEditControls({
               <button
                 onClick={() => onTriggerEdit('tdr')}
                 disabled={loading}
-                className="flex-1 px-3 py-2 text-sm font-medium rounded-md bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-3 py-2 text-sm font-medium rounded-md bg-ui-gold-600 text-white hover:bg-ui-gold-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? 'Processing...' : 'TDR (Daily Register)'}
               </button>
@@ -58,7 +58,7 @@ export default function AIEditControls({
               <button
                 onClick={() => onTriggerEdit('myui')}
                 disabled={loading}
-                className="flex-1 px-3 py-2 text-sm font-medium rounded-md bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-3 py-2 text-sm font-medium rounded-md bg-ui-clearwater-600 text-white hover:bg-ui-clearwater-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? 'Processing...' : 'My UI (Student)'}
               </button>

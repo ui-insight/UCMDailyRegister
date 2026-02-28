@@ -126,7 +126,7 @@ export default function SubmissionForm() {
             required
             maxLength={500}
             placeholder="e.g., 'Register for spring Pilates classes'"
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
           />
           <p className="text-xs text-gray-400 mt-1">{headline.length}/500</p>
         </div>
@@ -140,7 +140,7 @@ export default function SubmissionForm() {
             required
             rows={8}
             placeholder="Describe your announcement, event, or news item. Include date, time, location, and cost (if applicable)."
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
           />
         </div>
         <LinkEditor links={links} onChange={setLinks} />
@@ -161,7 +161,7 @@ export default function SubmissionForm() {
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
             placeholder="e.g., 'Please run this on April 3. Link the text &quot;vandalsgive.uidaho.edu&quot; to https://vandalsgive.uidaho.edu/giving-day/98415'"
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
           />
         </div>
       </div>
@@ -180,7 +180,7 @@ export default function SubmissionForm() {
               value={submitterName}
               onChange={(e) => setSubmitterName(e.target.value)}
               required
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
             />
           </div>
           <div>
@@ -193,7 +193,7 @@ export default function SubmissionForm() {
               onChange={(e) => setSubmitterEmail(e.target.value)}
               required
               placeholder="you@uidaho.edu"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
             />
           </div>
         </div>
@@ -203,7 +203,7 @@ export default function SubmissionForm() {
         <button
           type="submit"
           disabled={submitting}
-          className="px-6 py-3 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-6 py-3 bg-ui-gold-600 text-white font-medium rounded-lg hover:bg-ui-gold-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {submitting ? 'Submitting...' : 'Submit Announcement'}
         </button>

@@ -24,7 +24,7 @@ export default function CategorySelect({ value, onChange }: Props) {
       <select
         value={value}
         onChange={(e) => onChange(e.target.value as SubmissionCategory)}
-        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
       >
         {CATEGORIES.map((cat) => (
           <option key={cat.value} value={cat.value}>

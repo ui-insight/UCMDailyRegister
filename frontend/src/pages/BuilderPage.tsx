@@ -157,7 +157,7 @@ export default function BuilderPage() {
     draft: 'bg-gray-100 text-gray-800',
     in_progress: 'bg-blue-100 text-blue-800',
     ready_for_review: 'bg-yellow-100 text-yellow-800',
-    submitted: 'bg-indigo-100 text-indigo-800',
+    submitted: 'bg-ui-clearwater-100 text-ui-clearwater-800',
     published: 'bg-green-100 text-green-800',
   };
 
@@ -201,7 +201,7 @@ export default function BuilderPage() {
           <button
             onClick={handleAssemble}
             disabled={loading}
-            className="px-4 py-2 text-sm font-medium rounded-md bg-amber-600 text-white hover:bg-amber-700 disabled:opacity-50"
+            className="px-4 py-2 text-sm font-medium rounded-md bg-ui-gold-600 text-white hover:bg-ui-gold-700 disabled:opacity-50"
           >
             {loading ? 'Assembling...' : 'Assemble Newsletter'}
           </button>
@@ -209,7 +209,7 @@ export default function BuilderPage() {
             <>
               <a
                 href={getExportUrl(newsletter.Id)}
-                className="px-4 py-2 text-sm font-medium rounded-md bg-indigo-600 text-white hover:bg-indigo-700"
+                className="px-4 py-2 text-sm font-medium rounded-md bg-ui-clearwater-600 text-white hover:bg-ui-clearwater-700"
                 download
               >
                 Export Word Doc
@@ -308,7 +308,7 @@ export default function BuilderPage() {
                                   {item.Final_Body.replace(/<[^>]+>/g, '')}
                                 </p>
                                 {item.Run_Number > 1 && (
-                                  <span className="text-xs text-amber-600 mt-1 inline-block">
+                                  <span className="text-xs text-ui-gold-600 mt-1 inline-block">
                                     Run #{item.Run_Number}
                                   </span>
                                 )}
@@ -363,7 +363,7 @@ export default function BuilderPage() {
                     key={nl.Id}
                     onClick={() => handleLoadNewsletter(nl.Id)}
                     className={`w-full text-left p-2 rounded text-sm hover:bg-gray-50 ${
-                      newsletter?.Id === nl.Id ? 'bg-amber-50 border border-amber-200' : ''
+                      newsletter?.Id === nl.Id ? 'bg-ui-gold-50 border border-ui-gold-200' : ''
                     }`}
                   >
                     <p className="font-medium text-gray-900">

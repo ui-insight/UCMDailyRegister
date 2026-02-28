@@ -12,8 +12,12 @@ export default function Sidebar() {
   return (
     <aside className="w-64 bg-gray-900 text-white min-h-screen flex flex-col">
       <div className="p-6 border-b border-gray-700">
-        <h1 className="text-lg font-bold">UCM Newsletter Builder</h1>
-        <p className="text-xs text-gray-400 mt-1">University of Idaho</p>
+        <img
+          src="/ui-logo-gold-white-horizontal.png"
+          alt="University of Idaho"
+          className="h-10 w-auto mb-2"
+        />
+        <p className="text-xs text-gray-400">UCM Newsletter Builder</p>
       </div>
       <nav className="flex-1 p-4 space-y-1">
         {navItems.map((item) => (
@@ -23,7 +27,7 @@ export default function Sidebar() {
             className={({ isActive }) =>
               `block px-4 py-2 rounded text-sm ${
                 isActive
-                  ? 'bg-amber-600 text-white font-medium'
+                  ? 'bg-ui-gold-500 text-ui-black font-medium'
                   : 'text-gray-300 hover:bg-gray-800 hover:text-white'
               }`
             }
