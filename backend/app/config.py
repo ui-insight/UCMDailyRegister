@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     database_url: str = "sqlite+aiosqlite:///./ucm_newsletter.db"
 
     # LLM Provider
-    llm_provider: str = "claude"  # "claude" or "openai"
+    llm_provider: str = "claude"  # "claude", "openai", or "mindrouter"
 
     # Anthropic
     anthropic_api_key: str = ""
@@ -15,6 +15,11 @@ class Settings(BaseSettings):
     # OpenAI
     openai_api_key: str = ""
     openai_model: str = "gpt-4o"
+
+    # MindRouter (University of Idaho on-prem AI services)
+    mindrouter_api_key: str = ""
+    mindrouter_endpoint_url: str = "https://mindrouter.uidaho.edu/v1/chat/completions"
+    mindrouter_model: str = "Qwen/Qwen3-32B"
 
     # App
     upload_dir: str = "./uploads"
