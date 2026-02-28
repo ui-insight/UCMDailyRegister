@@ -20,16 +20,51 @@ interface ActiveSchedule {
   Submission_Deadline: string;
 }
 
+interface ProviderInfo {
+  model: string;
+  configured: boolean;
+  endpoint_url?: string;
+}
+
+interface AISettings {
+  active_provider: string;
+  active_model: string;
+  endpoint_url?: string;
+  providers: Record<string, ProviderInfo>;
+}
+
 const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const MONTH_NAMES = [
   '', 'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
+const PROVIDER_LABELS: Record<string, { name: string; envKey: string; envModel: string; description: string }> = {
+  claude: {
+    name: 'Claude (Anthropic)',
+    envKey: 'ANTHROPIC_API_KEY',
+    envModel: 'CLAUDE_MODEL',
+    description: 'Anthropic cloud AI',
+  },
+  openai: {
+    name: 'OpenAI',
+    envKey: 'OPENAI_API_KEY',
+    envModel: 'OPENAI_MODEL',
+    description: 'OpenAI cloud AI',
+  },
+  mindrouter: {
+    name: 'MindRouter',
+    envKey: 'MINDROUTER_API_KEY',
+    envModel: 'MINDROUTER_MODEL',
+    description: 'University of Idaho on-prem AI',
+  },
+};
+
 export default function SettingsPage() {
   const [scheduleConfigs, setScheduleConfigs] = useState<ScheduleConfig[]>([]);
   const [activeTdr, setActiveTdr] = useState<ActiveSchedule | null>(null);
   const [activeMyui, setActiveMyui] = useState<ActiveSchedule | null>(null);
+  const [aiSettings, setAiSettings] = useState<AISettings | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -39,14 +74,16 @@ export default function SettingsPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [configs, tdr, myui] = await Promise.all([
+      const [configs, tdr, myui, ai] = await Promise.all([
         apiFetch<ScheduleConfig[]>('/schedule/configs'),
         apiFetch<ActiveSchedule>('/schedule/active?newsletter_type=tdr').catch(() => null),
         apiFetch<ActiveSchedule>('/schedule/active?newsletter_type=myui').catch(() => null),
+        apiFetch<AISettings>('/settings/ai').catch(() => null),
       ]);
       setScheduleConfigs(configs);
       setActiveTdr(tdr);
       setActiveMyui(myui);
+      setAiSettings(ai);
     } catch (err) {
       console.error('Failed to load settings:', err);
     } finally {
@@ -67,43 +104,86 @@ export default function SettingsPage() {
         <h3 className="text-lg font-semibold text-gray-900 mb-4">AI Provider</h3>
         <p className="text-sm text-gray-600 mb-4">
           The LLM provider is configured via environment variables. Set <code className="bg-gray-100 px-1 py-0.5 rounded text-xs">LLM_PROVIDER</code> to
-          "claude" or "openai" and provide the corresponding API key.
+          &quot;claude&quot;, &quot;openai&quot;, or &quot;mindrouter&quot; and provide the corresponding API key.
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="border rounded-lg p-4">
-            <h4 className="text-sm font-semibold text-gray-900 mb-2">Claude (Anthropic)</h4>
-            <dl className="text-xs space-y-1">
-              <div className="flex gap-2">
-                <dt className="text-gray-500 w-32">Env variable:</dt>
-                <dd className="font-mono text-gray-700">ANTHROPIC_API_KEY</dd>
-              </div>
-              <div className="flex gap-2">
-                <dt className="text-gray-500 w-32">Model:</dt>
-                <dd className="font-mono text-gray-700">CLAUDE_MODEL</dd>
-              </div>
-              <div className="flex gap-2">
-                <dt className="text-gray-500 w-32">Default model:</dt>
-                <dd className="text-gray-700">claude-sonnet-4-20250514</dd>
-              </div>
-            </dl>
+
+        {/* Active provider banner */}
+        {aiSettings && (
+          <div className="mb-4 rounded-lg bg-ui-clearwater-50 border border-ui-clearwater-200 px-4 py-3 flex items-center gap-3">
+            <span className="inline-flex items-center rounded-full bg-ui-clearwater-500 px-2.5 py-0.5 text-xs font-medium text-white">
+              Active
+            </span>
+            <span className="text-sm font-medium text-gray-900">
+              {PROVIDER_LABELS[aiSettings.active_provider]?.name ?? aiSettings.active_provider}
+            </span>
+            <span className="text-sm text-gray-500">—</span>
+            <span className="text-sm font-mono text-gray-700">{aiSettings.active_model}</span>
+            {aiSettings.endpoint_url && (
+              <>
+                <span className="text-sm text-gray-500">—</span>
+                <span className="text-xs font-mono text-gray-500 truncate">{aiSettings.endpoint_url}</span>
+              </>
+            )}
           </div>
-          <div className="border rounded-lg p-4">
-            <h4 className="text-sm font-semibold text-gray-900 mb-2">OpenAI</h4>
-            <dl className="text-xs space-y-1">
-              <div className="flex gap-2">
-                <dt className="text-gray-500 w-32">Env variable:</dt>
-                <dd className="font-mono text-gray-700">OPENAI_API_KEY</dd>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {(['claude', 'openai', 'mindrouter'] as const).map((key) => {
+            const meta = PROVIDER_LABELS[key];
+            const providerInfo = aiSettings?.providers?.[key];
+            const isActive = aiSettings?.active_provider === key;
+
+            return (
+              <div
+                key={key}
+                className={`border rounded-lg p-4 relative ${
+                  isActive
+                    ? 'border-ui-clearwater-400 bg-ui-clearwater-50 ring-1 ring-ui-clearwater-300'
+                    : providerInfo?.configured
+                      ? 'border-gray-200'
+                      : 'border-gray-200 opacity-60'
+                }`}
+              >
+                {isActive && (
+                  <span className="absolute -top-2.5 right-3 inline-flex items-center rounded-full bg-ui-clearwater-500 px-2 py-0.5 text-[10px] font-semibold text-white uppercase tracking-wide">
+                    Active
+                  </span>
+                )}
+                <h4 className="text-sm font-semibold text-gray-900 mb-1">{meta.name}</h4>
+                <p className="text-xs text-gray-500 mb-3">{meta.description}</p>
+                <dl className="text-xs space-y-1">
+                  <div className="flex gap-2">
+                    <dt className="text-gray-500 w-28">API key env:</dt>
+                    <dd className="font-mono text-gray-700">{meta.envKey}</dd>
+                  </div>
+                  <div className="flex gap-2">
+                    <dt className="text-gray-500 w-28">Model env:</dt>
+                    <dd className="font-mono text-gray-700">{meta.envModel}</dd>
+                  </div>
+                  <div className="flex gap-2">
+                    <dt className="text-gray-500 w-28">Current model:</dt>
+                    <dd className="font-mono text-gray-700">
+                      {providerInfo?.model ?? '—'}
+                    </dd>
+                  </div>
+                  {key === 'mindrouter' && providerInfo?.endpoint_url && (
+                    <div className="flex gap-2">
+                      <dt className="text-gray-500 w-28">Endpoint:</dt>
+                      <dd className="font-mono text-gray-700 truncate" title={providerInfo.endpoint_url}>
+                        {providerInfo.endpoint_url}
+                      </dd>
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <dt className="text-gray-500 w-28">Key provided:</dt>
+                    <dd className={providerInfo?.configured ? 'text-green-600 font-medium' : 'text-gray-400'}>
+                      {providerInfo?.configured ? 'Yes' : 'No'}
+                    </dd>
+                  </div>
+                </dl>
               </div>
-              <div className="flex gap-2">
-                <dt className="text-gray-500 w-32">Model:</dt>
-                <dd className="font-mono text-gray-700">OPENAI_MODEL</dd>
-              </div>
-              <div className="flex gap-2">
-                <dt className="text-gray-500 w-32">Default model:</dt>
-                <dd className="text-gray-700">gpt-4o</dd>
-              </div>
-            </dl>
-          </div>
+            );
+          })}
         </div>
       </div>
 
