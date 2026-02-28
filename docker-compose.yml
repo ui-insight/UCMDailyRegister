@@ -2,7 +2,7 @@ services:
   backend:
     build: ./backend
     environment:
-      DATABASE_URL: postgresql+asyncpg://ucm:${UCM_DB_PASSWORD:?Set UCM_DB_PASSWORD in .env}@insight-db:5432/ucm_newsletter
+      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in .env}
       LLM_PROVIDER: ${LLM_PROVIDER:-claude}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       CLAUDE_MODEL: ${CLAUDE_MODEL:-claude-sonnet-4-20250514}
