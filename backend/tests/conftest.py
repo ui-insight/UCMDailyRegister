@@ -74,6 +74,7 @@ def make_submission_data(**overrides) -> dict:
         "Original_Body": "This is the body text of a test submission.",
         "Submitter_Name": "Test User",
         "Submitter_Email": "test@uidaho.edu",
+        "Schedule_Requests": [{"Requested_Date": "2026-03-15", "Repeat_Count": 1}],
     }
     data.update(overrides)
     return data

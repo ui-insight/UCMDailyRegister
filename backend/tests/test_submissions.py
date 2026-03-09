@@ -30,13 +30,13 @@ class TestSubmissionCRUD:
 
     async def test_create_submission_with_schedule(self, client: AsyncClient):
         data = make_submission_data(
-            Schedule_Requests=[{"Requested_Date": "2026-03-15", "Repeat_Count": 3}]
+            Schedule_Requests=[{"Requested_Date": "2026-03-15", "Repeat_Count": 2}]
         )
         resp = await client.post("/api/v1/submissions/", json=data)
         assert resp.status_code == 201
         body = resp.json()
         assert len(body["Schedule_Requests"]) == 1
-        assert body["Schedule_Requests"][0]["Repeat_Count"] == 3
+        assert body["Schedule_Requests"][0]["Repeat_Count"] == 2
 
     async def test_list_submissions(self, client: AsyncClient):
         # Create two submissions

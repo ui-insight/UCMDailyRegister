@@ -6,8 +6,6 @@ const CATEGORIES: { value: SubmissionCategory; label: string }[] = [
   { value: 'job_opportunity', label: 'Job Opportunity' },
   { value: 'kudos', label: 'Acknowledgments and Kudos' },
   { value: 'in_memoriam', label: 'In Memoriam' },
-  { value: 'news_release', label: 'News Release' },
-  { value: 'calendar_event', label: 'Calendar Event' },
 ];
 
 interface Props {
