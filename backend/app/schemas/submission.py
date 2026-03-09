@@ -25,8 +25,8 @@ class LinkResponse(BaseModel):
 
 
 class ScheduleRequestCreate(BaseModel):
-    Requested_Date: date | None = None
-    Repeat_Count: int = 1
+    Requested_Date: date
+    Repeat_Count: int = Field(1, ge=1, le=2)
     Repeat_Note: str | None = None
 
 
@@ -43,7 +43,7 @@ class ScheduleRequestResponse(BaseModel):
 
 
 class SubmissionCreate(BaseModel):
-    Category: str = Field(..., pattern=r"^(faculty_staff|student|job_opportunity|kudos|in_memoriam|news_release|calendar_event)$")
+    Category: str = Field(..., pattern=r"^(faculty_staff|student|job_opportunity|kudos|in_memoriam)$")
     Target_Newsletter: str = Field(..., pattern=r"^(tdr|myui|both)$")
     Original_Headline: str = Field(..., min_length=1, max_length=500)
     Original_Body: str = Field(..., min_length=1)
@@ -51,7 +51,7 @@ class SubmissionCreate(BaseModel):
     Submitter_Email: str = Field(..., max_length=255)
     Submitter_Notes: str | None = None
     Links: list[LinkCreate] = []
-    Schedule_Requests: list[ScheduleRequestCreate] = []
+    Schedule_Requests: list[ScheduleRequestCreate] = Field(..., min_length=1)
 
 
 class SubmissionUpdate(BaseModel):
@@ -59,7 +59,7 @@ class SubmissionUpdate(BaseModel):
     Original_Headline: str | None = None
     Original_Body: str | None = None
     Submitter_Notes: str | None = None
-    Category: str | None = Field(None, pattern=r"^(faculty_staff|student|job_opportunity|kudos|in_memoriam|news_release|calendar_event)$")
+    Category: str | None = Field(None, pattern=r"^(faculty_staff|student|job_opportunity|kudos|in_memoriam)$")
     Target_Newsletter: str | None = Field(None, pattern=r"^(tdr|myui|both)$")
 
 

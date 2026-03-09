@@ -28,6 +28,7 @@ export default function SchedulePrefs({ schedule, onChange }: Props) {
             type="date"
             value={schedule.Requested_Date}
             onChange={(e) => update('Requested_Date', e.target.value)}
+            required
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
           />
         </div>
@@ -42,7 +43,6 @@ export default function SchedulePrefs({ schedule, onChange }: Props) {
           >
             <option value={1}>Once</option>
             <option value={2}>Twice (has RSVP/registration)</option>
-            <option value={3}>Three times</option>
           </select>
         </div>
       </div>

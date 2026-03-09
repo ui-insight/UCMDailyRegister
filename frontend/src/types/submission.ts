@@ -3,9 +3,10 @@ export type SubmissionCategory =
   | 'student'
   | 'job_opportunity'
   | 'kudos'
-  | 'in_memoriam'
-  | 'news_release'
-  | 'calendar_event';
+  | 'in_memoriam';
+
+/** Legacy categories that may exist on old submissions but are no longer submittable. */
+export type LegacyCategory = 'news_release' | 'calendar_event';
 
 export type TargetNewsletter = 'tdr' | 'myui' | 'both';
 
@@ -34,7 +35,7 @@ export interface SubmissionScheduleRequest {
 
 export interface Submission {
   Id: string;
-  Category: SubmissionCategory;
+  Category: SubmissionCategory | LegacyCategory;
   Target_Newsletter: TargetNewsletter;
   Original_Headline: string;
   Original_Body: string;

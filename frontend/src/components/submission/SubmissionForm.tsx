@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import type { SubmissionCategory, TargetNewsletter, SubmissionCreate } from '../../types/submission';
-import { createSubmission, uploadImage } from '../../api/submissions';
+import { createSubmission } from '../../api/submissions';
 import CategorySelect from './CategorySelect';
 import NewsletterTargetSelect from './NewsletterTargetSelect';
 import LinkEditor from './LinkEditor';
-import ImageUpload from './ImageUpload';
 import SchedulePrefs from './SchedulePrefs';
 
 interface LinkEntry {
@@ -27,7 +26,6 @@ export default function SubmissionForm() {
   const [submitterEmail, setSubmitterEmail] = useState('');
   const [notes, setNotes] = useState('');
   const [links, setLinks] = useState<LinkEntry[]>([]);
-  const [imageFile, setImageFile] = useState<File | null>(null);
   const [schedule, setSchedule] = useState<ScheduleEntry>({
     Requested_Date: '',
     Repeat_Count: 1,
@@ -56,22 +54,16 @@ export default function SubmissionForm() {
         Links: links
           .filter((l) => l.Url.trim())
           .map((l) => ({ Url: l.Url, Anchor_Text: l.Anchor_Text || undefined })),
-        Schedule_Requests: schedule.Requested_Date
-          ? [
-              {
-                Requested_Date: schedule.Requested_Date,
-                Repeat_Count: schedule.Repeat_Count,
-                Repeat_Note: schedule.Repeat_Note || undefined,
-              },
-            ]
-          : [],
+        Schedule_Requests: [
+          {
+            Requested_Date: schedule.Requested_Date,
+            Repeat_Count: schedule.Repeat_Count,
+            Repeat_Note: schedule.Repeat_Note || undefined,
+          },
+        ],
       };
 
-      const submission = await createSubmission(data);
-
-      if (imageFile) {
-        await uploadImage(submission.Id, imageFile);
-      }
+      await createSubmission(data);
 
       setSuccess(true);
       // Reset form
@@ -79,7 +71,6 @@ export default function SubmissionForm() {
       setBody('');
       setNotes('');
       setLinks([]);
-      setImageFile(null);
       setSchedule({ Requested_Date: '', Repeat_Count: 1, Repeat_Note: '' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Submission failed');
@@ -107,8 +98,8 @@ export default function SubmissionForm() {
         <h3 className="text-lg font-semibold text-gray-900 border-b pb-3">
           About Your Announcement
         </h3>
-        <CategorySelect value={category} onChange={setCategory} />
         <NewsletterTargetSelect value={targetNewsletter} onChange={setTargetNewsletter} />
+        <CategorySelect value={category} onChange={setCategory} />
       </div>
 
       <div className="bg-white rounded-lg shadow p-6 space-y-5">
@@ -144,7 +135,6 @@ export default function SubmissionForm() {
           />
         </div>
         <LinkEditor links={links} onChange={setLinks} />
-        <ImageUpload file={imageFile} onChange={setImageFile} />
       </div>
 
       <div className="bg-white rounded-lg shadow p-6 space-y-5">
