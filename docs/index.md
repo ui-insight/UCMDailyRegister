@@ -64,6 +64,7 @@ npm run dev
 
 ## Recent Updates
 
+- **Mar 2026** -- Side-by-side comparison view: editors can toggle between inline diff and two-column original-vs-AI layout when reviewing edits.
 - **Feb 2026** -- MindRouter integration: on-prem AI via the University of Idaho's `mindrouter.uidaho.edu` service, switchable alongside Claude and OpenAI.
 - **Feb 2026** -- UI branding alignment: Pride Gold, Clearwater colors, Public Sans typography, and official U of I logo throughout the frontend.
 - **Feb 2026** -- Settings page shows active LLM provider, model, and endpoint configuration in real time.

@@ -10,9 +10,11 @@ import AIEditControls from '../components/editor/AIEditControls';
 import HeadlineEditor from '../components/editor/HeadlineEditor';
 import BodyEditor from '../components/editor/BodyEditor';
 import ChangesList from '../components/editor/ChangesList';
+import SideBySideView from '../components/editor/SideBySideView';
 import SubmissionMeta from '../components/editor/SubmissionMeta';
 
 type Tab = 'original' | 'ai_edit' | 'editor';
+type ViewMode = 'diff' | 'side_by_side';
 
 const STATUS_COLORS: Record<string, string> = {
   new: 'bg-blue-100 text-blue-800',
@@ -37,6 +39,8 @@ export default function EditPage() {
   const [saveLoading, setSaveLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const [viewMode, setViewMode] = useState<ViewMode>('diff');
 
   // Editor state
   const [editHeadline, setEditHeadline] = useState('');
@@ -298,31 +302,69 @@ export default function EditPage() {
 
             {activeTab === 'ai_edit' && hasAIEdit && (
               <div className="space-y-6">
-                {/* Diffs */}
-                {headlineDiff && (
-                  <DiffViewer diff={headlineDiff} label="Headline Changes" />
-                )}
-                {!headlineDiff && aiVersion && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">
-                      AI Headline
-                    </label>
-                    <p className="text-sm font-medium text-gray-900 bg-green-50 p-3 rounded">
-                      {aiVersion.Headline}
-                    </p>
-                  </div>
+                {/* View mode toggle */}
+                <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5 w-fit">
+                  <button
+                    onClick={() => setViewMode('diff')}
+                    className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                      viewMode === 'diff'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Inline Diff
+                  </button>
+                  <button
+                    onClick={() => setViewMode('side_by_side')}
+                    className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                      viewMode === 'side_by_side'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Side by Side
+                  </button>
+                </div>
+
+                {/* Inline diff mode */}
+                {viewMode === 'diff' && (
+                  <>
+                    {headlineDiff && (
+                      <DiffViewer diff={headlineDiff} label="Headline Changes" />
+                    )}
+                    {!headlineDiff && aiVersion && (
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                          AI Headline
+                        </label>
+                        <p className="text-sm font-medium text-gray-900 bg-green-50 p-3 rounded">
+                          {aiVersion.Headline}
+                        </p>
+                      </div>
+                    )}
+
+                    {bodyDiff && <DiffViewer diff={bodyDiff} label="Body Changes" />}
+                    {!bodyDiff && aiVersion && (
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                          AI Body
+                        </label>
+                        <p className="text-sm text-gray-700 bg-green-50 p-3 rounded whitespace-pre-wrap">
+                          {aiVersion.Body}
+                        </p>
+                      </div>
+                    )}
+                  </>
                 )}
 
-                {bodyDiff && <DiffViewer diff={bodyDiff} label="Body Changes" />}
-                {!bodyDiff && aiVersion && (
-                  <div>
-                    <label className="block text-xs font-medium text-gray-500 mb-1">
-                      AI Body
-                    </label>
-                    <p className="text-sm text-gray-700 bg-green-50 p-3 rounded whitespace-pre-wrap">
-                      {aiVersion.Body}
-                    </p>
-                  </div>
+                {/* Side-by-side mode */}
+                {viewMode === 'side_by_side' && (
+                  <SideBySideView
+                    originalHeadline={submission.Original_Headline}
+                    originalBody={submission.Original_Body}
+                    aiHeadline={aiVersion?.Headline || aiEditResult?.Edited_Headline || ''}
+                    aiBody={aiVersion?.Body || aiEditResult?.Edited_Body || ''}
+                  />
                 )}
 
                 {/* Flags */}
