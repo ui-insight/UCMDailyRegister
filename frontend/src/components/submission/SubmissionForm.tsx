@@ -15,6 +15,8 @@ interface ScheduleEntry {
   Requested_Date: string;
   Repeat_Count: number;
   Repeat_Note: string;
+  Is_Flexible: boolean;
+  Flexible_Deadline: string;
 }
 
 export default function SubmissionForm() {
@@ -25,11 +27,14 @@ export default function SubmissionForm() {
   const [submitterName, setSubmitterName] = useState('');
   const [submitterEmail, setSubmitterEmail] = useState('');
   const [notes, setNotes] = useState('');
+  const [surveyEndDate, setSurveyEndDate] = useState('');
   const [links, setLinks] = useState<LinkEntry[]>([]);
   const [schedule, setSchedule] = useState<ScheduleEntry>({
     Requested_Date: '',
     Repeat_Count: 1,
     Repeat_Note: '',
+    Is_Flexible: false,
+    Flexible_Deadline: '',
   });
 
   const [submitting, setSubmitting] = useState(false);
@@ -79,6 +84,7 @@ export default function SubmissionForm() {
         Submitter_Name: submitterName,
         Submitter_Email: submitterEmail,
         Submitter_Notes: notes || undefined,
+        Survey_End_Date: category === 'survey' && surveyEndDate ? surveyEndDate : undefined,
         Links: links
           .filter((l) => l.Url.trim())
           .map((l) => ({ Url: l.Url, Anchor_Text: l.Anchor_Text || undefined })),
@@ -87,6 +93,8 @@ export default function SubmissionForm() {
             Requested_Date: schedule.Requested_Date,
             Repeat_Count: schedule.Repeat_Count,
             Repeat_Note: schedule.Repeat_Note || undefined,
+            Is_Flexible: schedule.Is_Flexible || undefined,
+            Flexible_Deadline: schedule.Flexible_Deadline || undefined,
           },
         ],
       };
@@ -98,8 +106,9 @@ export default function SubmissionForm() {
       setHeadline('');
       setBody('');
       setNotes('');
+      setSurveyEndDate('');
       setLinks([]);
-      setSchedule({ Requested_Date: '', Repeat_Count: 1, Repeat_Note: '' });
+      setSchedule({ Requested_Date: '', Repeat_Count: 1, Repeat_Note: '', Is_Flexible: false, Flexible_Deadline: '' });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Submission failed');
     } finally {
@@ -128,6 +137,23 @@ export default function SubmissionForm() {
         </h3>
         <NewsletterTargetSelect value={targetNewsletter} onChange={handleTargetChange} />
         <CategorySelect value={category} onChange={setCategory} />
+        {category === 'survey' && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Survey / Event End Date
+            </label>
+            <input
+              type="date"
+              value={surveyEndDate}
+              onChange={(e) => setSurveyEndDate(e.target.value)}
+              required
+              className="w-full max-w-xs rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              When does this survey or registration close?
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="bg-white rounded-lg shadow p-6 space-y-5">
@@ -153,14 +179,27 @@ export default function SubmissionForm() {
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Body Text
           </label>
+          <p className="text-xs text-gray-500 mb-2">
+            Keep announcements concise — aim for 150–300 words. Include who, what, when, where, and cost if applicable.
+          </p>
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
             required
             rows={8}
-            placeholder="Describe your announcement, event, or news item. Include date, time, location, and cost (if applicable)."
+            placeholder="Describe your announcement briefly. Include essential details: dates, times, location, cost, and how to participate or register."
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
           />
+          <p className={`text-xs mt-1 ${
+            (() => {
+              const wc = body.trim() ? body.trim().split(/\s+/).length : 0;
+              if (wc > 500) return 'text-red-500';
+              if (wc > 300) return 'text-amber-500';
+              return 'text-gray-400';
+            })()
+          }`}>
+            {body.trim() ? body.trim().split(/\s+/).length : 0} words
+          </p>
         </div>
         <LinkEditor links={links} onChange={setLinks} />
       </div>

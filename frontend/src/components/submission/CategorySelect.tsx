@@ -3,7 +3,9 @@ import type { SubmissionCategory } from '../../types/submission';
 const CATEGORIES: { value: SubmissionCategory; label: string }[] = [
   { value: 'faculty_staff', label: 'Faculty or Staff Announcement' },
   { value: 'student', label: 'Student Announcement' },
+  { value: 'employee_announcement', label: 'Employee Announcement' },
   { value: 'job_opportunity', label: 'Job Opportunity' },
+  { value: 'survey', label: 'Survey' },
   { value: 'kudos', label: 'Acknowledgments and Kudos' },
   { value: 'in_memoriam', label: 'In Memoriam' },
 ];

@@ -7,7 +7,9 @@ interface SubmissionMetaProps {
 const CATEGORY_LABELS: Record<string, string> = {
   faculty_staff: 'Faculty/Staff',
   student: 'Student',
+  employee_announcement: 'Employee Announcement',
   job_opportunity: 'Job Opportunity',
+  survey: 'Survey',
   kudos: 'Kudos',
   in_memoriam: 'In Memoriam',
   news_release: 'News Release',
@@ -42,6 +44,19 @@ export default function SubmissionMeta({ submission }: SubmissionMetaProps) {
             {CATEGORY_LABELS[submission.Category] || submission.Category}
           </dd>
         </div>
+        {submission.Survey_End_Date && (
+          <div>
+            <dt className="text-xs text-gray-500">Survey Ends</dt>
+            <dd className="text-gray-900">
+              {new Date(submission.Survey_End_Date).toLocaleDateString(undefined, {
+                weekday: 'short',
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+              })}
+            </dd>
+          </div>
+        )}
         {submission.Schedule_Requests.length > 0 && (
           <div>
             <dt className="text-xs text-gray-500">Requested Run Date</dt>
@@ -58,8 +73,14 @@ export default function SubmissionMeta({ submission }: SubmissionMetaProps) {
                 {req.Repeat_Count > 1 && (
                   <span className="font-normal text-gray-500"> &middot; Run {req.Repeat_Count}x</span>
                 )}
+                {req.Is_Flexible && (
+                  <span className="ml-1 inline-block px-1.5 py-0.5 text-xs font-normal bg-amber-100 text-amber-700 rounded">Flexible</span>
+                )}
                 {req.Repeat_Note && (
                   <span className="font-normal text-gray-500"> ({req.Repeat_Note})</span>
+                )}
+                {req.Is_Flexible && req.Flexible_Deadline && (
+                  <dd className="text-xs text-gray-500 font-normal mt-0.5">Deadline: {req.Flexible_Deadline}</dd>
                 )}
               </dd>
             ))}

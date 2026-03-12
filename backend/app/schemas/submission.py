@@ -28,6 +28,8 @@ class ScheduleRequestCreate(BaseModel):
     Requested_Date: date
     Repeat_Count: int = Field(1, ge=1, le=2)
     Repeat_Note: str | None = None
+    Is_Flexible: bool = False
+    Flexible_Deadline: str | None = None
 
 
 class ScheduleRequestResponse(BaseModel):
@@ -35,6 +37,8 @@ class ScheduleRequestResponse(BaseModel):
     Requested_Date: date | None
     Repeat_Count: int
     Repeat_Note: str | None
+    Is_Flexible: bool
+    Flexible_Deadline: str | None
 
     model_config = {"from_attributes": True}
 
@@ -43,13 +47,14 @@ class ScheduleRequestResponse(BaseModel):
 
 
 class SubmissionCreate(BaseModel):
-    Category: str = Field(..., pattern=r"^(faculty_staff|student|job_opportunity|kudos|in_memoriam)$")
+    Category: str = Field(..., pattern=r"^(faculty_staff|student|job_opportunity|kudos|in_memoriam|employee_announcement|survey)$")
     Target_Newsletter: str = Field(..., pattern=r"^(tdr|myui|both)$")
     Original_Headline: str = Field(..., min_length=1, max_length=500)
     Original_Body: str = Field(..., min_length=1)
     Submitter_Name: str = Field(..., min_length=1, max_length=255)
     Submitter_Email: str = Field(..., max_length=255)
     Submitter_Notes: str | None = None
+    Survey_End_Date: date | None = None
     Links: list[LinkCreate] = []
     Schedule_Requests: list[ScheduleRequestCreate] = Field(..., min_length=1)
 
@@ -59,7 +64,7 @@ class SubmissionUpdate(BaseModel):
     Original_Headline: str | None = None
     Original_Body: str | None = None
     Submitter_Notes: str | None = None
-    Category: str | None = Field(None, pattern=r"^(faculty_staff|student|job_opportunity|kudos|in_memoriam)$")
+    Category: str | None = Field(None, pattern=r"^(faculty_staff|student|job_opportunity|kudos|in_memoriam|employee_announcement|survey)$")
     Target_Newsletter: str | None = Field(None, pattern=r"^(tdr|myui|both)$")
 
 
@@ -72,6 +77,7 @@ class SubmissionResponse(BaseModel):
     Submitter_Name: str
     Submitter_Email: str
     Submitter_Notes: str | None
+    Survey_End_Date: date | None
     Has_Image: bool
     Image_Path: str | None
     Status: str

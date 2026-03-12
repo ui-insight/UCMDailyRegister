@@ -4,6 +4,8 @@ interface ScheduleEntry {
   Requested_Date: string;
   Repeat_Count: number;
   Repeat_Note: string;
+  Is_Flexible: boolean;
+  Flexible_Deadline: string;
 }
 
 interface Props {
@@ -32,7 +34,7 @@ function getMinDate(): string {
 }
 
 export default function SchedulePrefs({ schedule, onChange, targetNewsletter }: Props) {
-  const update = (field: keyof ScheduleEntry, value: string | number) => {
+  const update = (field: keyof ScheduleEntry, value: string | number | boolean) => {
     onChange({ ...schedule, [field]: value });
   };
 
@@ -82,6 +84,29 @@ export default function SchedulePrefs({ schedule, onChange, targetNewsletter }: 
             <option value={2}>Twice (has RSVP/registration)</option>
           </select>
         </div>
+      </div>
+      <div className="mt-3">
+        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={schedule.Is_Flexible}
+            onChange={(e) => {
+              update('Is_Flexible', e.target.checked);
+              if (!e.target.checked) update('Flexible_Deadline', '');
+            }}
+            className="rounded border-gray-300 text-ui-gold-600 focus:ring-ui-gold-500"
+          />
+          My dates are somewhat flexible
+        </label>
+        {schedule.Is_Flexible && (
+          <input
+            type="text"
+            placeholder="e.g., anytime the week of March 19"
+            value={schedule.Flexible_Deadline}
+            onChange={(e) => update('Flexible_Deadline', e.target.value)}
+            className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
+          />
+        )}
       </div>
       <div className="mt-3">
         <label className="block text-xs text-gray-500 mb-1">

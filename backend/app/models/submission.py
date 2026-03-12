@@ -47,6 +47,7 @@ class Submission(Base):
     Submitter_Notes: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
     Has_Image: Mapped[bool] = mapped_column(sa.Boolean, default=False)
     Image_Path: Mapped[str | None] = mapped_column(sa.String(512), nullable=True)
+    Survey_End_Date: Mapped[date | None] = mapped_column(sa.Date, nullable=True)
     Status: Mapped[str] = mapped_column(sa.String(50), nullable=False, default="new")
     Created_At: Mapped[datetime] = mapped_column(
         sa.DateTime, nullable=False, server_default=sa.func.now()
@@ -100,6 +101,8 @@ class SubmissionScheduleRequest(Base):
     Requested_Date: Mapped[date | None] = mapped_column(sa.Date, nullable=True)
     Repeat_Count: Mapped[int] = mapped_column(sa.Integer, default=1)
     Repeat_Note: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    Is_Flexible: Mapped[bool] = mapped_column(sa.Boolean, default=False)
+    Flexible_Deadline: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
 
     Submission_Rel: Mapped["Submission"] = relationship(
         back_populates="Schedule_Requests", lazy="selectin"

@@ -3,7 +3,9 @@ export type SubmissionCategory =
   | 'student'
   | 'job_opportunity'
   | 'kudos'
-  | 'in_memoriam';
+  | 'in_memoriam'
+  | 'employee_announcement'
+  | 'survey';
 
 /** Legacy categories that may exist on old submissions but are no longer submittable. */
 export type LegacyCategory = 'news_release' | 'calendar_event';
@@ -31,6 +33,8 @@ export interface SubmissionScheduleRequest {
   Requested_Date: string | null;
   Repeat_Count: number;
   Repeat_Note: string | null;
+  Is_Flexible: boolean;
+  Flexible_Deadline: string | null;
 }
 
 export interface Submission {
@@ -42,6 +46,7 @@ export interface Submission {
   Submitter_Name: string;
   Submitter_Email: string;
   Submitter_Notes: string | null;
+  Survey_End_Date: string | null;
   Has_Image: boolean;
   Image_Path: string | null;
   Status: SubmissionStatus;
@@ -59,6 +64,7 @@ export interface SubmissionCreate {
   Submitter_Name: string;
   Submitter_Email: string;
   Submitter_Notes?: string;
+  Survey_End_Date?: string;
   Links?: { Url: string; Anchor_Text?: string }[];
-  Schedule_Requests?: { Requested_Date?: string; Repeat_Count?: number; Repeat_Note?: string }[];
+  Schedule_Requests?: { Requested_Date?: string; Repeat_Count?: number; Repeat_Note?: string; Is_Flexible?: boolean; Flexible_Deadline?: string }[];
 }
