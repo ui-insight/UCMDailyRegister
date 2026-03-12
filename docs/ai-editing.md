@@ -102,6 +102,17 @@ After the LLM returns its suggested edit, deterministic post-processing ensures 
 - **Diff generation** -- a structured diff between the original text and the AI suggestion is computed and stored as `Diff_JSON` on the EditVersion record.
 - **Whitespace normalization** -- trailing spaces, double spaces, and inconsistent line breaks are cleaned up.
 
+## Editor Review Modes
+
+Once the AI pipeline produces an edit, the editor reviews changes on the **AI Suggested** tab using one of two comparison modes, selectable via a toggle:
+
+| Mode            | Description                                                              |
+|-----------------|--------------------------------------------------------------------------|
+| **Inline Diff** | Word-level diff with red strikethrough (deletions) and green highlights (insertions). Shows exactly what the AI changed, token by token. Default view. |
+| **Side by Side**| Two-column layout with the original text on the left and AI-edited text on the right. Useful for reading the full copy in context and judging overall flow. Stacks vertically on small screens. |
+
+Both modes display flags and a changes-made summary below the comparison.
+
 ## Edit Version Storage
 
 Each pipeline run creates an `EditVersion` record with `Version_Type = AI_Suggested`. The original submission text is stored in a separate `Original` version. When an editor finalizes the copy, an `Editor_Final` version is created. No version is ever modified after creation.
