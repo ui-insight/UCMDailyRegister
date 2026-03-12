@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     # MindRouter (University of Idaho on-prem AI services)
     mindrouter_api_key: str = ""
     mindrouter_endpoint_url: str = "https://mindrouter.uidaho.edu/v1/chat/completions"
-    mindrouter_model: str = "Qwen/Qwen3-32B"
+    mindrouter_model: str = "openai/gpt-oss-120b"
 
     # App
     upload_dir: str = "./uploads"
