@@ -4,6 +4,8 @@
   {"Value_Group": "Submission_Category", "Code": "job_opportunity", "Label": "Job Opportunity", "Display_Order": 3, "Description": "Employment listings"},
   {"Value_Group": "Submission_Category", "Code": "kudos", "Label": "Kudos", "Display_Order": 4, "Description": "Awards, honors, recognition"},
   {"Value_Group": "Submission_Category", "Code": "in_memoriam", "Label": "In Memoriam", "Display_Order": 5, "Description": "Memorial notices"},
+  {"Value_Group": "Submission_Category", "Code": "employee_announcement", "Label": "Employee Announcement", "Display_Order": 6, "Description": "Announcements for all employees"},
+  {"Value_Group": "Submission_Category", "Code": "survey", "Label": "Survey", "Display_Order": 7, "Description": "Research surveys and questionnaires"},
 
   {"Value_Group": "Newsletter_Type", "Code": "tdr", "Label": "The Daily Register", "Display_Order": 1, "Description": "Faculty and staff newsletter"},
   {"Value_Group": "Newsletter_Type", "Code": "myui", "Label": "My UI", "Display_Order": 2, "Description": "Student newsletter"},

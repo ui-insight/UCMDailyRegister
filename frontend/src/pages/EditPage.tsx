@@ -58,8 +58,8 @@ export default function EditPage() {
         const vers = await listEditVersions(id);
         setVersions(vers);
         // If there's an AI suggested version, pre-populate editor fields
-        const aiVersion = vers.find((v) => v.Version_Type === 'ai_suggested');
-        const editorVersion = vers.find((v) => v.Version_Type === 'editor_final');
+        const aiVersion = [...vers].reverse().find((v) => v.Version_Type === 'ai_suggested');
+        const editorVersion = [...vers].reverse().find((v) => v.Version_Type === 'editor_final');
         if (editorVersion) {
           setEditHeadline(editorVersion.Headline);
           setEditBody(editorVersion.Body);
@@ -113,7 +113,7 @@ export default function EditPage() {
     if (!id) return;
     setSaveLoading(true);
     try {
-      const aiVersion = versions.find((v) => v.Version_Type === 'ai_suggested');
+      const aiVersion = [...versions].reverse().find((v) => v.Version_Type === 'ai_suggested');
       await saveEditorFinal(id, {
         Headline: aiVersion?.Headline || editHeadline,
         Body: aiVersion?.Body || editBody,
@@ -137,7 +137,7 @@ export default function EditPage() {
     if (!id) return;
     setSaveLoading(true);
     try {
-      const aiVersion = versions.find((v) => v.Version_Type === 'ai_suggested');
+      const aiVersion = [...versions].reverse().find((v) => v.Version_Type === 'ai_suggested');
       await saveEditorFinal(id, {
         Headline: editHeadline,
         Body: editBody,
@@ -188,7 +188,7 @@ export default function EditPage() {
 
   if (!submission) return null;
 
-  const aiVersion = versions.find((v) => v.Version_Type === 'ai_suggested');
+  const aiVersion = [...versions].reverse().find((v) => v.Version_Type === 'ai_suggested');
   const hasAIEdit = !!aiVersion || !!aiEditResult;
 
   // Build diff data from aiEditResult or reconstruct from versions
