@@ -36,8 +36,36 @@ export default function SubmissionForm() {
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Clear date when newsletter target changes (previously valid date may now be invalid)
+  const handleTargetChange = (target: TargetNewsletter) => {
+    setTargetNewsletter(target);
+    if (schedule.Requested_Date) {
+      const d = new Date(schedule.Requested_Date + 'T00:00:00');
+      const day = d.getDay();
+      const invalid =
+        (target === 'myui' || target === 'both') ? day !== 1 :
+        (target === 'tdr') ? (day === 0 || day === 6) : false;
+      if (invalid) {
+        setSchedule({ ...schedule, Requested_Date: '' });
+      }
+    }
+  };
+
+  const hasDateError = (): boolean => {
+    if (!schedule.Requested_Date) return false;
+    const d = new Date(schedule.Requested_Date + 'T00:00:00');
+    const day = d.getDay();
+    if (targetNewsletter === 'myui' || targetNewsletter === 'both') return day !== 1;
+    if (targetNewsletter === 'tdr') return day === 0 || day === 6;
+    return false;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (hasDateError()) {
+      setError('Please select a valid run date for the chosen newsletter.');
+      return;
+    }
     setSubmitting(true);
     setError(null);
     setSuccess(false);
@@ -98,7 +126,7 @@ export default function SubmissionForm() {
         <h3 className="text-lg font-semibold text-gray-900 border-b pb-3">
           About Your Announcement
         </h3>
-        <NewsletterTargetSelect value={targetNewsletter} onChange={setTargetNewsletter} />
+        <NewsletterTargetSelect value={targetNewsletter} onChange={handleTargetChange} />
         <CategorySelect value={category} onChange={setCategory} />
       </div>
 
@@ -141,7 +169,7 @@ export default function SubmissionForm() {
         <h3 className="text-lg font-semibold text-gray-900 border-b pb-3">
           Scheduling
         </h3>
-        <SchedulePrefs schedule={schedule} onChange={setSchedule} />
+        <SchedulePrefs schedule={schedule} onChange={setSchedule} targetNewsletter={targetNewsletter} />
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Additional Notes for Editors

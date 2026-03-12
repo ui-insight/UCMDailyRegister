@@ -1,3 +1,5 @@
+import type { TargetNewsletter } from '../../types/submission';
+
 interface ScheduleEntry {
   Requested_Date: string;
   Repeat_Count: number;
@@ -7,12 +9,34 @@ interface ScheduleEntry {
 interface Props {
   schedule: ScheduleEntry;
   onChange: (schedule: ScheduleEntry) => void;
+  targetNewsletter: TargetNewsletter;
 }
 
-export default function SchedulePrefs({ schedule, onChange }: Props) {
+function validateDate(dateStr: string, target: TargetNewsletter): string | null {
+  if (!dateStr) return null;
+  const d = new Date(dateStr + 'T00:00:00');
+  const day = d.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+
+  if (target === 'myui' || target === 'both') {
+    if (day !== 1) return 'My UI publishes on Mondays only.';
+  } else if (target === 'tdr') {
+    if (day === 0 || day === 6) return 'The Daily Register does not publish on weekends.';
+  }
+  return null;
+}
+
+function getMinDate(): string {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return tomorrow.toISOString().split('T')[0];
+}
+
+export default function SchedulePrefs({ schedule, onChange, targetNewsletter }: Props) {
   const update = (field: keyof ScheduleEntry, value: string | number) => {
     onChange({ ...schedule, [field]: value });
   };
+
+  const dateError = validateDate(schedule.Requested_Date, targetNewsletter);
 
   return (
     <div>
@@ -29,8 +53,21 @@ export default function SchedulePrefs({ schedule, onChange }: Props) {
             value={schedule.Requested_Date}
             onChange={(e) => update('Requested_Date', e.target.value)}
             required
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
+            min={getMinDate()}
+            className={`w-full rounded-md border px-3 py-2 text-sm focus:ring-1 ${
+              dateError
+                ? 'border-red-400 focus:border-red-500 focus:ring-red-500'
+                : 'border-gray-300 focus:border-ui-gold-500 focus:ring-ui-gold-500'
+            }`}
           />
+          {dateError && (
+            <p className="text-xs text-red-600 mt-1">{dateError}</p>
+          )}
+          <p className="text-xs text-gray-400 mt-1">
+            {targetNewsletter === 'myui' || targetNewsletter === 'both'
+              ? 'My UI publishes Mondays only'
+              : 'Mon–Fri only'}
+          </p>
         </div>
         <div>
           <label className="block text-xs text-gray-500 mb-1">

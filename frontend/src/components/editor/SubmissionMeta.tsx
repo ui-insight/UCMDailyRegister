@@ -14,6 +14,12 @@ const CATEGORY_LABELS: Record<string, string> = {
   calendar_event: 'Calendar Event',
 };
 
+const TARGET_LABELS: Record<string, string> = {
+  tdr: 'The Daily Register',
+  myui: 'My UI',
+  both: 'Both Newsletters',
+};
+
 export default function SubmissionMeta({ submission }: SubmissionMetaProps) {
   return (
     <div className="bg-white rounded-lg border p-4">
@@ -25,11 +31,40 @@ export default function SubmissionMeta({ submission }: SubmissionMetaProps) {
           <dd className="text-xs text-gray-500">{submission.Submitter_Email}</dd>
         </div>
         <div>
+          <dt className="text-xs text-gray-500">Target Newsletter</dt>
+          <dd className="text-gray-900">
+            {TARGET_LABELS[submission.Target_Newsletter] || submission.Target_Newsletter}
+          </dd>
+        </div>
+        <div>
           <dt className="text-xs text-gray-500">Category</dt>
           <dd className="text-gray-900">
             {CATEGORY_LABELS[submission.Category] || submission.Category}
           </dd>
         </div>
+        {submission.Schedule_Requests.length > 0 && (
+          <div>
+            <dt className="text-xs text-gray-500">Requested Run Date</dt>
+            {submission.Schedule_Requests.map((req) => (
+              <dd key={req.Id} className="text-gray-900 font-medium">
+                {req.Requested_Date
+                  ? new Date(req.Requested_Date).toLocaleDateString(undefined, {
+                      weekday: 'short',
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric',
+                    })
+                  : 'No specific date'}
+                {req.Repeat_Count > 1 && (
+                  <span className="font-normal text-gray-500"> &middot; Run {req.Repeat_Count}x</span>
+                )}
+                {req.Repeat_Note && (
+                  <span className="font-normal text-gray-500"> ({req.Repeat_Note})</span>
+                )}
+              </dd>
+            ))}
+          </div>
+        )}
         <div>
           <dt className="text-xs text-gray-500">Submitted</dt>
           <dd className="text-gray-900">
@@ -59,20 +94,6 @@ export default function SubmissionMeta({ submission }: SubmissionMetaProps) {
             <dd className="text-gray-700 text-xs bg-gray-50 p-2 rounded mt-1">
               {submission.Submitter_Notes}
             </dd>
-          </div>
-        )}
-        {submission.Schedule_Requests.length > 0 && (
-          <div>
-            <dt className="text-xs text-gray-500">Schedule Requests</dt>
-            {submission.Schedule_Requests.map((req) => (
-              <dd key={req.Id} className="text-xs text-gray-700">
-                {req.Requested_Date
-                  ? new Date(req.Requested_Date).toLocaleDateString()
-                  : 'No specific date'}{' '}
-                &middot; Run {req.Repeat_Count}x
-                {req.Repeat_Note && ` (${req.Repeat_Note})`}
-              </dd>
-            ))}
           </div>
         )}
       </dl>
