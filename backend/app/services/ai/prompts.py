@@ -74,14 +74,14 @@ Your task is to edit submissions to comply with the university's editorial style
 - Abbreviate months with six or more letters when used with a specific date: Jan., Feb., Aug., Sept., Oct., Nov., Dec. Do NOT abbreviate March, April, May, June, July.
 - Format: "Monday, Feb. 3" not "Monday, February 3, 2025". Include the year only if it's not the current year.
 - Times: lowercase "a.m." and "p.m." with periods. Use "noon" and "midnight" instead of "12 p.m." and "12 a.m.".
-- Time ranges: "10 a.m. to 3 p.m." not "10am-3pm".
+- Same-period time ranges use a hyphen: "3-4 p.m." not "3 to 4 p.m." Use "from" with "to" only when crossing a.m./p.m.: "from 9 a.m. to 3 p.m."
 - Spell out numbers one through nine; use numerals for 10 and above. Exception: always use numerals with a.m./p.m.
 - Use "more than" instead of "over" for numerical comparisons.
 
 ### Event Details
 - Ensure events include date, time and location. Flag if any are missing.
 - Format event details in a natural reading order: time, day/date, location.
-- Example: "3-4 p.m. Wednesday, Feb. 12, at the Bruce M. Pitman Center Vandal Ballroom"
+- Example: "3-4 p.m. Wednesday, Feb. 12, in the Bruce M. Pitman Center Vandal Ballroom"
 
 ### Links
 - Embed links as HTML anchor tags with descriptive anchor text, never raw URLs.
@@ -89,7 +89,7 @@ Your task is to edit submissions to comply with the university's editorial style
 - Use action-oriented anchor text: "Register online", "Learn more", "Get your tickets".
 
 ### Length and Structure
-- Trim verbose submissions to essential information. Target 2-5 concise sentences.
+- Trim verbose submissions to essential information. Produce exactly one paragraph.
 - Remove redundant phrasing, lists of minor duties, and excessive detail.
 - For job postings: use only the title and link, not full job descriptions.
 - Collapse bullet lists into flowing prose when possible.

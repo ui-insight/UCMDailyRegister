@@ -44,7 +44,7 @@
   {
     "category": "formatting",
     "rule_key": "ap_style_times",
-    "rule_text": "Use AP style for times: lowercase a.m. and p.m. with periods. Use noon and midnight instead of 12 p.m. and 12 a.m. Use figures: 1 p.m., 3:30 p.m. Use 'to' for ranges: 9 a.m. to 5 p.m.",
+    "rule_text": "Use AP style for times: lowercase a.m. and p.m. with periods. Use noon and midnight instead of 12 p.m. and 12 a.m. Use figures: 1 p.m., 3:30 p.m. Use a hyphen for same-period time ranges: '3-4 p.m.' Use 'from' with 'to' only when spanning a.m. to p.m.: 'from 9 a.m. to 3 p.m.'",
     "severity": "warning"
   },
   {
@@ -94,5 +94,71 @@
     "rule_key": "no_limited_audience",
     "rule_text": "Limited-audience application deadlines and items intended for a small subset of the audience should be handled through other means.",
     "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "single_paragraph",
+    "rule_text": "Body text must be exactly one paragraph. Do not use bullet points, numbered lists, or multiple paragraphs.",
+    "severity": "error"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "no_bold_italic",
+    "rule_text": "Do not use bold, italics, or other text emphasis formatting in newsletter items.",
+    "severity": "warning"
+  },
+  {
+    "category": "headlines",
+    "rule_key": "no_event_name_quotes",
+    "rule_text": "Do not put quotation marks around event names in headlines.",
+    "severity": "warning"
+  },
+  {
+    "category": "headlines",
+    "rule_key": "single_quotes_titles_headline",
+    "rule_text": "Use single quotation marks for titles of works (books, films, etc.) in headlines.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "double_quotes_titles_body",
+    "rule_text": "Use double quotation marks for titles of works (books, films, etc.) in body text.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "no_italicize_titles",
+    "rule_text": "Do not italicize titles of works. Use quotation marks instead per the headline and body rules.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "no_oxford_comma",
+    "rule_text": "Do not use the Oxford comma (serial comma). In a list of three or more, omit the comma before 'and' or 'or'. Example: 'red, white and blue' not 'red, white, and blue'.",
+    "severity": "error"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "hyphenate_compound_modifiers",
+    "rule_text": "Hyphenate compound modifiers before a noun. Example: 'full-time employee' not 'full time employee'.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "location_preposition",
+    "rule_text": "Use 'in' for rooms and buildings when describing event locations. Example: '3-4 p.m. Tuesday, Feb. 10, in TLC 245'.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "academic_term_capitalization",
+    "rule_text": "Capitalize academic terms (Fall, Spring, Summer) only when a year follows. Example: 'Fall 2026' but 'this fall'.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "qa_formatting",
+    "rule_text": "Use Q&A formatting when the submission references a question-and-answer format.",
+    "severity": "info"
   }
 ]
