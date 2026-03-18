@@ -90,10 +90,13 @@ async def list_submissions(
         query = query.where(search_filter)
         count_query = count_query.where(search_filter)
     if date_from or date_to:
-        date_filter = Submission.Schedule_Requests.any(
-            *([SubmissionScheduleRequest.Requested_Date >= date_from] if date_from else []),
-            *([SubmissionScheduleRequest.Requested_Date <= date_to] if date_to else []),
-        )
+        conditions = []
+        if date_from:
+            conditions.append(SubmissionScheduleRequest.Requested_Date >= date_from)
+        if date_to:
+            conditions.append(SubmissionScheduleRequest.Requested_Date <= date_to)
+        from sqlalchemy import and_
+        date_filter = Submission.Schedule_Requests.any(and_(*conditions))
         query = query.where(date_filter)
         count_query = count_query.where(date_filter)
 
