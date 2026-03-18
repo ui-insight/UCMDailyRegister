@@ -12,10 +12,25 @@ interface Props {
   schedule: ScheduleEntry;
   onChange: (schedule: ScheduleEntry) => void;
   targetNewsletter: TargetNewsletter;
+  validDates?: Set<string>;
 }
 
-function validateDate(dateStr: string, target: TargetNewsletter): string | null {
+function validateDate(
+  dateStr: string,
+  target: TargetNewsletter,
+  validDates?: Set<string>,
+): string | null {
   if (!dateStr) return null;
+
+  // If we have server-validated dates, use those
+  if (validDates) {
+    if (!validDates.has(dateStr)) {
+      return 'This date is not a valid publication date. It may be a weekend, holiday, or outside the publication schedule.';
+    }
+    return null;
+  }
+
+  // Fallback: client-side validation
   const d = new Date(dateStr + 'T00:00:00');
   const day = d.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
 
@@ -33,12 +48,12 @@ function getMinDate(): string {
   return tomorrow.toISOString().split('T')[0];
 }
 
-export default function SchedulePrefs({ schedule, onChange, targetNewsletter }: Props) {
+export default function SchedulePrefs({ schedule, onChange, targetNewsletter, validDates }: Props) {
   const update = (field: keyof ScheduleEntry, value: string | number | boolean) => {
     onChange({ ...schedule, [field]: value });
   };
 
-  const dateError = validateDate(schedule.Requested_Date, targetNewsletter);
+  const dateError = validateDate(schedule.Requested_Date, targetNewsletter, validDates);
 
   return (
     <div>
@@ -66,9 +81,11 @@ export default function SchedulePrefs({ schedule, onChange, targetNewsletter }: 
             <p className="text-xs text-red-600 mt-1">{dateError}</p>
           )}
           <p className="text-xs text-gray-400 mt-1">
-            {targetNewsletter === 'myui' || targetNewsletter === 'both'
-              ? 'My UI publishes Mondays only'
-              : 'Mon–Fri only'}
+            {validDates
+              ? 'Select a valid publication date'
+              : targetNewsletter === 'myui' || targetNewsletter === 'both'
+                ? 'My UI publishes Mondays only'
+                : 'Mon–Fri only'}
           </p>
         </div>
         <div>

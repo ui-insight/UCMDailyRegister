@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listSubmissions } from '../api/submissions';
+import { getValidDates } from '../api/schedule';
 import type { Submission, SubmissionStatus } from '../types/submission';
 import CalendarView from '../components/dashboard/CalendarView';
 import DayDetail from '../components/dashboard/DayDetail';
@@ -63,6 +64,7 @@ export default function DashboardPage() {
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [validDates, setValidDates] = useState<Map<string, string[]>>(new Map());
 
   const fetchSubmissions = async () => {
     setLoading(true);
@@ -93,8 +95,26 @@ export default function DashboardPage() {
     }
   };
 
+  const fetchValidDates = async () => {
+    try {
+      const year = currentMonth.getFullYear();
+      const month = currentMonth.getMonth();
+      const from = toISODate(new Date(year, month, 1));
+      const to = toISODate(new Date(year, month + 1, 0));
+      const data = await getValidDates(from, to);
+      const map = new Map<string, string[]>();
+      for (const d of data.dates) {
+        map.set(d.date, d.newsletters);
+      }
+      setValidDates(map);
+    } catch {
+      // Non-critical — calendar still works without valid dates
+    }
+  };
+
   useEffect(() => {
     fetchSubmissions();
+    if (viewMode === 'calendar') fetchValidDates();
   }, [statusFilter, categoryFilter, newsletterFilter, viewMode, currentMonth]);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -231,6 +251,7 @@ export default function DashboardPage() {
               onDateClick={setSelectedDate}
               currentMonth={currentMonth}
               onMonthChange={setCurrentMonth}
+              validDates={validDates}
             />
           </div>
           <div>

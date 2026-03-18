@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { SubmissionCategory, TargetNewsletter, SubmissionCreate } from '../../types/submission';
 import { createSubmission } from '../../api/submissions';
+import { getValidDates } from '../../api/schedule';
 import CategorySelect from './CategorySelect';
 import NewsletterTargetSelect from './NewsletterTargetSelect';
 import LinkEditor from './LinkEditor';
@@ -37,27 +38,47 @@ export default function SubmissionForm() {
     Flexible_Deadline: '',
   });
 
+  const [validDates, setValidDates] = useState<Set<string>>(new Set());
+
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch valid publication dates for the next 3 months
+  useEffect(() => {
+    const fetchDates = async () => {
+      try {
+        const today = new Date();
+        const from = today.toISOString().split('T')[0];
+        const future = new Date(today);
+        future.setMonth(future.getMonth() + 3);
+        const to = future.toISOString().split('T')[0];
+        const nlType = targetNewsletter === 'both' ? undefined : targetNewsletter;
+        const data = await getValidDates(from, to, nlType);
+        setValidDates(new Set(data.dates.map((d) => d.date)));
+      } catch {
+        // Fallback to client-side validation if API unavailable
+        setValidDates(new Set());
+      }
+    };
+    fetchDates();
+  }, [targetNewsletter]);
+
   // Clear date when newsletter target changes (previously valid date may now be invalid)
   const handleTargetChange = (target: TargetNewsletter) => {
     setTargetNewsletter(target);
+    // validDates will be re-fetched via useEffect; clear date to be safe
     if (schedule.Requested_Date) {
-      const d = new Date(schedule.Requested_Date + 'T00:00:00');
-      const day = d.getDay();
-      const invalid =
-        (target === 'myui' || target === 'both') ? day !== 1 :
-        (target === 'tdr') ? (day === 0 || day === 6) : false;
-      if (invalid) {
-        setSchedule({ ...schedule, Requested_Date: '' });
-      }
+      setSchedule({ ...schedule, Requested_Date: '' });
     }
   };
 
   const hasDateError = (): boolean => {
     if (!schedule.Requested_Date) return false;
+    if (validDates.size > 0) {
+      return !validDates.has(schedule.Requested_Date);
+    }
+    // Fallback client-side check
     const d = new Date(schedule.Requested_Date + 'T00:00:00');
     const day = d.getDay();
     if (targetNewsletter === 'myui' || targetNewsletter === 'both') return day !== 1;
@@ -208,7 +229,7 @@ export default function SubmissionForm() {
         <h3 className="text-lg font-semibold text-gray-900 border-b pb-3">
           Scheduling
         </h3>
-        <SchedulePrefs schedule={schedule} onChange={setSchedule} targetNewsletter={targetNewsletter} />
+        <SchedulePrefs schedule={schedule} onChange={setSchedule} targetNewsletter={targetNewsletter} validDates={validDates.size > 0 ? validDates : undefined} />
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Additional Notes for Editors

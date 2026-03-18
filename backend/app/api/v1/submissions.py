@@ -17,7 +17,7 @@ from app.schemas.submission import (
     SubmissionResponse,
     SubmissionUpdate,
 )
-from app.services import submission_service
+from app.services import schedule_service, submission_service
 from app.services.image_service import save_upload, validate_image
 
 router = APIRouter(prefix="/submissions", tags=["submissions"])
@@ -25,6 +25,16 @@ router = APIRouter(prefix="/submissions", tags=["submissions"])
 
 @router.post("/", response_model=SubmissionResponse, status_code=201)
 async def create_submission(data: SubmissionCreate, db: AsyncSession = Depends(get_db)):
+    # Validate requested publication dates against schedule config + blackouts
+    nl_types = ["tdr", "myui"] if data.Target_Newsletter == "both" else [data.Target_Newsletter]
+    for sched in data.Schedule_Requests:
+        if sched.Requested_Date:
+            for nl_type in nl_types:
+                error = await schedule_service.validate_requested_date(
+                    db, sched.Requested_Date, nl_type,
+                )
+                if error:
+                    raise HTTPException(status_code=422, detail=error)
     submission = await submission_service.create_submission(db, data)
     return submission
 
@@ -103,6 +113,17 @@ async def delete_link(submission_id: str, link_id: str, db: AsyncSession = Depen
 async def add_schedule_request(
     submission_id: str, data: ScheduleRequestCreate, db: AsyncSession = Depends(get_db)
 ):
+    # Validate requested date if provided
+    if data.Requested_Date:
+        submission = await submission_service.get_submission(db, submission_id)
+        if not submission:
+            raise HTTPException(status_code=404, detail="Submission not found")
+        error = await schedule_service.validate_requested_date(
+            db, data.Requested_Date, submission.Target_Newsletter,
+        )
+        if error:
+            raise HTTPException(status_code=422, detail=error)
+
     sched = await submission_service.add_schedule_request(
         db, submission_id,
         requested_date=data.Requested_Date,

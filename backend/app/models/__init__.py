@@ -21,9 +21,11 @@ Models included:
     NewsletterSection        -- Section catalog (Announcements, Kudos, etc.)
     StyleRule                -- Writing-style rules for the AI pipeline
     ScheduleConfig           -- Publication cadence and deadline rules
+    BlackoutDate             -- Holiday/closure non-publication dates
 """
 
 from app.models.allowed_value import AllowedValue
+from app.models.blackout_date import BlackoutDate
 from app.models.edit_history import EditVersion
 from app.models.newsletter import Newsletter, NewsletterItem
 from app.models.schedule_config import ScheduleConfig
@@ -33,6 +35,7 @@ from app.models.submission import Submission, SubmissionLink, SubmissionSchedule
 
 __all__ = [
     "AllowedValue",
+    "BlackoutDate",
     "EditVersion",
     "Newsletter",
     "NewsletterItem",

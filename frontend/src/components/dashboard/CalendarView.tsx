@@ -10,6 +10,7 @@ const STATUS_DOT_COLORS: Record<string, string> = {
   scheduled: 'bg-cyan-400',
   published: 'bg-gray-400',
   rejected: 'bg-red-400',
+  pending_info: 'bg-orange-400',
 };
 
 interface CalendarViewProps {
@@ -18,6 +19,7 @@ interface CalendarViewProps {
   onDateClick: (date: string) => void;
   currentMonth: Date;
   onMonthChange: (date: Date) => void;
+  validDates?: Map<string, string[]>;
 }
 
 function toISODate(d: Date): string {
@@ -47,6 +49,7 @@ export default function CalendarView({
   onDateClick,
   currentMonth,
   onMonthChange,
+  validDates,
 }: CalendarViewProps) {
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
@@ -115,6 +118,9 @@ export default function CalendarView({
           const daySubs = submissionsByDate.get(dateStr) || [];
           const isToday = dateStr === today;
           const isSelected = dateStr === selectedDate;
+          const pubNewsletters = validDates?.get(dateStr);
+          const isPubDay = !!pubNewsletters && pubNewsletters.length > 0;
+          const dimDay = validDates && !isPubDay;
 
           return (
             <button
@@ -122,17 +128,36 @@ export default function CalendarView({
               onClick={() => onDateClick(dateStr)}
               className={`h-20 border-b border-r border-gray-50 p-1 text-left hover:bg-gray-50 transition-colors ${
                 isSelected ? 'bg-ui-gold-50 ring-1 ring-ui-gold-300' : ''
-              } ${isToday && !isSelected ? 'bg-blue-50' : ''}`}
+              } ${isToday && !isSelected ? 'bg-blue-50' : ''} ${dimDay ? 'opacity-40' : ''}`}
             >
-              <span
-                className={`text-xs font-medium ${
-                  isToday
-                    ? 'bg-ui-gold-500 text-white rounded-full w-5 h-5 inline-flex items-center justify-center'
-                    : 'text-gray-700'
-                }`}
-              >
-                {day}
-              </span>
+              <div className="flex items-center gap-1">
+                <span
+                  className={`text-xs font-medium ${
+                    isToday
+                      ? 'bg-ui-gold-500 text-white rounded-full w-5 h-5 inline-flex items-center justify-center'
+                      : 'text-gray-700'
+                  }`}
+                >
+                  {day}
+                </span>
+                {/* Publication day indicators */}
+                {pubNewsletters && (
+                  <span className="flex gap-0.5 ml-auto">
+                    {pubNewsletters.includes('tdr') && (
+                      <span
+                        className="w-1.5 h-1.5 rounded-full bg-ui-gold-500"
+                        title="TDR publishes"
+                      />
+                    )}
+                    {pubNewsletters.includes('myui') && (
+                      <span
+                        className="w-1.5 h-1.5 rounded-full bg-blue-500"
+                        title="My UI publishes"
+                      />
+                    )}
+                  </span>
+                )}
+              </div>
               {daySubs.length > 0 && (
                 <div className="mt-1 flex flex-wrap gap-0.5">
                   {daySubs.length <= 4 ? (
@@ -154,6 +179,20 @@ export default function CalendarView({
           );
         })}
       </div>
+
+      {/* Legend */}
+      {validDates && (
+        <div className="px-4 py-2 border-t border-gray-100 flex items-center gap-4 text-xs text-gray-500">
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-ui-gold-500" />
+            TDR
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-blue-500" />
+            My UI
+          </span>
+        </div>
+      )}
     </div>
   );
 }

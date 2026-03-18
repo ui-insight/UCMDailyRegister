@@ -19,6 +19,7 @@ import app.models  # noqa: F401 — ensure all models registered with Base
 from app.models.allowed_value import AllowedValue
 from app.models.section import NewsletterSection
 from app.models.style_rule import StyleRule
+from app.models.blackout_date import BlackoutDate
 from app.models.schedule_config import ScheduleConfig
 
 DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
@@ -134,6 +135,28 @@ async def seed_schedule_configs(session: AsyncSession) -> None:
     await session.commit()
 
 
+async def seed_blackout_dates(session: AsyncSession) -> None:
+    """Seed blackout dates from blackout_dates.json."""
+    filepath = DATA_DIR / "schedule" / "blackout_dates.json"
+    dates = json.loads(filepath.read_text())
+    for d in dates:
+        existing = await session.execute(
+            select(BlackoutDate).where(
+                BlackoutDate.Blackout_Date == d["date"],
+                BlackoutDate.Newsletter_Type == d.get("newsletter_type"),
+            )
+        )
+        if existing.scalar_one_or_none():
+            continue
+        record = BlackoutDate(
+            Blackout_Date=d["date"],
+            Newsletter_Type=d.get("newsletter_type"),
+            Description=d.get("description"),
+        )
+        session.add(record)
+    await session.commit()
+
+
 async def seed_all() -> None:
     """Create all tables and seed reference data."""
     async with engine.begin() as conn:
@@ -148,6 +171,8 @@ async def seed_all() -> None:
         print("Seeded style rules.")
         await seed_schedule_configs(session)
         print("Seeded schedule configs.")
+        await seed_blackout_dates(session)
+        print("Seeded blackout dates.")
     print("Database seeding complete.")
 
 

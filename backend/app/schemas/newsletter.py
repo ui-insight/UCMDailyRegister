@@ -98,6 +98,38 @@ class ScheduleConfigResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+# --- Blackout date schemas ---
+
+class BlackoutDateCreate(BaseModel):
+    Blackout_Date: date
+    Newsletter_Type: str | None = None
+    Description: str | None = None
+
+
+class BlackoutDateResponse(BaseModel):
+    Id: str
+    Blackout_Date: date
+    Newsletter_Type: str | None
+    Description: str | None
+    Is_Active: bool
+
+    model_config = {"from_attributes": True}
+
+
+# --- Valid publication dates ---
+
+class ValidPublicationDate(BaseModel):
+    """A single date with the newsletter types that can publish on it."""
+    date: date
+    newsletters: list[str]
+
+
+class ValidDatesResponse(BaseModel):
+    """All valid publication dates in a range, plus blackout dates."""
+    dates: list[ValidPublicationDate]
+    blackout_dates: list[BlackoutDateResponse]
+
+
 # --- Assembly request ---
 
 class AssembleRequest(BaseModel):
