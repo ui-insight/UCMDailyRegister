@@ -24,6 +24,7 @@ const STATUS_COLORS: Record<string, string> = {
   scheduled: 'bg-ui-clearwater-100 text-ui-clearwater-800',
   published: 'bg-gray-100 text-gray-800',
   rejected: 'bg-red-100 text-red-800',
+  pending_info: 'bg-orange-100 text-orange-800',
 };
 
 export default function EditPage() {
@@ -164,6 +165,38 @@ export default function EditPage() {
       await loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to approve');
+    }
+  };
+
+  const handleRequestInfo = async () => {
+    if (!id || !submission) return;
+    const newsletterName =
+      submission.Target_Newsletter === 'tdr'
+        ? 'The Daily Register'
+        : submission.Target_Newsletter === 'myui'
+          ? 'My UI'
+          : 'The Daily Register / My UI';
+
+    const subject = encodeURIComponent(
+      `More information needed: ${submission.Original_Headline}`,
+    );
+    const body = encodeURIComponent(
+      `Hi ${submission.Submitter_Name},\n\n` +
+        `Thank you for your submission to ${newsletterName}: "${submission.Original_Headline}"\n\n` +
+        `We need some additional information before we can include it in the newsletter. Could you please provide:\n\n` +
+        `- \n\n` +
+        `Please reply to this email with the details at your earliest convenience.\n\n` +
+        `Thank you,\nUniversity Communications and Marketing`,
+    );
+
+    window.location.href = `mailto:${submission.Submitter_Email}?subject=${subject}&body=${body}`;
+
+    try {
+      await updateSubmission(id, { Status: 'pending_info' } as Partial<Submission>);
+      showToast('Status updated to Pending Info');
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update status');
     }
   };
 
@@ -431,6 +464,12 @@ export default function EditPage() {
             confidence={confidence}
           />
           <SubmissionMeta submission={submission} />
+          <button
+            onClick={handleRequestInfo}
+            className="w-full px-4 py-2 text-sm font-medium rounded-md bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100"
+          >
+            Request More Info
+          </button>
         </div>
       </div>
     </div>

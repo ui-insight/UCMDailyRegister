@@ -19,7 +19,8 @@ export type SubmissionStatus =
   | 'approved'
   | 'scheduled'
   | 'published'
-  | 'rejected';
+  | 'rejected'
+  | 'pending_info';
 
 export interface SubmissionLink {
   Id: string;

@@ -13,6 +13,7 @@ const STATUS_COLORS: Record<string, string> = {
   scheduled: 'bg-ui-clearwater-100 text-ui-clearwater-800',
   published: 'bg-gray-100 text-gray-800',
   rejected: 'bg-red-100 text-red-800',
+  pending_info: 'bg-orange-100 text-orange-800',
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -23,6 +24,7 @@ const STATUS_LABELS: Record<string, string> = {
   scheduled: 'Scheduled',
   published: 'Published',
   rejected: 'Rejected',
+  pending_info: 'Pending Info',
 };
 
 const CATEGORY_LABELS: Record<string, string> = {

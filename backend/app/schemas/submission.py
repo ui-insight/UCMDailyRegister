@@ -60,7 +60,7 @@ class SubmissionCreate(BaseModel):
 
 
 class SubmissionUpdate(BaseModel):
-    Status: str | None = Field(None, pattern=r"^(new|ai_edited|in_review|approved|scheduled|published|rejected)$")
+    Status: str | None = Field(None, pattern=r"^(new|ai_edited|in_review|approved|scheduled|published|rejected|pending_info)$")
     Original_Headline: str | None = None
     Original_Body: str | None = None
     Submitter_Notes: str | None = None

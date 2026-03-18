@@ -31,6 +31,13 @@ export default function SubmissionMeta({ submission }: SubmissionMetaProps) {
           <dt className="text-xs text-gray-500">Submitter</dt>
           <dd className="text-gray-900">{submission.Submitter_Name}</dd>
           <dd className="text-xs text-gray-500">{submission.Submitter_Email}</dd>
+          {submission.Status === 'pending_info' && (
+            <dd className="mt-1">
+              <span className="text-xs px-1.5 py-0.5 rounded bg-orange-100 text-orange-700 font-medium">
+                Info requested
+              </span>
+            </dd>
+          )}
         </div>
         <div>
           <dt className="text-xs text-gray-500">Target Newsletter</dt>

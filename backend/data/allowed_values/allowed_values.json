@@ -21,6 +21,7 @@
   {"Value_Group": "Submission_Status", "Code": "scheduled", "Label": "Scheduled", "Display_Order": 5, "Description": "Assigned to a future newsletter"},
   {"Value_Group": "Submission_Status", "Code": "published", "Label": "Published", "Display_Order": 6, "Description": "Included in a published newsletter"},
   {"Value_Group": "Submission_Status", "Code": "rejected", "Label": "Rejected", "Display_Order": 7, "Description": "Not suitable for publication"},
+  {"Value_Group": "Submission_Status", "Code": "pending_info", "Label": "Pending Info", "Display_Order": 8, "Description": "Editor has requested additional information from submitter"},
 
   {"Value_Group": "Newsletter_Status", "Code": "draft", "Label": "Draft", "Display_Order": 1, "Description": "Newsletter being assembled"},
   {"Value_Group": "Newsletter_Status", "Code": "in_progress", "Label": "In Progress", "Display_Order": 2, "Description": "Active editing"},
