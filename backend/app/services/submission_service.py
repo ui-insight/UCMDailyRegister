@@ -1,5 +1,7 @@
 """Submission CRUD and related operations."""
 
+from datetime import date
+
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -62,6 +64,8 @@ async def list_submissions(
     category: str | None = None,
     target_newsletter: str | None = None,
     search: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
     offset: int = 0,
     limit: int = 50,
 ) -> tuple[list[Submission], int]:
@@ -85,6 +89,13 @@ async def list_submissions(
         search_filter = Submission.Original_Headline.ilike(pattern) | Submission.Original_Body.ilike(pattern) | Submission.Submitter_Name.ilike(pattern)
         query = query.where(search_filter)
         count_query = count_query.where(search_filter)
+    if date_from or date_to:
+        date_filter = Submission.Schedule_Requests.any(
+            *([SubmissionScheduleRequest.Requested_Date >= date_from] if date_from else []),
+            *([SubmissionScheduleRequest.Requested_Date <= date_to] if date_to else []),
+        )
+        query = query.where(date_filter)
+        count_query = count_query.where(date_filter)
 
     query = query.order_by(Submission.Created_At.desc()).offset(offset).limit(limit)
 

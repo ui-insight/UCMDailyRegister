@@ -1,4 +1,5 @@
 import os
+from datetime import date
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from fastapi.responses import FileResponse
@@ -34,13 +35,16 @@ async def list_submissions(
     category: str | None = None,
     target_newsletter: str | None = None,
     search: str | None = None,
+    date_from: date | None = None,
+    date_to: date | None = None,
     offset: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
 ):
     items, total = await submission_service.list_submissions(
         db, status=status, category=category, target_newsletter=target_newsletter,
-        search=search, offset=offset, limit=limit,
+        search=search, date_from=date_from, date_to=date_to,
+        offset=offset, limit=limit,
     )
     return SubmissionListResponse(Items=items, Total=total)
 

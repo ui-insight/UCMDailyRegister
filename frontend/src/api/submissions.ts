@@ -18,6 +18,8 @@ export async function listSubmissions(params?: {
   category?: string;
   target_newsletter?: string;
   search?: string;
+  date_from?: string;
+  date_to?: string;
   offset?: number;
   limit?: number;
 }): Promise<SubmissionListResponse> {
