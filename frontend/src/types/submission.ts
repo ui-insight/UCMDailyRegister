@@ -5,10 +5,12 @@ export type SubmissionCategory =
   | 'kudos'
   | 'in_memoriam'
   | 'employee_announcement'
-  | 'survey';
+  | 'survey'
+  | 'news_release'
+  | 'ucm_feature_story';
 
 /** Legacy categories that may exist on old submissions but are no longer submittable. */
-export type LegacyCategory = 'news_release' | 'calendar_event';
+export type LegacyCategory = 'calendar_event';
 
 export type TargetNewsletter = 'tdr' | 'myui' | 'both';
 

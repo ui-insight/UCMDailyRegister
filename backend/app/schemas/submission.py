@@ -47,7 +47,7 @@ class ScheduleRequestResponse(BaseModel):
 
 
 class SubmissionCreate(BaseModel):
-    Category: str = Field(..., pattern=r"^(faculty_staff|student|job_opportunity|kudos|in_memoriam|employee_announcement|survey)$")
+    Category: str = Field(..., min_length=1, max_length=100)
     Target_Newsletter: str = Field(..., pattern=r"^(tdr|myui|both)$")
     Original_Headline: str = Field(..., min_length=1, max_length=500)
     Original_Body: str = Field(..., min_length=1)
@@ -64,7 +64,7 @@ class SubmissionUpdate(BaseModel):
     Original_Headline: str | None = None
     Original_Body: str | None = None
     Submitter_Notes: str | None = None
-    Category: str | None = Field(None, pattern=r"^(faculty_staff|student|job_opportunity|kudos|in_memoriam|employee_announcement|survey)$")
+    Category: str | None = Field(None, min_length=1, max_length=100)
     Target_Newsletter: str | None = Field(None, pattern=r"^(tdr|myui|both)$")
 
 

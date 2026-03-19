@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { listAllowedValues } from '../../api/allowedValues';
 import type { SubmissionCategory, TargetNewsletter, SubmissionCreate } from '../../types/submission';
+import type { AllowedValue } from '../../types/allowedValue';
 import { createSubmission } from '../../api/submissions';
 import { getValidDates } from '../../api/schedule';
 import CategorySelect from './CategorySelect';
@@ -20,8 +22,83 @@ interface ScheduleEntry {
   Flexible_Deadline: string;
 }
 
+const FALLBACK_CATEGORIES: AllowedValue[] = [
+  {
+    Id: 'faculty_staff',
+    Value_Group: 'Submission_Category',
+    Code: 'faculty_staff',
+    Label: 'Faculty or Staff Announcement',
+    Display_Order: 1,
+    Is_Active: true,
+    Visibility_Role: 'public',
+    Description: 'General faculty and staff announcements',
+  },
+  {
+    Id: 'student',
+    Value_Group: 'Submission_Category',
+    Code: 'student',
+    Label: 'Student Announcement',
+    Display_Order: 2,
+    Is_Active: true,
+    Visibility_Role: 'public',
+    Description: 'Student-focused announcements',
+  },
+  {
+    Id: 'employee_announcement',
+    Value_Group: 'Submission_Category',
+    Code: 'employee_announcement',
+    Label: 'Employee Announcement',
+    Display_Order: 3,
+    Is_Active: true,
+    Visibility_Role: 'public',
+    Description: 'Announcements for all employees',
+  },
+  {
+    Id: 'job_opportunity',
+    Value_Group: 'Submission_Category',
+    Code: 'job_opportunity',
+    Label: 'Job Opportunity',
+    Display_Order: 4,
+    Is_Active: true,
+    Visibility_Role: 'public',
+    Description: 'Employment listings',
+  },
+  {
+    Id: 'survey',
+    Value_Group: 'Submission_Category',
+    Code: 'survey',
+    Label: 'Survey',
+    Display_Order: 5,
+    Is_Active: true,
+    Visibility_Role: 'public',
+    Description: 'Research surveys and questionnaires',
+  },
+  {
+    Id: 'kudos',
+    Value_Group: 'Submission_Category',
+    Code: 'kudos',
+    Label: 'Acknowledgments and Kudos',
+    Display_Order: 6,
+    Is_Active: true,
+    Visibility_Role: 'public',
+    Description: 'Awards, honors, recognition',
+  },
+  {
+    Id: 'in_memoriam',
+    Value_Group: 'Submission_Category',
+    Code: 'in_memoriam',
+    Label: 'In Memoriam',
+    Display_Order: 7,
+    Is_Active: true,
+    Visibility_Role: 'public',
+    Description: 'Memorial notices',
+  },
+];
+
 export default function SubmissionForm() {
   const [category, setCategory] = useState<SubmissionCategory>('faculty_staff');
+  const [categories, setCategories] = useState<AllowedValue[]>(FALLBACK_CATEGORIES);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [targetNewsletter, setTargetNewsletter] = useState<TargetNewsletter>('tdr');
   const [headline, setHeadline] = useState('');
   const [body, setBody] = useState('');
@@ -43,6 +120,39 @@ export default function SubmissionForm() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchCategories = async () => {
+      setCategoriesLoading(true);
+      try {
+        const values = await listAllowedValues({ group: 'Submission_Category' });
+        if (cancelled || values.length === 0) {
+          return;
+        }
+        setCategories(values);
+        setCategory((current) => (
+          values.some((value) => value.Code === current)
+            ? current
+            : values[0].Code as SubmissionCategory
+        ));
+      } catch {
+        if (!cancelled) {
+          setCategories(FALLBACK_CATEGORIES);
+        }
+      } finally {
+        if (!cancelled) {
+          setCategoriesLoading(false);
+        }
+      }
+    };
+
+    fetchCategories();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Fetch valid publication dates for the next 3 months
   useEffect(() => {
@@ -157,7 +267,12 @@ export default function SubmissionForm() {
           About Your Announcement
         </h3>
         <NewsletterTargetSelect value={targetNewsletter} onChange={handleTargetChange} />
-        <CategorySelect value={category} onChange={setCategory} />
+        <CategorySelect
+          categories={categories}
+          isLoading={categoriesLoading}
+          value={category}
+          onChange={setCategory}
+        />
         {category === 'survey' && (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">

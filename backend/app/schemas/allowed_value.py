@@ -10,6 +10,7 @@ class AllowedValueResponse(BaseModel):
     Label: str
     Display_Order: int
     Is_Active: bool
+    Visibility_Role: str
     Description: str | None
 
     model_config = {"from_attributes": True}

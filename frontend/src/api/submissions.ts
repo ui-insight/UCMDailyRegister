@@ -1,5 +1,6 @@
 import { apiFetch } from './client';
 import type { Submission, SubmissionCreate } from '../types/submission';
+import { getSubmitterRoleHeaders } from '../utils/submitterRole';
 
 interface SubmissionListResponse {
   Items: Submission[];
@@ -59,6 +60,7 @@ export async function uploadImage(submissionId: string, file: File): Promise<Sub
   const res = await fetch(`/api/v1/submissions/${submissionId}/image`, {
     method: 'POST',
     body: formData,
+    headers: getSubmitterRoleHeaders(),
   });
   if (!res.ok) {
     const error = await res.json().catch(() => ({ detail: res.statusText }));

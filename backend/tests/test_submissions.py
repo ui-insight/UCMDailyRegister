@@ -38,6 +38,22 @@ class TestSubmissionCRUD:
         assert len(body["Schedule_Requests"]) == 1
         assert body["Schedule_Requests"][0]["Repeat_Count"] == 2
 
+    async def test_public_submitter_cannot_use_staff_only_category(self, client: AsyncClient):
+        data = make_submission_data(Category="news_release")
+        resp = await client.post("/api/v1/submissions/", json=data)
+        assert resp.status_code == 422
+        assert "not available" in resp.json()["detail"]
+
+    async def test_staff_submitter_can_use_staff_only_category(self, client: AsyncClient):
+        data = make_submission_data(Category="news_release")
+        resp = await client.post(
+            "/api/v1/submissions/",
+            json=data,
+            headers={"X-User-Role": "staff"},
+        )
+        assert resp.status_code == 201
+        assert resp.json()["Category"] == "news_release"
+
     async def test_list_submissions(self, client: AsyncClient):
         # Create two submissions
         await client.post("/api/v1/submissions/", json=make_submission_data())

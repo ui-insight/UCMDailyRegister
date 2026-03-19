@@ -5,5 +5,6 @@ export interface AllowedValue {
   Label: string;
   Display_Order: number;
   Is_Active: boolean;
+  Visibility_Role: 'public' | 'staff';
   Description: string | null;
 }
