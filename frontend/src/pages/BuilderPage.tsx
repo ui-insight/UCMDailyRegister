@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   addJobPosting,
   addCalendarEvent,
@@ -46,6 +46,52 @@ type BuilderSectionItem =
     Source_Type: string;
   });
 
+interface CollapsibleCardProps {
+  title: string;
+  subtitle?: string;
+  meta?: string;
+  isOpen: boolean;
+  onToggle: () => void;
+  actions?: ReactNode;
+  children: ReactNode;
+}
+
+function CollapsibleCard({
+  title,
+  subtitle,
+  meta,
+  isOpen,
+  onToggle,
+  actions,
+  children,
+}: CollapsibleCardProps) {
+  return (
+    <div className="bg-white rounded-lg shadow">
+      <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-gray-100">
+        <button
+          type="button"
+          onClick={onToggle}
+          className="min-w-0 flex-1 text-left"
+          aria-expanded={isOpen}
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-400">{isOpen ? '▾' : '▸'}</span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+                {meta && <span className="text-xs text-gray-400">{meta}</span>}
+              </div>
+              {subtitle && <p className="text-xs text-gray-500 mt-1">{subtitle}</p>}
+            </div>
+          </div>
+        </button>
+        {actions && <div className="shrink-0">{actions}</div>}
+      </div>
+      {isOpen && <div className="p-4">{children}</div>}
+    </div>
+  );
+}
+
 export default function BuilderPage() {
   const [newsletterType, setNewsletterType] = useState<'tdr' | 'myui'>('tdr');
   const [publishDate, setPublishDate] = useState(
@@ -60,6 +106,11 @@ export default function BuilderPage() {
   const [calendarError, setCalendarError] = useState<string | null>(null);
   const [jobLoading, setJobLoading] = useState(false);
   const [jobError, setJobError] = useState<string | null>(null);
+  const [panelOpen, setPanelOpen] = useState({
+    calendarEvents: true,
+    jobPostings: true,
+  });
+  const [sectionOpen, setSectionOpen] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -273,6 +324,20 @@ export default function BuilderPage() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  const togglePanel = (panel: 'calendarEvents' | 'jobPostings') => {
+    setPanelOpen((current) => ({
+      ...current,
+      [panel]: !current[panel],
+    }));
+  };
+
+  const toggleSection = (sectionId: string) => {
+    setSectionOpen((current) => ({
+      ...current,
+      [sectionId]: !(current[sectionId] ?? true),
+    }));
+  };
+
   // Group items by section
   const itemsBySection = new Map<string, BuilderSectionItem[]>();
   if (newsletter) {
@@ -398,15 +463,15 @@ export default function BuilderPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="bg-white rounded-lg shadow p-4">
-                <div className="flex items-center justify-between gap-4 mb-3">
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-900">Calendar Events</h3>
-                      <p className="text-xs text-gray-500">
-                        Import upcoming U of I calendar events into the{' '}
-                        {newsletterType === 'tdr' ? "Today's Events" : 'Weekly Events'} section.
-                      </p>
-                    </div>
+              <CollapsibleCard
+                title="Calendar Events"
+                subtitle={`Import upcoming U of I calendar events into the ${
+                  newsletterType === 'tdr' ? "Today's Events" : 'Weekly Events'
+                } section.`}
+                meta={`${calendarEvents.length} candidate${calendarEvents.length !== 1 ? 's' : ''}`}
+                isOpen={panelOpen.calendarEvents}
+                onToggle={() => togglePanel('calendarEvents')}
+                actions={(
                   <button
                     onClick={() => loadCalendarEvents(newsletter.Id)}
                     disabled={calendarLoading}
@@ -414,7 +479,8 @@ export default function BuilderPage() {
                   >
                     {calendarLoading ? 'Refreshing...' : 'Refresh Events'}
                   </button>
-                </div>
+                )}
+              >
                 {calendarError && (
                   <div className="mb-3 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
                     {calendarError}
@@ -480,17 +546,17 @@ export default function BuilderPage() {
                     ))}
                   </div>
                 )}
-              </div>
+              </CollapsibleCard>
 
-              <div className="bg-white rounded-lg shadow p-4">
-                <div className="flex items-center justify-between gap-4 mb-3">
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-900">Job Postings</h3>
-                    <p className="text-xs text-gray-500">
-                      Import U of I job postings into the{' '}
-                      {newsletterType === 'tdr' ? 'Job Opportunities' : 'Help Wanted'} section.
-                    </p>
-                  </div>
+              <CollapsibleCard
+                title="Job Postings"
+                subtitle={`Import U of I job postings into the ${
+                  newsletterType === 'tdr' ? 'Job Opportunities' : 'Help Wanted'
+                } section.`}
+                meta={`${jobPostings.length} candidate${jobPostings.length !== 1 ? 's' : ''}`}
+                isOpen={panelOpen.jobPostings}
+                onToggle={() => togglePanel('jobPostings')}
+                actions={(
                   <button
                     onClick={() => loadJobPostings(newsletter.Id)}
                     disabled={jobLoading}
@@ -498,7 +564,8 @@ export default function BuilderPage() {
                   >
                     {jobLoading ? 'Refreshing...' : 'Refresh Jobs'}
                   </button>
-                </div>
+                )}
+              >
                 {jobError && (
                   <div className="mb-3 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
                     {jobError}
@@ -560,7 +627,7 @@ export default function BuilderPage() {
                     ))}
                   </div>
                 )}
-              </div>
+              </CollapsibleCard>
 
               {/* Newsletter header */}
               <div className="bg-white rounded-lg shadow p-4 flex items-center justify-between">
@@ -593,22 +660,32 @@ export default function BuilderPage() {
               {/* Sections with items */}
               {sections.map((section) => {
                 const items = itemsBySection.get(section.Id) || [];
+                const isOpen = sectionOpen[section.Id] ?? true;
                 return (
                   <div key={section.Id} className="bg-white rounded-lg shadow">
-                    <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                      <h4 className="text-sm font-semibold text-gray-900">
-                        {section.Name}
-                      </h4>
+                    <button
+                      type="button"
+                      onClick={() => toggleSection(section.Id)}
+                      className="w-full px-4 py-3 border-b border-gray-100 flex items-center justify-between gap-4 text-left"
+                      aria-expanded={isOpen}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <span className="text-sm text-gray-400">{isOpen ? '▾' : '▸'}</span>
+                        <h4 className="text-sm font-semibold text-gray-900">
+                          {section.Name}
+                        </h4>
+                      </div>
                       <span className="text-xs text-gray-400">
                         {items.length} item{items.length !== 1 ? 's' : ''}
                       </span>
-                    </div>
-                    {items.length === 0 ? (
-                      <div className="px-4 py-6 text-center text-xs text-gray-400">
-                        No items in this section
-                      </div>
-                    ) : (
-                      <div className="divide-y divide-gray-50">
+                    </button>
+                    {isOpen && (
+                      items.length === 0 ? (
+                        <div className="px-4 py-6 text-center text-xs text-gray-400">
+                          No items in this section
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-gray-50">
                         {items.map((item, idx) => (
                           <div
                             key={item.Id}
@@ -691,7 +768,8 @@ export default function BuilderPage() {
                             </div>
                           </div>
                         ))}
-                      </div>
+                        </div>
+                      )
                     )}
                   </div>
                 );
