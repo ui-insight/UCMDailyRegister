@@ -188,3 +188,27 @@ class CalendarEventImportRequest(BaseModel):
     Location: str | None = None
     Event_Start: datetime | None = None
     Event_End: datetime | None = None
+
+
+class JobPostingCandidateResponse(BaseModel):
+    Source_Id: str
+    Source_Type: str
+    Url: str
+    Title: str
+    Department: str | None
+    Posting_Number: str | None
+    Location: str | None
+    Closing_Date: str | None
+    Summary: str
+    Selected: bool
+
+
+class JobPostingImportRequest(BaseModel):
+    Source_Id: str = Field(..., min_length=1, max_length=255)
+    Url: str = Field(..., min_length=1)
+    Title: str = Field(..., min_length=1)
+    Department: str | None = None
+    Posting_Number: str | None = None
+    Location: str | None = None
+    Closing_Date: str | None = None
+    Summary: str = Field(..., min_length=1)

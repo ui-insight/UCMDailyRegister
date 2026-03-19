@@ -343,6 +343,11 @@ def get_calendar_section_slug(newsletter_type: str) -> str:
     return "todays-events" if newsletter_type == "tdr" else "weekly-events"
 
 
+def get_job_postings_section_slug(newsletter_type: str) -> str:
+    """Return the section slug used for imported job postings."""
+    return "job-opportunities" if newsletter_type == "tdr" else "help-wanted"
+
+
 def _get_best_text(submission: Submission) -> tuple[str, str]:
     """Get the best available headline/body from edit versions."""
     if submission.Edit_Versions:

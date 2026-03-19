@@ -7,7 +7,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.section import NewsletterSection
-from app.services import calendar_event_service
+from app.services import calendar_event_service, job_posting_service
 from tests.conftest import make_newsletter_data, make_submission_data
 
 
@@ -137,6 +137,63 @@ class TestCalendarEventParsing:
         assert event.event_start == datetime(2026, 3, 19, 12, 0)
 
 
+class TestJobPostingParsing:
+    def test_parse_peopleadmin_search_results(self):
+        html = """
+        <div class='job-item job-item-posting' data-posting-title="Business Specialist III">
+          <div class='container-fluid'>
+            <div class='row'>
+              <div class='col-md-4 col-xs-12 job-title job-title-text-wrap'>
+                <h3><a href="/postings/50999">Business Specialist III</a></h3>
+              </div>
+              <div class='col-md-8 col-xs-12 '>
+                <div class='col-md-2 col-xs-12'></div>
+                <div class='col-md-2 col-xs-12 job-title job-title-text-wrap col-md-push-2'>
+                  College of Natural Resources Admin
+                </div>
+                <div class='col-md-2 col-xs-12 job-title job-title-text-wrap col-md-push-2'>
+                  04/05/2026
+                </div>
+                <div class='col-md-2 col-xs-12 job-title job-title-text-wrap col-md-push-2'>
+                  SP005197P
+                </div>
+                <div class='col-md-2 col-xs-12 job-title job-title-text-wrap col-md-push-2'>
+                  Moscow
+                </div>
+              </div>
+            </div>
+            <div class='row'>
+              <div class='col-md-12 col-xs-12'>
+                <div class='details'>
+                  <span class='job-description'>
+                    Responsible for providing complex technical support for daily financial operations.
+                  </span>
+                  <span class='job-actions'>
+                    <a class="btn primary_button_color" href="/postings/50999">View Details</a>
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div role="navigation" aria-label="Pagination" class="pagination"></div>
+        """
+
+        postings = job_posting_service.parse_peopleadmin_search_results(
+            html,
+            "https://uidaho.peopleadmin.com/postings/search",
+        )
+
+        assert len(postings) == 1
+        posting = postings[0]
+        assert posting.title == "Business Specialist III"
+        assert posting.department == "College of Natural Resources Admin"
+        assert posting.posting_number == "SP005197P"
+        assert posting.location == "Moscow"
+        assert posting.closing_date == "04/05/2026"
+        assert posting.url == "https://uidaho.peopleadmin.com/postings/50999"
+
+
 @pytest.mark.asyncio
 class TestCalendarEventEndpoints:
     async def test_list_calendar_event_candidates(
@@ -207,6 +264,85 @@ class TestCalendarEventEndpoints:
         body = resp.json()
         assert body["Source_Type"] == "calendar_event"
         assert body["Final_Headline"] == "Accessibility Workshop"
+
+        detail_resp = await client.get(f"/api/v1/newsletters/{nl_id}")
+        assert detail_resp.status_code == 200
+        detail = detail_resp.json()
+        assert len(detail["External_Items"]) == 1
+
+
+@pytest.mark.asyncio
+class TestJobPostingEndpoints:
+    async def test_list_job_posting_candidates(
+        self,
+        client: AsyncClient,
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        create_resp = await client.post("/api/v1/newsletters", json=make_newsletter_data())
+        nl_id = create_resp.json()["Id"]
+
+        async def fake_fetch_job_postings(*args, **kwargs):
+            return [{
+                "Source_Id": "https://example.com/postings/1",
+                "Source_Type": "job_posting",
+                "Url": "https://example.com/postings/1",
+                "Title": "Business Specialist III",
+                "Department": "College of Natural Resources Admin",
+                "Posting_Number": "SP005197P",
+                "Location": "Moscow",
+                "Closing_Date": "04/05/2026",
+                "Summary": "Responsible for providing complex technical support.",
+                "Selected": False,
+            }]
+
+        monkeypatch.setattr(
+            job_posting_service,
+            "fetch_job_postings",
+            fake_fetch_job_postings,
+        )
+
+        resp = await client.get(f"/api/v1/newsletters/{nl_id}/job-postings")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert len(body) == 1
+        assert body[0]["Source_Type"] == "job_posting"
+
+    async def test_import_job_posting(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+    ):
+        db.add(
+            NewsletterSection(
+                Newsletter_Type="tdr",
+                Name="Job Opportunities",
+                Slug="job-opportunities",
+                Display_Order=8,
+                Is_Active=True,
+            )
+        )
+        await db.commit()
+
+        create_resp = await client.post("/api/v1/newsletters", json=make_newsletter_data())
+        nl_id = create_resp.json()["Id"]
+
+        resp = await client.post(
+            f"/api/v1/newsletters/{nl_id}/job-postings",
+            json={
+                "Source_Id": "https://example.com/postings/1",
+                "Url": "https://example.com/postings/1",
+                "Title": "Business Specialist III",
+                "Department": "College of Natural Resources Admin",
+                "Posting_Number": "SP005197P",
+                "Location": "Moscow",
+                "Closing_Date": "04/05/2026",
+                "Summary": "Responsible for providing complex technical support.",
+            },
+        )
+        assert resp.status_code == 201
+        body = resp.json()
+        assert body["Source_Type"] == "job_posting"
+        assert "Business Specialist III" in body["Final_Headline"]
 
         detail_resp = await client.get(f"/api/v1/newsletters/{nl_id}")
         assert detail_resp.status_code == 200
