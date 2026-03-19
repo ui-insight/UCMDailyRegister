@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import {
+  addJobPosting,
   addCalendarEvent,
   listNewsletters,
   listCalendarEvents,
+  listJobPostings,
   getNewsletter,
   assembleNewsletter,
   updateNewsletterStatus,
@@ -14,6 +16,7 @@ import {
 } from '../api/newsletters';
 import type {
   CalendarEventCandidate,
+  JobPostingCandidate,
   NewsletterDetailResponse,
 } from '../api/newsletters';
 import type { NewsletterSection } from '../types/newsletter';
@@ -33,6 +36,14 @@ type BuilderSectionItem =
     Source_Url: string | null;
     Location: string | null;
     Event_Start: string | null;
+    Source_Type: string;
+  })
+  | (BuilderSectionItemBase & {
+    Kind: 'job_posting';
+    Source_Url: string | null;
+    Location: string | null;
+    Posting_Number?: string | null;
+    Source_Type: string;
   });
 
 export default function BuilderPage() {
@@ -44,8 +55,11 @@ export default function BuilderPage() {
   const [newsletters, setNewsletters] = useState<NewsletterDetailResponse[]>([]);
   const [sections, setSections] = useState<NewsletterSection[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEventCandidate[]>([]);
+  const [jobPostings, setJobPostings] = useState<JobPostingCandidate[]>([]);
   const [calendarLoading, setCalendarLoading] = useState(false);
   const [calendarError, setCalendarError] = useState<string | null>(null);
+  const [jobLoading, setJobLoading] = useState(false);
+  const [jobError, setJobError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -60,9 +74,12 @@ export default function BuilderPage() {
     if (!newsletterId) {
       setCalendarEvents([]);
       setCalendarError(null);
+      setJobPostings([]);
+      setJobError(null);
       return;
     }
     loadCalendarEvents(newsletterId);
+    loadJobPostings(newsletterId);
   }, [newsletterId]);
 
   const loadSections = async () => {
@@ -93,6 +110,19 @@ export default function BuilderPage() {
       setCalendarError(err instanceof Error ? err.message : 'Failed to load calendar events');
     } finally {
       setCalendarLoading(false);
+    }
+  };
+
+  const loadJobPostings = async (newsletterId: string) => {
+    setJobLoading(true);
+    setJobError(null);
+    try {
+      const postings = await listJobPostings(newsletterId);
+      setJobPostings(postings);
+    } catch (err) {
+      setJobError(err instanceof Error ? err.message : 'Failed to load job postings');
+    } finally {
+      setJobLoading(false);
     }
   };
 
@@ -146,9 +176,10 @@ export default function BuilderPage() {
       const nl = await getNewsletter(newsletter.Id);
       setNewsletter(nl);
       await loadCalendarEvents(newsletter.Id);
-      showToast('Calendar event removed');
+      await loadJobPostings(newsletter.Id);
+      showToast('Imported item removed');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to remove calendar event');
+      setError(err instanceof Error ? err.message : 'Failed to remove imported item');
     }
   };
 
@@ -170,6 +201,28 @@ export default function BuilderPage() {
       showToast('Calendar event added');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add calendar event');
+    }
+  };
+
+  const handleAddJobPosting = async (posting: JobPostingCandidate) => {
+    if (!newsletter) return;
+    try {
+      await addJobPosting(newsletter.Id, {
+        Source_Id: posting.Source_Id,
+        Url: posting.Url,
+        Title: posting.Title,
+        Department: posting.Department,
+        Posting_Number: posting.Posting_Number,
+        Location: posting.Location,
+        Closing_Date: posting.Closing_Date,
+        Summary: posting.Summary,
+      });
+      const nl = await getNewsletter(newsletter.Id);
+      setNewsletter(nl);
+      await loadJobPostings(newsletter.Id);
+      showToast('Job posting added');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add job posting');
     }
   };
 
@@ -233,10 +286,11 @@ export default function BuilderPage() {
       Position: item.Position,
       Final_Headline: item.Final_Headline,
       Final_Body: item.Final_Body,
-      Kind: 'calendar_event',
+      Kind: item.Source_Type === 'job_posting' ? 'job_posting' : 'calendar_event',
       Source_Url: item.Source_Url,
       Location: item.Location,
       Event_Start: item.Event_Start,
+      Source_Type: item.Source_Type,
     }));
     const allItems = [...submissionItems, ...externalItems];
     for (const section of sections) {
@@ -428,6 +482,86 @@ export default function BuilderPage() {
                 )}
               </div>
 
+              <div className="bg-white rounded-lg shadow p-4">
+                <div className="flex items-center justify-between gap-4 mb-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900">Job Postings</h3>
+                    <p className="text-xs text-gray-500">
+                      Import U of I job postings into the{' '}
+                      {newsletterType === 'tdr' ? 'Job Opportunities' : 'Help Wanted'} section.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => loadJobPostings(newsletter.Id)}
+                    disabled={jobLoading}
+                    className="px-3 py-1.5 text-xs font-medium rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    {jobLoading ? 'Refreshing...' : 'Refresh Jobs'}
+                  </button>
+                </div>
+                {jobError && (
+                  <div className="mb-3 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
+                    {jobError}
+                  </div>
+                )}
+                {jobPostings.length === 0 ? (
+                  <div className="rounded-md border border-dashed border-gray-200 px-4 py-6 text-center text-xs text-gray-400">
+                    {jobLoading ? 'Loading job postings...' : 'No candidate job postings found.'}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                    {jobPostings.map((posting) => (
+                      <div
+                        key={posting.Source_Id}
+                        className={`rounded-lg border p-3 ${
+                          posting.Selected ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-white'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-900">{posting.Title}</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {[
+                                posting.Department,
+                                posting.Location,
+                                posting.Posting_Number,
+                              ].filter(Boolean).join(' • ') || 'University of Idaho jobs portal'}
+                            </p>
+                            {posting.Closing_Date && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                Closes {posting.Closing_Date}
+                              </p>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => handleAddJobPosting(posting)}
+                            disabled={posting.Selected}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md ${
+                              posting.Selected
+                                ? 'bg-green-100 text-green-700 cursor-default'
+                                : 'bg-ui-gold-600 text-white hover:bg-ui-gold-700'
+                            }`}
+                          >
+                            {posting.Selected ? 'Added' : 'Add'}
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-2 line-clamp-3">
+                          {posting.Summary}
+                        </p>
+                        <a
+                          href={posting.Url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-block mt-2 text-xs text-ui-clearwater-700 hover:text-ui-clearwater-800"
+                        >
+                          View source
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Newsletter header */}
               <div className="bg-white rounded-lg shadow p-4 flex items-center justify-between">
                 <div>
@@ -450,7 +584,8 @@ export default function BuilderPage() {
                     {newsletter.Status.replace(/_/g, ' ')}
                   </span>
                   <span className="text-xs text-gray-400">
-                    {newsletter.Items.length} item{newsletter.Items.length !== 1 ? 's' : ''}
+                    {newsletter.Items.length + newsletter.External_Items.length} item
+                    {newsletter.Items.length + newsletter.External_Items.length !== 1 ? 's' : ''}
                   </span>
                 </div>
               </div>
@@ -490,6 +625,11 @@ export default function BuilderPage() {
                                       Calendar
                                     </span>
                                   )}
+                                  {item.Kind === 'job_posting' && (
+                                    <span className="inline-flex items-center rounded-full bg-ui-gold-100 px-2 py-0.5 text-[11px] font-medium text-ui-gold-800">
+                                      Job
+                                    </span>
+                                  )}
                                 </div>
                                 <p className="text-xs text-gray-600 mt-1 line-clamp-2">
                                   {item.Final_Body.replace(/<[^>]+>/g, '')}
@@ -510,6 +650,9 @@ export default function BuilderPage() {
                                     })}
                                     {item.Location ? ` • ${item.Location}` : ''}
                                   </p>
+                                )}
+                                {item.Kind === 'job_posting' && item.Location && (
+                                  <p className="text-xs text-gray-400 mt-1">{item.Location}</p>
                                 )}
                               </div>
                               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">

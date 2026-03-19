@@ -48,6 +48,19 @@ export interface CalendarEventCandidate {
   Selected: boolean;
 }
 
+export interface JobPostingCandidate {
+  Source_Id: string;
+  Source_Type: string;
+  Url: string;
+  Title: string;
+  Department: string | null;
+  Posting_Number: string | null;
+  Location: string | null;
+  Closing_Date: string | null;
+  Summary: string;
+  Selected: boolean;
+}
+
 export interface NewsletterDetailResponse extends NewsletterResponse {
   Items: NewsletterItemResponse[];
   External_Items: NewsletterExternalItemResponse[];
@@ -149,6 +162,31 @@ export async function addCalendarEvent(
   },
 ): Promise<NewsletterExternalItemResponse> {
   return apiFetch<NewsletterExternalItemResponse>(`/newsletters/${newsletterId}/calendar-events`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function listJobPostings(
+  newsletterId: string,
+): Promise<JobPostingCandidate[]> {
+  return apiFetch<JobPostingCandidate[]>(`/newsletters/${newsletterId}/job-postings`);
+}
+
+export async function addJobPosting(
+  newsletterId: string,
+  data: {
+    Source_Id: string;
+    Url: string;
+    Title: string;
+    Department?: string | null;
+    Posting_Number?: string | null;
+    Location?: string | null;
+    Closing_Date?: string | null;
+    Summary: string;
+  },
+): Promise<NewsletterExternalItemResponse> {
+  return apiFetch<NewsletterExternalItemResponse>(`/newsletters/${newsletterId}/job-postings`, {
     method: 'POST',
     body: JSON.stringify(data),
   });

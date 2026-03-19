@@ -7,10 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
 from app.models.section import NewsletterSection
-from app.services import calendar_event_service, newsletter_service
+from app.services import calendar_event_service, job_posting_service, newsletter_service
 from app.schemas.newsletter import (
     CalendarEventCandidateResponse,
     CalendarEventImportRequest,
+    JobPostingCandidateResponse,
+    JobPostingImportRequest,
     NewsletterCreate,
     NewsletterDetailResponse,
     NewsletterExternalItemResponse,
@@ -125,6 +127,29 @@ async def list_calendar_events(
     )
 
 
+@router.get(
+    "/{newsletter_id}/job-postings",
+    response_model=list[JobPostingCandidateResponse],
+)
+async def list_job_postings(
+    newsletter_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Fetch candidate job postings for a newsletter issue."""
+    newsletter = await newsletter_service.get_newsletter(db, newsletter_id)
+    if not newsletter:
+        raise HTTPException(status_code=404, detail="Newsletter not found")
+
+    selected_source_ids = [
+        item.Source_Id
+        for item in newsletter.External_Items
+        if item.Source_Type == "job_posting"
+    ]
+    return await job_posting_service.fetch_job_postings(
+        selected_source_ids=selected_source_ids,
+    )
+
+
 @router.post(
     "/{newsletter_id}/calendar-events",
     response_model=NewsletterExternalItemResponse,
@@ -183,6 +208,69 @@ async def add_calendar_event(
         location=event.location,
         final_headline=event.title,
         final_body=calendar_event_service.build_event_body(event),
+    )
+    return item
+
+
+@router.post(
+    "/{newsletter_id}/job-postings",
+    response_model=NewsletterExternalItemResponse,
+    status_code=201,
+)
+async def add_job_posting(
+    newsletter_id: str,
+    data: JobPostingImportRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Import a job posting into a newsletter section."""
+    newsletter = await newsletter_service.get_newsletter(db, newsletter_id)
+    if not newsletter:
+        raise HTTPException(status_code=404, detail="Newsletter not found")
+
+    existing = next(
+        (
+            item for item in newsletter.External_Items
+            if item.Source_Type == "job_posting" and item.Source_Id == data.Source_Id
+        ),
+        None,
+    )
+    if existing:
+        return existing
+
+    section_slug = newsletter_service.get_job_postings_section_slug(newsletter.Newsletter_Type)
+    section_result = await db.execute(
+        sa.select(NewsletterSection).where(
+            NewsletterSection.Newsletter_Type == newsletter.Newsletter_Type,
+            NewsletterSection.Slug == section_slug,
+        )
+    )
+    section = section_result.scalar_one_or_none()
+    if not section:
+        raise HTTPException(status_code=422, detail="Job postings section is not configured")
+
+    posting = job_posting_service.JobPosting(
+        source_id=data.Source_Id,
+        source_type="job_posting",
+        url=data.Url,
+        title=data.Title,
+        department=data.Department,
+        posting_number=data.Posting_Number,
+        location=data.Location,
+        closing_date=data.Closing_Date,
+        summary=data.Summary,
+    )
+    item = await newsletter_service.add_external_item(
+        db,
+        newsletter_id=newsletter_id,
+        section_id=section.Id,
+        source_type=posting.source_type,
+        source_id=posting.source_id,
+        source_url=posting.url,
+        event_start=None,
+        event_end=None,
+        location=posting.location,
+        final_headline=job_posting_service.build_job_headline(posting),
+        final_body=job_posting_service.build_job_body(posting),
     )
     return item
 
