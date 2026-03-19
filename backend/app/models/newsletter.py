@@ -54,6 +54,9 @@ class Newsletter(Base):
     Items: Mapped[list["NewsletterItem"]] = relationship(
         back_populates="Newsletter_Rel", cascade="all, delete-orphan", lazy="selectin"
     )
+    External_Items: Mapped[list["NewsletterExternalItem"]] = relationship(
+        back_populates="Newsletter_Rel", cascade="all, delete-orphan", lazy="selectin"
+    )
 
 
 class NewsletterItem(Base):
@@ -82,4 +85,34 @@ class NewsletterItem(Base):
         back_populates="Items", lazy="selectin"
     )
     Submission_Rel: Mapped["Submission"] = relationship(lazy="selectin")
+    Section_Rel: Mapped["NewsletterSection"] = relationship(lazy="selectin")
+
+
+class NewsletterExternalItem(Base):
+    """A placed non-submission item imported from an external source such as a calendar."""
+
+    __tablename__ = "newsletter_external_items"
+
+    Id: Mapped[str] = mapped_column(
+        sa.String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    Newsletter_Id: Mapped[str] = mapped_column(
+        sa.String(36), sa.ForeignKey("newsletters.Id"), nullable=False
+    )
+    Section_Id: Mapped[str] = mapped_column(
+        sa.String(36), sa.ForeignKey("newsletter_sections.Id"), nullable=False
+    )
+    Source_Type: Mapped[str] = mapped_column(sa.String(50), nullable=False)
+    Source_Id: Mapped[str] = mapped_column(sa.String(255), nullable=False)
+    Source_Url: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    Event_Start: Mapped[datetime | None] = mapped_column(sa.DateTime, nullable=True)
+    Event_End: Mapped[datetime | None] = mapped_column(sa.DateTime, nullable=True)
+    Location: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
+    Position: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
+    Final_Headline: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    Final_Body: Mapped[str] = mapped_column(sa.Text, nullable=False)
+
+    Newsletter_Rel: Mapped["Newsletter"] = relationship(
+        back_populates="External_Items", lazy="selectin"
+    )
     Section_Rel: Mapped["NewsletterSection"] = relationship(lazy="selectin")

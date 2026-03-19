@@ -69,6 +69,35 @@ class NewsletterItemResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class NewsletterExternalItemCreate(BaseModel):
+    Section_Id: str
+    Source_Type: str = Field(..., min_length=1, max_length=50)
+    Source_Id: str = Field(..., min_length=1, max_length=255)
+    Source_Url: str | None = None
+    Event_Start: datetime | None = None
+    Event_End: datetime | None = None
+    Location: str | None = None
+    Final_Headline: str = Field(..., min_length=1)
+    Final_Body: str = Field(..., min_length=1)
+
+
+class NewsletterExternalItemResponse(BaseModel):
+    Id: str
+    Newsletter_Id: str
+    Section_Id: str
+    Source_Type: str
+    Source_Id: str
+    Source_Url: str | None
+    Event_Start: datetime | None
+    Event_End: datetime | None
+    Location: str | None
+    Position: int
+    Final_Headline: str
+    Final_Body: str
+
+    model_config = {"from_attributes": True}
+
+
 class NewsletterDetailResponse(BaseModel):
     Id: str
     Newsletter_Type: str
@@ -77,6 +106,7 @@ class NewsletterDetailResponse(BaseModel):
     Created_At: datetime
     Updated_At: datetime
     Items: list[NewsletterItemResponse]
+    External_Items: list[NewsletterExternalItemResponse]
 
     model_config = {"from_attributes": True}
 
@@ -136,3 +166,25 @@ class AssembleRequest(BaseModel):
     """Request to auto-populate a newsletter from approved submissions."""
     Newsletter_Type: str = Field(..., pattern=r"^(tdr|myui)$")
     Publish_Date: date
+
+
+class CalendarEventCandidateResponse(BaseModel):
+    Source_Id: str
+    Source_Type: str
+    Url: str | None
+    Title: str
+    Description: str
+    Location: str | None
+    Event_Start: datetime | None
+    Event_End: datetime | None
+    Selected: bool
+
+
+class CalendarEventImportRequest(BaseModel):
+    Source_Id: str = Field(..., min_length=1, max_length=255)
+    Url: str | None = None
+    Title: str = Field(..., min_length=1)
+    Description: str = Field(..., min_length=1)
+    Location: str | None = None
+    Event_Start: datetime | None = None
+    Event_End: datetime | None = None

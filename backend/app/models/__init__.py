@@ -18,6 +18,7 @@ Models included:
     EditVersion              -- Immutable edit snapshots (original, AI, final)
     Newsletter               -- A single newsletter edition (TDR or My UI)
     NewsletterItem           -- A placed submission within a newsletter
+    NewsletterExternalItem   -- Imported external item placed within a newsletter
     NewsletterSection        -- Section catalog (Announcements, Kudos, etc.)
     StyleRule                -- Writing-style rules for the AI pipeline
     ScheduleConfig           -- Publication cadence and deadline rules
@@ -27,7 +28,7 @@ Models included:
 from app.models.allowed_value import AllowedValue
 from app.models.blackout_date import BlackoutDate
 from app.models.edit_history import EditVersion
-from app.models.newsletter import Newsletter, NewsletterItem
+from app.models.newsletter import Newsletter, NewsletterExternalItem, NewsletterItem
 from app.models.schedule_config import ScheduleConfig
 from app.models.section import NewsletterSection
 from app.models.style_rule import StyleRule
@@ -38,6 +39,7 @@ __all__ = [
     "BlackoutDate",
     "EditVersion",
     "Newsletter",
+    "NewsletterExternalItem",
     "NewsletterItem",
     "NewsletterSection",
     "ScheduleConfig",

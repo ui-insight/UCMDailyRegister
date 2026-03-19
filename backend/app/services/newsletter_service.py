@@ -6,10 +6,9 @@ import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.models.newsletter import Newsletter, NewsletterItem
+from app.models.newsletter import Newsletter, NewsletterExternalItem, NewsletterItem
 from app.models.section import NewsletterSection
 from app.models.submission import Submission
-from app.models.edit_history import EditVersion
 
 
 async def create_newsletter(
@@ -33,7 +32,10 @@ async def get_newsletter(db: AsyncSession, newsletter_id: str) -> Newsletter | N
     result = await db.execute(
         sa.select(Newsletter)
         .where(Newsletter.Id == newsletter_id)
-        .options(selectinload(Newsletter.Items))
+        .options(
+            selectinload(Newsletter.Items),
+            selectinload(Newsletter.External_Items),
+        )
     )
     return result.scalar_one_or_none()
 
@@ -44,7 +46,10 @@ async def list_newsletters(
     status: str | None = None,
     limit: int = 20,
 ) -> list[Newsletter]:
-    query = sa.select(Newsletter).options(selectinload(Newsletter.Items))
+    query = sa.select(Newsletter).options(
+        selectinload(Newsletter.Items),
+        selectinload(Newsletter.External_Items),
+    )
     if newsletter_type:
         query = query.where(Newsletter.Newsletter_Type == newsletter_type)
     if status:
@@ -103,6 +108,54 @@ async def add_item(
     return item
 
 
+async def add_external_item(
+    db: AsyncSession,
+    newsletter_id: str,
+    section_id: str,
+    source_type: str,
+    source_id: str,
+    source_url: str | None,
+    event_start,
+    event_end,
+    location: str | None,
+    final_headline: str,
+    final_body: str,
+) -> NewsletterExternalItem:
+    item_max_result = await db.execute(
+        sa.select(sa.func.max(NewsletterItem.Position)).where(
+            NewsletterItem.Newsletter_Id == newsletter_id,
+            NewsletterItem.Section_Id == section_id,
+        )
+    )
+    external_max_result = await db.execute(
+        sa.select(sa.func.max(NewsletterExternalItem.Position)).where(
+            NewsletterExternalItem.Newsletter_Id == newsletter_id,
+            NewsletterExternalItem.Section_Id == section_id,
+        )
+    )
+    max_position = max(
+        item_max_result.scalar_one_or_none() or -1,
+        external_max_result.scalar_one_or_none() or -1,
+    )
+    item = NewsletterExternalItem(
+        Newsletter_Id=newsletter_id,
+        Section_Id=section_id,
+        Source_Type=source_type,
+        Source_Id=source_id,
+        Source_Url=source_url,
+        Event_Start=event_start,
+        Event_End=event_end,
+        Location=location,
+        Position=max_position + 1,
+        Final_Headline=final_headline,
+        Final_Body=final_body,
+    )
+    db.add(item)
+    await db.commit()
+    await db.refresh(item)
+    return item
+
+
 async def update_item(
     db: AsyncSession,
     item_id: str,
@@ -125,6 +178,18 @@ async def update_item(
 async def remove_item(db: AsyncSession, item_id: str) -> bool:
     result = await db.execute(
         sa.select(NewsletterItem).where(NewsletterItem.Id == item_id)
+    )
+    item = result.scalar_one_or_none()
+    if not item:
+        return False
+    await db.delete(item)
+    await db.commit()
+    return True
+
+
+async def remove_external_item(db: AsyncSession, item_id: str) -> bool:
+    result = await db.execute(
+        sa.select(NewsletterExternalItem).where(NewsletterExternalItem.Id == item_id)
     )
     item = result.scalar_one_or_none()
     if not item:
@@ -172,7 +237,10 @@ async def assemble_newsletter(
             Newsletter.Newsletter_Type == newsletter_type,
             Newsletter.Publish_Date == publish_date,
         )
-        .options(selectinload(Newsletter.Items))
+        .options(
+            selectinload(Newsletter.Items),
+            selectinload(Newsletter.External_Items),
+        )
     )
     newsletter = result.scalar_one_or_none()
 
@@ -268,6 +336,11 @@ def _get_category_section_map(newsletter_type: str) -> dict[str, str]:
             "job_opportunity": "help-wanted",
             "in_memoriam": "news-and-updates",
         }
+
+
+def get_calendar_section_slug(newsletter_type: str) -> str:
+    """Return the section slug used for imported calendar events."""
+    return "todays-events" if newsletter_type == "tdr" else "weekly-events"
 
 
 def _get_best_text(submission: Submission) -> tuple[str, str]:

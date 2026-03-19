@@ -1,24 +1,23 @@
 """Newsletter CRUD and assembly API endpoints."""
 
-from datetime import date
-
 import sqlalchemy as sa
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.api.deps import get_db
-from app.models.newsletter import Newsletter, NewsletterItem
 from app.models.section import NewsletterSection
-from app.services import newsletter_service
+from app.services import calendar_event_service, newsletter_service
 from app.schemas.newsletter import (
+    CalendarEventCandidateResponse,
+    CalendarEventImportRequest,
     NewsletterCreate,
-    NewsletterResponse,
     NewsletterDetailResponse,
+    NewsletterExternalItemResponse,
     NewsletterItemCreate,
-    NewsletterItemUpdate,
     NewsletterItemResponse,
+    NewsletterItemUpdate,
+    NewsletterResponse,
     AssembleRequest,
 )
 from app.utils.export import export_newsletter_docx
@@ -101,6 +100,93 @@ async def add_item(
     return item
 
 
+@router.get(
+    "/{newsletter_id}/calendar-events",
+    response_model=list[CalendarEventCandidateResponse],
+)
+async def list_calendar_events(
+    newsletter_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Fetch candidate calendar events for a newsletter issue."""
+    newsletter = await newsletter_service.get_newsletter(db, newsletter_id)
+    if not newsletter:
+        raise HTTPException(status_code=404, detail="Newsletter not found")
+
+    selected_source_ids = [
+        item.Source_Id
+        for item in newsletter.External_Items
+        if item.Source_Type == "calendar_event"
+    ]
+    return await calendar_event_service.fetch_calendar_events(
+        publish_date=newsletter.Publish_Date,
+        newsletter_type=newsletter.Newsletter_Type,
+        selected_source_ids=selected_source_ids,
+    )
+
+
+@router.post(
+    "/{newsletter_id}/calendar-events",
+    response_model=NewsletterExternalItemResponse,
+    status_code=201,
+)
+async def add_calendar_event(
+    newsletter_id: str,
+    data: CalendarEventImportRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Import a calendar event into a newsletter section."""
+    newsletter = await newsletter_service.get_newsletter(db, newsletter_id)
+    if not newsletter:
+        raise HTTPException(status_code=404, detail="Newsletter not found")
+
+    existing = next(
+        (
+            item for item in newsletter.External_Items
+            if item.Source_Type == "calendar_event" and item.Source_Id == data.Source_Id
+        ),
+        None,
+    )
+    if existing:
+        return existing
+
+    section_slug = newsletter_service.get_calendar_section_slug(newsletter.Newsletter_Type)
+    section_result = await db.execute(
+        sa.select(NewsletterSection).where(
+            NewsletterSection.Newsletter_Type == newsletter.Newsletter_Type,
+            NewsletterSection.Slug == section_slug,
+        )
+    )
+    section = section_result.scalar_one_or_none()
+    if not section:
+        raise HTTPException(status_code=422, detail="Calendar section is not configured")
+
+    event = calendar_event_service.CalendarEvent(
+        source_id=data.Source_Id,
+        source_type="calendar_event",
+        url=data.Url,
+        title=data.Title,
+        description=data.Description,
+        location=data.Location,
+        event_start=data.Event_Start,
+        event_end=data.Event_End,
+    )
+    item = await newsletter_service.add_external_item(
+        db,
+        newsletter_id=newsletter_id,
+        section_id=section.Id,
+        source_type=event.source_type,
+        source_id=event.source_id,
+        source_url=event.url,
+        event_start=event.event_start,
+        event_end=event.event_end,
+        location=event.location,
+        final_headline=event.title,
+        final_body=calendar_event_service.build_event_body(event),
+    )
+    return item
+
+
 @router.patch("/{newsletter_id}/items/{item_id}", response_model=NewsletterItemResponse)
 async def update_item(
     newsletter_id: str,
@@ -114,6 +200,17 @@ async def update_item(
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
     return item
+
+
+@router.delete("/{newsletter_id}/external-items/{item_id}", status_code=204)
+async def remove_external_item(
+    newsletter_id: str,
+    item_id: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """Remove an imported external item from a newsletter."""
+    if not await newsletter_service.remove_external_item(db, item_id):
+        raise HTTPException(status_code=404, detail="External item not found")
 
 
 @router.delete("/{newsletter_id}/items/{item_id}", status_code=204)
@@ -170,13 +267,15 @@ async def export_newsletter(newsletter_id: str, db: AsyncSession = Depends(get_d
         .order_by(NewsletterSection.Display_Order)
     )
     sections = list(sections_result.scalars().all())
-    section_map = {s.Id: s for s in sections}
 
     # Organize items by section
     export_sections = []
     for section in sections:
         section_items = sorted(
-            [it for it in newsletter.Items if it.Section_Id == section.Id],
+            [
+                *[it for it in newsletter.Items if it.Section_Id == section.Id],
+                *[it for it in newsletter.External_Items if it.Section_Id == section.Id],
+            ],
             key=lambda it: it.Position,
         )
         if section_items:
