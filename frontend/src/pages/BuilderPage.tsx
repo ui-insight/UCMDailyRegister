@@ -1,16 +1,39 @@
 import { useEffect, useState } from 'react';
 import {
+  addCalendarEvent,
   listNewsletters,
+  listCalendarEvents,
   getNewsletter,
   assembleNewsletter,
   updateNewsletterStatus,
+  removeNewsletterExternalItem,
   removeNewsletterItem,
   reorderNewsletterItems,
   getExportUrl,
   listSections,
 } from '../api/newsletters';
-import type { NewsletterDetailResponse, NewsletterItemResponse } from '../api/newsletters';
+import type {
+  CalendarEventCandidate,
+  NewsletterDetailResponse,
+} from '../api/newsletters';
 import type { NewsletterSection } from '../types/newsletter';
+
+interface BuilderSectionItemBase {
+  Id: string;
+  Section_Id: string;
+  Position: number;
+  Final_Headline: string;
+  Final_Body: string;
+}
+
+type BuilderSectionItem =
+  | (BuilderSectionItemBase & { Kind: 'submission'; Run_Number: number })
+  | (BuilderSectionItemBase & {
+    Kind: 'calendar_event';
+    Source_Url: string | null;
+    Location: string | null;
+    Event_Start: string | null;
+  });
 
 export default function BuilderPage() {
   const [newsletterType, setNewsletterType] = useState<'tdr' | 'myui'>('tdr');
@@ -20,14 +43,27 @@ export default function BuilderPage() {
   const [newsletter, setNewsletter] = useState<NewsletterDetailResponse | null>(null);
   const [newsletters, setNewsletters] = useState<NewsletterDetailResponse[]>([]);
   const [sections, setSections] = useState<NewsletterSection[]>([]);
+  const [calendarEvents, setCalendarEvents] = useState<CalendarEventCandidate[]>([]);
+  const [calendarLoading, setCalendarLoading] = useState(false);
+  const [calendarError, setCalendarError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const newsletterId = newsletter?.Id;
 
   useEffect(() => {
     loadSections();
     loadNewsletters();
   }, [newsletterType]);
+
+  useEffect(() => {
+    if (!newsletterId) {
+      setCalendarEvents([]);
+      setCalendarError(null);
+      return;
+    }
+    loadCalendarEvents(newsletterId);
+  }, [newsletterId]);
 
   const loadSections = async () => {
     try {
@@ -44,6 +80,19 @@ export default function BuilderPage() {
       setNewsletters(list as NewsletterDetailResponse[]);
     } catch (err) {
       console.error('Failed to load newsletters:', err);
+    }
+  };
+
+  const loadCalendarEvents = async (newsletterId: string) => {
+    setCalendarLoading(true);
+    setCalendarError(null);
+    try {
+      const events = await listCalendarEvents(newsletterId);
+      setCalendarEvents(events);
+    } catch (err) {
+      setCalendarError(err instanceof Error ? err.message : 'Failed to load calendar events');
+    } finally {
+      setCalendarLoading(false);
     }
   };
 
@@ -87,6 +136,40 @@ export default function BuilderPage() {
       showToast('Item removed');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to remove');
+    }
+  };
+
+  const handleRemoveExternalItem = async (itemId: string) => {
+    if (!newsletter) return;
+    try {
+      await removeNewsletterExternalItem(newsletter.Id, itemId);
+      const nl = await getNewsletter(newsletter.Id);
+      setNewsletter(nl);
+      await loadCalendarEvents(newsletter.Id);
+      showToast('Calendar event removed');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to remove calendar event');
+    }
+  };
+
+  const handleAddCalendarEvent = async (event: CalendarEventCandidate) => {
+    if (!newsletter) return;
+    try {
+      await addCalendarEvent(newsletter.Id, {
+        Source_Id: event.Source_Id,
+        Url: event.Url,
+        Title: event.Title,
+        Description: event.Description,
+        Location: event.Location,
+        Event_Start: event.Event_Start,
+        Event_End: event.Event_End,
+      });
+      const nl = await getNewsletter(newsletter.Id);
+      setNewsletter(nl);
+      await loadCalendarEvents(newsletter.Id);
+      showToast('Calendar event added');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add calendar event');
     }
   };
 
@@ -138,15 +221,28 @@ export default function BuilderPage() {
   };
 
   // Group items by section
-  const sectionMap = new Map<string, NewsletterSection>();
-  sections.forEach((s) => sectionMap.set(s.Id, s));
-
-  const itemsBySection = new Map<string, NewsletterItemResponse[]>();
+  const itemsBySection = new Map<string, BuilderSectionItem[]>();
   if (newsletter) {
+    const submissionItems: BuilderSectionItem[] = newsletter.Items.map((item) => ({
+      ...item,
+      Kind: 'submission',
+    }));
+    const externalItems: BuilderSectionItem[] = newsletter.External_Items.map((item) => ({
+      Id: item.Id,
+      Section_Id: item.Section_Id,
+      Position: item.Position,
+      Final_Headline: item.Final_Headline,
+      Final_Body: item.Final_Body,
+      Kind: 'calendar_event',
+      Source_Url: item.Source_Url,
+      Location: item.Location,
+      Event_Start: item.Event_Start,
+    }));
+    const allItems = [...submissionItems, ...externalItems];
     for (const section of sections) {
-      const items = newsletter.Items
+      const items = allItems
         .filter((i) => i.Section_Id === section.Id)
-        .sort((a, b) => a.Position - b.Position);
+        .sort((a, b) => a.Position - b.Position || a.Final_Headline.localeCompare(b.Final_Headline));
       if (items.length > 0) {
         itemsBySection.set(section.Id, items);
       }
@@ -248,6 +344,90 @@ export default function BuilderPage() {
             </div>
           ) : (
             <div className="space-y-4">
+              <div className="bg-white rounded-lg shadow p-4">
+                <div className="flex items-center justify-between gap-4 mb-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900">Calendar Events</h3>
+                      <p className="text-xs text-gray-500">
+                        Import upcoming U of I calendar events into the{' '}
+                        {newsletterType === 'tdr' ? "Today's Events" : 'Weekly Events'} section.
+                      </p>
+                    </div>
+                  <button
+                    onClick={() => loadCalendarEvents(newsletter.Id)}
+                    disabled={calendarLoading}
+                    className="px-3 py-1.5 text-xs font-medium rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    {calendarLoading ? 'Refreshing...' : 'Refresh Events'}
+                  </button>
+                </div>
+                {calendarError && (
+                  <div className="mb-3 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
+                    {calendarError}
+                  </div>
+                )}
+                {calendarEvents.length === 0 ? (
+                  <div className="rounded-md border border-dashed border-gray-200 px-4 py-6 text-center text-xs text-gray-400">
+                    {calendarLoading ? 'Loading candidate events...' : 'No candidate events found for this issue window.'}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                    {calendarEvents.map((event) => (
+                      <div
+                        key={event.Source_Id}
+                        className={`rounded-lg border p-3 ${
+                          event.Selected ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-white'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-gray-900">{event.Title}</p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {event.Event_Start
+                                ? new Date(event.Event_Start).toLocaleString('en-US', {
+                                  weekday: 'short',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: 'numeric',
+                                  minute: '2-digit',
+                                })
+                                : 'Date unavailable'}
+                            </p>
+                            {event.Location && (
+                              <p className="text-xs text-gray-500 mt-1">{event.Location}</p>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => handleAddCalendarEvent(event)}
+                            disabled={event.Selected}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-md ${
+                              event.Selected
+                                ? 'bg-green-100 text-green-700 cursor-default'
+                                : 'bg-ui-clearwater-600 text-white hover:bg-ui-clearwater-700'
+                            }`}
+                          >
+                            {event.Selected ? 'Added' : 'Add'}
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-2 line-clamp-3">
+                          {event.Description}
+                        </p>
+                        {event.Url && (
+                          <a
+                            href={event.Url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-block mt-2 text-xs text-ui-clearwater-700 hover:text-ui-clearwater-800"
+                          >
+                            View source
+                          </a>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {/* Newsletter header */}
               <div className="bg-white rounded-lg shadow p-4 flex items-center justify-between">
                 <div>
@@ -301,37 +481,64 @@ export default function BuilderPage() {
                           >
                             <div className="flex items-start justify-between">
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900">
-                                  {item.Final_Headline}
-                                </p>
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-medium text-gray-900">
+                                    {item.Final_Headline}
+                                  </p>
+                                  {item.Kind === 'calendar_event' && (
+                                    <span className="inline-flex items-center rounded-full bg-ui-clearwater-100 px-2 py-0.5 text-[11px] font-medium text-ui-clearwater-800">
+                                      Calendar
+                                    </span>
+                                  )}
+                                </div>
                                 <p className="text-xs text-gray-600 mt-1 line-clamp-2">
                                   {item.Final_Body.replace(/<[^>]+>/g, '')}
                                 </p>
-                                {item.Run_Number > 1 && (
+                                {item.Kind === 'submission' && item.Run_Number > 1 && (
                                   <span className="text-xs text-ui-gold-600 mt-1 inline-block">
                                     Run #{item.Run_Number}
                                   </span>
                                 )}
+                                {item.Kind === 'calendar_event' && item.Event_Start && (
+                                  <p className="text-xs text-gray-400 mt-1">
+                                    {new Date(item.Event_Start).toLocaleString('en-US', {
+                                      weekday: 'short',
+                                      month: 'short',
+                                      day: 'numeric',
+                                      hour: 'numeric',
+                                      minute: '2-digit',
+                                    })}
+                                    {item.Location ? ` • ${item.Location}` : ''}
+                                  </p>
+                                )}
                               </div>
                               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                                {item.Kind === 'submission' && (
+                                  <>
+                                    <button
+                                      onClick={() => handleMoveItem(item.Id, 'up')}
+                                      disabled={idx === 0}
+                                      className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30"
+                                      title="Move up"
+                                    >
+                                      &#x25B2;
+                                    </button>
+                                    <button
+                                      onClick={() => handleMoveItem(item.Id, 'down')}
+                                      disabled={idx === items.length - 1}
+                                      className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30"
+                                      title="Move down"
+                                    >
+                                      &#x25BC;
+                                    </button>
+                                  </>
+                                )}
                                 <button
-                                  onClick={() => handleMoveItem(item.Id, 'up')}
-                                  disabled={idx === 0}
-                                  className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30"
-                                  title="Move up"
-                                >
-                                  &#x25B2;
-                                </button>
-                                <button
-                                  onClick={() => handleMoveItem(item.Id, 'down')}
-                                  disabled={idx === items.length - 1}
-                                  className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30"
-                                  title="Move down"
-                                >
-                                  &#x25BC;
-                                </button>
-                                <button
-                                  onClick={() => handleRemoveItem(item.Id)}
+                                  onClick={() => (
+                                    item.Kind === 'submission'
+                                      ? handleRemoveItem(item.Id)
+                                      : handleRemoveExternalItem(item.Id)
+                                  )}
                                   className="p-1 text-red-400 hover:text-red-600"
                                   title="Remove"
                                 >

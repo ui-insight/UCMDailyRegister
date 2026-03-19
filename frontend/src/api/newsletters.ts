@@ -21,8 +21,36 @@ export interface NewsletterItemResponse {
   Run_Number: number;
 }
 
+export interface NewsletterExternalItemResponse {
+  Id: string;
+  Newsletter_Id: string;
+  Section_Id: string;
+  Source_Type: string;
+  Source_Id: string;
+  Source_Url: string | null;
+  Event_Start: string | null;
+  Event_End: string | null;
+  Location: string | null;
+  Position: number;
+  Final_Headline: string;
+  Final_Body: string;
+}
+
+export interface CalendarEventCandidate {
+  Source_Id: string;
+  Source_Type: string;
+  Url: string | null;
+  Title: string;
+  Description: string;
+  Location: string | null;
+  Event_Start: string | null;
+  Event_End: string | null;
+  Selected: boolean;
+}
+
 export interface NewsletterDetailResponse extends NewsletterResponse {
   Items: NewsletterItemResponse[];
+  External_Items: NewsletterExternalItemResponse[];
 }
 
 export async function listNewsletters(params?: {
@@ -102,11 +130,42 @@ export async function updateNewsletterItem(
   });
 }
 
+export async function listCalendarEvents(
+  newsletterId: string,
+): Promise<CalendarEventCandidate[]> {
+  return apiFetch<CalendarEventCandidate[]>(`/newsletters/${newsletterId}/calendar-events`);
+}
+
+export async function addCalendarEvent(
+  newsletterId: string,
+  data: {
+    Source_Id: string;
+    Url?: string | null;
+    Title: string;
+    Description: string;
+    Location?: string | null;
+    Event_Start?: string | null;
+    Event_End?: string | null;
+  },
+): Promise<NewsletterExternalItemResponse> {
+  return apiFetch<NewsletterExternalItemResponse>(`/newsletters/${newsletterId}/calendar-events`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
 export async function removeNewsletterItem(
   newsletterId: string,
   itemId: string,
 ): Promise<void> {
   await apiFetch(`/newsletters/${newsletterId}/items/${itemId}`, { method: 'DELETE' });
+}
+
+export async function removeNewsletterExternalItem(
+  newsletterId: string,
+  itemId: string,
+): Promise<void> {
+  await apiFetch(`/newsletters/${newsletterId}/external-items/${itemId}`, { method: 'DELETE' });
 }
 
 export async function reorderNewsletterItems(

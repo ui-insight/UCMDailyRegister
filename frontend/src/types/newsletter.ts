@@ -29,3 +29,18 @@ export interface NewsletterItem {
   Final_Body: string;
   Run_Number: number;
 }
+
+export interface NewsletterExternalItem {
+  Id: string;
+  Newsletter_Id: string;
+  Section_Id: string;
+  Source_Type: string;
+  Source_Id: string;
+  Source_Url: string | null;
+  Event_Start: string | null;
+  Event_End: string | null;
+  Location: string | null;
+  Position: number;
+  Final_Headline: string;
+  Final_Body: string;
+}
