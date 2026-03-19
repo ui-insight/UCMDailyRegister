@@ -1,11 +1,11 @@
 import os
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db
+from app.api.deps import SubmitterRole, get_db, get_submitter_role
 from app.config import settings
 from app.schemas.submission import (
     LinkCreate,
@@ -17,14 +17,25 @@ from app.schemas.submission import (
     SubmissionResponse,
     SubmissionUpdate,
 )
-from app.services import schedule_service, submission_service
+from app.services import allowed_value_service, schedule_service, submission_service
 from app.services.image_service import save_upload, validate_image
 
 router = APIRouter(prefix="/submissions", tags=["submissions"])
 
 
 @router.post("/", response_model=SubmissionResponse, status_code=201)
-async def create_submission(data: SubmissionCreate, db: AsyncSession = Depends(get_db)):
+async def create_submission(
+    data: SubmissionCreate,
+    db: AsyncSession = Depends(get_db),
+    submission_role: SubmitterRole = Depends(get_submitter_role),
+):
+    if not await allowed_value_service.is_submission_category_allowed(
+        db, data.Category, submission_role
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail="Announcement type is not available for this submitter role.",
+        )
     # Validate requested publication dates against schedule config + blackouts
     nl_types = ["tdr", "myui"] if data.Target_Newsletter == "both" else [data.Target_Newsletter]
     for sched in data.Schedule_Requests:
@@ -69,8 +80,18 @@ async def get_submission(submission_id: str, db: AsyncSession = Depends(get_db))
 
 @router.patch("/{submission_id}", response_model=SubmissionResponse)
 async def update_submission(
-    submission_id: str, data: SubmissionUpdate, db: AsyncSession = Depends(get_db)
+    submission_id: str,
+    data: SubmissionUpdate,
+    db: AsyncSession = Depends(get_db),
+    submission_role: SubmitterRole = Depends(get_submitter_role),
 ):
+    if data.Category and not await allowed_value_service.is_submission_category_allowed(
+        db, data.Category, submission_role
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail="Announcement type is not available for this submitter role.",
+        )
     submission = await submission_service.update_submission(db, submission_id, data)
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")

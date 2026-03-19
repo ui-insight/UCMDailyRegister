@@ -1,3 +1,5 @@
+import { getSubmitterRoleHeaders } from '../utils/submitterRole';
+
 const BASE_URL = '/api/v1';
 
 export async function apiFetch<T>(
@@ -5,7 +7,11 @@ export async function apiFetch<T>(
   options?: RequestInit,
 ): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    headers: {
+      'Content-Type': 'application/json',
+      ...getSubmitterRoleHeaders(),
+      ...options?.headers,
+    },
     ...options,
   });
   if (!res.ok) {

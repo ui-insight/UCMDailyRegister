@@ -2,6 +2,7 @@
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.allowed_value import AllowedValue
@@ -11,6 +12,7 @@ from app.models.allowed_value import AllowedValue
 class TestAllowedValues:
     async def _seed_values(self, db: AsyncSession):
         """Seed a few AllowedValue rows for testing."""
+        await db.execute(delete(AllowedValue))
         values = [
             AllowedValue(
                 Value_Group="Submission_Category",
@@ -18,6 +20,7 @@ class TestAllowedValues:
                 Label="Faculty/Staff",
                 Display_Order=1,
                 Is_Active=True,
+                Visibility_Role="public",
             ),
             AllowedValue(
                 Value_Group="Submission_Category",
@@ -25,6 +28,15 @@ class TestAllowedValues:
                 Label="Student",
                 Display_Order=2,
                 Is_Active=True,
+                Visibility_Role="public",
+            ),
+            AllowedValue(
+                Value_Group="Submission_Category",
+                Code="news_release",
+                Label="News Release",
+                Display_Order=3,
+                Is_Active=True,
+                Visibility_Role="staff",
             ),
             AllowedValue(
                 Value_Group="Newsletter_Type",
@@ -32,6 +44,7 @@ class TestAllowedValues:
                 Label="The Daily Register",
                 Display_Order=1,
                 Is_Active=True,
+                Visibility_Role="public",
             ),
             AllowedValue(
                 Value_Group="Submission_Category",
@@ -39,6 +52,7 @@ class TestAllowedValues:
                 Label="Deprecated Category",
                 Display_Order=99,
                 Is_Active=False,
+                Visibility_Role="public",
             ),
         ]
         db.add_all(values)
@@ -53,6 +67,21 @@ class TestAllowedValues:
         # Only active values by default
         assert len(items) == 2
         assert all(v["Value_Group"] == "Submission_Category" for v in items)
+        assert all(v["Visibility_Role"] == "public" for v in items)
+
+    async def test_list_submission_categories_for_staff(
+        self, client: AsyncClient, db: AsyncSession
+    ):
+        await self._seed_values(db)
+
+        resp = await client.get(
+            "/api/v1/allowed-values?group=Submission_Category",
+            headers={"X-User-Role": "staff"},
+        )
+        assert resp.status_code == 200
+        items = resp.json()
+        assert len(items) == 3
+        assert items[-1]["Code"] == "news_release"
 
     async def test_list_includes_inactive(self, client: AsyncClient, db: AsyncSession):
         await self._seed_values(db)
@@ -90,3 +119,4 @@ class TestAllowedValues:
         assert "Label" in item
         assert "Display_Order" in item
         assert "Is_Active" in item
+        assert "Visibility_Role" in item

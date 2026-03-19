@@ -38,4 +38,7 @@ class AllowedValue(Base):
     Label: Mapped[str] = mapped_column(sa.String(255), nullable=False)
     Display_Order: Mapped[int] = mapped_column(sa.Integer, default=0)
     Is_Active: Mapped[bool] = mapped_column(sa.Boolean, default=True)
+    Visibility_Role: Mapped[str] = mapped_column(
+        sa.String(20), default="public", server_default="public"
+    )
     Description: Mapped[str | None] = mapped_column(sa.Text, nullable=True)

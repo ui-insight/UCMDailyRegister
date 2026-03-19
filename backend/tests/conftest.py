@@ -11,6 +11,7 @@ from app.db.base import Base
 from app.api.deps import get_db
 from app.main import app as fastapi_app
 import app.models  # noqa: F401 — register all models
+from app.models.allowed_value import AllowedValue
 
 
 # In-memory SQLite for tests
@@ -43,6 +44,86 @@ async def db() -> AsyncGenerator[AsyncSession, None]:
     """Provide an async DB session for direct model access in tests."""
     async with TestSession() as session:
         yield session
+
+
+@pytest.fixture(autouse=True)
+async def seed_submission_categories(setup_db, db: AsyncSession):
+    """Seed baseline submission categories for tests that hit submission endpoints."""
+    db.add_all([
+        AllowedValue(
+            Value_Group="Submission_Category",
+            Code="faculty_staff",
+            Label="Faculty/Staff",
+            Display_Order=1,
+            Is_Active=True,
+            Visibility_Role="public",
+        ),
+        AllowedValue(
+            Value_Group="Submission_Category",
+            Code="student",
+            Label="Student",
+            Display_Order=2,
+            Is_Active=True,
+            Visibility_Role="public",
+        ),
+        AllowedValue(
+            Value_Group="Submission_Category",
+            Code="job_opportunity",
+            Label="Job Opportunity",
+            Display_Order=3,
+            Is_Active=True,
+            Visibility_Role="public",
+        ),
+        AllowedValue(
+            Value_Group="Submission_Category",
+            Code="kudos",
+            Label="Kudos",
+            Display_Order=4,
+            Is_Active=True,
+            Visibility_Role="public",
+        ),
+        AllowedValue(
+            Value_Group="Submission_Category",
+            Code="in_memoriam",
+            Label="In Memoriam",
+            Display_Order=5,
+            Is_Active=True,
+            Visibility_Role="public",
+        ),
+        AllowedValue(
+            Value_Group="Submission_Category",
+            Code="employee_announcement",
+            Label="Employee Announcement",
+            Display_Order=6,
+            Is_Active=True,
+            Visibility_Role="public",
+        ),
+        AllowedValue(
+            Value_Group="Submission_Category",
+            Code="survey",
+            Label="Survey",
+            Display_Order=7,
+            Is_Active=True,
+            Visibility_Role="public",
+        ),
+        AllowedValue(
+            Value_Group="Submission_Category",
+            Code="news_release",
+            Label="News Release",
+            Display_Order=8,
+            Is_Active=True,
+            Visibility_Role="staff",
+        ),
+        AllowedValue(
+            Value_Group="Submission_Category",
+            Code="ucm_feature_story",
+            Label="UCM Feature Story",
+            Display_Order=9,
+            Is_Active=True,
+            Visibility_Role="staff",
+        ),
+    ])
+    await db.commit()
 
 
 @pytest.fixture

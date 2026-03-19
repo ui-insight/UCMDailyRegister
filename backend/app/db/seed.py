@@ -43,6 +43,7 @@ async def seed_allowed_values(session: AsyncSession) -> None:
             Code=v["Code"],
             Label=v["Label"],
             Display_Order=v.get("Display_Order", 0),
+            Visibility_Role=v.get("Visibility_Role", "public"),
             Description=v.get("Description"),
         )
         session.add(record)
