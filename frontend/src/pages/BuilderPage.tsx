@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   addJobPosting,
   addCalendarEvent,
@@ -27,6 +27,20 @@ interface BuilderSectionItemBase {
   Position: number;
   Final_Headline: string;
   Final_Body: string;
+}
+
+interface SubmissionDragState {
+  itemId: string;
+  sourceSectionId: string;
+  overSectionId: string | null;
+  overIndex: number | null;
+  pointerX: number;
+  pointerY: number;
+  offsetX: number;
+  offsetY: number;
+  width: number;
+  height: number;
+  title: string;
 }
 
 type BuilderSectionItem =
@@ -114,6 +128,8 @@ export default function BuilderPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [dragState, setDragState] = useState<SubmissionDragState | null>(null);
+  const dragStateRef = useRef<SubmissionDragState | null>(null);
   const newsletterId = newsletter?.Id;
 
   useEffect(() => {
@@ -132,6 +148,10 @@ export default function BuilderPage() {
     loadCalendarEvents(newsletterId);
     loadJobPostings(newsletterId);
   }, [newsletterId]);
+
+  useEffect(() => {
+    dragStateRef.current = dragState;
+  }, [dragState]);
 
   const loadSections = async () => {
     try {
@@ -307,6 +327,82 @@ export default function BuilderPage() {
     }
   };
 
+  const buildSubmissionReorderPositions = (
+    itemId: string,
+    targetSectionId: string,
+    targetIndex: number,
+  ) => {
+    if (!newsletter) return [];
+
+    const draggedItem = newsletter.Items.find((item) => item.Id === itemId);
+    if (!draggedItem) return [];
+
+    const sourceSectionId = draggedItem.Section_Id;
+    const sourceItems = newsletter.Items
+      .filter((item) => item.Section_Id === sourceSectionId && item.Id !== itemId)
+      .sort((a, b) => a.Position - b.Position);
+    const targetItemsBase = newsletter.Items
+      .filter((item) => item.Section_Id === targetSectionId && item.Id !== itemId)
+      .sort((a, b) => a.Position - b.Position);
+
+    if (sourceSectionId === targetSectionId) {
+      const clampedIndex = Math.max(0, Math.min(targetIndex, sourceItems.length));
+      const reorderedItems = [...sourceItems];
+      reorderedItems.splice(clampedIndex, 0, draggedItem);
+      return reorderedItems.map((item, index) => ({
+        Id: item.Id,
+        Position: index,
+        Section_Id: targetSectionId,
+      }));
+    }
+
+    const clampedIndex = Math.max(0, Math.min(targetIndex, targetItemsBase.length));
+    const targetItems = [...targetItemsBase];
+    targetItems.splice(clampedIndex, 0, draggedItem);
+
+    return [
+      ...sourceItems.map((item, index) => ({
+        Id: item.Id,
+        Position: index,
+        Section_Id: sourceSectionId,
+      })),
+      ...targetItems.map((item, index) => ({
+        Id: item.Id,
+        Position: index,
+        Section_Id: targetSectionId,
+      })),
+    ];
+  };
+
+  const handleReassignSubmission = async (
+    itemId: string,
+    targetSectionId: string,
+    targetIndex?: number,
+  ) => {
+    if (!newsletter) return;
+
+    const draggedItem = newsletter.Items.find((item) => item.Id === itemId);
+    if (!draggedItem) return;
+
+    const targetItems = newsletter.Items.filter(
+      (item) => item.Section_Id === targetSectionId && item.Id !== itemId,
+    );
+    const positions = buildSubmissionReorderPositions(
+      itemId,
+      targetSectionId,
+      targetIndex ?? targetItems.length,
+    );
+    if (positions.length === 0) return;
+
+    try {
+      await reorderNewsletterItems(newsletter.Id, positions);
+      const nl = await getNewsletter(newsletter.Id);
+      setNewsletter(nl);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reorder');
+    }
+  };
+
   const handleStatusChange = async (status: string) => {
     if (!newsletter) return;
     try {
@@ -338,8 +434,106 @@ export default function BuilderPage() {
     }));
   };
 
+  const getDropTargetFromPoint = (clientX: number, clientY: number) => {
+    const hovered = document.elementFromPoint(clientX, clientY);
+    const hoveredCard = hovered?.closest('[data-draggable-card="true"]') as HTMLElement | null;
+    const hoveredSection = hovered?.closest('[data-builder-section-id]') as HTMLElement | null;
+
+    if (hoveredCard && hoveredCard.dataset.itemKind === 'submission') {
+      const sectionId = hoveredCard.dataset.sectionId;
+      const itemId = hoveredCard.dataset.itemId;
+      const index = Number(hoveredCard.dataset.submissionIndex ?? '-1');
+      if (sectionId && itemId && itemId !== dragStateRef.current?.itemId && index >= 0) {
+        const rect = hoveredCard.getBoundingClientRect();
+        return {
+          sectionId,
+          index: clientY > rect.top + rect.height / 2 ? index + 1 : index,
+        };
+      }
+    }
+
+    if (hoveredSection?.dataset.builderSectionId) {
+      const sectionId = hoveredSection.dataset.builderSectionId;
+      const submissionCount = Number(hoveredSection.dataset.submissionCount ?? '0');
+      return { sectionId, index: submissionCount };
+    }
+
+    return { sectionId: null, index: null };
+  };
+
+  const startSubmissionDrag = (
+    item: Extract<BuilderSectionItem, { Kind: 'submission' }>,
+    event: React.PointerEvent<HTMLButtonElement>,
+  ) => {
+    if (!newsletter) return;
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const card = event.currentTarget.closest('[data-draggable-card="true"]') as HTMLElement | null;
+    if (!card) return;
+
+    const rect = card.getBoundingClientRect();
+    const initialDropTarget = getDropTargetFromPoint(event.clientX, event.clientY);
+    setDragState({
+      itemId: item.Id,
+      sourceSectionId: item.Section_Id,
+      overSectionId: initialDropTarget.sectionId ?? item.Section_Id,
+      overIndex: initialDropTarget.index ?? 0,
+      pointerX: event.clientX,
+      pointerY: event.clientY,
+      offsetX: event.clientX - rect.left,
+      offsetY: event.clientY - rect.top,
+      width: rect.width,
+      height: rect.height,
+      title: item.Final_Headline,
+    });
+  };
+
+  useEffect(() => {
+    if (!dragState || !newsletter) return;
+
+    const handlePointerMove = (event: PointerEvent) => {
+      event.preventDefault();
+      const dropTarget = getDropTargetFromPoint(event.clientX, event.clientY);
+      setDragState((current) => current ? {
+        ...current,
+        pointerX: event.clientX,
+        pointerY: event.clientY,
+        overSectionId: dropTarget.sectionId,
+        overIndex: dropTarget.index,
+      } : current);
+    };
+
+    const handlePointerUp = async () => {
+      const currentDrag = dragStateRef.current;
+      setDragState(null);
+      if (!currentDrag?.overSectionId || currentDrag.overIndex === null) return;
+      await handleReassignSubmission(
+        currentDrag.itemId,
+        currentDrag.overSectionId,
+        currentDrag.overIndex,
+      );
+    };
+
+    const originalUserSelect = document.body.style.userSelect;
+    const originalCursor = document.body.style.cursor;
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'grabbing';
+    window.addEventListener('pointermove', handlePointerMove);
+    window.addEventListener('pointerup', handlePointerUp, { once: true });
+
+    return () => {
+      document.body.style.userSelect = originalUserSelect;
+      document.body.style.cursor = originalCursor;
+      window.removeEventListener('pointermove', handlePointerMove);
+      window.removeEventListener('pointerup', handlePointerUp);
+    };
+  }, [dragState, newsletter]);
+
   // Group items by section
   const itemsBySection = new Map<string, BuilderSectionItem[]>();
+  const submissionItemsBySection = new Map<string, BuilderSectionItem[]>();
   if (newsletter) {
     const submissionItems: BuilderSectionItem[] = newsletter.Items.map((item) => ({
       ...item,
@@ -365,8 +559,16 @@ export default function BuilderPage() {
       if (items.length > 0) {
         itemsBySection.set(section.Id, items);
       }
+      submissionItemsBySection.set(
+        section.Id,
+        items.filter((item) => item.Kind === 'submission'),
+      );
     }
   }
+
+  const isDropIndicatorVisible = (sectionId: string, index: number) => (
+    dragState?.overSectionId === sectionId && dragState.overIndex === index
+  );
 
   const STATUS_COLORS: Record<string, string> = {
     draft: 'bg-gray-100 text-gray-800',
@@ -382,6 +584,22 @@ export default function BuilderPage() {
       {toast && (
         <div className="fixed top-4 right-4 z-50 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm">
           {toast}
+        </div>
+      )}
+      {dragState && (
+        <div
+          className="pointer-events-none fixed z-50 rounded-lg border border-ui-gold-300 bg-white/95 px-4 py-3 shadow-2xl ring-2 ring-ui-gold-200"
+          style={{
+            left: dragState.pointerX - dragState.offsetX,
+            top: dragState.pointerY - dragState.offsetY,
+            width: dragState.width,
+            minHeight: dragState.height,
+          }}
+        >
+          <div className="flex items-center gap-2 text-xs text-ui-gold-700 mb-1">
+            <span className="tracking-wide uppercase">Dragging</span>
+          </div>
+          <p className="text-sm font-medium text-gray-900 line-clamp-2">{dragState.title}</p>
         </div>
       )}
 
@@ -660,7 +878,9 @@ export default function BuilderPage() {
               {/* Sections with items */}
               {sections.map((section) => {
                 const items = itemsBySection.get(section.Id) || [];
+                const submissionItems = submissionItemsBySection.get(section.Id) || [];
                 const isOpen = sectionOpen[section.Id] ?? true;
+                const isDropSection = dragState?.overSectionId === section.Id;
                 return (
                   <div key={section.Id} className="bg-white rounded-lg shadow">
                     <button
@@ -680,96 +900,157 @@ export default function BuilderPage() {
                       </span>
                     </button>
                     {isOpen && (
-                      items.length === 0 ? (
-                        <div className="px-4 py-6 text-center text-xs text-gray-400">
-                          No items in this section
-                        </div>
-                      ) : (
-                        <div className="divide-y divide-gray-50">
-                        {items.map((item, idx) => (
-                          <div
-                            key={item.Id}
-                            className="px-4 py-3 hover:bg-gray-50 group"
-                          >
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-medium text-gray-900">
-                                    {item.Final_Headline}
-                                  </p>
-                                  {item.Kind === 'calendar_event' && (
-                                    <span className="inline-flex items-center rounded-full bg-ui-clearwater-100 px-2 py-0.5 text-[11px] font-medium text-ui-clearwater-800">
-                                      Calendar
-                                    </span>
+                      <div
+                        data-builder-section-id={section.Id}
+                        data-submission-count={submissionItems.length}
+                        className={`transition-colors ${
+                          isDropSection ? 'bg-ui-gold-50/70 ring-2 ring-inset ring-ui-gold-300' : ''
+                        }`}
+                      >
+                        {items.length === 0 ? (
+                          <div className="px-4 py-6 text-center text-xs text-gray-400">
+                            {isDropIndicatorVisible(section.Id, 0) && (
+                              <div className="mb-3 rounded-full bg-ui-gold-500 h-1.5 w-full" />
+                            )}
+                            No items in this section
+                          </div>
+                        ) : (
+                          <div className="divide-y divide-gray-50">
+                            {items.map((item) => {
+                              const submissionIndex = item.Kind === 'submission'
+                                ? submissionItems.findIndex((submissionItem) => submissionItem.Id === item.Id)
+                                : -1;
+                              const isDraggedItem = dragState?.itemId === item.Id;
+                              const showIndicatorBefore = item.Kind === 'submission'
+                                && isDropIndicatorVisible(section.Id, submissionIndex);
+                              const isLastSubmission = item.Kind === 'submission'
+                                && submissionIndex === submissionItems.length - 1;
+                              const showIndicatorAfter = isLastSubmission
+                                && isDropIndicatorVisible(section.Id, submissionItems.length);
+                              return (
+                                <div key={item.Id}>
+                                  {showIndicatorBefore && (
+                                    <div className="px-4">
+                                      <div className="h-1.5 rounded-full bg-ui-gold-500" />
+                                    </div>
                                   )}
-                                  {item.Kind === 'job_posting' && (
-                                    <span className="inline-flex items-center rounded-full bg-ui-gold-100 px-2 py-0.5 text-[11px] font-medium text-ui-gold-800">
-                                      Job
-                                    </span>
+                                  <div
+                                    data-draggable-card={item.Kind === 'submission' ? 'true' : 'false'}
+                                    data-item-kind={item.Kind}
+                                    data-item-id={item.Id}
+                                    data-section-id={section.Id}
+                                    data-submission-index={submissionIndex >= 0 ? submissionIndex : undefined}
+                                    className={`px-4 py-3 hover:bg-gray-50 group transition-opacity ${
+                                      isDraggedItem ? 'opacity-25 pointer-events-none' : ''
+                                    }`}
+                                  >
+                                    <div className="flex items-start justify-between">
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                          <p className="text-sm font-medium text-gray-900">
+                                            {item.Final_Headline}
+                                          </p>
+                                          {item.Kind === 'calendar_event' && (
+                                            <span className="inline-flex items-center rounded-full bg-ui-clearwater-100 px-2 py-0.5 text-[11px] font-medium text-ui-clearwater-800">
+                                              Calendar
+                                            </span>
+                                          )}
+                                          {item.Kind === 'job_posting' && (
+                                            <span className="inline-flex items-center rounded-full bg-ui-gold-100 px-2 py-0.5 text-[11px] font-medium text-ui-gold-800">
+                                              Job
+                                            </span>
+                                          )}
+                                        </div>
+                                        <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                                          {item.Final_Body.replace(/<[^>]+>/g, '')}
+                                        </p>
+                                        {item.Kind === 'submission' && item.Run_Number > 1 && (
+                                          <span className="text-xs text-ui-gold-600 mt-1 inline-block">
+                                            Run #{item.Run_Number}
+                                          </span>
+                                        )}
+                                        {item.Kind === 'calendar_event' && item.Event_Start && (
+                                          <p className="text-xs text-gray-400 mt-1">
+                                            {new Date(item.Event_Start).toLocaleString('en-US', {
+                                              weekday: 'short',
+                                              month: 'short',
+                                              day: 'numeric',
+                                              hour: 'numeric',
+                                              minute: '2-digit',
+                                            })}
+                                            {item.Location ? ` • ${item.Location}` : ''}
+                                          </p>
+                                        )}
+                                        {item.Kind === 'job_posting' && item.Location && (
+                                          <p className="text-xs text-gray-400 mt-1">{item.Location}</p>
+                                        )}
+                                      </div>
+                                      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                                        {item.Kind === 'submission' && (
+                                          <>
+                                            <button
+                                              type="button"
+                                              onPointerDown={(event) => startSubmissionDrag(item, event)}
+                                              className="cursor-grab rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 active:cursor-grabbing"
+                                              title="Drag to reorder or move to another section"
+                                            >
+                                              &#8942;
+                                            </button>
+                                            <select
+                                              value={item.Section_Id}
+                                              onChange={(event) => void handleReassignSubmission(item.Id, event.target.value)}
+                                              className="rounded border border-gray-300 bg-white px-2 py-1 text-xs text-gray-600"
+                                              title="Move to section"
+                                            >
+                                              {sections.map((targetSection) => (
+                                                <option key={targetSection.Id} value={targetSection.Id}>
+                                                  {targetSection.Name}
+                                                </option>
+                                              ))}
+                                            </select>
+                                            <button
+                                              onClick={() => handleMoveItem(item.Id, 'up')}
+                                              disabled={submissionIndex === 0}
+                                              className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30"
+                                              title="Move up"
+                                            >
+                                              &#x25B2;
+                                            </button>
+                                            <button
+                                              onClick={() => handleMoveItem(item.Id, 'down')}
+                                              disabled={submissionIndex === submissionItems.length - 1}
+                                              className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30"
+                                              title="Move down"
+                                            >
+                                              &#x25BC;
+                                            </button>
+                                          </>
+                                        )}
+                                        <button
+                                          onClick={() => (
+                                            item.Kind === 'submission'
+                                              ? handleRemoveItem(item.Id)
+                                              : handleRemoveExternalItem(item.Id)
+                                          )}
+                                          className="p-1 text-red-400 hover:text-red-600"
+                                          title="Remove"
+                                        >
+                                          &times;
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  {showIndicatorAfter && (
+                                    <div className="px-4 pb-1">
+                                      <div className="h-1.5 rounded-full bg-ui-gold-500" />
+                                    </div>
                                   )}
                                 </div>
-                                <p className="text-xs text-gray-600 mt-1 line-clamp-2">
-                                  {item.Final_Body.replace(/<[^>]+>/g, '')}
-                                </p>
-                                {item.Kind === 'submission' && item.Run_Number > 1 && (
-                                  <span className="text-xs text-ui-gold-600 mt-1 inline-block">
-                                    Run #{item.Run_Number}
-                                  </span>
-                                )}
-                                {item.Kind === 'calendar_event' && item.Event_Start && (
-                                  <p className="text-xs text-gray-400 mt-1">
-                                    {new Date(item.Event_Start).toLocaleString('en-US', {
-                                      weekday: 'short',
-                                      month: 'short',
-                                      day: 'numeric',
-                                      hour: 'numeric',
-                                      minute: '2-digit',
-                                    })}
-                                    {item.Location ? ` • ${item.Location}` : ''}
-                                  </p>
-                                )}
-                                {item.Kind === 'job_posting' && item.Location && (
-                                  <p className="text-xs text-gray-400 mt-1">{item.Location}</p>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-                                {item.Kind === 'submission' && (
-                                  <>
-                                    <button
-                                      onClick={() => handleMoveItem(item.Id, 'up')}
-                                      disabled={idx === 0}
-                                      className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30"
-                                      title="Move up"
-                                    >
-                                      &#x25B2;
-                                    </button>
-                                    <button
-                                      onClick={() => handleMoveItem(item.Id, 'down')}
-                                      disabled={idx === items.length - 1}
-                                      className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30"
-                                      title="Move down"
-                                    >
-                                      &#x25BC;
-                                    </button>
-                                  </>
-                                )}
-                                <button
-                                  onClick={() => (
-                                    item.Kind === 'submission'
-                                      ? handleRemoveItem(item.Id)
-                                      : handleRemoveExternalItem(item.Id)
-                                  )}
-                                  className="p-1 text-red-400 hover:text-red-600"
-                                  title="Remove"
-                                >
-                                  &times;
-                                </button>
-                              </div>
-                            </div>
+                              );
+                            })}
                           </div>
-                        ))}
-                        </div>
-                      )
+                        )}
+                      </div>
                     )}
                   </div>
                 );
