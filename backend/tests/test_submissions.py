@@ -38,6 +38,54 @@ class TestSubmissionCRUD:
         assert len(body["Schedule_Requests"]) == 1
         assert body["Schedule_Requests"][0]["Repeat_Count"] == 2
 
+    async def test_create_submission_with_recurring_schedule(self, client: AsyncClient):
+        data = make_submission_data(
+            Schedule_Requests=[
+                {
+                    "Requested_Date": "2026-03-02",
+                    "Recurrence_Type": "monthly_nth_weekday",
+                    "Recurrence_Interval": 1,
+                    "Recurrence_End_Date": "2026-06-01",
+                }
+            ]
+        )
+        resp = await client.post(
+            "/api/v1/submissions/",
+            json=data,
+            headers={"X-User-Role": "staff"},
+        )
+        assert resp.status_code == 201
+        schedule = resp.json()["Schedule_Requests"][0]
+        assert schedule["Recurrence_Type"] == "monthly_nth_weekday"
+        assert schedule["Recurrence_End_Date"] == "2026-06-01"
+        assert schedule["Occurrence_Dates"] == [
+            "2026-04-06",
+            "2026-05-04",
+            "2026-06-01",
+        ]
+        assert resp.json()["Occurrence_Dates"] == [
+            "2026-04-06",
+            "2026-05-04",
+            "2026-06-01",
+        ]
+
+    async def test_public_submitter_cannot_create_recurring_schedule(
+        self, client: AsyncClient
+    ):
+        data = make_submission_data(
+            Schedule_Requests=[
+                {
+                    "Requested_Date": "2026-03-02",
+                    "Recurrence_Type": "monthly_nth_weekday",
+                    "Recurrence_Interval": 1,
+                    "Recurrence_End_Date": "2026-06-01",
+                }
+            ]
+        )
+        resp = await client.post("/api/v1/submissions/", json=data)
+        assert resp.status_code == 403
+        assert "staff editors only" in resp.json()["detail"]
+
     async def test_public_submitter_cannot_use_staff_only_category(self, client: AsyncClient):
         data = make_submission_data(Category="news_release")
         resp = await client.post("/api/v1/submissions/", json=data)
@@ -75,6 +123,41 @@ class TestSubmissionCRUD:
 
         resp = await client.get("/api/v1/submissions/?status=approved")
         assert resp.json()["Total"] == 0
+
+    async def test_list_submissions_includes_recurring_occurrences_in_range(
+        self, client: AsyncClient
+    ):
+        recurring = make_submission_data(
+            Original_Headline="Recurring feature",
+            Schedule_Requests=[
+                {
+                    "Requested_Date": "2026-03-02",
+                    "Recurrence_Type": "monthly_nth_weekday",
+                    "Recurrence_Interval": 1,
+                    "Recurrence_End_Date": "2026-06-01",
+                }
+            ],
+        )
+        one_off = make_submission_data(
+            Original_Headline="One off",
+            Schedule_Requests=[{"Requested_Date": "2026-03-15"}],
+        )
+
+        await client.post(
+            "/api/v1/submissions/",
+            json=recurring,
+            headers={"X-User-Role": "staff"},
+        )
+        await client.post("/api/v1/submissions/", json=one_off)
+
+        resp = await client.get(
+            "/api/v1/submissions/?date_from=2026-04-01&date_to=2026-04-30"
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["Total"] == 1
+        assert body["Items"][0]["Original_Headline"] == "Recurring feature"
+        assert body["Items"][0]["Occurrence_Dates"] == ["2026-04-06"]
 
     async def test_get_submission(self, client: AsyncClient):
         create_resp = await client.post("/api/v1/submissions/", json=make_submission_data())
@@ -148,6 +231,23 @@ class TestSubmissionSchedule:
         assert resp.status_code == 201
         assert resp.json()["Repeat_Count"] == 2
 
+    async def test_public_submitter_cannot_add_recurring_schedule_request(
+        self, client: AsyncClient
+    ):
+        create_resp = await client.post("/api/v1/submissions/", json=make_submission_data())
+        sub_id = create_resp.json()["Id"]
+
+        resp = await client.post(
+            f"/api/v1/submissions/{sub_id}/schedule",
+            json={
+                "Requested_Date": "2026-04-06",
+                "Recurrence_Type": "weekly",
+                "Recurrence_Interval": 1,
+            },
+        )
+        assert resp.status_code == 403
+        assert "staff editors only" in resp.json()["detail"]
+
     async def test_delete_schedule_request(self, client: AsyncClient):
         data = make_submission_data(
             Schedule_Requests=[{"Requested_Date": "2026-05-01", "Repeat_Count": 1}]
@@ -158,3 +258,102 @@ class TestSubmissionSchedule:
 
         resp = await client.delete(f"/api/v1/submissions/{sub_id}/schedule/{sched_id}")
         assert resp.status_code == 204
+
+    async def test_skip_schedule_occurrence(self, client: AsyncClient):
+        data = make_submission_data(
+            Schedule_Requests=[
+                {
+                    "Requested_Date": "2026-03-02",
+                    "Recurrence_Type": "monthly_nth_weekday",
+                    "Recurrence_Interval": 1,
+                    "Recurrence_End_Date": "2026-06-01",
+                }
+            ]
+        )
+        create_resp = await client.post(
+            "/api/v1/submissions/",
+            json=data,
+            headers={"X-User-Role": "staff"},
+        )
+        sched_id = create_resp.json()["Schedule_Requests"][0]["Id"]
+        sub_id = create_resp.json()["Id"]
+
+        resp = await client.post(
+            f"/api/v1/submissions/{sub_id}/schedule/{sched_id}/skip",
+            json={"Occurrence_Date": "2026-04-06"},
+            headers={"X-User-Role": "staff"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["Excluded_Dates"] == ["2026-04-06"]
+        assert resp.json()["Occurrence_Dates"] == ["2026-05-04", "2026-06-01"]
+
+        list_resp = await client.get(
+            "/api/v1/submissions/?date_from=2026-04-01&date_to=2026-04-30"
+        )
+        assert list_resp.status_code == 200
+        assert list_resp.json()["Total"] == 0
+
+    async def test_reschedule_schedule_occurrence(self, client: AsyncClient):
+        data = make_submission_data(
+            Schedule_Requests=[
+                {
+                    "Requested_Date": "2026-03-02",
+                    "Recurrence_Type": "monthly_nth_weekday",
+                    "Recurrence_Interval": 1,
+                    "Recurrence_End_Date": "2026-06-01",
+                }
+            ]
+        )
+        create_resp = await client.post(
+            "/api/v1/submissions/",
+            json=data,
+            headers={"X-User-Role": "staff"},
+        )
+        sched_id = create_resp.json()["Schedule_Requests"][0]["Id"]
+        sub_id = create_resp.json()["Id"]
+
+        resp = await client.post(
+            f"/api/v1/submissions/{sub_id}/schedule/{sched_id}/reschedule",
+            json={
+                "Occurrence_Date": "2026-04-06",
+                "New_Date": "2026-04-08",
+            },
+            headers={"X-User-Role": "staff"},
+        )
+        assert resp.status_code == 201
+        assert resp.json()["Requested_Date"] == "2026-04-08"
+        assert resp.json()["Occurrence_Dates"] == ["2026-04-08"]
+
+        list_resp = await client.get(
+            "/api/v1/submissions/?date_from=2026-04-01&date_to=2026-04-30"
+        )
+        assert list_resp.status_code == 200
+        body = list_resp.json()
+        assert body["Total"] == 1
+        assert body["Items"][0]["Occurrence_Dates"] == ["2026-04-08"]
+
+    async def test_public_submitter_cannot_skip_occurrence(self, client: AsyncClient):
+        data = make_submission_data(
+            Schedule_Requests=[
+                {
+                    "Requested_Date": "2026-03-02",
+                    "Recurrence_Type": "monthly_nth_weekday",
+                    "Recurrence_Interval": 1,
+                    "Recurrence_End_Date": "2026-06-01",
+                }
+            ]
+        )
+        create_resp = await client.post(
+            "/api/v1/submissions/",
+            json=data,
+            headers={"X-User-Role": "staff"},
+        )
+        sched_id = create_resp.json()["Schedule_Requests"][0]["Id"]
+        sub_id = create_resp.json()["Id"]
+
+        resp = await client.post(
+            f"/api/v1/submissions/{sub_id}/schedule/{sched_id}/skip",
+            json={"Occurrence_Date": "2026-04-06"},
+        )
+        assert resp.status_code == 403
+        assert "staff editors" in resp.json()["detail"]

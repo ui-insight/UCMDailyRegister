@@ -1,5 +1,5 @@
 import { apiFetch } from './client';
-import type { Submission, SubmissionCreate } from '../types/submission';
+import type { Submission, SubmissionCreate, SubmissionScheduleRequest } from '../types/submission';
 import { getSubmitterRoleHeaders } from '../utils/submitterRole';
 
 interface SubmissionListResponse {
@@ -52,6 +52,38 @@ export async function updateSubmission(
 
 export async function deleteSubmission(id: string): Promise<void> {
   await apiFetch(`/submissions/${id}`, { method: 'DELETE' });
+}
+
+export async function skipScheduleOccurrence(
+  submissionId: string,
+  scheduleId: string,
+  occurrenceDate: string,
+): Promise<SubmissionScheduleRequest> {
+  return apiFetch<SubmissionScheduleRequest>(
+    `/submissions/${submissionId}/schedule/${scheduleId}/skip`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ Occurrence_Date: occurrenceDate }),
+    },
+  );
+}
+
+export async function rescheduleScheduleOccurrence(
+  submissionId: string,
+  scheduleId: string,
+  occurrenceDate: string,
+  newDate: string,
+): Promise<SubmissionScheduleRequest> {
+  return apiFetch<SubmissionScheduleRequest>(
+    `/submissions/${submissionId}/schedule/${scheduleId}/reschedule`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        Occurrence_Date: occurrenceDate,
+        New_Date: newDate,
+      }),
+    },
+  );
 }
 
 export async function uploadImage(submissionId: string, file: File): Promise<Submission> {

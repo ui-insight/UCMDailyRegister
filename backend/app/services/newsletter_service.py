@@ -9,6 +9,7 @@ from sqlalchemy.orm import selectinload
 from app.models.newsletter import Newsletter, NewsletterExternalItem, NewsletterItem
 from app.models.section import NewsletterSection
 from app.models.submission import Submission
+from app.services import submission_service
 
 
 async def create_newsletter(
@@ -285,6 +286,15 @@ async def assemble_newsletter(
 
     for sub in submissions:
         if sub.Id in existing_sub_ids:
+            continue
+        occurrence_dates = await submission_service.get_submission_occurrence_dates(
+            db,
+            sub,
+            publish_date,
+            publish_date,
+            newsletter_type=newsletter_type,
+        )
+        if publish_date not in occurrence_dates:
             continue
 
         headline, body = _get_best_text(sub)

@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getSubmission, updateSubmission } from '../api/submissions';
+import {
+  getSubmission,
+  rescheduleScheduleOccurrence,
+  skipScheduleOccurrence,
+  updateSubmission,
+} from '../api/submissions';
 import { triggerAIEdit, listEditVersions, saveEditorFinal } from '../api/aiEdits';
 import type { Submission, TargetNewsletter } from '../types/submission';
 import type { AIEditResponse, EditVersion, AIFlag, TextDiff } from '../types/aiEdit';
@@ -13,6 +18,7 @@ import ChangesList from '../components/editor/ChangesList';
 import SideBySideView from '../components/editor/SideBySideView';
 import SubmissionMeta from '../components/editor/SubmissionMeta';
 import RichBody from '../components/editor/RichBody';
+import { getSubmitterRole } from '../utils/submitterRole';
 
 type Tab = 'original' | 'ai_edit' | 'editor';
 type ViewMode = 'diff' | 'side_by_side';
@@ -41,12 +47,14 @@ export default function EditPage() {
   const [saveLoading, setSaveLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [occurrenceActionLoading, setOccurrenceActionLoading] = useState(false);
 
   const [viewMode, setViewMode] = useState<ViewMode>('diff');
 
   // Editor state
   const [editHeadline, setEditHeadline] = useState('');
   const [editBody, setEditBody] = useState('');
+  const isStaff = getSubmitterRole() === 'staff';
 
   useEffect(() => {
     if (id) loadData();
@@ -229,6 +237,40 @@ export default function EditPage() {
       await loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to change newsletter');
+    }
+  };
+
+  const handleSkipOccurrence = async (scheduleId: string, occurrenceDate: string) => {
+    if (!id) return;
+    setOccurrenceActionLoading(true);
+    try {
+      await skipScheduleOccurrence(id, scheduleId, occurrenceDate);
+      showToast(`Skipped occurrence on ${new Date(`${occurrenceDate}T12:00:00`).toLocaleDateString()}`);
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to skip occurrence');
+    } finally {
+      setOccurrenceActionLoading(false);
+    }
+  };
+
+  const handleRescheduleOccurrence = async (
+    scheduleId: string,
+    occurrenceDate: string,
+    newDate: string,
+  ) => {
+    if (!id) return;
+    setOccurrenceActionLoading(true);
+    try {
+      await rescheduleScheduleOccurrence(id, scheduleId, occurrenceDate, newDate);
+      showToast(
+        `Moved ${new Date(`${occurrenceDate}T12:00:00`).toLocaleDateString()} to ${new Date(`${newDate}T12:00:00`).toLocaleDateString()}`,
+      );
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to move occurrence');
+    } finally {
+      setOccurrenceActionLoading(false);
     }
   };
 
@@ -493,7 +535,13 @@ export default function EditPage() {
             targetNewsletter={submission.Target_Newsletter}
             confidence={confidence}
           />
-          <SubmissionMeta submission={submission} onChangeNewsletter={handleChangeNewsletter} />
+          <SubmissionMeta
+            submission={submission}
+            onChangeNewsletter={handleChangeNewsletter}
+            onSkipOccurrence={isStaff ? handleSkipOccurrence : undefined}
+            onRescheduleOccurrence={isStaff ? handleRescheduleOccurrence : undefined}
+            occurrenceActionLoading={isStaff ? occurrenceActionLoading : false}
+          />
 
           {/* Request More Info / Pending Info controls */}
           {submission.Status === 'pending_info' ? (

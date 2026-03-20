@@ -6,6 +6,9 @@ interface ScheduleEntry {
   Repeat_Note: string;
   Is_Flexible: boolean;
   Flexible_Deadline: string;
+  Recurrence_Type: 'once' | 'weekly' | 'monthly_date' | 'monthly_nth_weekday';
+  Recurrence_Interval: number;
+  Recurrence_End_Date: string;
 }
 
 interface Props {
@@ -13,6 +16,7 @@ interface Props {
   onChange: (schedule: ScheduleEntry) => void;
   targetNewsletter: TargetNewsletter;
   validDates?: Set<string>;
+  showRecurrenceControls?: boolean;
 }
 
 function validateDate(
@@ -48,12 +52,23 @@ function getMinDate(): string {
   return tomorrow.toISOString().split('T')[0];
 }
 
-export default function SchedulePrefs({ schedule, onChange, targetNewsletter, validDates }: Props) {
+export default function SchedulePrefs({
+  schedule,
+  onChange,
+  targetNewsletter,
+  validDates,
+  showRecurrenceControls = false,
+}: Props) {
   const update = (field: keyof ScheduleEntry, value: string | number | boolean) => {
     onChange({ ...schedule, [field]: value });
   };
 
   const dateError = validateDate(schedule.Requested_Date, targetNewsletter, validDates);
+  const recurrenceEndError = schedule.Recurrence_Type !== 'once'
+    && schedule.Recurrence_End_Date
+    && schedule.Recurrence_End_Date < schedule.Requested_Date
+      ? 'End date cannot be before the first run date.'
+      : null;
 
   return (
     <div>
@@ -102,6 +117,88 @@ export default function SchedulePrefs({ schedule, onChange, targetNewsletter, va
           </select>
         </div>
       </div>
+      {showRecurrenceControls ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">
+              Repeat on a cadence
+            </label>
+            <select
+              value={schedule.Recurrence_Type}
+              onChange={(e) => {
+                const recurrenceType = e.target.value as ScheduleEntry['Recurrence_Type'];
+                onChange({
+                  ...schedule,
+                  Recurrence_Type: recurrenceType,
+                  Recurrence_Interval: 1,
+                  ...(recurrenceType === 'once' ? { Recurrence_End_Date: '' } : {}),
+                });
+              }}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
+            >
+              <option value="once">One time</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly_date">Monthly on this date</option>
+              <option value="monthly_nth_weekday">Monthly on this weekday pattern</option>
+            </select>
+            <p className="text-xs text-gray-400 mt-1">
+              Use this for recurring items like every Friday or first Monday.
+            </p>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">
+              Interval
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={12}
+              value={schedule.Recurrence_Interval}
+              onChange={(e) => update('Recurrence_Interval', parseInt(e.target.value, 10) || 1)}
+              disabled={schedule.Recurrence_Type === 'once'}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500 disabled:bg-gray-50 disabled:text-gray-400"
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              {schedule.Recurrence_Type === 'weekly'
+                ? 'Every N weeks'
+                : schedule.Recurrence_Type === 'once'
+                  ? 'Not used for one-time requests'
+                  : 'Every N months'}
+            </p>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1">
+              Stop after
+            </label>
+            <input
+              type="date"
+              value={schedule.Recurrence_End_Date}
+              onChange={(e) => update('Recurrence_End_Date', e.target.value)}
+              disabled={schedule.Recurrence_Type === 'once'}
+              min={schedule.Requested_Date || getMinDate()}
+              className={`w-full rounded-md border px-3 py-2 text-sm focus:ring-1 disabled:bg-gray-50 disabled:text-gray-400 ${
+                recurrenceEndError
+                  ? 'border-red-400 focus:border-red-500 focus:ring-red-500'
+                  : 'border-gray-300 focus:border-ui-gold-500 focus:ring-ui-gold-500'
+              }`}
+            />
+            {recurrenceEndError && (
+              <p className="text-xs text-red-600 mt-1">{recurrenceEndError}</p>
+            )}
+            {!recurrenceEndError && (
+              <p className="text-xs text-gray-400 mt-1">
+                Optional. Leave blank to keep running.
+              </p>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="mt-3 rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
+          <p className="text-xs text-gray-600">
+            Recurring scheduling is managed by UCM staff after submission when needed.
+          </p>
+        </div>
+      )}
       <div className="mt-3">
         <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
           <input
@@ -135,7 +232,7 @@ export default function SchedulePrefs({ schedule, onChange, targetNewsletter, va
         </label>
         <input
           type="text"
-          placeholder="e.g., 'Please run on April 3 and again on April 10'"
+          placeholder="e.g., 'Please skip finals week if needed'"
           value={schedule.Repeat_Note}
           onChange={(e) => update('Repeat_Note', e.target.value)}
           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"

@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import type { Submission, SubmissionStatus } from '../../types/submission';
+import { getOccurrenceDates } from '../../utils/submissionOccurrences';
 
 const STATUS_COLORS: Record<string, string> = {
   new: 'bg-blue-100 text-blue-800',
@@ -71,7 +72,7 @@ export default function DayDetail({ date, submissions }: DayDetailProps) {
 
   // Filter to submissions that have this date in their schedule
   const daySubs = submissions.filter((sub) =>
-    sub.Schedule_Requests.some((sr) => sr.Requested_Date === date),
+    getOccurrenceDates(sub).includes(date),
   );
 
   return (

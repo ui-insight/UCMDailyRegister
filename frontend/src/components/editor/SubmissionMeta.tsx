@@ -1,8 +1,16 @@
+import { useState } from 'react';
 import type { Submission, TargetNewsletter } from '../../types/submission';
 
 interface SubmissionMetaProps {
   submission: Submission;
   onChangeNewsletter?: (target: TargetNewsletter) => void;
+  onSkipOccurrence?: (scheduleId: string, occurrenceDate: string) => Promise<void>;
+  onRescheduleOccurrence?: (
+    scheduleId: string,
+    occurrenceDate: string,
+    newDate: string,
+  ) => Promise<void>;
+  occurrenceActionLoading?: boolean;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -23,7 +31,42 @@ const TARGET_LABELS: Record<string, string> = {
   both: 'Both Newsletters',
 };
 
-export default function SubmissionMeta({ submission, onChangeNewsletter }: SubmissionMetaProps) {
+const RECURRENCE_LABELS: Record<string, string> = {
+  once: 'One time',
+  weekly: 'Weekly',
+  monthly_date: 'Monthly',
+  monthly_nth_weekday: 'Monthly (nth weekday)',
+};
+
+export default function SubmissionMeta({
+  submission,
+  onChangeNewsletter,
+  onSkipOccurrence,
+  onRescheduleOccurrence,
+  occurrenceActionLoading = false,
+}: SubmissionMetaProps) {
+  const [rescheduleTarget, setRescheduleTarget] = useState<{
+    scheduleId: string;
+    occurrenceDate: string;
+  } | null>(null);
+  const [replacementDate, setReplacementDate] = useState('');
+
+  const getMinDate = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().split('T')[0];
+  };
+
+  const handleStartReschedule = (scheduleId: string, occurrenceDate: string) => {
+    setRescheduleTarget({ scheduleId, occurrenceDate });
+    setReplacementDate(occurrenceDate);
+  };
+
+  const handleCancelReschedule = () => {
+    setRescheduleTarget(null);
+    setReplacementDate('');
+  };
+
   return (
     <div className="bg-white rounded-lg border p-4">
       <h3 className="text-sm font-semibold text-gray-900 mb-3">Submission Info</h3>
@@ -83,26 +126,125 @@ export default function SubmissionMeta({ submission, onChangeNewsletter }: Submi
           <div>
             <dt className="text-xs text-gray-500">Requested Run Date</dt>
             {submission.Schedule_Requests.map((req) => (
-              <dd key={req.Id} className="text-gray-900 font-medium">
-                {req.Requested_Date
-                  ? new Date(req.Requested_Date).toLocaleDateString(undefined, {
-                      weekday: 'short',
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                    })
-                  : 'No specific date'}
-                {req.Repeat_Count > 1 && (
-                  <span className="font-normal text-gray-500"> &middot; Run {req.Repeat_Count}x</span>
+              <dd key={req.Id} className="mt-1 text-gray-900 font-medium">
+                <div>
+                  {req.Requested_Date
+                    ? new Date(req.Requested_Date).toLocaleDateString(undefined, {
+                        weekday: 'short',
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                      })
+                    : 'No specific date'}
+                  {req.Repeat_Count > 1 && (
+                    <span className="font-normal text-gray-500"> &middot; Run {req.Repeat_Count}x</span>
+                  )}
+                  {req.Recurrence_Type !== 'once' && (
+                    <span className="font-normal text-gray-500">
+                      {' '}
+                      &middot; {RECURRENCE_LABELS[req.Recurrence_Type] || req.Recurrence_Type}
+                      {req.Recurrence_Interval > 1 ? ` every ${req.Recurrence_Interval}` : ''}
+                    </span>
+                  )}
+                  {req.Is_Flexible && (
+                    <span className="ml-1 inline-block px-1.5 py-0.5 text-xs font-normal bg-amber-100 text-amber-700 rounded">Flexible</span>
+                  )}
+                  {req.Repeat_Note && (
+                    <span className="font-normal text-gray-500"> ({req.Repeat_Note})</span>
+                  )}
+                </div>
+                {req.Recurrence_End_Date && (
+                  <div className="text-xs text-gray-500 font-normal mt-0.5">
+                    Ends: {new Date(req.Recurrence_End_Date).toLocaleDateString()}
+                  </div>
                 )}
-                {req.Is_Flexible && (
-                  <span className="ml-1 inline-block px-1.5 py-0.5 text-xs font-normal bg-amber-100 text-amber-700 rounded">Flexible</span>
-                )}
-                {req.Repeat_Note && (
-                  <span className="font-normal text-gray-500"> ({req.Repeat_Note})</span>
+                {req.Excluded_Dates.length > 0 && (
+                  <div className="text-xs text-gray-500 font-normal mt-0.5">
+                    Skips: {req.Excluded_Dates.join(', ')}
+                  </div>
                 )}
                 {req.Is_Flexible && req.Flexible_Deadline && (
-                  <dd className="text-xs text-gray-500 font-normal mt-0.5">Deadline: {req.Flexible_Deadline}</dd>
+                  <div className="text-xs text-gray-500 font-normal mt-0.5">Deadline: {req.Flexible_Deadline}</div>
+                )}
+                {req.Occurrence_Dates.length > 0 && (
+                  <div className="mt-2 rounded-md bg-gray-50 p-2">
+                    <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                      Upcoming occurrences
+                    </div>
+                    <div className="space-y-2">
+                      {req.Occurrence_Dates.map((occurrenceDate) => (
+                        <div key={`${req.Id}-${occurrenceDate}`} className="flex flex-col gap-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-normal text-gray-700">
+                              {new Date(`${occurrenceDate}T12:00:00`).toLocaleDateString(undefined, {
+                                weekday: 'short',
+                                year: 'numeric',
+                                month: 'short',
+                                day: 'numeric',
+                              })}
+                            </span>
+                            {(onSkipOccurrence || onRescheduleOccurrence) && (
+                              <div className="flex items-center gap-2">
+                                {onSkipOccurrence && (
+                                  <button
+                                    type="button"
+                                    onClick={() => onSkipOccurrence(req.Id, occurrenceDate)}
+                                    disabled={occurrenceActionLoading}
+                                    className="text-xs rounded border border-gray-300 px-2 py-1 text-gray-700 hover:bg-white disabled:opacity-50"
+                                  >
+                                    Skip
+                                  </button>
+                                )}
+                                {onRescheduleOccurrence && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleStartReschedule(req.Id, occurrenceDate)}
+                                    disabled={occurrenceActionLoading}
+                                    className="text-xs rounded border border-ui-gold-200 bg-ui-gold-50 px-2 py-1 text-ui-gold-700 hover:bg-ui-gold-100 disabled:opacity-50"
+                                  >
+                                    Move
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          {rescheduleTarget?.scheduleId === req.Id
+                            && rescheduleTarget.occurrenceDate === occurrenceDate
+                            && onRescheduleOccurrence && (
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="date"
+                                  value={replacementDate}
+                                  min={getMinDate()}
+                                  onChange={(e) => setReplacementDate(e.target.value)}
+                                  className="flex-1 rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    if (!replacementDate) return;
+                                    await onRescheduleOccurrence(req.Id, occurrenceDate, replacementDate);
+                                    handleCancelReschedule();
+                                  }}
+                                  disabled={occurrenceActionLoading || !replacementDate}
+                                  className="text-xs rounded bg-ui-gold-600 px-2 py-1 text-white hover:bg-ui-gold-700 disabled:opacity-50"
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={handleCancelReschedule}
+                                  disabled={occurrenceActionLoading}
+                                  className="text-xs rounded border border-gray-300 px-2 py-1 text-gray-600 hover:bg-white disabled:opacity-50"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </dd>
             ))}
