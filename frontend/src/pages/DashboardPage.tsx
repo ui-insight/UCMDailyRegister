@@ -96,27 +96,64 @@ export default function DashboardPage() {
     }
   };
 
-  const fetchValidDates = async () => {
-    try {
-      const year = currentMonth.getFullYear();
-      const month = currentMonth.getMonth();
-      const from = toISODate(new Date(year, month, 1));
-      const to = toISODate(new Date(year, month + 1, 0));
-      const data = await getValidDates(from, to);
-      const map = new Map<string, string[]>();
-      for (const d of data.dates) {
-        map.set(d.date, d.newsletters);
-      }
-      setValidDates(map);
-    } catch {
-      // Non-critical — calendar still works without valid dates
-    }
-  };
-
   useEffect(() => {
-    fetchSubmissions();
-    if (viewMode === 'calendar') fetchValidDates();
-  }, [statusFilter, categoryFilter, newsletterFilter, viewMode, currentMonth]);
+    void (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const params: Parameters<typeof listSubmissions>[0] = {
+          status: statusFilter || undefined,
+          category: categoryFilter || undefined,
+          target_newsletter: newsletterFilter || undefined,
+          search: searchQuery || undefined,
+          limit: 200,
+        };
+
+        if (viewMode === 'calendar') {
+          const year = currentMonth.getFullYear();
+          const month = currentMonth.getMonth();
+          params.date_from = toISODate(new Date(year, month, 1));
+          params.date_to = toISODate(new Date(year, month + 1, 0));
+        }
+
+        const data = await listSubmissions(params);
+        setSubmissions(data.Items);
+        setTotal(data.Total);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load submissions');
+      } finally {
+        setLoading(false);
+      }
+    })();
+
+    if (viewMode !== 'calendar') {
+      return;
+    }
+
+    void (async () => {
+      try {
+        const year = currentMonth.getFullYear();
+        const month = currentMonth.getMonth();
+        const from = toISODate(new Date(year, month, 1));
+        const to = toISODate(new Date(year, month + 1, 0));
+        const data = await getValidDates(from, to);
+        const map = new Map<string, string[]>();
+        for (const d of data.dates) {
+          map.set(d.date, d.newsletters);
+        }
+        setValidDates(map);
+      } catch {
+        // Non-critical — calendar still works without valid dates
+      }
+    })();
+  }, [
+    statusFilter,
+    categoryFilter,
+    newsletterFilter,
+    searchQuery,
+    viewMode,
+    currentMonth,
+  ]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

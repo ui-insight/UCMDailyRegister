@@ -57,7 +57,42 @@ export default function EditPage() {
   const isStaff = getSubmitterRole() === 'staff';
 
   useEffect(() => {
-    if (id) loadData();
+    if (!id) return;
+
+    void (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const sub = await getSubmission(id);
+        setSubmission(sub);
+
+        try {
+          const vers = await listEditVersions(id);
+          setVersions(vers);
+          const aiVersion = [...vers].reverse().find((v) => v.Version_Type === 'ai_suggested');
+          const editorVersion = [...vers].reverse().find((v) => v.Version_Type === 'editor_final');
+          if (editorVersion) {
+            setEditHeadline(editorVersion.Headline);
+            setEditBody(editorVersion.Body);
+            setActiveTab('editor');
+          } else if (aiVersion) {
+            setEditHeadline(aiVersion.Headline);
+            setEditBody(aiVersion.Body);
+            setActiveTab('ai_edit');
+          } else {
+            setEditHeadline(sub.Original_Headline);
+            setEditBody(sub.Original_Body);
+          }
+        } catch {
+          setEditHeadline(sub.Original_Headline);
+          setEditBody(sub.Original_Body);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to load submission');
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [id]);
 
   const loadData = async () => {

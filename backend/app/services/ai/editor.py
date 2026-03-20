@@ -7,7 +7,7 @@ import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.style_rule import StyleRule
-from app.models.submission import Submission, SubmissionLink
+from app.models.submission import Submission
 from app.models.edit_history import EditVersion
 from app.services.ai.provider import LLMProvider
 from app.services.ai.prompts import build_system_prompt, build_edit_user_prompt

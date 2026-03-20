@@ -1,9 +1,6 @@
 """Tests for hyperlink parsing and URL unwrapping utilities."""
 
-import pytest
-
 from app.utils.hyperlinks import (
-    ParsedLink,
     _clean_url,
     extract_urls_from_body,
     parse_submitter_notes,

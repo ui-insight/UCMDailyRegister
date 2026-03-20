@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   addJobPosting,
   addCalendarEvent,
@@ -133,8 +133,18 @@ export default function BuilderPage() {
   const newsletterId = newsletter?.Id;
 
   useEffect(() => {
-    loadSections();
-    loadNewsletters();
+    void (async () => {
+      try {
+        const [secs, list] = await Promise.all([
+          listSections(newsletterType),
+          listNewsletters({ newsletter_type: newsletterType }),
+        ]);
+        setSections(secs);
+        setNewsletters(list as NewsletterDetailResponse[]);
+      } catch (err) {
+        console.error('Failed to load builder metadata:', err);
+      }
+    })();
   }, [newsletterType]);
 
   useEffect(() => {
@@ -152,15 +162,6 @@ export default function BuilderPage() {
   useEffect(() => {
     dragStateRef.current = dragState;
   }, [dragState]);
-
-  const loadSections = async () => {
-    try {
-      const secs = await listSections(newsletterType);
-      setSections(secs);
-    } catch (err) {
-      console.error('Failed to load sections:', err);
-    }
-  };
 
   const loadNewsletters = async () => {
     try {
@@ -327,7 +328,7 @@ export default function BuilderPage() {
     }
   };
 
-  const buildSubmissionReorderPositions = (
+  const buildSubmissionReorderPositions = useCallback((
     itemId: string,
     targetSectionId: string,
     targetIndex: number,
@@ -372,9 +373,9 @@ export default function BuilderPage() {
         Section_Id: targetSectionId,
       })),
     ];
-  };
+  }, [newsletter]);
 
-  const handleReassignSubmission = async (
+  const handleReassignSubmission = useCallback(async (
     itemId: string,
     targetSectionId: string,
     targetIndex?: number,
@@ -401,7 +402,7 @@ export default function BuilderPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to reorder');
     }
-  };
+  }, [buildSubmissionReorderPositions, newsletter]);
 
   const handleStatusChange = async (status: string) => {
     if (!newsletter) return;
@@ -529,7 +530,7 @@ export default function BuilderPage() {
       window.removeEventListener('pointermove', handlePointerMove);
       window.removeEventListener('pointerup', handlePointerUp);
     };
-  }, [dragState, newsletter]);
+  }, [dragState, handleReassignSubmission, newsletter]);
 
   // Group items by section
   const itemsBySection = new Map<string, BuilderSectionItem[]>();

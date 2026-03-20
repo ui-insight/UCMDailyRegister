@@ -5,7 +5,7 @@ import re
 from datetime import date
 
 from docx import Document
-from docx.shared import Pt, Inches, RGBColor
+from docx.shared import Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 
@@ -113,7 +113,6 @@ def _add_body_with_links(doc: Document, body: str) -> None:
             run.font.size = Pt(11)
 
         # Add link text (blue, underlined)
-        url = match.group(1)
         link_text = match.group(2)
         link_run = para.add_run(link_text)
         link_run.font.size = Pt(11)

@@ -39,7 +39,21 @@ export default function StyleRulesPage() {
   const [newSeverity, setNewSeverity] = useState('warning');
 
   useEffect(() => {
-    loadRules();
+    void (async () => {
+      setLoading(true);
+      try {
+        const data = await listStyleRules({
+          rule_set: ruleSetFilter || undefined,
+          category: categoryFilter || undefined,
+          active_only: !showInactive ? true : undefined,
+        });
+        setRules(data);
+      } catch (err) {
+        console.error('Failed to load rules:', err);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, [ruleSetFilter, categoryFilter, showInactive]);
 
   const loadRules = async () => {
