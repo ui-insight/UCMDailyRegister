@@ -476,6 +476,61 @@ export default function BuilderPage() {
     }
   };
 
+  const moveSubmission = async (
+    itemId: string,
+    targetSectionId: string,
+    targetIndex: number,
+  ) => {
+    if (!newsletter) return;
+
+    const positions = buildSubmissionReorderPayload(
+      newsletter,
+      sections,
+      itemId,
+      targetSectionId,
+      targetIndex,
+    );
+
+    if (!positions) return;
+
+    try {
+      setReordering(true);
+      await reorderNewsletterItems(newsletter.Id, positions);
+      const nl = await getNewsletter(newsletter.Id);
+      setNewsletter(nl);
+      showToast('Submission moved');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reorder');
+    } finally {
+      setReordering(false);
+      resetDragState();
+    }
+  };
+
+  const handleMoveToSection = async (itemId: string, targetSectionId: string) => {
+    const targetSectionItems = newsletter?.Items.filter(
+      (item) => item.Section_Id === targetSectionId,
+    ) ?? [];
+    await moveSubmission(itemId, targetSectionId, targetSectionItems.length);
+  };
+
+  const handleMoveWithinSection = async (
+    itemId: string,
+    sectionId: string,
+    direction: 'up' | 'down',
+  ) => {
+    const sectionItems = (newsletter?.Items ?? [])
+      .filter((item) => item.Section_Id === sectionId)
+      .sort((a, b) => a.Position - b.Position || a.Final_Headline.localeCompare(b.Final_Headline));
+    const currentIndex = sectionItems.findIndex((item) => item.Id === itemId);
+    if (currentIndex === -1) return;
+
+    const targetIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (targetIndex < 0 || targetIndex >= sectionItems.length) return;
+
+    await moveSubmission(itemId, sectionId, targetIndex);
+  };
+
   useEffect(() => () => {
     clearHoverExpandTimeout();
   }, []);
@@ -894,11 +949,11 @@ export default function BuilderPage() {
                               >
                                 <div className="flex items-start justify-between gap-3">
                                   <div className="flex flex-1 items-start gap-3 min-w-0">
-                                    <button
-                                      type="button"
-                                      draggable={!reordering}
-                                      onDragStart={(event) => handleDragStart(event, item.Id)}
-                                      onDragEnd={resetDragState}
+                                  <button
+                                    type="button"
+                                    draggable={!reordering}
+                                    onDragStart={(event) => handleDragStart(event, item.Id)}
+                                    onDragEnd={resetDragState}
                                       className={`mt-0.5 shrink-0 rounded border px-2 py-1 text-[11px] font-medium transition-colors select-none ${
                                         reordering
                                           ? 'cursor-wait border-gray-200 text-gray-300'
@@ -931,6 +986,43 @@ export default function BuilderPage() {
                                     title="Remove"
                                   >
                                     &times;
+                                  </button>
+                                </div>
+
+                                <div className="mt-3 flex flex-wrap items-center gap-2">
+                                  <select
+                                    value={item.Section_Id}
+                                    onChange={(event) => {
+                                      const nextSectionId = event.target.value;
+                                      if (nextSectionId && nextSectionId !== item.Section_Id) {
+                                        void handleMoveToSection(item.Id, nextSectionId);
+                                      }
+                                    }}
+                                    disabled={reordering}
+                                    className="rounded border border-gray-200 bg-white px-2 py-1 text-[11px] text-gray-600"
+                                    aria-label={`Move ${item.Final_Headline} to another section`}
+                                  >
+                                    {sections.map((sectionOption) => (
+                                      <option key={sectionOption.Id} value={sectionOption.Id}>
+                                        Move to {sectionOption.Name}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleMoveWithinSection(item.Id, item.Section_Id, 'up')}
+                                    disabled={reordering || idx === 0}
+                                    className="rounded border border-gray-200 px-2 py-1 text-[11px] text-gray-600 disabled:opacity-40"
+                                  >
+                                    Up
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleMoveWithinSection(item.Id, item.Section_Id, 'down')}
+                                    disabled={reordering || idx === submissionItems.length - 1}
+                                    className="rounded border border-gray-200 px-2 py-1 text-[11px] text-gray-600 disabled:opacity-40"
+                                  >
+                                    Down
                                   </button>
                                 </div>
                               </div>
