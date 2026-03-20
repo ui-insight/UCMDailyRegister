@@ -9,6 +9,17 @@ import NewsletterTargetSelect from './NewsletterTargetSelect';
 import LinkEditor from './LinkEditor';
 import SchedulePrefs from './SchedulePrefs';
 
+/**
+ * Categories visible to public submitters, filtered by target newsletter.
+ * UCM-staff categories (news_release, ucm_feature_story) are handled
+ * separately via Visibility_Role and are not included here.
+ */
+const NEWSLETTER_CATEGORY_CODES: Record<TargetNewsletter, Set<string>> = {
+  myui: new Set(['student', 'job_opportunity', 'survey']),
+  tdr: new Set(['faculty_staff', 'job_opportunity', 'employee_announcement', 'kudos', 'in_memoriam', 'survey']),
+  both: new Set(['faculty_staff', 'survey']),
+};
+
 interface LinkEntry {
   Url: string;
   Anchor_Text: string;
@@ -174,12 +185,23 @@ export default function SubmissionForm() {
     fetchDates();
   }, [targetNewsletter]);
 
-  // Clear date when newsletter target changes (previously valid date may now be invalid)
+  // Filter categories by selected newsletter target
+  const filteredCategories = categories.filter(
+    (cat) => NEWSLETTER_CATEGORY_CODES[targetNewsletter]?.has(cat.Code),
+  );
+
+  // Clear date and reset category when newsletter target changes
   const handleTargetChange = (target: TargetNewsletter) => {
     setTargetNewsletter(target);
     // validDates will be re-fetched via useEffect; clear date to be safe
     if (schedule.Requested_Date) {
       setSchedule({ ...schedule, Requested_Date: '' });
+    }
+    // Reset category if current selection isn't valid for the new newsletter
+    const allowed = NEWSLETTER_CATEGORY_CODES[target];
+    if (!allowed?.has(category)) {
+      const first = categories.find((c) => allowed?.has(c.Code));
+      if (first) setCategory(first.Code as SubmissionCategory);
     }
   };
 
@@ -261,7 +283,7 @@ export default function SubmissionForm() {
         </h3>
         <NewsletterTargetSelect value={targetNewsletter} onChange={handleTargetChange} />
         <CategorySelect
-          categories={categories}
+          categories={filteredCategories}
           isLoading={categoriesLoading}
           value={category}
           onChange={setCategory}

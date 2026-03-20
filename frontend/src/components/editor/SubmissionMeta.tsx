@@ -1,7 +1,8 @@
-import type { Submission } from '../../types/submission';
+import type { Submission, TargetNewsletter } from '../../types/submission';
 
 interface SubmissionMetaProps {
   submission: Submission;
+  onChangeNewsletter?: (target: TargetNewsletter) => void;
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -22,7 +23,7 @@ const TARGET_LABELS: Record<string, string> = {
   both: 'Both Newsletters',
 };
 
-export default function SubmissionMeta({ submission }: SubmissionMetaProps) {
+export default function SubmissionMeta({ submission, onChangeNewsletter }: SubmissionMetaProps) {
   return (
     <div className="bg-white rounded-lg border p-4">
       <h3 className="text-sm font-semibold text-gray-900 mb-3">Submission Info</h3>
@@ -41,9 +42,23 @@ export default function SubmissionMeta({ submission }: SubmissionMetaProps) {
         </div>
         <div>
           <dt className="text-xs text-gray-500">Target Newsletter</dt>
-          <dd className="text-gray-900">
-            {TARGET_LABELS[submission.Target_Newsletter] || submission.Target_Newsletter}
-          </dd>
+          {onChangeNewsletter ? (
+            <dd>
+              <select
+                value={submission.Target_Newsletter}
+                onChange={(e) => onChangeNewsletter(e.target.value as TargetNewsletter)}
+                className="mt-0.5 w-full rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
+              >
+                {Object.entries(TARGET_LABELS).map(([code, label]) => (
+                  <option key={code} value={code}>{label}</option>
+                ))}
+              </select>
+            </dd>
+          ) : (
+            <dd className="text-gray-900">
+              {TARGET_LABELS[submission.Target_Newsletter] || submission.Target_Newsletter}
+            </dd>
+          )}
         </div>
         <div>
           <dt className="text-xs text-gray-500">Category</dt>

@@ -8,17 +8,21 @@ interface Props {
   onChange: (links: LinkEntry[]) => void;
 }
 
-export default function LinkEditor({ links, onChange }: Props) {
-  const addLink = () => {
-    onChange([...links, { Url: '', Anchor_Text: '' }]);
-  };
+const MAX_LINKS = 3;
 
-  const removeLink = (index: number) => {
-    onChange(links.filter((_, i) => i !== index));
-  };
+function ensureSlots(links: LinkEntry[]): LinkEntry[] {
+  const slots = [...links];
+  while (slots.length < MAX_LINKS) {
+    slots.push({ Url: '', Anchor_Text: '' });
+  }
+  return slots.slice(0, MAX_LINKS);
+}
+
+export default function LinkEditor({ links, onChange }: Props) {
+  const slots = ensureSlots(links);
 
   const updateLink = (index: number, field: keyof LinkEntry, value: string) => {
-    const updated = links.map((link, i) =>
+    const updated = slots.map((link, i) =>
       i === index ? { ...link, [field]: value } : link,
     );
     onChange(updated);
@@ -30,40 +34,39 @@ export default function LinkEditor({ links, onChange }: Props) {
         Links to Embed
       </label>
       <p className="text-xs text-gray-500 mb-3">
-        Add URLs you'd like embedded in your announcement with the text they should be linked to.
+        Add up to {MAX_LINKS} URLs you'd like embedded in your announcement.
       </p>
-      {links.map((link, index) => (
-        <div key={index} className="flex gap-2 mb-2">
-          <input
-            type="url"
-            placeholder="https://..."
-            value={link.Url}
-            onChange={(e) => updateLink(index, 'Url', e.target.value)}
-            className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
-          />
-          <input
-            type="text"
-            placeholder="Link text (e.g., 'Learn more')"
-            value={link.Anchor_Text}
-            onChange={(e) => updateLink(index, 'Anchor_Text', e.target.value)}
-            className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
-          />
-          <button
-            type="button"
-            onClick={() => removeLink(index)}
-            className="px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md"
-          >
-            Remove
-          </button>
-        </div>
-      ))}
-      <button
-        type="button"
-        onClick={addLink}
-        className="text-sm text-ui-gold-600 hover:text-ui-gold-700 font-medium"
-      >
-        + Add Link
-      </button>
+      <div className="space-y-3">
+        {slots.map((link, index) => (
+          <div key={index} className="rounded-md border border-gray-200 bg-gray-50 p-3">
+            <p className="text-xs font-medium text-gray-500 mb-2">Link {index + 1}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">URL</label>
+                <input
+                  type="url"
+                  placeholder="https://..."
+                  value={link.Url}
+                  onChange={(e) => updateLink(index, 'Url', e.target.value)}
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">
+                  Words to link the URL to (e.g., Learn more.)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g., Learn more"
+                  value={link.Anchor_Text}
+                  onChange={(e) => updateLink(index, 'Anchor_Text', e.target.value)}
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

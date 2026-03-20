@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getSubmission, updateSubmission } from '../api/submissions';
 import { triggerAIEdit, listEditVersions, saveEditorFinal } from '../api/aiEdits';
-import type { Submission } from '../types/submission';
+import type { Submission, TargetNewsletter } from '../types/submission';
 import type { AIEditResponse, EditVersion, AIFlag, TextDiff } from '../types/aiEdit';
 import DiffViewer from '../components/editor/DiffViewer';
 import FlagList from '../components/editor/FlagList';
@@ -168,7 +168,9 @@ export default function EditPage() {
     }
   };
 
-  const handleRequestInfo = async () => {
+  const [showPendingConfirm, setShowPendingConfirm] = useState(false);
+
+  const handleRequestInfo = () => {
     if (!id || !submission) return;
     const newsletterName =
       submission.Target_Newsletter === 'tdr'
@@ -191,12 +193,41 @@ export default function EditPage() {
 
     window.location.href = `mailto:${submission.Submitter_Email}?subject=${subject}&body=${body}`;
 
+    // Show confirmation prompt instead of auto-setting pending_info
+    setShowPendingConfirm(true);
+  };
+
+  const handleConfirmPendingInfo = async () => {
+    if (!id) return;
+    setShowPendingConfirm(false);
     try {
       await updateSubmission(id, { Status: 'pending_info' } as Partial<Submission>);
       showToast('Status updated to Pending Info');
       await loadData();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update status');
+    }
+  };
+
+  const handleClearPendingInfo = async () => {
+    if (!id) return;
+    try {
+      await updateSubmission(id, { Status: 'in_review' } as Partial<Submission>);
+      showToast('Status changed back to In Review');
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update status');
+    }
+  };
+
+  const handleChangeNewsletter = async (target: TargetNewsletter) => {
+    if (!id) return;
+    try {
+      await updateSubmission(id, { Target_Newsletter: target } as Partial<Submission>);
+      showToast(`Newsletter changed to ${target === 'tdr' ? 'Daily Register' : target === 'myui' ? 'My UI' : 'Both'}`);
+      await loadData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to change newsletter');
     }
   };
 
@@ -463,13 +494,45 @@ export default function EditPage() {
             targetNewsletter={submission.Target_Newsletter}
             confidence={confidence}
           />
-          <SubmissionMeta submission={submission} />
-          <button
-            onClick={handleRequestInfo}
-            className="w-full px-4 py-2 text-sm font-medium rounded-md bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100"
-          >
-            Request More Info
-          </button>
+          <SubmissionMeta submission={submission} onChangeNewsletter={handleChangeNewsletter} />
+
+          {/* Request More Info / Pending Info controls */}
+          {submission.Status === 'pending_info' ? (
+            <button
+              onClick={handleClearPendingInfo}
+              className="w-full px-4 py-2 text-sm font-medium rounded-md bg-green-50 text-green-700 border border-green-200 hover:bg-green-100"
+            >
+              Mark Info Received
+            </button>
+          ) : (
+            <button
+              onClick={handleRequestInfo}
+              className="w-full px-4 py-2 text-sm font-medium rounded-md bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100"
+            >
+              Request More Info
+            </button>
+          )}
+
+          {/* Confirmation prompt after mailto opens */}
+          {showPendingConfirm && (
+            <div className="bg-orange-50 border border-orange-200 rounded-md p-3 text-sm space-y-2">
+              <p className="text-orange-800">Did you send the email?</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleConfirmPendingInfo}
+                  className="flex-1 px-3 py-1.5 text-xs font-medium rounded bg-orange-600 text-white hover:bg-orange-700"
+                >
+                  Yes, mark pending
+                </button>
+                <button
+                  onClick={() => setShowPendingConfirm(false)}
+                  className="flex-1 px-3 py-1.5 text-xs font-medium rounded bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                >
+                  No, cancel
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

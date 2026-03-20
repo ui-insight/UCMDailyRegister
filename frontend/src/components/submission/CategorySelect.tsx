@@ -34,7 +34,7 @@ export default function CategorySelect({
       <p className="mt-1 text-xs text-gray-400">
         {isLoading
           ? 'Loading available announcement types...'
-          : 'Announcement types are filtered by submitter role.'}
+          : 'Options vary by target newsletter.'}
       </p>
     </div>
   );
