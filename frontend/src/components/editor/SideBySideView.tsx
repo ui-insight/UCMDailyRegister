@@ -1,3 +1,5 @@
+import RichBody from './RichBody';
+
 interface SideBySideViewProps {
   originalHeadline: string;
   originalBody: string;
@@ -49,9 +51,7 @@ export default function SideBySideView({
           <label className="block text-xs font-medium text-gray-500 mb-1">
             Body
           </label>
-          <p className="text-sm text-gray-700 bg-green-50 p-3 rounded whitespace-pre-wrap">
-            {aiBody}
-          </p>
+          <RichBody text={aiBody} className="text-sm text-gray-700 bg-green-50 p-3 rounded" />
         </div>
       </div>
     </div>

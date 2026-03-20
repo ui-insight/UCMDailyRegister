@@ -12,6 +12,7 @@ import BodyEditor from '../components/editor/BodyEditor';
 import ChangesList from '../components/editor/ChangesList';
 import SideBySideView from '../components/editor/SideBySideView';
 import SubmissionMeta from '../components/editor/SubmissionMeta';
+import RichBody from '../components/editor/RichBody';
 
 type Tab = 'original' | 'ai_edit' | 'editor';
 type ViewMode = 'diff' | 'side_by_side';
@@ -413,9 +414,7 @@ export default function EditPage() {
                         <label className="block text-xs font-medium text-gray-500 mb-1">
                           AI Body
                         </label>
-                        <p className="text-sm text-gray-700 bg-green-50 p-3 rounded whitespace-pre-wrap">
-                          {aiVersion.Body}
-                        </p>
+                        <RichBody text={aiVersion.Body} className="text-sm text-gray-700 bg-green-50 p-3 rounded" />
                       </div>
                     )}
                   </>
