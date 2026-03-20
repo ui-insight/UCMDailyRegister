@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 # --- Link schemas ---
@@ -30,6 +30,19 @@ class ScheduleRequestCreate(BaseModel):
     Repeat_Note: str | None = None
     Is_Flexible: bool = False
     Flexible_Deadline: str | None = None
+    Recurrence_Type: str = Field(
+        "once",
+        pattern=r"^(once|weekly|monthly_date|monthly_nth_weekday)$",
+    )
+    Recurrence_Interval: int = Field(1, ge=1, le=12)
+    Recurrence_End_Date: date | None = None
+    Excluded_Dates: list[date] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_recurrence_range(self) -> "ScheduleRequestCreate":
+        if self.Recurrence_End_Date and self.Recurrence_End_Date < self.Requested_Date:
+            raise ValueError("Recurrence_End_Date cannot be before Requested_Date")
+        return self
 
 
 class ScheduleRequestResponse(BaseModel):
@@ -39,8 +52,22 @@ class ScheduleRequestResponse(BaseModel):
     Repeat_Note: str | None
     Is_Flexible: bool
     Flexible_Deadline: str | None
+    Recurrence_Type: str
+    Recurrence_Interval: int
+    Recurrence_End_Date: date | None
+    Excluded_Dates: list[date] = Field(default_factory=list)
+    Occurrence_Dates: list[date] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
+
+
+class ScheduleOccurrenceSkipRequest(BaseModel):
+    Occurrence_Date: date
+
+
+class ScheduleOccurrenceRescheduleRequest(BaseModel):
+    Occurrence_Date: date
+    New_Date: date
 
 
 # --- Submission schemas ---
@@ -85,6 +112,7 @@ class SubmissionResponse(BaseModel):
     Updated_At: datetime
     Links: list[LinkResponse]
     Schedule_Requests: list[ScheduleRequestResponse]
+    Occurrence_Dates: list[date] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
 

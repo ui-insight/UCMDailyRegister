@@ -38,6 +38,11 @@ export interface SubmissionScheduleRequest {
   Repeat_Note: string | null;
   Is_Flexible: boolean;
   Flexible_Deadline: string | null;
+  Recurrence_Type: 'once' | 'weekly' | 'monthly_date' | 'monthly_nth_weekday';
+  Recurrence_Interval: number;
+  Recurrence_End_Date: string | null;
+  Excluded_Dates: string[];
+  Occurrence_Dates: string[];
 }
 
 export interface Submission {
@@ -57,6 +62,7 @@ export interface Submission {
   Updated_At: string;
   Links: SubmissionLink[];
   Schedule_Requests: SubmissionScheduleRequest[];
+  Occurrence_Dates: string[];
 }
 
 export interface SubmissionCreate {
@@ -69,5 +75,15 @@ export interface SubmissionCreate {
   Submitter_Notes?: string;
   Survey_End_Date?: string;
   Links?: { Url: string; Anchor_Text?: string }[];
-  Schedule_Requests?: { Requested_Date?: string; Repeat_Count?: number; Repeat_Note?: string; Is_Flexible?: boolean; Flexible_Deadline?: string }[];
+  Schedule_Requests?: {
+    Requested_Date?: string;
+    Repeat_Count?: number;
+    Repeat_Note?: string;
+    Is_Flexible?: boolean;
+    Flexible_Deadline?: string;
+    Recurrence_Type?: 'once' | 'weekly' | 'monthly_date' | 'monthly_nth_weekday';
+    Recurrence_Interval?: number;
+    Recurrence_End_Date?: string;
+    Excluded_Dates?: string[];
+  }[];
 }

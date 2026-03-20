@@ -32,6 +32,9 @@ interface ScheduleEntry {
   Repeat_Note: string;
   Is_Flexible: boolean;
   Flexible_Deadline: string;
+  Recurrence_Type: 'once' | 'weekly' | 'monthly_date' | 'monthly_nth_weekday';
+  Recurrence_Interval: number;
+  Recurrence_End_Date: string;
 }
 
 const FALLBACK_CATEGORIES: AllowedValue[] = [
@@ -126,6 +129,9 @@ export default function SubmissionForm() {
     Repeat_Note: '',
     Is_Flexible: false,
     Flexible_Deadline: '',
+    Recurrence_Type: 'once',
+    Recurrence_Interval: 1,
+    Recurrence_End_Date: '',
   });
 
   const [validDates, setValidDates] = useState<Set<string>>(new Set());
@@ -226,10 +232,21 @@ export default function SubmissionForm() {
     return false;
   };
 
+  const hasRecurrenceEndError = (): boolean => (
+    schedule.Recurrence_Type !== 'once'
+    && !!schedule.Recurrence_End_Date
+    && !!schedule.Requested_Date
+    && schedule.Recurrence_End_Date < schedule.Requested_Date
+  );
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (hasDateError()) {
       setError('Please select a valid run date for the chosen newsletter.');
+      return;
+    }
+    if (hasRecurrenceEndError()) {
+      setError('Please choose a recurrence end date on or after the first run date.');
       return;
     }
     setSubmitting(true);
@@ -256,6 +273,9 @@ export default function SubmissionForm() {
             Repeat_Note: schedule.Repeat_Note || undefined,
             Is_Flexible: schedule.Is_Flexible || undefined,
             Flexible_Deadline: schedule.Flexible_Deadline || undefined,
+            Recurrence_Type: isStaff ? schedule.Recurrence_Type : 'once',
+            Recurrence_Interval: isStaff ? schedule.Recurrence_Interval : 1,
+            Recurrence_End_Date: isStaff ? schedule.Recurrence_End_Date || undefined : undefined,
           },
         ],
       };
@@ -269,7 +289,16 @@ export default function SubmissionForm() {
       setNotes('');
       setSurveyEndDate('');
       setLinks([]);
-      setSchedule({ Requested_Date: '', Repeat_Count: 1, Repeat_Note: '', Is_Flexible: false, Flexible_Deadline: '' });
+      setSchedule({
+        Requested_Date: '',
+        Repeat_Count: 1,
+        Repeat_Note: '',
+        Is_Flexible: false,
+        Flexible_Deadline: '',
+        Recurrence_Type: 'once',
+        Recurrence_Interval: 1,
+        Recurrence_End_Date: '',
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Submission failed');
     } finally {
@@ -377,7 +406,13 @@ export default function SubmissionForm() {
         <h3 className="text-lg font-semibold text-gray-900 border-b pb-3">
           Scheduling
         </h3>
-        <SchedulePrefs schedule={schedule} onChange={setSchedule} targetNewsletter={targetNewsletter} validDates={validDates.size > 0 ? validDates : undefined} />
+        <SchedulePrefs
+          schedule={schedule}
+          onChange={setSchedule}
+          targetNewsletter={targetNewsletter}
+          validDates={validDates.size > 0 ? validDates : undefined}
+          showRecurrenceControls={isStaff}
+        />
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
             Additional Notes for Editors

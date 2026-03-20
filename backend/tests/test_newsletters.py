@@ -111,6 +111,65 @@ class TestNewsletterItems:
         resp = await client.delete(f"/api/v1/newsletters/{nl_id}/items/{item_id}")
         assert resp.status_code == 204
 
+    async def test_assemble_newsletter_uses_matching_recurring_occurrence(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+    ):
+        db.add(
+            NewsletterSection(
+                Newsletter_Type="tdr",
+                Name="Employee News",
+                Slug="employee-news",
+                Display_Order=1,
+                Is_Active=True,
+            )
+        )
+        await db.commit()
+
+        recurring_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(
+                Original_Headline="Recurring feature",
+                Schedule_Requests=[
+                    {
+                        "Requested_Date": "2026-03-02",
+                        "Recurrence_Type": "monthly_nth_weekday",
+                        "Recurrence_Interval": 1,
+                        "Recurrence_End_Date": "2026-06-01",
+                    }
+                ],
+            ),
+            headers={"X-User-Role": "staff"},
+        )
+        recurring_id = recurring_resp.json()["Id"]
+        await client.patch(
+            f"/api/v1/submissions/{recurring_id}",
+            json={"Status": "approved"},
+        )
+
+        one_off_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(
+                Original_Headline="Wrong date",
+                Schedule_Requests=[{"Requested_Date": "2026-04-07"}],
+            ),
+        )
+        one_off_id = one_off_resp.json()["Id"]
+        await client.patch(
+            f"/api/v1/submissions/{one_off_id}",
+            json={"Status": "approved"},
+        )
+
+        assemble_resp = await client.post(
+            "/api/v1/newsletters/assemble",
+            json={"Newsletter_Type": "tdr", "Publish_Date": "2026-04-06"},
+        )
+        assert assemble_resp.status_code == 200
+        items = assemble_resp.json()["Items"]
+        assert len(items) == 1
+        assert items[0]["Submission_Id"] == recurring_id
+
 
 class TestCalendarEventParsing:
     def test_parse_trumba_hcalendar(self):

@@ -5,6 +5,7 @@ import { getValidDates } from '../api/schedule';
 import type { Submission, SubmissionStatus } from '../types/submission';
 import CalendarView from '../components/dashboard/CalendarView';
 import DayDetail from '../components/dashboard/DayDetail';
+import { getPrimaryOccurrenceDate } from '../utils/submissionOccurrences';
 
 const STATUS_COLORS: Record<string, string> = {
   new: 'bg-blue-100 text-blue-800',
@@ -312,8 +313,8 @@ export default function DashboardPage() {
                     {sub.Has_Image && <span>Has image</span>}
                     {sub.Schedule_Requests.length > 0 && (
                       <span>
-                        {sub.Schedule_Requests[0].Requested_Date
-                          ? `Run: ${new Date(sub.Schedule_Requests[0].Requested_Date + 'T12:00:00').toLocaleDateString()}`
+                        {getPrimaryOccurrenceDate(sub)
+                          ? `Run: ${new Date(getPrimaryOccurrenceDate(sub)! + 'T12:00:00').toLocaleDateString()}`
                           : 'Schedule prefs'}
                       </span>
                     )}

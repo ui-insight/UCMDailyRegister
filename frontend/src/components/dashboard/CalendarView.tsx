@@ -1,4 +1,5 @@
 import type { Submission } from '../../types/submission';
+import { getOccurrenceDates } from '../../utils/submissionOccurrences';
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -32,12 +33,9 @@ function toISODate(d: Date): string {
 function getSubmissionsByDate(submissions: Submission[]): Map<string, Submission[]> {
   const map = new Map<string, Submission[]>();
   for (const sub of submissions) {
-    for (const sched of sub.Schedule_Requests) {
-      if (sched.Requested_Date) {
-        const dateKey = sched.Requested_Date;
-        if (!map.has(dateKey)) map.set(dateKey, []);
-        map.get(dateKey)!.push(sub);
-      }
+    for (const dateKey of getOccurrenceDates(sub)) {
+      if (!map.has(dateKey)) map.set(dateKey, []);
+      map.get(dateKey)!.push(sub);
     }
   }
   return map;

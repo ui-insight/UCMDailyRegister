@@ -103,6 +103,14 @@ class SubmissionScheduleRequest(Base):
     Repeat_Note: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
     Is_Flexible: Mapped[bool] = mapped_column(sa.Boolean, default=False)
     Flexible_Deadline: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    Recurrence_Type: Mapped[str] = mapped_column(
+        sa.String(50), nullable=False, default="once"
+    )
+    Recurrence_Interval: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=1)
+    Recurrence_End_Date: Mapped[date | None] = mapped_column(sa.Date, nullable=True)
+    Excluded_Dates: Mapped[list[str]] = mapped_column(
+        sa.JSON, nullable=False, default=list
+    )
 
     Submission_Rel: Mapped["Submission"] = relationship(
         back_populates="Schedule_Requests", lazy="selectin"
