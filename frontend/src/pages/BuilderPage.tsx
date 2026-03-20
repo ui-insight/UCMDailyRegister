@@ -415,7 +415,7 @@ export default function BuilderPage() {
     setDropTarget(null);
   };
 
-  const handleDragStart = (event: DragEvent<HTMLDivElement>, itemId: string) => {
+  const handleDragStart = (event: DragEvent<HTMLElement>, itemId: string) => {
     event.dataTransfer.effectAllowed = 'move';
     event.dataTransfer.setData('text/plain', itemId);
     setDraggedSubmissionId(itemId);
@@ -886,38 +886,44 @@ export default function BuilderPage() {
                           {submissionItems.map((item, idx) => (
                             <div key={item.Id} className="space-y-3">
                               <div
-                                draggable={!reordering}
-                                onDragStart={(event) => handleDragStart(event, item.Id)}
-                                onDragEnd={resetDragState}
                                 className={`rounded-lg border px-4 py-3 group transition-shadow ${
                                   draggedSubmissionId === item.Id
                                     ? 'border-ui-gold-300 bg-ui-gold-50 shadow-sm'
                                     : 'border-gray-200 bg-white hover:border-ui-gold-200 hover:shadow-sm'
-                                } ${reordering ? 'cursor-wait opacity-70' : 'cursor-grab active:cursor-grabbing'}`}
+                                } ${reordering ? 'opacity-70' : ''}`}
                               >
                                 <div className="flex items-start justify-between gap-3">
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2">
-                                      <span
-                                        className={`tracking-[-0.2em] ${
-                                          draggedSubmissionId === item.Id ? 'text-ui-gold-500' : 'text-gray-300'
-                                        }`}
-                                        aria-hidden="true"
-                                      >
-                                        ::
-                                      </span>
+                                  <div className="flex flex-1 items-start gap-3 min-w-0">
+                                    <button
+                                      type="button"
+                                      draggable={!reordering}
+                                      onDragStart={(event) => handleDragStart(event, item.Id)}
+                                      onDragEnd={resetDragState}
+                                      className={`mt-0.5 shrink-0 rounded border px-2 py-1 text-[11px] font-medium transition-colors select-none ${
+                                        reordering
+                                          ? 'cursor-wait border-gray-200 text-gray-300'
+                                          : draggedSubmissionId === item.Id
+                                            ? 'cursor-grabbing border-ui-gold-300 bg-ui-gold-100 text-ui-gold-800'
+                                            : 'cursor-grab border-gray-200 bg-gray-50 text-gray-500 hover:border-ui-gold-300 hover:bg-ui-gold-50 hover:text-ui-gold-800'
+                                      }`}
+                                      title="Drag to move this submission"
+                                      aria-label={`Drag ${item.Final_Headline}`}
+                                    >
+                                      Drag
+                                    </button>
+                                    <div className="min-w-0 select-none">
                                       <p className="text-sm font-medium text-gray-900">
                                         {item.Final_Headline}
                                       </p>
+                                      <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                                        {item.Final_Body.replace(/<[^>]+>/g, '')}
+                                      </p>
+                                      {item.Run_Number > 1 && (
+                                        <span className="text-xs text-ui-gold-600 mt-1 inline-block">
+                                          Run #{item.Run_Number}
+                                        </span>
+                                      )}
                                     </div>
-                                    <p className="text-xs text-gray-600 mt-1 line-clamp-2">
-                                      {item.Final_Body.replace(/<[^>]+>/g, '')}
-                                    </p>
-                                    {item.Run_Number > 1 && (
-                                      <span className="text-xs text-ui-gold-600 mt-1 inline-block">
-                                        Run #{item.Run_Number}
-                                      </span>
-                                    )}
                                   </div>
                                   <button
                                     onClick={() => handleRemoveItem(item.Id)}
