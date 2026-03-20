@@ -4,15 +4,16 @@ import type { SubmissionCategory, TargetNewsletter, SubmissionCreate } from '../
 import type { AllowedValue } from '../../types/allowedValue';
 import { createSubmission } from '../../api/submissions';
 import { getValidDates } from '../../api/schedule';
+import { getSubmitterRole } from '../../utils/submitterRole';
 import CategorySelect from './CategorySelect';
 import NewsletterTargetSelect from './NewsletterTargetSelect';
 import LinkEditor from './LinkEditor';
 import SchedulePrefs from './SchedulePrefs';
 
 /**
- * Categories visible to public submitters, filtered by target newsletter.
- * UCM-staff categories (news_release, ucm_feature_story) are handled
- * separately via Visibility_Role and are not included here.
+ * Public categories filtered by target newsletter. Staff-visibility
+ * categories (e.g., news_release, ucm_feature_story) bypass this
+ * filter — the backend already gates them via the X-User-Role header.
  */
 const NEWSLETTER_CATEGORY_CODES: Record<TargetNewsletter, Set<string>> = {
   myui: new Set(['student', 'job_opportunity', 'survey']),
@@ -107,6 +108,7 @@ const FALLBACK_CATEGORIES: AllowedValue[] = [
 ];
 
 export default function SubmissionForm() {
+  const isStaff = getSubmitterRole() === 'staff';
   const [category, setCategory] = useState<SubmissionCategory>('faculty_staff');
   const [categories, setCategories] = useState<AllowedValue[]>(FALLBACK_CATEGORIES);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
@@ -185,9 +187,12 @@ export default function SubmissionForm() {
     fetchDates();
   }, [targetNewsletter]);
 
-  // Filter categories by selected newsletter target
+  // Filter categories by newsletter target; staff-visibility categories
+  // (already gated by backend) always pass through
   const filteredCategories = categories.filter(
-    (cat) => NEWSLETTER_CATEGORY_CODES[targetNewsletter]?.has(cat.Code),
+    (cat) =>
+      cat.Visibility_Role === 'staff' ||
+      NEWSLETTER_CATEGORY_CODES[targetNewsletter]?.has(cat.Code),
   );
 
   // Clear date and reset category when newsletter target changes
@@ -198,8 +203,11 @@ export default function SubmissionForm() {
       setSchedule({ ...schedule, Requested_Date: '' });
     }
     // Reset category if current selection isn't valid for the new newsletter
+    // (staff categories are always valid so they won't trigger a reset)
     const allowed = NEWSLETTER_CATEGORY_CODES[target];
-    if (!allowed?.has(category)) {
+    const currentCat = categories.find((c) => c.Code === category);
+    const isStaffCategory = currentCat?.Visibility_Role === 'staff';
+    if (!isStaffCategory && !allowed?.has(category)) {
       const first = categories.find((c) => allowed?.has(c.Code));
       if (first) setCategory(first.Code as SubmissionCategory);
     }
@@ -271,6 +279,16 @@ export default function SubmissionForm() {
 
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
+      {isStaff && (
+        <div className="rounded-md bg-purple-50 border border-purple-200 px-4 py-2 flex items-center gap-2">
+          <span className="inline-flex items-center rounded-full bg-purple-500 px-2 py-0.5 text-xs font-medium text-white">
+            Staff
+          </span>
+          <p className="text-sm text-purple-800">
+            UCM staff mode — additional announcement types are available.
+          </p>
+        </div>
+      )}
       {error && (
         <div className="rounded-md bg-red-50 border border-red-200 p-4">
           <p className="text-sm text-red-800">{error}</p>
