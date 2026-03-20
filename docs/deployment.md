@@ -122,17 +122,18 @@ Interactive API docs are served at `http://localhost:8001/docs` (Swagger UI) and
 
 ## Docker Production Deployment
 
-The project uses Docker Compose with three containers:
+The project uses Docker Compose with two application containers connected to an
+external PostgreSQL network:
 
 ```
 ┌──────────────────────────────────────────────────────────┐
 │  Docker Network (custom 10.x.x.x subnet)                │
 │                                                          │
-│  ┌────────────┐   ┌────────────┐   ┌────────────┐       │
-│  │  frontend   │──>│  backend   │──>│     db     │       │
-│  │  (nginx)    │   │ (uvicorn)  │   │ (postgres) │       │
-│  │  :80        │   │  :8001     │   │  :5432     │       │
-│  └──────┬─────┘   └────────────┘   └────────────┘       │
+│  ┌────────────┐   ┌────────────┐                        │
+│  │  frontend   │──>│  backend   │──> external Postgres  │
+│  │  (nginx)    │   │ (uvicorn)  │    on insight-db-net  │
+│  │  :80        │   │  :8001     │                        │
+│  └──────┬─────┘   └────────────┘                        │
 │         │                                                │
 └─────────┼────────────────────────────────────────────────┘
           │
@@ -141,7 +142,7 @@ The project uses Docker Compose with three containers:
 
 - **frontend** (nginx) -- the only container with a host port mapping. Serves the React build and reverse-proxies `/api/` to the backend.
 - **backend** (uvicorn) -- internal only, port 8001 on the Docker network.
-- **db** (postgres:16-alpine) -- internal only, port 5432 on the Docker network.
+- **database** -- external PostgreSQL instance reachable on the `insight-db-net` Docker network.
 
 ### Target Server
 
@@ -172,11 +173,14 @@ cd /home/devops/UCMDailyRegister
 git pull origin main
 
 # Deploy prod
-docker compose --env-file .env.prod -p ucmnews-prod up -d --build
+./deploy.sh prod
 
 # Deploy dev
-docker compose --env-file .env -p ucmnews-dev up -d --build
+./deploy.sh dev
 ```
+
+The deploy script rebuilds the stack, runs `alembic upgrade head`, and then
+smoke-tests the frontend and key API routes before returning success.
 
 ### Environment File Template
 
@@ -218,11 +222,15 @@ docker ps --filter "name=ucmnews"
 # Check backend logs
 docker logs ucmnews-prod-backend-1 --tail 50
 
+# Run the full deploy workflow
+./deploy.sh prod
+
 # Verify LLM provider config
 curl -s http://localhost:9280/api/v1/settings/ai | python3 -m json.tool
 
-# Health check
+# Smoke checks
 curl http://localhost:9280/api/v1/health
+curl http://localhost:9280/api/v1/submissions/?limit=1
 ```
 
 ## Production Considerations
@@ -233,5 +241,5 @@ curl http://localhost:9280/api/v1/health
     - **File uploads** -- configure persistent storage for submission images (Docker volume or mounted directory)
     - **HTTPS** -- terminate TLS at a reverse proxy (nginx, Caddy, or cloud load balancer)
     - **Secrets** -- load API keys from environment variables, not committed `.env` files
-    - **Migrations** -- run `alembic upgrade head` as part of the deployment pipeline
+    - **Migrations** -- use `./deploy.sh <dev|prod>` so `alembic upgrade head` runs before smoke checks
     - **Backups** -- the `pgdata` Docker volume should be backed up regularly
