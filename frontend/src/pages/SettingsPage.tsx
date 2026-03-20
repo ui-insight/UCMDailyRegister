@@ -66,6 +66,7 @@ export default function SettingsPage() {
   const [activeMyui, setActiveMyui] = useState<ActiveSchedule | null>(null);
   const [aiSettings, setAiSettings] = useState<AISettings | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -73,9 +74,10 @@ export default function SettingsPage() {
 
   const loadData = async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const [configs, tdr, myui, ai] = await Promise.all([
-        apiFetch<ScheduleConfig[]>('/schedule/configs'),
+        apiFetch<ScheduleConfig[]>('/schedule/configs').catch(() => [] as ScheduleConfig[]),
         apiFetch<ActiveSchedule>('/schedule/active?newsletter_type=tdr').catch(() => null),
         apiFetch<ActiveSchedule>('/schedule/active?newsletter_type=myui').catch(() => null),
         apiFetch<AISettings>('/settings/ai').catch(() => null),
@@ -86,6 +88,7 @@ export default function SettingsPage() {
       setAiSettings(ai);
     } catch (err) {
       console.error('Failed to load settings:', err);
+      setLoadError('Failed to load settings. The backend may be unavailable.');
     } finally {
       setLoading(false);
     }
@@ -93,6 +96,20 @@ export default function SettingsPage() {
 
   if (loading) {
     return <div className="text-center py-12 text-gray-500">Loading...</div>;
+  }
+
+  if (loadError) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-red-600 mb-4">{loadError}</p>
+        <button
+          onClick={loadData}
+          className="px-4 py-2 bg-ui-gold-600 text-white rounded-lg hover:bg-ui-gold-700 transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    );
   }
 
   return (

@@ -108,8 +108,12 @@ export default function SchedulePrefs({ schedule, onChange, targetNewsletter, va
             type="checkbox"
             checked={schedule.Is_Flexible}
             onChange={(e) => {
-              update('Is_Flexible', e.target.checked);
-              if (!e.target.checked) update('Flexible_Deadline', '');
+              const checked = e.target.checked;
+              onChange({
+                ...schedule,
+                Is_Flexible: checked,
+                ...(checked ? {} : { Flexible_Deadline: '' }),
+              });
             }}
             className="rounded border-gray-300 text-ui-gold-600 focus:ring-ui-gold-500"
           />

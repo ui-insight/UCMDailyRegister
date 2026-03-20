@@ -249,13 +249,6 @@ export default function SubmissionForm() {
 
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
-      {success && (
-        <div className="rounded-md bg-green-50 border border-green-200 p-4">
-          <p className="text-sm text-green-800">
-            Submission received! An editor will review it for the next newsletter.
-          </p>
-        </div>
-      )}
       {error && (
         <div className="rounded-md bg-red-50 border border-red-200 p-4">
           <p className="text-sm text-red-800">{error}</p>
@@ -353,7 +346,7 @@ export default function SubmissionForm() {
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
-            placeholder="e.g., 'Please run this on April 3. Link the text &quot;vandalsgive.uidaho.edu&quot; to https://vandalsgive.uidaho.edu/giving-day/98415'"
+            placeholder=""
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
           />
         </div>
@@ -401,6 +394,14 @@ export default function SubmissionForm() {
           {submitting ? 'Submitting...' : 'Submit Announcement'}
         </button>
       </div>
+
+      {success && (
+        <div className="rounded-md bg-green-50 border border-green-200 p-4">
+          <p className="text-sm text-green-800">
+            Submission received! An editor will review it for the newsletter.
+          </p>
+        </div>
+      )}
     </form>
   );
 }
