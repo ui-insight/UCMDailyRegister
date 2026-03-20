@@ -27,6 +27,42 @@ jobs:
       - name: Pytest
         run: pytest
 
+  backend-postgres:
+    name: Backend Postgres Smoke
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: ucmnews_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ucmnews_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/ucmnews_ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/pyproject.toml
+      - name: Install backend dependencies
+        run: pip install -e ".[dev,postgres]"
+      - name: Run Alembic migrations
+        run: alembic upgrade head
+      - name: PostgreSQL smoke test
+        run: python tests/postgres_smoke.py
+
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
