@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type DragEvent, type ReactNode } from 'react';
 import {
   addJobPosting,
   addCalendarEvent,
@@ -18,6 +18,7 @@ import type {
   CalendarEventCandidate,
   JobPostingCandidate,
   NewsletterDetailResponse,
+  NewsletterItemResponse,
 } from '../api/newsletters';
 import type { NewsletterSection } from '../types/newsletter';
 
@@ -92,6 +93,80 @@ function CollapsibleCard({
   );
 }
 
+function isSubmissionItem(
+  item: BuilderSectionItem,
+): item is BuilderSectionItemBase & { Kind: 'submission'; Run_Number: number } {
+  return item.Kind === 'submission';
+}
+
+function buildSubmissionReorderPayload(
+  newsletter: NewsletterDetailResponse,
+  sections: NewsletterSection[],
+  itemId: string,
+  targetSectionId: string,
+  targetIndex: number,
+): { Id: string; Position: number; Section_Id: string }[] | null {
+  const sectionOrder = new Map(sections.map((section, index) => [section.Id, index]));
+  const itemsBySection = new Map<string, NewsletterItemResponse[]>(
+    sections.map((section) => [section.Id, []]),
+  );
+
+  const orderedItems = [...newsletter.Items].sort((a, b) => {
+    const sectionDiff =
+      (sectionOrder.get(a.Section_Id) ?? Number.MAX_SAFE_INTEGER)
+      - (sectionOrder.get(b.Section_Id) ?? Number.MAX_SAFE_INTEGER);
+    if (sectionDiff !== 0) return sectionDiff;
+    return a.Position - b.Position || a.Final_Headline.localeCompare(b.Final_Headline);
+  });
+
+  for (const item of orderedItems) {
+    const sectionItems = itemsBySection.get(item.Section_Id);
+    if (sectionItems) {
+      sectionItems.push({ ...item });
+    }
+  }
+
+  const draggedItem = orderedItems.find((item) => item.Id === itemId);
+  if (!draggedItem) return null;
+
+  const sourceItems = itemsBySection.get(draggedItem.Section_Id);
+  const targetItems = itemsBySection.get(targetSectionId);
+  if (!sourceItems || !targetItems) return null;
+
+  const sourceIndex = sourceItems.findIndex((item) => item.Id === itemId);
+  if (sourceIndex === -1) return null;
+
+  const [movedItem] = sourceItems.splice(sourceIndex, 1);
+  let insertIndex = Math.max(0, Math.min(targetIndex, targetItems.length));
+
+  if (draggedItem.Section_Id === targetSectionId && insertIndex > sourceIndex) {
+    insertIndex -= 1;
+  }
+
+  if (draggedItem.Section_Id === targetSectionId && insertIndex === sourceIndex) {
+    return null;
+  }
+
+  targetItems.splice(insertIndex, 0, {
+    ...movedItem,
+    Section_Id: targetSectionId,
+  });
+
+  const payload: { Id: string; Position: number; Section_Id: string }[] = [];
+  for (const section of sections) {
+    const sectionItems = itemsBySection.get(section.Id) ?? [];
+    for (const [index, item] of sectionItems.entries()) {
+      payload.push({
+        Id: item.Id,
+        Position: index,
+        Section_Id: section.Id,
+      });
+    }
+  }
+
+  return payload;
+}
+
 export default function BuilderPage() {
   const [newsletterType, setNewsletterType] = useState<'tdr' | 'myui'>('tdr');
   const [publishDate, setPublishDate] = useState(
@@ -114,6 +189,11 @@ export default function BuilderPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [draggedSubmissionId, setDraggedSubmissionId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ sectionId: string; index: number } | null>(null);
+  const [reordering, setReordering] = useState(false);
+  const hoverExpandTimeoutRef = useRef<number | null>(null);
+  const hoverExpandSectionRef = useRef<string | null>(null);
   const newsletterId = newsletter?.Id;
 
   useEffect(() => {
@@ -277,36 +357,6 @@ export default function BuilderPage() {
     }
   };
 
-  const handleMoveItem = async (itemId: string, direction: 'up' | 'down') => {
-    if (!newsletter) return;
-
-    const item = newsletter.Items.find((i) => i.Id === itemId);
-    if (!item) return;
-
-    // Get items in same section, sorted by position
-    const sectionItems = newsletter.Items
-      .filter((i) => i.Section_Id === item.Section_Id)
-      .sort((a, b) => a.Position - b.Position);
-
-    const idx = sectionItems.findIndex((i) => i.Id === itemId);
-    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if (swapIdx < 0 || swapIdx >= sectionItems.length) return;
-
-    const positions = sectionItems.map((i, index) => {
-      if (index === idx) return { Id: i.Id, Position: swapIdx };
-      if (index === swapIdx) return { Id: i.Id, Position: idx };
-      return { Id: i.Id, Position: index };
-    });
-
-    try {
-      await reorderNewsletterItems(newsletter.Id, positions);
-      const nl = await getNewsletter(newsletter.Id);
-      setNewsletter(nl);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to reorder');
-    }
-  };
-
   const handleStatusChange = async (status: string) => {
     if (!newsletter) return;
     try {
@@ -337,6 +387,98 @@ export default function BuilderPage() {
       [sectionId]: !(current[sectionId] ?? true),
     }));
   };
+
+  const clearHoverExpandTimeout = () => {
+    if (hoverExpandTimeoutRef.current !== null) {
+      window.clearTimeout(hoverExpandTimeoutRef.current);
+      hoverExpandTimeoutRef.current = null;
+    }
+    hoverExpandSectionRef.current = null;
+  };
+
+  const queueSectionExpand = (sectionId: string, isOpen: boolean) => {
+    if (isOpen || hoverExpandSectionRef.current === sectionId) return;
+    clearHoverExpandTimeout();
+    hoverExpandSectionRef.current = sectionId;
+    hoverExpandTimeoutRef.current = window.setTimeout(() => {
+      setSectionOpen((current) => ({
+        ...current,
+        [sectionId]: true,
+      }));
+      clearHoverExpandTimeout();
+    }, 300);
+  };
+
+  const resetDragState = () => {
+    clearHoverExpandTimeout();
+    setDraggedSubmissionId(null);
+    setDropTarget(null);
+  };
+
+  const handleDragStart = (event: DragEvent<HTMLDivElement>, itemId: string) => {
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', itemId);
+    setDraggedSubmissionId(itemId);
+  };
+
+  const handleDragOver = (
+    event: DragEvent<HTMLElement>,
+    sectionId: string,
+    index: number,
+    sectionIsOpen: boolean,
+  ) => {
+    event.preventDefault();
+    if (!draggedSubmissionId) return;
+    event.dataTransfer.dropEffect = 'move';
+    queueSectionExpand(sectionId, sectionIsOpen);
+    setDropTarget((current) => (
+      current?.sectionId === sectionId && current.index === index
+        ? current
+        : { sectionId, index }
+    ));
+  };
+
+  const handleDrop = async (
+    event: DragEvent<HTMLElement>,
+    sectionId: string,
+    index: number,
+  ) => {
+    event.preventDefault();
+    if (!newsletter || !draggedSubmissionId) {
+      resetDragState();
+      return;
+    }
+
+    const positions = buildSubmissionReorderPayload(
+      newsletter,
+      sections,
+      draggedSubmissionId,
+      sectionId,
+      index,
+    );
+
+    if (!positions) {
+      resetDragState();
+      return;
+    }
+
+    try {
+      setReordering(true);
+      await reorderNewsletterItems(newsletter.Id, positions);
+      const nl = await getNewsletter(newsletter.Id);
+      setNewsletter(nl);
+      showToast('Submission moved');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to reorder');
+    } finally {
+      setReordering(false);
+      resetDragState();
+    }
+  };
+
+  useEffect(() => () => {
+    clearHoverExpandTimeout();
+  }, []);
 
   // Group items by section
   const itemsBySection = new Map<string, BuilderSectionItem[]>();
@@ -657,12 +799,43 @@ export default function BuilderPage() {
                 </div>
               </div>
 
+              <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-4 py-3 text-xs text-gray-600">
+                Drag approved submission cards between section buckets to reclassify them or reorder them.
+                Imported calendar events and job postings stay fixed for now.
+              </div>
+
+              {draggedSubmissionId && (
+                <div className="rounded-lg bg-ui-gold-50 px-4 py-2 text-xs font-medium text-ui-gold-800">
+                  Dragging submission. Hover over a collapsed section to open it, then drop where you want it to land.
+                </div>
+              )}
+
               {/* Sections with items */}
               {sections.map((section) => {
                 const items = itemsBySection.get(section.Id) || [];
+                const submissionItems = items.filter(isSubmissionItem);
+                const importedItems = items.filter((item) => !isSubmissionItem(item));
                 const isOpen = sectionOpen[section.Id] ?? true;
+                const showDropHint = draggedSubmissionId !== null;
+                const activeDropIndex =
+                  dropTarget?.sectionId === section.Id ? dropTarget.index : null;
                 return (
-                  <div key={section.Id} className="bg-white rounded-lg shadow">
+                  <div
+                    key={section.Id}
+                    className={`bg-white rounded-lg shadow transition-all ${
+                      dropTarget?.sectionId === section.Id
+                        ? 'ring-2 ring-ui-gold-200 shadow-md'
+                        : ''
+                    }`}
+                    onDragOver={(event) => {
+                      if (!showDropHint) return;
+                      event.preventDefault();
+                      if (!isOpen) {
+                        queueSectionExpand(section.Id, isOpen);
+                        setDropTarget({ sectionId: section.Id, index: submissionItems.length });
+                      }
+                    }}
+                  >
                     <button
                       type="button"
                       onClick={() => toggleSection(section.Id)}
@@ -681,93 +854,157 @@ export default function BuilderPage() {
                     </button>
                     {isOpen && (
                       items.length === 0 ? (
-                        <div className="px-4 py-6 text-center text-xs text-gray-400">
-                          No items in this section
+                        <div
+                          className={`px-4 py-6 text-center text-xs transition-colors ${
+                            showDropHint && activeDropIndex === 0
+                              ? 'bg-ui-gold-50 text-ui-gold-700'
+                              : 'text-gray-400'
+                          }`}
+                          onDragOver={(event) => handleDragOver(event, section.Id, 0, isOpen)}
+                          onDrop={(event) => void handleDrop(event, section.Id, 0)}
+                        >
+                          {showDropHint ? 'Drop here to place the submission in this section' : 'No items in this section'}
                         </div>
                       ) : (
-                        <div className="divide-y divide-gray-50">
-                        {items.map((item, idx) => (
+                        <div className="space-y-3 px-4 py-3">
                           <div
-                            key={item.Id}
-                            className="px-4 py-3 hover:bg-gray-50 group"
+                            className={`rounded-md border border-dashed px-3 py-2 text-xs transition-colors ${
+                              showDropHint
+                                ? activeDropIndex === 0
+                                  ? 'border-ui-gold-300 bg-ui-gold-50 text-ui-gold-700 opacity-100'
+                                  : 'border-gray-200 bg-gray-50 text-gray-400 opacity-100'
+                                : 'border-transparent bg-transparent text-transparent opacity-0 py-0 h-0 overflow-hidden pointer-events-none'
+                            }`}
+                            onDragOver={(event) => handleDragOver(event, section.Id, 0, isOpen)}
+                            onDrop={(event) => void handleDrop(event, section.Id, 0)}
                           >
-                            <div className="flex items-start justify-between">
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-medium text-gray-900">
-                                    {item.Final_Headline}
-                                  </p>
-                                  {item.Kind === 'calendar_event' && (
-                                    <span className="inline-flex items-center rounded-full bg-ui-clearwater-100 px-2 py-0.5 text-[11px] font-medium text-ui-clearwater-800">
-                                      Calendar
-                                    </span>
-                                  )}
-                                  {item.Kind === 'job_posting' && (
-                                    <span className="inline-flex items-center rounded-full bg-ui-gold-100 px-2 py-0.5 text-[11px] font-medium text-ui-gold-800">
-                                      Job
-                                    </span>
-                                  )}
+                            {submissionItems.length === 0
+                              ? 'Drop a submission here'
+                              : 'Drop here to place a submission at the top'}
+                          </div>
+
+                          {submissionItems.map((item, idx) => (
+                            <div key={item.Id} className="space-y-3">
+                              <div
+                                draggable={!reordering}
+                                onDragStart={(event) => handleDragStart(event, item.Id)}
+                                onDragEnd={resetDragState}
+                                className={`rounded-lg border px-4 py-3 group transition-shadow ${
+                                  draggedSubmissionId === item.Id
+                                    ? 'border-ui-gold-300 bg-ui-gold-50 shadow-sm'
+                                    : 'border-gray-200 bg-white hover:border-ui-gold-200 hover:shadow-sm'
+                                } ${reordering ? 'cursor-wait opacity-70' : 'cursor-grab active:cursor-grabbing'}`}
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <span
+                                        className={`tracking-[-0.2em] ${
+                                          draggedSubmissionId === item.Id ? 'text-ui-gold-500' : 'text-gray-300'
+                                        }`}
+                                        aria-hidden="true"
+                                      >
+                                        ::
+                                      </span>
+                                      <p className="text-sm font-medium text-gray-900">
+                                        {item.Final_Headline}
+                                      </p>
+                                    </div>
+                                    <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                                      {item.Final_Body.replace(/<[^>]+>/g, '')}
+                                    </p>
+                                    {item.Run_Number > 1 && (
+                                      <span className="text-xs text-ui-gold-600 mt-1 inline-block">
+                                        Run #{item.Run_Number}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <button
+                                    onClick={() => handleRemoveItem(item.Id)}
+                                    className="p-1 text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    title="Remove"
+                                  >
+                                    &times;
+                                  </button>
                                 </div>
-                                <p className="text-xs text-gray-600 mt-1 line-clamp-2">
-                                  {item.Final_Body.replace(/<[^>]+>/g, '')}
-                                </p>
-                                {item.Kind === 'submission' && item.Run_Number > 1 && (
-                                  <span className="text-xs text-ui-gold-600 mt-1 inline-block">
-                                    Run #{item.Run_Number}
-                                  </span>
-                                )}
-                                {item.Kind === 'calendar_event' && item.Event_Start && (
-                                  <p className="text-xs text-gray-400 mt-1">
-                                    {new Date(item.Event_Start).toLocaleString('en-US', {
-                                      weekday: 'short',
-                                      month: 'short',
-                                      day: 'numeric',
-                                      hour: 'numeric',
-                                      minute: '2-digit',
-                                    })}
-                                    {item.Location ? ` • ${item.Location}` : ''}
-                                  </p>
-                                )}
-                                {item.Kind === 'job_posting' && item.Location && (
-                                  <p className="text-xs text-gray-400 mt-1">{item.Location}</p>
-                                )}
                               </div>
-                              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-                                {item.Kind === 'submission' && (
-                                  <>
-                                    <button
-                                      onClick={() => handleMoveItem(item.Id, 'up')}
-                                      disabled={idx === 0}
-                                      className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30"
-                                      title="Move up"
-                                    >
-                                      &#x25B2;
-                                    </button>
-                                    <button
-                                      onClick={() => handleMoveItem(item.Id, 'down')}
-                                      disabled={idx === items.length - 1}
-                                      className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30"
-                                      title="Move down"
-                                    >
-                                      &#x25BC;
-                                    </button>
-                                  </>
-                                )}
-                                <button
-                                  onClick={() => (
-                                    item.Kind === 'submission'
-                                      ? handleRemoveItem(item.Id)
-                                      : handleRemoveExternalItem(item.Id)
-                                  )}
-                                  className="p-1 text-red-400 hover:text-red-600"
-                                  title="Remove"
-                                >
-                                  &times;
-                                </button>
+
+                              <div
+                                className={`rounded-md border border-dashed px-3 py-2 text-xs transition-colors ${
+                                  showDropHint
+                                    ? activeDropIndex === idx + 1
+                                      ? 'border-ui-gold-300 bg-ui-gold-50 text-ui-gold-700 opacity-100'
+                                      : 'border-gray-200 bg-gray-50 text-gray-400 opacity-100'
+                                    : 'border-transparent bg-transparent text-transparent opacity-0 py-0 h-0 overflow-hidden pointer-events-none'
+                                }`}
+                                onDragOver={(event) => handleDragOver(event, section.Id, idx + 1, isOpen)}
+                                onDrop={(event) => void handleDrop(event, section.Id, idx + 1)}
+                              >
+                                Drop here
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+
+                          {importedItems.length > 0 && (
+                            <div className="rounded-lg border border-gray-100 bg-gray-50 p-3">
+                              <p className="text-[11px] font-semibold uppercase tracking-wide text-gray-500">
+                                Imported Items
+                              </p>
+                              <div className="mt-3 space-y-2">
+                                {importedItems.map((item) => (
+                                  <div
+                                    key={item.Id}
+                                    className="rounded-lg border border-gray-200 bg-white px-4 py-3"
+                                  >
+                                    <div className="flex items-start justify-between gap-3">
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2">
+                                          <p className="text-sm font-medium text-gray-900">
+                                            {item.Final_Headline}
+                                          </p>
+                                          {item.Kind === 'calendar_event' && (
+                                            <span className="inline-flex items-center rounded-full bg-ui-clearwater-100 px-2 py-0.5 text-[11px] font-medium text-ui-clearwater-800">
+                                              Calendar
+                                            </span>
+                                          )}
+                                          {item.Kind === 'job_posting' && (
+                                            <span className="inline-flex items-center rounded-full bg-ui-gold-100 px-2 py-0.5 text-[11px] font-medium text-ui-gold-800">
+                                              Job
+                                            </span>
+                                          )}
+                                        </div>
+                                        <p className="text-xs text-gray-600 mt-1 line-clamp-2">
+                                          {item.Final_Body.replace(/<[^>]+>/g, '')}
+                                        </p>
+                                        {item.Kind === 'calendar_event' && item.Event_Start && (
+                                          <p className="text-xs text-gray-400 mt-1">
+                                            {new Date(item.Event_Start).toLocaleString('en-US', {
+                                              weekday: 'short',
+                                              month: 'short',
+                                              day: 'numeric',
+                                              hour: 'numeric',
+                                              minute: '2-digit',
+                                            })}
+                                            {item.Location ? ` • ${item.Location}` : ''}
+                                          </p>
+                                        )}
+                                        {item.Kind === 'job_posting' && item.Location && (
+                                          <p className="text-xs text-gray-400 mt-1">{item.Location}</p>
+                                        )}
+                                      </div>
+                                      <button
+                                        onClick={() => handleRemoveExternalItem(item.Id)}
+                                        className="p-1 text-red-400 hover:text-red-600"
+                                        title="Remove"
+                                      >
+                                        &times;
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )
                     )}
