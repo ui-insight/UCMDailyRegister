@@ -54,6 +54,8 @@ export interface Submission {
   Submitter_Name: string;
   Submitter_Email: string;
   Submitter_Notes: string | null;
+  Assigned_Editor: string | null;
+  Editorial_Notes: string | null;
   Survey_End_Date: string | null;
   Has_Image: boolean;
   Image_Path: string | null;

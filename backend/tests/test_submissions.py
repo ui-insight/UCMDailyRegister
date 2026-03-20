@@ -182,6 +182,64 @@ class TestSubmissionCRUD:
         assert resp.status_code == 200
         assert resp.json()["Status"] == "approved"
 
+    async def test_staff_can_update_editorial_workflow_fields(self, client: AsyncClient):
+        create_resp = await client.post("/api/v1/submissions/", json=make_submission_data())
+        sub_id = create_resp.json()["Id"]
+
+        resp = await client.patch(
+            f"/api/v1/submissions/{sub_id}",
+            json={
+                "Assigned_Editor": "Jane Editor",
+                "Editorial_Notes": "Waiting on quote confirmation.",
+            },
+            headers={"X-User-Role": "staff"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["Assigned_Editor"] == "Jane Editor"
+        assert resp.json()["Editorial_Notes"] == "Waiting on quote confirmation."
+
+    async def test_public_cannot_update_editorial_workflow_fields(
+        self, client: AsyncClient
+    ):
+        create_resp = await client.post("/api/v1/submissions/", json=make_submission_data())
+        sub_id = create_resp.json()["Id"]
+
+        resp = await client.patch(
+            f"/api/v1/submissions/{sub_id}",
+            json={"Assigned_Editor": "Jane Editor"},
+        )
+        assert resp.status_code == 403
+        assert "Only staff editors" in resp.json()["detail"]
+
+    async def test_public_list_redacts_editorial_workflow_fields(
+        self, client: AsyncClient
+    ):
+        create_resp = await client.post("/api/v1/submissions/", json=make_submission_data())
+        sub_id = create_resp.json()["Id"]
+        await client.patch(
+            f"/api/v1/submissions/{sub_id}",
+            json={
+                "Assigned_Editor": "Jane Editor",
+                "Editorial_Notes": "Internal note.",
+            },
+            headers={"X-User-Role": "staff"},
+        )
+
+        public_resp = await client.get("/api/v1/submissions/")
+        assert public_resp.status_code == 200
+        item = public_resp.json()["Items"][0]
+        assert item["Assigned_Editor"] is None
+        assert item["Editorial_Notes"] is None
+
+        staff_resp = await client.get(
+            "/api/v1/submissions/",
+            headers={"X-User-Role": "staff"},
+        )
+        assert staff_resp.status_code == 200
+        staff_item = staff_resp.json()["Items"][0]
+        assert staff_item["Assigned_Editor"] == "Jane Editor"
+        assert staff_item["Editorial_Notes"] == "Internal note."
+
     async def test_delete_submission(self, client: AsyncClient):
         create_resp = await client.post("/api/v1/submissions/", json=make_submission_data())
         sub_id = create_resp.json()["Id"]

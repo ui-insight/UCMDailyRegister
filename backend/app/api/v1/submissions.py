@@ -25,6 +25,31 @@ from app.services.image_service import save_upload, validate_image
 router = APIRouter(prefix="/submissions", tags=["submissions"])
 
 
+def _to_submission_response(
+    submission,
+    submission_role: SubmitterRole,
+) -> SubmissionResponse:
+    response = SubmissionResponse.model_validate(submission)
+    if submission_role != "staff":
+        response.Assigned_Editor = None
+        response.Editorial_Notes = None
+    return response
+
+
+def _to_submission_list_response(
+    submissions: list,
+    total: int,
+    submission_role: SubmitterRole,
+) -> SubmissionListResponse:
+    return SubmissionListResponse(
+        Items=[
+            _to_submission_response(submission, submission_role)
+            for submission in submissions
+        ],
+        Total=total,
+    )
+
+
 def _ensure_staff_only_recurrence(
     submission_role: SubmitterRole,
     schedule_request: ScheduleRequestCreate,
@@ -34,6 +59,23 @@ def _ensure_staff_only_recurrence(
         raise HTTPException(
             status_code=403,
             detail="Recurring scheduling is available to staff editors only.",
+        )
+
+
+def _ensure_staff_only_editorial_fields(
+    submission_role: SubmitterRole,
+    data: SubmissionUpdate,
+) -> None:
+    if (
+        submission_role != "staff"
+        and (
+            "Assigned_Editor" in data.model_fields_set
+            or "Editorial_Notes" in data.model_fields_set
+        )
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="Only staff editors can update assignment or internal editorial notes.",
         )
 
 
@@ -69,7 +111,7 @@ async def create_submission(
         _ensure_staff_only_recurrence(submission_role, sched)
         await _validate_schedule_request(db, data.Target_Newsletter, sched)
     submission = await submission_service.create_submission(db, data)
-    return submission
+    return _to_submission_response(submission, submission_role)
 
 
 @router.get("/", response_model=SubmissionListResponse)
@@ -83,21 +125,26 @@ async def list_submissions(
     offset: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
+    submission_role: SubmitterRole = Depends(get_submitter_role),
 ):
     items, total = await submission_service.list_submissions(
         db, status=status, category=category, target_newsletter=target_newsletter,
         search=search, date_from=date_from, date_to=date_to,
         offset=offset, limit=limit,
     )
-    return SubmissionListResponse(Items=items, Total=total)
+    return _to_submission_list_response(items, total, submission_role)
 
 
 @router.get("/{submission_id}", response_model=SubmissionResponse)
-async def get_submission(submission_id: str, db: AsyncSession = Depends(get_db)):
+async def get_submission(
+    submission_id: str,
+    db: AsyncSession = Depends(get_db),
+    submission_role: SubmitterRole = Depends(get_submitter_role),
+):
     submission = await submission_service.get_submission(db, submission_id)
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
-    return submission
+    return _to_submission_response(submission, submission_role)
 
 
 @router.patch("/{submission_id}", response_model=SubmissionResponse)
@@ -114,10 +161,11 @@ async def update_submission(
             status_code=422,
             detail="Announcement type is not available for this submitter role.",
         )
+    _ensure_staff_only_editorial_fields(submission_role, data)
     submission = await submission_service.update_submission(db, submission_id, data)
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
-    return submission
+    return _to_submission_response(submission, submission_role)
 
 
 @router.delete("/{submission_id}", status_code=204)
@@ -290,6 +338,7 @@ async def upload_image(
     submission_id: str,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
+    submission_role: SubmitterRole = Depends(get_submitter_role),
 ):
     content = await file.read()
     error = validate_image(file.filename or "unknown", len(content))
@@ -300,7 +349,7 @@ async def upload_image(
     submission = await submission_service.set_image(db, submission_id, filename)
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
-    return submission
+    return _to_submission_response(submission, submission_role)
 
 
 @router.get("/{submission_id}/image")

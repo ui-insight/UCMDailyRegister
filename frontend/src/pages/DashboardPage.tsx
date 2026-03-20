@@ -334,6 +334,16 @@ export default function DashboardPage() {
                     <span className="text-xs bg-ui-gold-50 text-ui-gold-700 px-2 py-0.5 rounded font-medium">
                       {NEWSLETTER_LABELS[sub.Target_Newsletter]}
                     </span>
+                    {sub.Assigned_Editor && (
+                      <span className="text-xs bg-ui-clearwater-50 text-ui-clearwater-700 px-2 py-0.5 rounded font-medium">
+                        {sub.Assigned_Editor}
+                      </span>
+                    )}
+                    {sub.Editorial_Notes && (
+                      <span className="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded font-medium">
+                        Has notes
+                      </span>
+                    )}
                   </div>
                   <h3 className="text-sm font-semibold text-gray-900 truncate">
                     {sub.Original_Headline}
@@ -354,6 +364,9 @@ export default function DashboardPage() {
                           ? `Run: ${new Date(getPrimaryOccurrenceDate(sub)! + 'T12:00:00').toLocaleDateString()}`
                           : 'Schedule prefs'}
                       </span>
+                    )}
+                    {sub.Assigned_Editor && (
+                      <span>Assigned: {sub.Assigned_Editor}</span>
                     )}
                   </div>
                 </div>
