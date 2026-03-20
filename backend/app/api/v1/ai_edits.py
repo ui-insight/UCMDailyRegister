@@ -89,7 +89,7 @@ async def trigger_ai_edit(
         Headline_Case=edit_result.headline_case,
         Changes_Made=edit_result.changes_made,
         Flags=[AIEditFlag(**f) for f in edit_result.flags],
-        Embedded_Links=[AIEditLink(**l) for l in edit_result.embedded_links],
+        Embedded_Links=[AIEditLink(**link_data) for link_data in edit_result.embedded_links],
         Confidence=edit_result.confidence,
         AI_Provider=edit_result.ai_provider,
         AI_Model=edit_result.ai_model,
