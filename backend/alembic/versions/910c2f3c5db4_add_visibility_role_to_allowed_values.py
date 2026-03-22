@@ -63,19 +63,19 @@ def upgrade() -> None:
     for row in rows:
         existing = bind.execute(
             sa.text(
-                "SELECT Id FROM allowed_values "
-                "WHERE Value_Group = :value_group AND Code = :code"
+                'SELECT "Id" FROM allowed_values '
+                'WHERE "Value_Group" = :value_group AND "Code" = :code'
             ),
             {"value_group": row["Value_Group"], "code": row["Code"]},
         ).scalar_one_or_none()
         if existing:
             bind.execute(
                 sa.text(
-                    "UPDATE allowed_values "
-                    "SET Label = :label, Display_Order = :display_order, "
-                    "Is_Active = :is_active, Visibility_Role = :visibility_role, "
-                    "Description = :description "
-                    "WHERE Value_Group = :value_group AND Code = :code"
+                    'UPDATE allowed_values '
+                    'SET "Label" = :label, "Display_Order" = :display_order, '
+                    '"Is_Active" = :is_active, "Visibility_Role" = :visibility_role, '
+                    '"Description" = :description '
+                    'WHERE "Value_Group" = :value_group AND "Code" = :code'
                 ),
                 {
                     "label": row["Label"],
@@ -91,9 +91,9 @@ def upgrade() -> None:
 
         bind.execute(
             sa.text(
-                "INSERT INTO allowed_values "
-                "(Id, Value_Group, Code, Label, Display_Order, Is_Active, Visibility_Role, Description) "
-                "VALUES (:Id, :Value_Group, :Code, :Label, :Display_Order, :Is_Active, :Visibility_Role, :Description)"
+                'INSERT INTO allowed_values '
+                '("Id", "Value_Group", "Code", "Label", "Display_Order", "Is_Active", "Visibility_Role", "Description") '
+                'VALUES (:Id, :Value_Group, :Code, :Label, :Display_Order, :Is_Active, :Visibility_Role, :Description)'
             ),
             row,
         )
