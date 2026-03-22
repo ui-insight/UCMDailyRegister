@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 from app.models.newsletter import Newsletter, NewsletterExternalItem, NewsletterItem
 from app.models.section import NewsletterSection
 from app.models.submission import Submission
-from app.services import submission_service
+from app.services import recurring_message_service, submission_service
 
 
 async def create_newsletter(
@@ -121,6 +121,7 @@ async def add_external_item(
     location: str | None,
     final_headline: str,
     final_body: str,
+    commit: bool = True,
 ) -> NewsletterExternalItem:
     item_max_result = await db.execute(
         sa.select(sa.func.max(NewsletterItem.Position)).where(
@@ -152,8 +153,10 @@ async def add_external_item(
         Final_Body=final_body,
     )
     db.add(item)
-    await db.commit()
-    await db.refresh(item)
+    await db.flush()
+    if commit:
+        await db.commit()
+        await db.refresh(item)
     return item
 
 
@@ -164,6 +167,25 @@ async def update_item(
 ) -> NewsletterItem | None:
     result = await db.execute(
         sa.select(NewsletterItem).where(NewsletterItem.Id == item_id)
+    )
+    item = result.scalar_one_or_none()
+    if not item:
+        return None
+    for key, value in kwargs.items():
+        if value is not None:
+            setattr(item, key, value)
+    await db.commit()
+    await db.refresh(item)
+    return item
+
+
+async def update_external_item(
+    db: AsyncSession,
+    item_id: str,
+    **kwargs,
+) -> NewsletterExternalItem | None:
+    result = await db.execute(
+        sa.select(NewsletterExternalItem).where(NewsletterExternalItem.Id == item_id)
     )
     item = result.scalar_one_or_none()
     if not item:
@@ -252,6 +274,7 @@ async def assemble_newsletter(
             Status="draft",
         )
         newsletter.Items = []
+        newsletter.External_Items = []
         db.add(newsletter)
         await db.flush()
 
@@ -320,6 +343,7 @@ async def assemble_newsletter(
         db.add(item)
         newsletter.Items.append(item)
 
+    await recurring_message_service.sync_newsletter_recurring_messages(db, newsletter)
     await db.commit()
     return await get_newsletter(db, newsletter.Id)
 

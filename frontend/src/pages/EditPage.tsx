@@ -45,6 +45,7 @@ export default function EditPage() {
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
+  const [editorialSaving, setEditorialSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [occurrenceActionLoading, setOccurrenceActionLoading] = useState(false);
@@ -54,6 +55,8 @@ export default function EditPage() {
   // Editor state
   const [editHeadline, setEditHeadline] = useState('');
   const [editBody, setEditBody] = useState('');
+  const [assignedEditor, setAssignedEditor] = useState('');
+  const [editorialNotes, setEditorialNotes] = useState('');
   const isStaff = getSubmitterRole() === 'staff';
 
   useEffect(() => {
@@ -65,6 +68,8 @@ export default function EditPage() {
       try {
         const sub = await getSubmission(id);
         setSubmission(sub);
+        setAssignedEditor(sub.Assigned_Editor || '');
+        setEditorialNotes(sub.Editorial_Notes || '');
 
         try {
           const vers = await listEditVersions(id);
@@ -102,6 +107,8 @@ export default function EditPage() {
     try {
       const sub = await getSubmission(id);
       setSubmission(sub);
+      setAssignedEditor(sub.Assigned_Editor || '');
+      setEditorialNotes(sub.Editorial_Notes || '');
 
       try {
         const vers = await listEditVersions(id);
@@ -198,6 +205,27 @@ export default function EditPage() {
       setError(err instanceof Error ? err.message : 'Failed to save');
     } finally {
       setSaveLoading(false);
+    }
+  };
+
+  const handleSaveEditorialWorkflow = async () => {
+    if (!id || !isStaff) return;
+    setEditorialSaving(true);
+    try {
+      const updated = await updateSubmission(id, {
+        Assigned_Editor: assignedEditor.trim() || null,
+        Editorial_Notes: editorialNotes.trim() || null,
+      } as Partial<Submission>);
+      setSubmission(updated);
+      setAssignedEditor(updated.Assigned_Editor || '');
+      setEditorialNotes(updated.Editorial_Notes || '');
+      showToast('Editorial workflow details saved');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to save editorial workflow details';
+      setError(msg);
+      showToast(msg, 'error');
+    } finally {
+      setEditorialSaving(false);
     }
   };
 
@@ -577,6 +605,48 @@ export default function EditPage() {
             onRescheduleOccurrence={isStaff ? handleRescheduleOccurrence : undefined}
             occurrenceActionLoading={isStaff ? occurrenceActionLoading : false}
           />
+
+          {isStaff && (
+            <div className="bg-white rounded-lg border p-4 space-y-3">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">Editorial Workflow</h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  Track who owns this item and any internal editorial context.
+                </p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">
+                  Assigned Editor
+                </label>
+                <input
+                  type="text"
+                  value={assignedEditor}
+                  onChange={(e) => setAssignedEditor(e.target.value)}
+                  placeholder="e.g., Jane Smith"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-500 mb-1">
+                  Internal Notes
+                </label>
+                <textarea
+                  value={editorialNotes}
+                  onChange={(e) => setEditorialNotes(e.target.value)}
+                  rows={5}
+                  placeholder="Internal handoff notes, follow-up items, source context, or pending questions."
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
+                />
+              </div>
+              <button
+                onClick={handleSaveEditorialWorkflow}
+                disabled={editorialSaving}
+                className="w-full px-4 py-2 text-sm font-medium rounded-md bg-ui-clearwater-600 text-white hover:bg-ui-clearwater-700 disabled:opacity-50"
+              >
+                {editorialSaving ? 'Saving...' : 'Save Workflow Details'}
+              </button>
+            </div>
+          )}
 
           {/* Request More Info / Pending Info controls */}
           {submission.Status === 'pending_info' ? (

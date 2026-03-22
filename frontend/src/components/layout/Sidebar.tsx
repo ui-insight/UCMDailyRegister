@@ -1,14 +1,21 @@
 import { NavLink } from 'react-router-dom';
+import { getSubmitterRole } from '../../utils/submitterRole';
 
 const navItems = [
   { to: '/submit', label: 'Submit', icon: '+ ' },
   { to: '/dashboard', label: 'Dashboard', icon: '' },
   { to: '/builder', label: 'Builder', icon: '' },
+  { to: '/recurring-messages', label: 'Recurring', icon: '' },
   { to: '/style-rules', label: 'Style Rules', icon: '' },
   { to: '/settings', label: 'Settings', icon: '' },
 ];
 
 export default function Sidebar() {
+  const role = getSubmitterRole();
+  const filteredNavItems = role === 'staff'
+    ? navItems
+    : navItems.filter((item) => item.to === '/submit');
+
   return (
     <aside className="w-64 bg-gray-900 text-white min-h-screen flex flex-col">
       <div className="p-6 border-b border-gray-700">
@@ -18,9 +25,21 @@ export default function Sidebar() {
           className="h-10 w-auto mb-2"
         />
         <p className="text-xs text-gray-400">UCM Newsletter Builder</p>
+        <div className="mt-4 rounded-lg border border-gray-700 bg-gray-800/80 px-3 py-2">
+          <p className="text-[11px] uppercase tracking-wide text-gray-500">Current Mode</p>
+          <p className="mt-1 text-sm font-medium text-white">
+            {role === 'staff' ? 'Staff View' : 'Submitter View'}
+          </p>
+          <NavLink
+            to="/"
+            className="mt-2 inline-flex text-xs font-medium text-ui-gold-300 hover:text-ui-gold-200"
+          >
+            Switch mode
+          </NavLink>
+        </div>
       </div>
       <nav className="flex-1 p-4 space-y-1">
-        {navItems.map((item) => (
+        {filteredNavItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}

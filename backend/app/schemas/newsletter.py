@@ -98,6 +98,13 @@ class NewsletterExternalItemResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class NewsletterExternalItemUpdate(BaseModel):
+    Section_Id: str | None = None
+    Position: int | None = None
+    Final_Headline: str | None = None
+    Final_Body: str | None = None
+
+
 class NewsletterDetailResponse(BaseModel):
     Id: str
     Newsletter_Type: str

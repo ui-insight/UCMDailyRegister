@@ -91,6 +91,8 @@ class SubmissionUpdate(BaseModel):
     Original_Headline: str | None = None
     Original_Body: str | None = None
     Submitter_Notes: str | None = None
+    Assigned_Editor: str | None = Field(None, max_length=255)
+    Editorial_Notes: str | None = None
     Category: str | None = Field(None, min_length=1, max_length=100)
     Target_Newsletter: str | None = Field(None, pattern=r"^(tdr|myui|both)$")
 
@@ -104,6 +106,8 @@ class SubmissionResponse(BaseModel):
     Submitter_Name: str
     Submitter_Email: str
     Submitter_Notes: str | None
+    Assigned_Editor: str | None
+    Editorial_Notes: str | None
     Survey_End_Date: date | None
     Has_Image: bool
     Image_Path: str | None

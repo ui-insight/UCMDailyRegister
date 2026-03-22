@@ -5,9 +5,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db
+from app.api.deps import SubmitterRole, get_db, get_submitter_role
 from app.models.section import NewsletterSection
-from app.services import calendar_event_service, job_posting_service, newsletter_service
+from app.services import (
+    calendar_event_service,
+    job_posting_service,
+    newsletter_service,
+    recurring_message_service,
+)
 from app.schemas.newsletter import (
     CalendarEventCandidateResponse,
     CalendarEventImportRequest,
@@ -16,15 +21,25 @@ from app.schemas.newsletter import (
     NewsletterCreate,
     NewsletterDetailResponse,
     NewsletterExternalItemResponse,
+    NewsletterExternalItemUpdate,
     NewsletterItemCreate,
     NewsletterItemResponse,
     NewsletterItemUpdate,
     NewsletterResponse,
     AssembleRequest,
 )
+from app.schemas.recurring_message import RecurringMessageIssueCandidateResponse
 from app.utils.export import export_newsletter_docx
 
 router = APIRouter(prefix="/newsletters", tags=["newsletters"])
+
+
+def _require_staff(submission_role: SubmitterRole) -> None:
+    if submission_role != "staff":
+        raise HTTPException(
+            status_code=403,
+            detail="This action is available to staff editors only.",
+        )
 
 
 @router.post("", response_model=NewsletterResponse, status_code=201)
@@ -100,6 +115,69 @@ async def add_item(
         run_number=data.Run_Number,
     )
     return item
+
+
+@router.get(
+    "/{newsletter_id}/recurring-messages",
+    response_model=list[RecurringMessageIssueCandidateResponse],
+)
+async def list_recurring_message_candidates(
+    newsletter_id: str,
+    db: AsyncSession = Depends(get_db),
+    submission_role: SubmitterRole = Depends(get_submitter_role),
+):
+    """Fetch recurring message candidates for a newsletter issue."""
+    _require_staff(submission_role)
+    newsletter = await newsletter_service.get_newsletter(db, newsletter_id)
+    if not newsletter:
+        raise HTTPException(status_code=404, detail="Newsletter not found")
+    return await recurring_message_service.list_issue_candidates(db, newsletter)
+
+
+@router.post(
+    "/{newsletter_id}/recurring-messages/{recurring_message_id}",
+    response_model=NewsletterExternalItemResponse,
+    status_code=201,
+)
+async def add_recurring_message(
+    newsletter_id: str,
+    recurring_message_id: str,
+    db: AsyncSession = Depends(get_db),
+    submission_role: SubmitterRole = Depends(get_submitter_role),
+):
+    """Add a recurring message to a newsletter issue."""
+    _require_staff(submission_role)
+    newsletter = await newsletter_service.get_newsletter(db, newsletter_id)
+    if not newsletter:
+        raise HTTPException(status_code=404, detail="Newsletter not found")
+    item = await recurring_message_service.add_recurring_message_to_newsletter(
+        db,
+        newsletter,
+        recurring_message_id,
+    )
+    if not item:
+        raise HTTPException(status_code=404, detail="Recurring message not found")
+    return item
+
+
+@router.post("/{newsletter_id}/recurring-messages/{recurring_message_id}/skip", status_code=204)
+async def skip_recurring_message(
+    newsletter_id: str,
+    recurring_message_id: str,
+    db: AsyncSession = Depends(get_db),
+    submission_role: SubmitterRole = Depends(get_submitter_role),
+):
+    """Skip a recurring message for a specific newsletter issue."""
+    _require_staff(submission_role)
+    newsletter = await newsletter_service.get_newsletter(db, newsletter_id)
+    if not newsletter:
+        raise HTTPException(status_code=404, detail="Newsletter not found")
+    if not await recurring_message_service.skip_recurring_message_for_newsletter(
+        db,
+        newsletter,
+        recurring_message_id,
+    ):
+        raise HTTPException(status_code=404, detail="Recurring message not found")
 
 
 @router.get(
@@ -287,6 +365,26 @@ async def update_item(
     item = await newsletter_service.update_item(db, item_id, **update_data)
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
+    return item
+
+
+@router.patch(
+    "/{newsletter_id}/external-items/{item_id}",
+    response_model=NewsletterExternalItemResponse,
+)
+async def update_external_item(
+    newsletter_id: str,
+    item_id: str,
+    data: NewsletterExternalItemUpdate,
+    db: AsyncSession = Depends(get_db),
+    submission_role: SubmitterRole = Depends(get_submitter_role),
+):
+    """Update an imported external item."""
+    _require_staff(submission_role)
+    update_data = data.model_dump(exclude_unset=True)
+    item = await newsletter_service.update_external_item(db, item_id, **update_data)
+    if not item:
+        raise HTTPException(status_code=404, detail="External item not found")
     return item
 
 

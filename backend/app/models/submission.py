@@ -45,6 +45,8 @@ class Submission(Base):
     Submitter_Name: Mapped[str] = mapped_column(sa.String(255), nullable=False)
     Submitter_Email: Mapped[str] = mapped_column(sa.String(255), nullable=False)
     Submitter_Notes: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    Assigned_Editor: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
+    Editorial_Notes: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
     Has_Image: Mapped[bool] = mapped_column(sa.Boolean, default=False)
     Image_Path: Mapped[str | None] = mapped_column(sa.String(512), nullable=True)
     Survey_End_Date: Mapped[date | None] = mapped_column(sa.Date, nullable=True)

@@ -8,6 +8,7 @@ AI-assisted newsletter production pipeline for the University of Idaho's Univers
 - **AI-Assisted Editing** — Automated style editing using Claude or OpenAI with AP style and U of I style guide enforcement
 - **Editorial Review** — Word-level diff viewer, flag system, accept/reject/modify workflow
 - **Newsletter Assembly** — Auto-populate newsletters from approved submissions, organized by section
+- **Recurring Message Library** — Staff-managed reusable editorial content with cadence rules and issue-level skip/restore controls
 - **Word Export** — Generate formatted .docx files with U of I branding
 - **Style Rules Engine** — Data-driven editorial rules injected into LLM prompts, editable via UI
 
@@ -64,6 +65,7 @@ Open [http://localhost:5173](http://localhost:5173).
 | EditVersion | Tracks original → AI suggested → editor final text versions |
 | Newsletter | A dated issue of TDR or My UI |
 | NewsletterItem | Places a submission into a newsletter section at a position |
+| RecurringMessage | Centrally managed editorial content that appears on a cadence |
 | NewsletterSection | Section definitions per newsletter type (9 TDR, 5 My UI) |
 | StyleRule | Editorial rules loaded into LLM prompts (37 seeded rules) |
 | ScheduleConfig | Academic year and summer deadline configurations |
@@ -83,6 +85,7 @@ Open [http://localhost:5173](http://localhost:5173).
 | Submissions | CRUD, image upload, link/schedule management |
 | AI Edits | Trigger edit, list versions, save final |
 | Newsletters | CRUD, assemble, add/reorder items, export .docx |
+| Recurring Messages | Staff CRUD plus issue-specific add/skip handling |
 | Sections | List by newsletter type |
 | Schedule | Active config with computed deadlines |
 | Style Rules | CRUD with filtering |

@@ -1,4 +1,4 @@
-"""Helpers for expanding recurring submission schedule requests."""
+"""Helpers for expanding recurring schedules into concrete issue dates."""
 
 from __future__ import annotations
 
@@ -13,16 +13,36 @@ def expand_schedule_request(
     to_date: date,
 ) -> list[date]:
     """Return occurrence dates for a schedule request within a range."""
-    anchor = schedule_request.Requested_Date
-    if anchor is None or from_date > to_date:
+    if schedule_request.Requested_Date is None:
+        return []
+    return expand_recurrence(
+        anchor=schedule_request.Requested_Date,
+        recurrence_type=schedule_request.Recurrence_Type or "once",
+        interval=max(schedule_request.Recurrence_Interval or 1, 1),
+        from_date=from_date,
+        to_date=to_date,
+        until=schedule_request.Recurrence_End_Date,
+        excluded_dates=schedule_request.Excluded_Dates or [],
+    )
+
+
+def expand_recurrence(
+    *,
+    anchor: date,
+    recurrence_type: str,
+    interval: int,
+    from_date: date,
+    to_date: date,
+    until: date | None = None,
+    excluded_dates: list[str] | None = None,
+) -> list[date]:
+    """Return occurrence dates for a recurrence configuration within a range."""
+    if from_date > to_date:
         return []
 
-    recurrence_type = schedule_request.Recurrence_Type or "once"
-    interval = max(schedule_request.Recurrence_Interval or 1, 1)
-    until = schedule_request.Recurrence_End_Date
     excluded = {
         excluded_date
-        for excluded_date in (schedule_request.Excluded_Dates or [])
+        for excluded_date in (excluded_dates or [])
         if isinstance(excluded_date, str)
     }
 
@@ -36,6 +56,14 @@ def expand_schedule_request(
         if from_date <= anchor <= upper_bound and anchor.isoformat() not in excluded:
             return [anchor]
         return []
+
+    if recurrence_type == "date_range":
+        current = max(anchor, from_date)
+        while current <= upper_bound:
+            if current.isoformat() not in excluded:
+                occurrences.append(current)
+            current += timedelta(days=1)
+        return occurrences
 
     if recurrence_type == "weekly":
         current = anchor
@@ -51,9 +79,7 @@ def expand_schedule_request(
         index = 0
         while True:
             current = _monthly_date_occurrence(anchor, interval, index)
-            if current is None:
-                break
-            if current > upper_bound:
+            if current is None or current > upper_bound:
                 break
             if current >= from_date and current.isoformat() not in excluded:
                 occurrences.append(current)
@@ -64,9 +90,7 @@ def expand_schedule_request(
         index = 0
         while True:
             current = _monthly_nth_weekday_occurrence(anchor, interval, index)
-            if current is None:
-                break
-            if current > upper_bound:
+            if current is None or current > upper_bound:
                 break
             if current >= from_date and current.isoformat() not in excluded:
                 occurrences.append(current)
