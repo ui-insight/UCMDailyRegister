@@ -36,7 +36,7 @@ Contributor submits announcement
   Editor reviews in dashboard, finalizes copy
         |
         v
-  Newsletter assembled (items placed in sections, reordered)
+  Newsletter assembled (submissions, recurring messages, and imported external items placed in sections, reordered)
         |
         v
   Word document exported (.docx)
@@ -50,6 +50,7 @@ Business logic is organized into focused service modules rather than being embed
 |------------------------|------------------------------------------------------|
 | `submission_service`   | CRUD for submissions, links, schedule requests        |
 | `newsletter_service`   | Newsletter assembly, item ordering, export            |
+| `recurring_message_service` | Recurring message CRUD, cadence resolution, issue skips |
 | `schedule_service`     | Schedule configs, active schedule resolution          |
 | `ai.editor`           | LLM prompt construction, pre/post-processing          |
 | `ai.factory`          | Provider factory (Claude, OpenAI, MindRouter)         |

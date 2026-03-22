@@ -6,6 +6,7 @@ import BuilderPage from './pages/BuilderPage';
 import StyleRulesPage from './pages/StyleRulesPage';
 import EditPage from './pages/EditPage';
 import SettingsPage from './pages/SettingsPage';
+import RecurringMessagesPage from './pages/RecurringMessagesPage';
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/edit/:id" element={<EditPage />} />
           <Route path="/builder" element={<BuilderPage />} />
+          <Route path="/recurring-messages" element={<RecurringMessagesPage />} />
           <Route path="/style-rules" element={<StyleRulesPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>

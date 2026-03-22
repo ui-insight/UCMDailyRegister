@@ -63,7 +63,7 @@ The edit response includes `AI_Provider` and `AI_Model` fields so the UI can dis
 | POST   | `/api/v1/newsletters`                                 | Create a new newsletter issue          |
 | GET    | `/api/v1/newsletters`                                 | List newsletters (with filters)        |
 | GET    | `/api/v1/newsletters/{id}`                            | Get a newsletter with items            |
-| PUT    | `/api/v1/newsletters/{id}`                            | Update newsletter metadata             |
+| PATCH  | `/api/v1/newsletters/{id}/status?status=...`          | Update newsletter status               |
 | DELETE | `/api/v1/newsletters/{id}`                            | Delete a newsletter                    |
 
 ### Newsletter Items
@@ -71,16 +71,42 @@ The edit response includes `AI_Provider` and `AI_Model` fields so the UI can dis
 | Method | Path                                                          | Description                      |
 |--------|---------------------------------------------------------------|----------------------------------|
 | POST   | `/api/v1/newsletters/{id}/items`                              | Add an item to the newsletter    |
-| PUT    | `/api/v1/newsletters/{id}/items/{item_id}`                    | Update item (section, order)     |
+| PATCH  | `/api/v1/newsletters/{id}/items/{item_id}`                    | Update item (section, order)     |
+| PATCH  | `/api/v1/newsletters/{id}/external-items/{item_id}`           | Update an imported external item |
 | DELETE | `/api/v1/newsletters/{id}/items/{item_id}`                    | Remove an item                   |
-| PUT    | `/api/v1/newsletters/{id}/items/reorder`                      | Bulk reorder items               |
+| DELETE | `/api/v1/newsletters/{id}/external-items/{item_id}`           | Remove an imported external item |
+| PUT    | `/api/v1/newsletters/{id}/reorder`                            | Bulk reorder submission items    |
+
+### Newsletter Builder Imports
+
+| Method | Path                                                                  | Description                                 |
+|--------|-----------------------------------------------------------------------|---------------------------------------------|
+| GET    | `/api/v1/newsletters/{id}/recurring-messages`                         | List recurring-message candidates for issue |
+| POST   | `/api/v1/newsletters/{id}/recurring-messages/{recurring_message_id}`  | Add or restore a recurring message          |
+| POST   | `/api/v1/newsletters/{id}/recurring-messages/{recurring_message_id}/skip` | Skip a recurring message for this issue |
+| GET    | `/api/v1/newsletters/{id}/calendar-events`                            | List candidate calendar events              |
+| POST   | `/api/v1/newsletters/{id}/calendar-events`                            | Import a calendar event                     |
+| GET    | `/api/v1/newsletters/{id}/job-postings`                               | List candidate job postings                 |
+| POST   | `/api/v1/newsletters/{id}/job-postings`                               | Import a job posting                        |
 
 ### Assembly & Export
 
 | Method | Path                                                  | Description                            |
 |--------|-------------------------------------------------------|----------------------------------------|
-| POST   | `/api/v1/newsletters/{id}/assemble`                   | Auto-assemble from approved submissions|
+| POST   | `/api/v1/newsletters/assemble`                        | Auto-assemble issue content            |
 | GET    | `/api/v1/newsletters/{id}/export`                     | Export newsletter as .docx             |
+
+## Recurring Messages
+
+These endpoints are staff-only and manage centrally maintained editorial content that can be scheduled independently of public submissions.
+
+| Method | Path                                                  | Description                                 |
+|--------|-------------------------------------------------------|---------------------------------------------|
+| GET    | `/api/v1/recurring-messages`                          | List recurring messages                     |
+| POST   | `/api/v1/recurring-messages`                          | Create a recurring message                  |
+| GET    | `/api/v1/recurring-messages/{id}`                     | Get a single recurring message              |
+| PATCH  | `/api/v1/recurring-messages/{id}`                     | Update a recurring message                  |
+| DELETE | `/api/v1/recurring-messages/{id}`                     | Delete a recurring message                  |
 
 ## Style Rules
 

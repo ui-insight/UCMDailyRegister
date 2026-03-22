@@ -19,6 +19,8 @@ Models included:
     Newsletter               -- A single newsletter edition (TDR or My UI)
     NewsletterItem           -- A placed submission within a newsletter
     NewsletterExternalItem   -- Imported external item placed within a newsletter
+    RecurringMessage         -- Centrally managed recurring editorial content
+    RecurringMessageIssueOverride -- Issue-level skip/override markers
     NewsletterSection        -- Section catalog (Announcements, Kudos, etc.)
     StyleRule                -- Writing-style rules for the AI pipeline
     ScheduleConfig           -- Publication cadence and deadline rules
@@ -29,6 +31,7 @@ from app.models.allowed_value import AllowedValue
 from app.models.blackout_date import BlackoutDate
 from app.models.edit_history import EditVersion
 from app.models.newsletter import Newsletter, NewsletterExternalItem, NewsletterItem
+from app.models.recurring_message import RecurringMessage, RecurringMessageIssueOverride
 from app.models.schedule_config import ScheduleConfig
 from app.models.section import NewsletterSection
 from app.models.style_rule import StyleRule
@@ -41,6 +44,8 @@ __all__ = [
     "Newsletter",
     "NewsletterExternalItem",
     "NewsletterItem",
+    "RecurringMessage",
+    "RecurringMessageIssueOverride",
     "NewsletterSection",
     "ScheduleConfig",
     "StyleRule",

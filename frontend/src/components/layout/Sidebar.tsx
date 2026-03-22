@@ -4,6 +4,7 @@ const navItems = [
   { to: '/submit', label: 'Submit', icon: '+ ' },
   { to: '/dashboard', label: 'Dashboard', icon: '' },
   { to: '/builder', label: 'Builder', icon: '' },
+  { to: '/recurring-messages', label: 'Recurring', icon: '' },
   { to: '/style-rules', label: 'Style Rules', icon: '' },
   { to: '/settings', label: 'Settings', icon: '' },
 ];

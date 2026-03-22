@@ -14,12 +14,18 @@ import {
   getExportUrl,
   listSections,
 } from '../api/newsletters';
+import {
+  addRecurringMessageToNewsletter,
+  listRecurringMessageCandidates,
+  skipRecurringMessageForNewsletter,
+} from '../api/recurringMessages';
 import type {
   CalendarEventCandidate,
   JobPostingCandidate,
   NewsletterDetailResponse,
 } from '../api/newsletters';
 import type { NewsletterSection } from '../types/newsletter';
+import type { RecurringMessageIssueCandidate } from '../types/recurringMessage';
 
 interface BuilderSectionItemBase {
   Id: string;
@@ -47,6 +53,7 @@ type BuilderSectionItem =
   | (BuilderSectionItemBase & { Kind: 'submission'; Run_Number: number })
   | (BuilderSectionItemBase & {
     Kind: 'calendar_event';
+    Source_Id: string;
     Source_Url: string | null;
     Location: string | null;
     Event_Start: string | null;
@@ -54,9 +61,15 @@ type BuilderSectionItem =
   })
   | (BuilderSectionItemBase & {
     Kind: 'job_posting';
+    Source_Id: string;
     Source_Url: string | null;
     Location: string | null;
     Posting_Number?: string | null;
+    Source_Type: string;
+  })
+  | (BuilderSectionItemBase & {
+    Kind: 'recurring_message';
+    Source_Id: string;
     Source_Type: string;
   });
 
@@ -114,13 +127,17 @@ export default function BuilderPage() {
   const [newsletter, setNewsletter] = useState<NewsletterDetailResponse | null>(null);
   const [newsletters, setNewsletters] = useState<NewsletterDetailResponse[]>([]);
   const [sections, setSections] = useState<NewsletterSection[]>([]);
+  const [recurringMessages, setRecurringMessages] = useState<RecurringMessageIssueCandidate[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEventCandidate[]>([]);
   const [jobPostings, setJobPostings] = useState<JobPostingCandidate[]>([]);
+  const [recurringLoading, setRecurringLoading] = useState(false);
+  const [recurringError, setRecurringError] = useState<string | null>(null);
   const [calendarLoading, setCalendarLoading] = useState(false);
   const [calendarError, setCalendarError] = useState<string | null>(null);
   const [jobLoading, setJobLoading] = useState(false);
   const [jobError, setJobError] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState({
+    recurringMessages: true,
     calendarEvents: true,
     jobPostings: true,
   });
@@ -149,14 +166,17 @@ export default function BuilderPage() {
 
   useEffect(() => {
     if (!newsletterId) {
+      setRecurringMessages([]);
+      setRecurringError(null);
       setCalendarEvents([]);
       setCalendarError(null);
       setJobPostings([]);
       setJobError(null);
       return;
     }
-    loadCalendarEvents(newsletterId);
-    loadJobPostings(newsletterId);
+    void loadRecurringMessages(newsletterId);
+    void loadCalendarEvents(newsletterId);
+    void loadJobPostings(newsletterId);
   }, [newsletterId]);
 
   useEffect(() => {
@@ -169,6 +189,19 @@ export default function BuilderPage() {
       setNewsletters(list as NewsletterDetailResponse[]);
     } catch (err) {
       console.error('Failed to load newsletters:', err);
+    }
+  };
+
+  const loadRecurringMessages = async (newsletterId: string) => {
+    setRecurringLoading(true);
+    setRecurringError(null);
+    try {
+      const messages = await listRecurringMessageCandidates(newsletterId);
+      setRecurringMessages(messages);
+    } catch (err) {
+      setRecurringError(err instanceof Error ? err.message : 'Failed to load recurring messages');
+    } finally {
+      setRecurringLoading(false);
     }
   };
 
@@ -195,6 +228,32 @@ export default function BuilderPage() {
       setJobError(err instanceof Error ? err.message : 'Failed to load job postings');
     } finally {
       setJobLoading(false);
+    }
+  };
+
+  const handleAddRecurringMessage = async (recurringMessageId: string) => {
+    if (!newsletter) return;
+    try {
+      await addRecurringMessageToNewsletter(newsletter.Id, recurringMessageId);
+      const nl = await getNewsletter(newsletter.Id);
+      setNewsletter(nl);
+      await loadRecurringMessages(newsletter.Id);
+      showToast('Recurring message added');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add recurring message');
+    }
+  };
+
+  const handleSkipRecurringMessage = async (recurringMessageId: string) => {
+    if (!newsletter) return;
+    try {
+      await skipRecurringMessageForNewsletter(newsletter.Id, recurringMessageId);
+      const nl = await getNewsletter(newsletter.Id);
+      setNewsletter(nl);
+      await loadRecurringMessages(newsletter.Id);
+      showToast('Recurring message skipped for this issue');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to skip recurring message');
     }
   };
 
@@ -241,12 +300,21 @@ export default function BuilderPage() {
     }
   };
 
-  const handleRemoveExternalItem = async (itemId: string) => {
+  const handleRemoveExternalItem = async (
+    itemId: string,
+    sourceType?: string,
+    sourceId?: string,
+  ) => {
     if (!newsletter) return;
     try {
-      await removeNewsletterExternalItem(newsletter.Id, itemId);
+      if (sourceType === 'recurring_message' && sourceId) {
+        await skipRecurringMessageForNewsletter(newsletter.Id, sourceId);
+      } else {
+        await removeNewsletterExternalItem(newsletter.Id, itemId);
+      }
       const nl = await getNewsletter(newsletter.Id);
       setNewsletter(nl);
+      await loadRecurringMessages(newsletter.Id);
       await loadCalendarEvents(newsletter.Id);
       await loadJobPostings(newsletter.Id);
       showToast('Imported item removed');
@@ -421,7 +489,7 @@ export default function BuilderPage() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const togglePanel = (panel: 'calendarEvents' | 'jobPostings') => {
+  const togglePanel = (panel: 'recurringMessages' | 'calendarEvents' | 'jobPostings') => {
     setPanelOpen((current) => ({
       ...current,
       [panel]: !current[panel],
@@ -542,11 +610,16 @@ export default function BuilderPage() {
     }));
     const externalItems: BuilderSectionItem[] = newsletter.External_Items.map((item) => ({
       Id: item.Id,
+      Source_Id: item.Source_Id,
       Section_Id: item.Section_Id,
       Position: item.Position,
       Final_Headline: item.Final_Headline,
       Final_Body: item.Final_Body,
-      Kind: item.Source_Type === 'job_posting' ? 'job_posting' : 'calendar_event',
+      Kind: item.Source_Type === 'job_posting'
+        ? 'job_posting'
+        : item.Source_Type === 'recurring_message'
+          ? 'recurring_message'
+          : 'calendar_event',
       Source_Url: item.Source_Url,
       Location: item.Location,
       Event_Start: item.Event_Start,
@@ -570,6 +643,8 @@ export default function BuilderPage() {
   const isDropIndicatorVisible = (sectionId: string, index: number) => (
     dragState?.overSectionId === sectionId && dragState.overIndex === index
   );
+
+  const sectionNameById = new Map(sections.map((section) => [section.Id, section.Name]));
 
   const STATUS_COLORS: Record<string, string> = {
     draft: 'bg-gray-100 text-gray-800',
@@ -682,6 +757,97 @@ export default function BuilderPage() {
             </div>
           ) : (
             <div className="space-y-4">
+              <CollapsibleCard
+                title="Recurring Messages"
+                subtitle="Reusable editorial copy surfaced from the recurring-message library."
+                meta={`${recurringMessages.length} candidate${recurringMessages.length !== 1 ? 's' : ''}`}
+                isOpen={panelOpen.recurringMessages}
+                onToggle={() => togglePanel('recurringMessages')}
+                actions={(
+                  <button
+                    onClick={() => void loadRecurringMessages(newsletter.Id)}
+                    disabled={recurringLoading}
+                    className="px-3 py-1.5 text-xs font-medium rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                  >
+                    {recurringLoading ? 'Refreshing...' : 'Refresh Messages'}
+                  </button>
+                )}
+              >
+                {recurringError && (
+                  <div className="mb-3 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
+                    {recurringError}
+                  </div>
+                )}
+                {recurringMessages.length === 0 ? (
+                  <div className="rounded-md border border-dashed border-gray-200 px-4 py-6 text-center text-xs text-gray-400">
+                    {recurringLoading ? 'Loading recurring messages...' : 'No recurring messages apply to this issue date.'}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                    {recurringMessages.map((message) => (
+                      <div
+                        key={message.Id}
+                        className={`rounded-lg border p-3 ${
+                          message.Selected
+                            ? 'border-green-200 bg-green-50'
+                            : message.Skipped
+                              ? 'border-amber-200 bg-amber-50'
+                              : 'border-gray-200 bg-white'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-sm font-medium text-gray-900">{message.Headline}</p>
+                              {message.Selected && (
+                                <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-medium text-green-700">
+                                  Added
+                                </span>
+                              )}
+                              {message.Skipped && (
+                                <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+                                  Skipped
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {sectionNameById.get(message.Section_Id) ?? 'Unknown section'}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => void handleAddRecurringMessage(message.Id)}
+                              disabled={message.Selected}
+                              className={`px-3 py-1.5 text-xs font-medium rounded-md ${
+                                message.Selected
+                                  ? 'bg-green-100 text-green-700 cursor-default'
+                                  : 'bg-ui-gold-600 text-white hover:bg-ui-gold-700'
+                              }`}
+                            >
+                              {message.Skipped ? 'Restore' : message.Selected ? 'Added' : 'Add'}
+                            </button>
+                            <button
+                              onClick={() => void handleSkipRecurringMessage(message.Id)}
+                              disabled={message.Skipped}
+                              className={`px-3 py-1.5 text-xs font-medium rounded-md border ${
+                                message.Skipped
+                                  ? 'border-amber-200 text-amber-700 bg-amber-100 cursor-default'
+                                  : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                              }`}
+                            >
+                              Skip
+                            </button>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-2 line-clamp-3">
+                          {message.Body}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CollapsibleCard>
+
               <CollapsibleCard
                 title="Calendar Events"
                 subtitle={`Import upcoming U of I calendar events into the ${
@@ -961,6 +1127,11 @@ export default function BuilderPage() {
                                               Job
                                             </span>
                                           )}
+                                          {item.Kind === 'recurring_message' && (
+                                            <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+                                              Recurring
+                                            </span>
+                                          )}
                                         </div>
                                         <p className="text-xs text-gray-600 mt-1 line-clamp-2">
                                           {item.Final_Body.replace(/<[^>]+>/g, '')}
@@ -1031,7 +1202,7 @@ export default function BuilderPage() {
                                           onClick={() => (
                                             item.Kind === 'submission'
                                               ? handleRemoveItem(item.Id)
-                                              : handleRemoveExternalItem(item.Id)
+                                              : handleRemoveExternalItem(item.Id, item.Source_Type, item.Source_Id)
                                           )}
                                           className="p-1 text-red-400 hover:text-red-600"
                                           title="Remove"

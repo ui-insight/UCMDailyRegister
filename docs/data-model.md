@@ -15,6 +15,8 @@ All database columns use **PascalCase_With_Underscores** (e.g., `Submission_Titl
 | EditVersion       | Immutable snapshot of text at each editing stage      |
 | Newsletter        | A single issue of TDR or My UI                       |
 | NewsletterItem    | A submission placed into a newsletter with ordering   |
+| RecurringMessage  | Staff-managed reusable message with cadence rules     |
+| MessageOverride   | Issue-specific skip marker for a recurring message    |
 | NewsletterSection | Named section within a newsletter type                |
 | StyleRule         | Editorial rule applied during AI editing              |
 | ScheduleConfig    | Publishing schedule parameters per newsletter type    |
@@ -84,6 +86,12 @@ Immutable audit trail of text transformations. Each version captures the text at
 
 A `Newsletter` represents one issue (e.g., TDR for 2026-02-15). `NewsletterItem` is the join entity linking finalized submissions into a newsletter with section assignment and sort order.
 
+### RecurringMessage + MessageOverride
+
+`RecurringMessage` stores centrally managed editorial content that should appear on a standing cadence, such as weekly reminders or limited-run campaign copy. Each record is assigned directly to a newsletter type and section, with recurrence settings that mirror the builder's cadence options.
+
+`MessageOverride` stores issue-level exceptions. The current implementation uses these rows to remember when editors skip a recurring message for a specific newsletter issue so the next assembly pass does not reinsert it automatically.
+
 ### NewsletterSection
 
 Predefined sections seeded into the database. The system ships with 14 sections (9 for TDR, 5 for My UI).
@@ -107,6 +115,7 @@ Submission ──< SubmissionLink
 
 Newsletter ──< NewsletterItem >── Submission
            ──< NewsletterItem >── NewsletterSection
+           ──< MessageOverride >── RecurringMessage
 
 StyleRule (standalone, loaded by AI pipeline)
 ScheduleConfig (standalone, per newsletter type)
