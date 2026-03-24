@@ -144,6 +144,10 @@ external PostgreSQL network:
 - **backend** (uvicorn) -- internal only, port 8001 on the Docker network.
 - **database** -- external PostgreSQL instance reachable on the `insight-db-net` Docker network.
 
+`docker-compose.yml` does not create a database container. You must supply
+`DATABASE_URL` in the environment and ensure the shared `insight-db-net`
+external network already exists on the target host.
+
 ### Target Server
 
 | Setting  | Value                                |
@@ -187,16 +191,18 @@ smoke-tests the frontend and key API routes before returning success.
 Create `.env.prod` (or `.env` for dev) in the project root on the server:
 
 ```bash
+# Database
+DATABASE_URL=postgresql+asyncpg://ucm:<password>@insight-db:5432/ucm_newsletter
+# For dev, point to the dev database instead:
+# DATABASE_URL=postgresql+asyncpg://ucm:<password>@insight-db:5432/ucm_newsletter_dev
+
 # LLM Provider
 LLM_PROVIDER=mindrouter
 
 # MindRouter
 MINDROUTER_API_KEY=mr2_...
 MINDROUTER_ENDPOINT_URL=https://mindrouter.uidaho.edu/v1/chat/completions
-MINDROUTER_MODEL=GPT-OSS-120B
-
-# Database
-POSTGRES_PASSWORD=<secure-password>
+MINDROUTER_MODEL=openai/gpt-oss-120b
 
 # Docker
 HOST_PORT=9280          # 9290 for dev
@@ -236,7 +242,7 @@ curl http://localhost:9280/api/v1/submissions/?limit=1
 ## Production Considerations
 
 ??? info "Production Checklist"
-    - **Database** -- use PostgreSQL with `postgresql+asyncpg://` connection string
+    - **Database** -- set `DATABASE_URL` explicitly to the assigned shared Postgres database
     - **CORS** -- restrict `CORS_ORIGINS` to the production frontend domain
     - **File uploads** -- configure persistent storage for submission images (Docker volume or mounted directory)
     - **HTTPS** -- terminate TLS at a reverse proxy (nginx, Caddy, or cloud load balancer)

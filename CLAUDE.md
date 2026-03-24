@@ -103,17 +103,18 @@ Map it to host port <PORT>. Use 10.x.x.x address space.
 
 - **frontend** (nginx) — the only container with a host port mapping (`HOST_PORT`). Serves the React build and proxies `/api/` to the backend.
 - **backend** (uvicorn) — internal only, port 8001 on the Docker network.
-- **db** (postgres:16) — internal only, port 5432 on the Docker network.
+- **database** — external PostgreSQL instance reachable on the shared `insight-db-net` Docker network.
 
 ### Quick deploy
 
 ```bash
 # On the remote server
-HOST_PORT=9280 POSTGRES_PASSWORD=<secure> ANTHROPIC_API_KEY=<key> \
+HOST_PORT=9280 DATABASE_URL=postgresql+asyncpg://ucm:<password>@insight-db:5432/ucm_newsletter \
+  ANTHROPIC_API_KEY=<key> \
   docker compose up -d --build
 ```
 
-Set `HOST_PORT=9290` for dev.
+Set `HOST_PORT=9290` and point `DATABASE_URL` at `ucm_newsletter_dev` for dev.
 
 ## Environment Variables
 

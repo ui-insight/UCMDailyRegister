@@ -19,7 +19,7 @@ AI-assisted newsletter production pipeline for the University of Idaho's Univers
 | Backend | FastAPI, SQLAlchemy 2.0 (async), Pydantic v2 |
 | Frontend | React 19, TypeScript, TailwindCSS, Vite |
 | AI | Claude (Anthropic) / OpenAI, switchable via env var |
-| Database | SQLite (dev) / PostgreSQL (prod) |
+| Database | SQLite (local dev) / PostgreSQL via `insight-db` for Docker deployments |
 | Docs | MkDocs Material → GitHub Pages |
 
 ## Quick Start
@@ -43,6 +43,23 @@ npm run dev
 ```
 
 Open [http://localhost:5173](http://localhost:5173).
+
+For local code-first development, the backend defaults to SQLite. The checked-in
+`docker-compose.yml` instead expects an explicit `DATABASE_URL` for the shared
+PostgreSQL host on `insight-db-net`.
+
+### Docker
+
+```bash
+cp .env.example .env
+# Set DATABASE_URL to the shared Postgres host, for example:
+# DATABASE_URL=postgresql+asyncpg://ucm:<password>@insight-db:5432/ucm_newsletter_dev
+
+docker compose up --build
+```
+
+The frontend is served on `HOST_PORT` (default `9280`). The backend joins both
+the app network and `insight-db-net`.
 
 ## Documentation
 
@@ -113,7 +130,7 @@ Open [http://localhost:5173](http://localhost:5173).
 ├── docs/                    # MkDocs documentation
 ├── CLAUDE.md                # Claude Code conventions
 ├── .env.example             # Environment variable template
-├── docker-compose.yml       # PostgreSQL for production dev
+├── docker-compose.yml       # Backend + frontend stack targeting external PostgreSQL on insight-db-net
 └── mkdocs.yml               # Documentation site config
 ```
 
