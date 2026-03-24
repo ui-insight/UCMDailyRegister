@@ -83,8 +83,9 @@ export default function AIEditControls({
             <button
               onClick={onAcceptEdit}
               className="flex-1 px-3 py-2 text-sm font-medium rounded-md bg-green-600 text-white hover:bg-green-700"
+              title="Accept the AI-suggested edit as the final version"
             >
-              Accept & Finalize
+              Accept AI Edit
             </button>
             <button
               onClick={onRejectEdit}

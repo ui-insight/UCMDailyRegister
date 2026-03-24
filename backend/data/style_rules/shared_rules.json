@@ -160,5 +160,53 @@
     "rule_key": "qa_formatting",
     "rule_text": "Use Q&A formatting when the submission references a question-and-answer format.",
     "severity": "info"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "day_of_week_with_dates",
+    "rule_text": "Pair the day of the week with dates for events within the coming month. Events beyond 30 days out do not need a day of the week, only a date.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "u_of_i_abbreviation",
+    "rule_text": "Abbreviate 'University of Idaho' to 'U of I' on all references. Do not write out 'University of Idaho' repeatedly. Never use 'UI' alone as an abbreviation.",
+    "severity": "error"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "event_detail_ordering",
+    "rule_text": "Order event details as: time, day, date, location. Example: '3-4 p.m. Wednesday, Feb. 12, in the Pitman Center Vandal Ballroom'.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "no_pacific_time_label",
+    "rule_text": "Do not include 'PT' or 'Pacific time' unless the event is in another time zone such as Boise, Twin Falls or Idaho Falls. All events are assumed Pacific time by default.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "em_dash_spacing",
+    "rule_text": "Use em dashes — with spaces on both sides. Replace all en dashes with em dashes.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "phone_number_format",
+    "rule_text": "Format phone numbers as XXX-XXX-XXXX. Do not use parentheses around the area code.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "spell_out_acronyms",
+    "rule_text": "Spell out acronyms on first reference and define key terms. Use the acronym in parentheses after the first spelled-out reference.",
+    "severity": "warning"
+  },
+  {
+    "category": "voice",
+    "rule_key": "dei_language_flag",
+    "rule_text": "Flag language that could reasonably be read as Diversity, Equity and Inclusion-related for editor review, even if it may ultimately be acceptable.",
+    "severity": "warning"
   }
 ]

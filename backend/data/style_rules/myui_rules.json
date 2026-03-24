@@ -1,14 +1,26 @@
 [
   {
     "category": "headlines",
-    "rule_key": "title_case",
-    "rule_text": "Headlines must be title case (capitalize major words). Example: 'Register for Spring Break Activities' not 'Register for spring break activities'.",
+    "rule_key": "sentence_case",
+    "rule_text": "Headlines must be sentence case (capitalize only the first word and proper nouns). Example: 'Register for spring break activities' not 'Register for Spring Break Activities'.",
     "severity": "error"
   },
   {
     "category": "headlines",
     "rule_key": "active_complete",
     "rule_text": "Headlines should be active and complete, having both a subject and verb.",
+    "severity": "warning"
+  },
+  {
+    "category": "voice",
+    "rule_key": "explorer_archetype",
+    "rule_text": "Use the Explorer brand archetype: curious, bold, authentic and focused on discovery and growth. Write in a tone that feels energetic and student-friendly while remaining professional.",
+    "severity": "warning"
+  },
+  {
+    "category": "voice",
+    "rule_key": "you_is_ok",
+    "rule_text": "Write in third person but 'you' and 'your' are acceptable for student-facing content. Avoid 'I', 'we', 'us' and 'our'.",
     "severity": "warning"
   },
   {
@@ -24,9 +36,21 @@
     "severity": "warning"
   },
   {
+    "category": "content_filtering",
+    "rule_key": "no_duplicate_sections",
+    "rule_text": "Items must be unique and not duplicated across Weekly Events, News and Updates, or Highlighted Events sections.",
+    "severity": "warning"
+  },
+  {
     "category": "scheduling",
     "rule_key": "weekly_rotation",
     "rule_text": "My UI items rotate weekly with different events featured in Highlighted Events each week. Submissions are curated based on timeliness.",
+    "severity": "info"
+  },
+  {
+    "category": "scheduling",
+    "rule_key": "rsvp_runs_twice",
+    "rule_text": "Events with an RSVP deadline may run once with the deadline and again close to the event. Events without RSVP run in reasonable proximity to the event date.",
     "severity": "info"
   },
   {
@@ -37,6 +61,18 @@
   },
   {
     "category": "formatting",
+    "rule_key": "weekly_events_accuracy_only",
+    "rule_text": "Weekly events are edited for accuracy and formatting only. Titles and descriptions should not be rewritten unless correcting an error.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "news_single_paragraph",
+    "rule_text": "Each News and Updates item should be one paragraph with a headline. No bullet points. Headlines must be active and complete with a clear subject and verb.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
     "rule_key": "calendar_permalinks",
     "rule_text": "Calendar items are linked to the permalink address, not the entire calendar.",
     "severity": "warning"
@@ -44,7 +80,7 @@
   {
     "category": "formatting",
     "rule_key": "non_moscow_location",
-    "rule_text": "All calendar items outside of Moscow should indicate location. Items are Pacific time unless otherwise noted.",
+    "rule_text": "Events outside Moscow must indicate location. Events in Moscow but off campus must include the street address but not the city. Items are Pacific time unless otherwise noted.",
     "severity": "warning"
   },
   {

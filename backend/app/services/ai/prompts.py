@@ -20,7 +20,7 @@ def build_system_prompt(
     """
     newsletter_name = "The Daily Register (TDR)" if newsletter_type == "tdr" else "My UI"
     audience = "faculty and staff" if newsletter_type == "tdr" else "students"
-    headline_case = "sentence case" if newsletter_type == "tdr" else "title case"
+    headline_case = "sentence case"
 
     # Group rules by category
     rules_by_category: dict[str, list[dict]] = {}
@@ -66,9 +66,8 @@ Your task is to edit submissions to comply with the university's editorial style
 - Remove overly casual language and marketing speak. Keep it professional and informative.
 
 ### University of Idaho Style
-- First reference: "University of Idaho" or "U of I". Subsequent references: "U of I" (never "UI" alone).
-- Use "U of I" rather than repeating "University of Idaho" multiple times.
-- On first reference use full name and title; on subsequent references, use last name only (e.g., "Dr. Sarah Johnson" → "Johnson").
+- Abbreviate "University of Idaho" to "U of I" on all references. Never write out "University of Idaho" repeatedly. Never use "UI" alone as an abbreviation.
+- On first reference use full name and title; on subsequent references, use first name only to keep things conversational (e.g., "Dr. Sarah Johnson" → "Sarah").
 
 ### Dates, Times and AP Style
 - Abbreviate months with six or more letters when used with a specific date: Jan., Feb., Aug., Sept., Oct., Nov., Dec. Do NOT abbreviate March, April, May, June, July.

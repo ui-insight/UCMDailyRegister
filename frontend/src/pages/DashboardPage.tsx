@@ -353,7 +353,7 @@ export default function DashboardPage() {
                   </p>
                   <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
                     <span>{sub.Submitter_Name}</span>
-                    <span>{new Date(sub.Created_At).toLocaleDateString()}</span>
+                    <span>{new Date(sub.Created_At.endsWith('Z') ? sub.Created_At : sub.Created_At + 'Z').toLocaleDateString()}</span>
                     {sub.Links.length > 0 && (
                       <span>{sub.Links.length} link{sub.Links.length > 1 ? 's' : ''}</span>
                     )}

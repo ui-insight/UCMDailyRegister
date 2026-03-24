@@ -87,13 +87,23 @@ async def seed_style_rules(session: AsyncSession) -> None:
         filepath = DATA_DIR / "style_rules" / filename
         rules = json.loads(filepath.read_text())
         for r in rules:
-            existing = await session.execute(
+            result = await session.execute(
                 select(StyleRule).where(
                     StyleRule.Rule_Set == rule_set,
                     StyleRule.Rule_Key == r["rule_key"],
                 )
             )
-            if existing.scalar_one_or_none():
+            existing_rule = result.scalar_one_or_none()
+            if existing_rule:
+                # Update rule text and severity if they've changed
+                if (
+                    existing_rule.Rule_Text != r["rule_text"]
+                    or existing_rule.Severity != r.get("severity", "warning")
+                    or existing_rule.Category != r["category"]
+                ):
+                    existing_rule.Rule_Text = r["rule_text"]
+                    existing_rule.Severity = r.get("severity", "warning")
+                    existing_rule.Category = r["category"]
                 continue
             rule = StyleRule(
                 Rule_Set=rule_set,

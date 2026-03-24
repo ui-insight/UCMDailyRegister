@@ -253,7 +253,7 @@ export default function SubmissionMeta({
         <div>
           <dt className="text-xs text-gray-500">Submitted</dt>
           <dd className="text-gray-900">
-            {new Date(submission.Created_At).toLocaleString()}
+            {new Date(submission.Created_At.endsWith('Z') ? submission.Created_At : submission.Created_At + 'Z').toLocaleString()}
           </dd>
         </div>
         {submission.Links.length > 0 && (

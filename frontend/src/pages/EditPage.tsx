@@ -475,16 +475,6 @@ export default function EditPage() {
                 {/* View mode toggle */}
                 <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5 w-fit">
                   <button
-                    onClick={() => setViewMode('diff')}
-                    className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                      viewMode === 'diff'
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    Inline Diff
-                  </button>
-                  <button
                     onClick={() => setViewMode('side_by_side')}
                     className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
                       viewMode === 'side_by_side'
@@ -493,6 +483,16 @@ export default function EditPage() {
                     }`}
                   >
                     Side by Side
+                  </button>
+                  <button
+                    onClick={() => setViewMode('diff')}
+                    className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                      viewMode === 'diff'
+                        ? 'bg-white text-gray-900 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Inline Diff
                   </button>
                 </div>
 
@@ -570,6 +570,7 @@ export default function EditPage() {
                     onClick={handleSaveFinal}
                     disabled={saveLoading}
                     className="px-4 py-2 text-sm font-medium rounded-md bg-ui-gold-600 text-white hover:bg-ui-gold-700 disabled:opacity-50"
+                    title="Save your manual edits without changing the submission status"
                   >
                     {saveLoading ? 'Saving...' : 'Save Final Version'}
                   </button>
@@ -577,8 +578,9 @@ export default function EditPage() {
                     <button
                       onClick={handleApprove}
                       className="px-4 py-2 text-sm font-medium rounded-md bg-green-600 text-white hover:bg-green-700"
+                      title="Mark this submission as approved and ready for the newsletter"
                     >
-                      Approve
+                      Approve for Newsletter
                     </button>
                   )}
                 </div>

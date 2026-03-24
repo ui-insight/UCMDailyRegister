@@ -58,5 +58,23 @@
     "rule_key": "job_posting_format",
     "rule_text": "Job postings are linked to PeopleAdmin listings. Must be listed with Human Resources. Posted for two weeks, newest at top.",
     "severity": "info"
+  },
+  {
+    "category": "voice",
+    "rule_key": "first_names_second_ref",
+    "rule_text": "Use first names on second reference to keep things conversational. Example: 'Dr. Sarah Johnson' on first reference, 'Sarah' on subsequent references.",
+    "severity": "warning"
+  },
+  {
+    "category": "voice",
+    "rule_key": "faculty_staff_to_employees",
+    "rule_text": "Change 'faculty and staff' to 'employees' unless there is a reason to keep the distinction or only faculty or only staff is mentioned.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "bullet_points_long_text",
+    "rule_text": "Where appropriate, reformat large blocks of text to use bullet points to make it easier to scan. Ensure bullet points have parallel sentence structure. If a bullet point completes a sentence, include a period at the end.",
+    "severity": "info"
   }
 ]

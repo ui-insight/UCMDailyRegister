@@ -464,7 +464,7 @@ export default function SubmissionForm() {
         <button
           type="submit"
           disabled={submitting}
-          className="px-6 py-3 bg-ui-gold-600 text-white font-medium rounded-lg hover:bg-ui-gold-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-6 py-3 bg-yellow-400 text-black font-medium rounded-lg hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {submitting ? 'Submitting...' : 'Submit Announcement'}
         </button>

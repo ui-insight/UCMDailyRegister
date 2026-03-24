@@ -121,7 +121,7 @@ class AIEditor:
         newsletter_type: str,
     ) -> EditResult:
         """Run the full AI editing pipeline on a submission."""
-        headline_case = "sentence_case" if newsletter_type == "tdr" else "title_case"
+        headline_case = "sentence_case"
 
         style_rules = await self.load_style_rules(session, newsletter_type)
 
