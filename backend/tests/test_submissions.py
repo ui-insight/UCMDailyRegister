@@ -38,6 +38,25 @@ class TestSubmissionCRUD:
         assert len(body["Schedule_Requests"]) == 1
         assert body["Schedule_Requests"][0]["Repeat_Count"] == 2
 
+    async def test_create_submission_with_second_requested_date(
+        self, client: AsyncClient
+    ):
+        data = make_submission_data(
+            Target_Newsletter="both",
+            Schedule_Requests=[
+                {
+                    "Requested_Date": "2026-03-13",
+                    "Second_Requested_Date": "2026-03-16",
+                    "Repeat_Count": 2,
+                }
+            ],
+        )
+        resp = await client.post("/api/v1/submissions/", json=data)
+        assert resp.status_code == 201
+        schedule = resp.json()["Schedule_Requests"][0]
+        assert schedule["Repeat_Count"] == 2
+        assert schedule["Second_Requested_Date"] == "2026-03-16"
+
     async def test_create_submission_with_recurring_schedule(self, client: AsyncClient):
         data = make_submission_data(
             Schedule_Requests=[
