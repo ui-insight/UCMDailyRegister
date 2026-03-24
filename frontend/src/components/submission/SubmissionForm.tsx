@@ -16,7 +16,7 @@ import SchedulePrefs from './SchedulePrefs';
  * filter — the backend already gates them via the X-User-Role header.
  */
 const NEWSLETTER_CATEGORY_CODES: Record<TargetNewsletter, Set<string>> = {
-  myui: new Set(['student', 'job_opportunity', 'survey']),
+  myui: new Set(['student', 'survey']),
   tdr: new Set(['faculty_staff', 'job_opportunity', 'employee_announcement', 'kudos', 'in_memoriam', 'survey', 'news_release', 'ucm_feature_story']),
   both: new Set(['faculty_staff', 'survey']),
 };
@@ -153,6 +153,8 @@ export default function SubmissionForm() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isJobOpportunity = category === 'job_opportunity';
+  const effectiveTargetNewsletter: TargetNewsletter = isJobOpportunity ? 'tdr' : targetNewsletter;
 
   useEffect(() => {
     let cancelled = false;
@@ -187,6 +189,20 @@ export default function SubmissionForm() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isJobOpportunity || targetNewsletter === 'tdr') {
+      return;
+    }
+
+    setTargetNewsletter('tdr');
+    setSchedule((current) => ({
+      ...current,
+      Requested_Date: '',
+      Second_Requested_Date: '',
+      Repeat_Count: 1,
+    }));
+  }, [isJobOpportunity, targetNewsletter]);
+
   // Fetch valid publication dates for the next 3 months
   useEffect(() => {
     const fetchDates = async () => {
@@ -196,7 +212,7 @@ export default function SubmissionForm() {
         const future = new Date(today);
         future.setMonth(future.getMonth() + 3);
         const to = future.toISOString().split('T')[0];
-        const nlType = targetNewsletter === 'both' ? undefined : targetNewsletter;
+        const nlType = effectiveTargetNewsletter === 'both' ? undefined : effectiveTargetNewsletter;
         const data = await getValidDates(from, to, nlType);
         setValidDates(new Set(data.dates.map((d) => d.date)));
       } catch {
@@ -205,29 +221,30 @@ export default function SubmissionForm() {
       }
     };
     fetchDates();
-  }, [targetNewsletter]);
+  }, [effectiveTargetNewsletter]);
 
   // Filter categories by newsletter target; staff-visibility categories
   // (already gated by backend) always pass through
   const filteredCategories = categories.filter(
     (cat) =>
       cat.Visibility_Role === 'staff' ||
-      NEWSLETTER_CATEGORY_CODES[targetNewsletter]?.has(cat.Code),
+      NEWSLETTER_CATEGORY_CODES[effectiveTargetNewsletter]?.has(cat.Code),
   );
 
   // Clear date and reset category when newsletter target changes
   const handleTargetChange = (target: TargetNewsletter) => {
-    setTargetNewsletter(target);
+    const nextTarget = isJobOpportunity ? 'tdr' : target;
+    setTargetNewsletter(nextTarget);
     // validDates will be re-fetched via useEffect; clear dates and adjust repeat count
     setSchedule({
       ...schedule,
       Requested_Date: '',
       Second_Requested_Date: '',
-      Repeat_Count: target === 'both' ? 2 : schedule.Repeat_Count,
+      Repeat_Count: nextTarget === 'both' ? 2 : schedule.Repeat_Count,
     });
     // Reset category if current selection isn't valid for the new newsletter
     // (staff categories are always valid so they won't trigger a reset)
-    const allowed = NEWSLETTER_CATEGORY_CODES[target];
+    const allowed = NEWSLETTER_CATEGORY_CODES[nextTarget];
     const currentCat = categories.find((c) => c.Code === category);
     const isStaffCategory = currentCat?.Visibility_Role === 'staff';
     if (!isStaffCategory && !allowed?.has(category)) {
@@ -244,8 +261,8 @@ export default function SubmissionForm() {
     // Fallback client-side check
     const d = new Date(schedule.Requested_Date + 'T00:00:00');
     const day = d.getDay();
-    if (targetNewsletter === 'myui' || targetNewsletter === 'both') return day !== 1;
-    if (targetNewsletter === 'tdr') return day === 0 || day === 6;
+    if (effectiveTargetNewsletter === 'myui' || effectiveTargetNewsletter === 'both') return day !== 1;
+    if (effectiveTargetNewsletter === 'tdr') return day === 0 || day === 6;
     return false;
   };
 
@@ -271,19 +288,25 @@ export default function SubmissionForm() {
     setSuccess(false);
 
     try {
-      const isJob = category === 'job_opportunity';
+      const isJob = isJobOpportunity;
 
       // For jobs, compose headline/body/links from structured fields
       const jobAnchorText = [jobTitle, jobDepartment, jobLocation].filter(Boolean).join(', ');
+      const jobBodyParts = [
+        jobDepartment ? `Department: ${jobDepartment}.` : null,
+        jobLocation ? `Location: ${jobLocation}.` : null,
+        'Apply using the linked posting.',
+        jobRemoveDate ? `Remove listing after ${jobRemoveDate}.` : null,
+      ].filter(Boolean);
       const effectiveHeadline = isJob ? jobTitle : headline;
-      const effectiveBody = isJob ? '' : body;
+      const effectiveBody = isJob ? jobBodyParts.join(' ') : body;
       const effectiveLinks = isJob
         ? (jobUrl.trim() ? [{ Url: jobUrl, Anchor_Text: jobAnchorText || undefined }] : [])
         : links.filter((l) => l.Url.trim()).map((l) => ({ Url: l.Url, Anchor_Text: l.Anchor_Text || undefined }));
 
       const data: SubmissionCreate = {
         Category: category,
-        Target_Newsletter: isJob ? 'tdr' : targetNewsletter,
+        Target_Newsletter: effectiveTargetNewsletter,
         Original_Headline: effectiveHeadline,
         Original_Body: effectiveBody,
         Submitter_Name: submitterName,
@@ -360,7 +383,16 @@ export default function SubmissionForm() {
         <h3 className="text-lg font-semibold text-gray-900 border-b pb-3">
           About Your Announcement
         </h3>
-        <NewsletterTargetSelect value={targetNewsletter} onChange={handleTargetChange} />
+        {isJobOpportunity && (
+          <p className="text-xs text-gray-500 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+            Job postings run in The Daily Register only.
+          </p>
+        )}
+        <NewsletterTargetSelect
+          value={effectiveTargetNewsletter}
+          onChange={handleTargetChange}
+          disabledTargets={isJobOpportunity ? ['myui', 'both'] : undefined}
+        />
         <CategorySelect
           categories={filteredCategories}
           isLoading={categoriesLoading}
@@ -528,7 +560,7 @@ export default function SubmissionForm() {
         <SchedulePrefs
           schedule={schedule}
           onChange={setSchedule}
-          targetNewsletter={targetNewsletter}
+          targetNewsletter={effectiveTargetNewsletter}
           validDates={validDates.size > 0 ? validDates : undefined}
           showRecurrenceControls={isStaff}
         />
