@@ -1,4 +1,4 @@
-import { apiFetch } from './client';
+import { apiFetch, formatApiError } from './client';
 import type { Submission, SubmissionCreate, SubmissionScheduleRequest } from '../types/submission';
 import { getSubmitterRoleHeaders } from '../utils/submitterRole';
 
@@ -96,7 +96,7 @@ export async function uploadImage(submissionId: string, file: File): Promise<Sub
   });
   if (!res.ok) {
     const error = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(error.detail || res.statusText);
+    throw new Error(formatApiError(error.detail ?? error));
   }
   return res.json();
 }

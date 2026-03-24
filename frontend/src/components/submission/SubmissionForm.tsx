@@ -149,6 +149,7 @@ export default function SubmissionForm() {
   });
 
   const [validDates, setValidDates] = useState<Set<string>>(new Set());
+  const [secondaryValidDates, setSecondaryValidDates] = useState<Set<string>>(new Set());
 
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -212,12 +213,28 @@ export default function SubmissionForm() {
         const future = new Date(today);
         future.setMonth(future.getMonth() + 3);
         const to = future.toISOString().split('T')[0];
-        const nlType = effectiveTargetNewsletter === 'both' ? undefined : effectiveTargetNewsletter;
-        const data = await getValidDates(from, to, nlType);
+        if (effectiveTargetNewsletter === 'both') {
+          const data = await getValidDates(from, to);
+          setValidDates(new Set(
+            data.dates
+              .filter((d) => d.newsletters.includes('tdr'))
+              .map((d) => d.date),
+          ));
+          setSecondaryValidDates(new Set(
+            data.dates
+              .filter((d) => d.newsletters.includes('myui'))
+              .map((d) => d.date),
+          ));
+          return;
+        }
+
+        const data = await getValidDates(from, to, effectiveTargetNewsletter);
         setValidDates(new Set(data.dates.map((d) => d.date)));
+        setSecondaryValidDates(new Set());
       } catch {
         // Fallback to client-side validation if API unavailable
         setValidDates(new Set());
+        setSecondaryValidDates(new Set());
       }
     };
     fetchDates();
@@ -266,6 +283,39 @@ export default function SubmissionForm() {
     return false;
   };
 
+  const getSecondDateError = (): string | null => {
+    if (effectiveTargetNewsletter === 'both') {
+      if (!schedule.Second_Requested_Date) {
+        return 'Please select a valid My UI run date.';
+      }
+      if (secondaryValidDates.size > 0 && !secondaryValidDates.has(schedule.Second_Requested_Date)) {
+        return 'Please select a valid My UI run date.';
+      }
+      const d = new Date(`${schedule.Second_Requested_Date}T00:00:00`);
+      if (d.getDay() !== 1) {
+        return 'Please select a valid My UI run date.';
+      }
+      return null;
+    }
+
+    if (schedule.Repeat_Count < 2 || !schedule.Second_Requested_Date) {
+      return null;
+    }
+    if (validDates.size > 0 && !validDates.has(schedule.Second_Requested_Date)) {
+      return 'Please select a valid second run date for the chosen newsletter.';
+    }
+
+    const d = new Date(`${schedule.Second_Requested_Date}T00:00:00`);
+    const day = d.getDay();
+    if (effectiveTargetNewsletter === 'myui' && day !== 1) {
+      return 'Please select a valid second run date for the chosen newsletter.';
+    }
+    if (effectiveTargetNewsletter === 'tdr' && (day === 0 || day === 6)) {
+      return 'Please select a valid second run date for the chosen newsletter.';
+    }
+    return null;
+  };
+
   const hasRecurrenceEndError = (): boolean => (
     schedule.Recurrence_Type !== 'once'
     && !!schedule.Recurrence_End_Date
@@ -277,6 +327,11 @@ export default function SubmissionForm() {
     e.preventDefault();
     if (hasDateError()) {
       setError('Please select a valid run date for the chosen newsletter.');
+      return;
+    }
+    const secondDateError = getSecondDateError();
+    if (secondDateError) {
+      setError(secondDateError);
       return;
     }
     if (hasRecurrenceEndError()) {
@@ -562,6 +617,7 @@ export default function SubmissionForm() {
           onChange={setSchedule}
           targetNewsletter={effectiveTargetNewsletter}
           validDates={validDates.size > 0 ? validDates : undefined}
+          secondaryValidDates={secondaryValidDates.size > 0 ? secondaryValidDates : undefined}
           showRecurrenceControls={isStaff}
         />
         <div>

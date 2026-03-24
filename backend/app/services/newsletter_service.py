@@ -361,6 +361,9 @@ def _get_category_section_map(newsletter_type: str) -> dict[str, str]:
     if newsletter_type == "tdr":
         return {
             "faculty_staff": "employee-news",
+            "employee_announcement": "employee-news",
+            "survey": "employee-news",
+            "ucm_feature_story": "employee-news",
             "calendar_event": "todays-events",
             "kudos": "kudos",
             "news_release": "news-releases",
@@ -373,6 +376,9 @@ def _get_category_section_map(newsletter_type: str) -> dict[str, str]:
             "student": "news-and-updates",
             "calendar_event": "weekly-events",
             "faculty_staff": "news-and-updates",
+            "employee_announcement": "news-and-updates",
+            "survey": "news-and-updates",
+            "ucm_feature_story": "news-and-updates",
             "kudos": "news-and-updates",
             "news_release": "news-and-updates",
             "job_opportunity": "help-wanted",

@@ -21,6 +21,7 @@ async def create_submission(db: AsyncSession, data: SubmissionCreate) -> Submiss
         Submitter_Name=data.Submitter_Name,
         Submitter_Email=data.Submitter_Email,
         Submitter_Notes=data.Submitter_Notes,
+        Survey_End_Date=data.Survey_End_Date,
     )
     db.add(submission)
     await db.flush()

@@ -17,6 +17,7 @@ interface Props {
   onChange: (schedule: ScheduleEntry) => void;
   targetNewsletter: TargetNewsletter;
   validDates?: Set<string>;
+  secondaryValidDates?: Set<string>;
   showRecurrenceControls?: boolean;
 }
 
@@ -69,6 +70,7 @@ export default function SchedulePrefs({
   onChange,
   targetNewsletter,
   validDates,
+  secondaryValidDates,
   showRecurrenceControls = false,
 }: Props) {
   const update = (field: keyof ScheduleEntry, value: string | number | boolean) => {
@@ -77,11 +79,13 @@ export default function SchedulePrefs({
 
   const isBoth = targetNewsletter === 'both';
 
-  const dateError = validateDate(schedule.Requested_Date, targetNewsletter, isBoth ? undefined : validDates);
+  const dateError = isBoth
+    ? validateDate(schedule.Requested_Date, 'tdr', validDates)
+    : validateDate(schedule.Requested_Date, targetNewsletter, validDates);
 
   // For "both", validate the second date as Monday-only (My UI)
   const secondDateError = isBoth
-    ? validateMyUIDate(schedule.Second_Requested_Date)
+    ? validateDate(schedule.Second_Requested_Date, 'myui', secondaryValidDates) ?? validateMyUIDate(schedule.Second_Requested_Date)
     : schedule.Repeat_Count >= 2 && schedule.Second_Requested_Date
       ? validateDate(schedule.Second_Requested_Date, targetNewsletter, validDates)
       : null;

@@ -170,6 +170,55 @@ class TestNewsletterItems:
         assert len(items) == 1
         assert items[0]["Submission_Id"] == recurring_id
 
+    async def test_assemble_myui_survey_uses_news_and_updates_section(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+    ):
+        db.add_all([
+            NewsletterSection(
+                Id="myui-help-wanted",
+                Newsletter_Type="myui",
+                Name="Help Wanted",
+                Slug="help-wanted",
+                Display_Order=1,
+                Is_Active=True,
+            ),
+            NewsletterSection(
+                Id="myui-news-updates",
+                Newsletter_Type="myui",
+                Name="News and Updates",
+                Slug="news-and-updates",
+                Display_Order=2,
+                Is_Active=True,
+            ),
+        ])
+        await db.commit()
+
+        submission_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(
+                Category="survey",
+                Target_Newsletter="myui",
+                Schedule_Requests=[{"Requested_Date": "2026-04-06"}],
+            ),
+        )
+        submission_id = submission_resp.json()["Id"]
+        await client.patch(
+            f"/api/v1/submissions/{submission_id}",
+            json={"Status": "approved"},
+        )
+
+        assemble_resp = await client.post(
+            "/api/v1/newsletters/assemble",
+            json={"Newsletter_Type": "myui", "Publish_Date": "2026-04-06"},
+        )
+        assert assemble_resp.status_code == 200
+        items = assemble_resp.json()["Items"]
+        assert len(items) == 1
+        assert items[0]["Submission_Id"] == submission_id
+        assert items[0]["Section_Id"] == "myui-news-updates"
+
 
 class TestCalendarEventParsing:
     def test_parse_trumba_rss(self):

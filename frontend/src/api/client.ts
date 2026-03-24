@@ -2,7 +2,7 @@ import { getSubmitterRoleHeaders } from '../utils/submitterRole';
 
 const BASE_URL = '/api/v1';
 
-function formatApiError(detail: unknown): string {
+export function formatApiError(detail: unknown): string {
   if (typeof detail === 'string') {
     return detail;
   }

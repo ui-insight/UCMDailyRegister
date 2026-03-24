@@ -57,6 +57,15 @@ class TestSubmissionCRUD:
         assert schedule["Repeat_Count"] == 2
         assert schedule["Second_Requested_Date"] == "2026-03-16"
 
+    async def test_create_submission_persists_survey_end_date(self, client: AsyncClient):
+        data = make_submission_data(
+            Category="survey",
+            Survey_End_Date="2026-04-15",
+        )
+        resp = await client.post("/api/v1/submissions/", json=data)
+        assert resp.status_code == 201
+        assert resp.json()["Survey_End_Date"] == "2026-04-15"
+
     async def test_create_submission_with_recurring_schedule(self, client: AsyncClient):
         data = make_submission_data(
             Schedule_Requests=[
@@ -200,6 +209,20 @@ class TestSubmissionCRUD:
         )
         assert resp.status_code == 200
         assert resp.json()["Status"] == "approved"
+
+    async def test_update_submission_survey_end_date(self, client: AsyncClient):
+        create_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(Category="survey"),
+        )
+        sub_id = create_resp.json()["Id"]
+
+        resp = await client.patch(
+            f"/api/v1/submissions/{sub_id}",
+            json={"Survey_End_Date": "2026-05-01"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["Survey_End_Date"] == "2026-05-01"
 
     async def test_staff_can_update_editorial_workflow_fields(self, client: AsyncClient):
         create_resp = await client.post("/api/v1/submissions/", json=make_submission_data())

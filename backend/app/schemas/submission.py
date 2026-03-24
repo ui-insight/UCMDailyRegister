@@ -93,6 +93,7 @@ class SubmissionUpdate(BaseModel):
     Original_Headline: str | None = None
     Original_Body: str | None = None
     Submitter_Notes: str | None = None
+    Survey_End_Date: date | None = None
     Assigned_Editor: str | None = Field(None, max_length=255)
     Editorial_Notes: str | None = None
     Category: str | None = Field(None, min_length=1, max_length=100)
