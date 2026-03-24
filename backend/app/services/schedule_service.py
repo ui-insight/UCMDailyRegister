@@ -6,8 +6,88 @@ import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.blackout_date import BlackoutDate
+from app.models.custom_publish_date import CustomPublishDate
 from app.models.schedule_config import ScheduleConfig
+from app.models.schedule_mode_override import ScheduleModeOverride
 from app.schemas.newsletter import BlackoutDateCreate
+
+
+# ---------------------------------------------------------------------------
+# Mode override helpers
+# ---------------------------------------------------------------------------
+
+
+async def get_active_override(
+    db: AsyncSession,
+    newsletter_type: str,
+    for_date: date | None = None,
+) -> ScheduleModeOverride | None:
+    """Return the active mode override for a newsletter type on a given date."""
+    if for_date is None:
+        for_date = date.today()
+    result = await db.execute(
+        sa.select(ScheduleModeOverride).where(
+            ScheduleModeOverride.Newsletter_Type == newsletter_type,
+            ScheduleModeOverride.Start_Date <= for_date,
+            ScheduleModeOverride.End_Date >= for_date,
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+async def list_mode_overrides(
+    db: AsyncSession,
+    newsletter_type: str | None = None,
+) -> list[ScheduleModeOverride]:
+    """List all mode overrides, optionally filtered by newsletter type."""
+    query = sa.select(ScheduleModeOverride)
+    if newsletter_type:
+        query = query.where(ScheduleModeOverride.Newsletter_Type == newsletter_type)
+    result = await db.execute(query.order_by(ScheduleModeOverride.Start_Date))
+    return list(result.scalars().all())
+
+
+async def create_mode_override(
+    db: AsyncSession,
+    newsletter_type: str,
+    override_mode: str,
+    start_date: date,
+    end_date: date,
+    description: str | None = None,
+) -> ScheduleModeOverride:
+    """Create a new schedule mode override."""
+    record = ScheduleModeOverride(
+        Newsletter_Type=newsletter_type,
+        Override_Mode=override_mode,
+        Start_Date=start_date,
+        End_Date=end_date,
+        Description=description,
+    )
+    db.add(record)
+    await db.commit()
+    await db.refresh(record)
+    return record
+
+
+async def delete_mode_override(
+    db: AsyncSession,
+    override_id: str,
+) -> bool:
+    """Delete a mode override by ID."""
+    result = await db.execute(
+        sa.select(ScheduleModeOverride).where(ScheduleModeOverride.Id == override_id)
+    )
+    record = result.scalar_one_or_none()
+    if not record:
+        return False
+    await db.delete(record)
+    await db.commit()
+    return True
+
+
+# ---------------------------------------------------------------------------
+# Schedule config resolution
+# ---------------------------------------------------------------------------
 
 
 async def get_active_config(
@@ -15,11 +95,15 @@ async def get_active_config(
     newsletter_type: str,
     for_date: date | None = None,
 ) -> ScheduleConfig | None:
-    """Get the active schedule config for a newsletter type based on the date."""
+    """Get the active schedule config for a newsletter type based on the date.
+
+    Checks for mode overrides first, then falls back to month-based detection.
+    """
     if for_date is None:
         for_date = date.today()
 
-    month = for_date.month
+    # Check for manual mode override
+    override = await get_active_override(db, newsletter_type, for_date)
 
     result = await db.execute(
         sa.select(ScheduleConfig).where(
@@ -28,6 +112,12 @@ async def get_active_config(
     )
     configs = list(result.scalars().all())
 
+    if override:
+        for config in configs:
+            if config.Mode == override.Override_Mode:
+                return config
+
+    month = for_date.month
     for config in configs:
         if config.Active_Start_Month is None or config.Active_End_Month is None:
             continue
@@ -158,6 +248,63 @@ async def delete_blackout_date(
 
 
 # ---------------------------------------------------------------------------
+# Custom publish dates CRUD
+# ---------------------------------------------------------------------------
+
+
+async def list_custom_publish_dates(
+    db: AsyncSession,
+    newsletter_type: str | None = None,
+    from_date: date | None = None,
+    to_date: date | None = None,
+) -> list[CustomPublishDate]:
+    """List custom publish dates, optionally filtered."""
+    query = sa.select(CustomPublishDate)
+    if newsletter_type:
+        query = query.where(CustomPublishDate.Newsletter_Type == newsletter_type)
+    if from_date:
+        query = query.where(CustomPublishDate.Publish_Date >= from_date)
+    if to_date:
+        query = query.where(CustomPublishDate.Publish_Date <= to_date)
+    result = await db.execute(query.order_by(CustomPublishDate.Publish_Date))
+    return list(result.scalars().all())
+
+
+async def create_custom_publish_date(
+    db: AsyncSession,
+    newsletter_type: str,
+    publish_date: date,
+    description: str | None = None,
+) -> CustomPublishDate:
+    """Create a new custom publish date."""
+    record = CustomPublishDate(
+        Newsletter_Type=newsletter_type,
+        Publish_Date=publish_date,
+        Description=description,
+    )
+    db.add(record)
+    await db.commit()
+    await db.refresh(record)
+    return record
+
+
+async def delete_custom_publish_date(
+    db: AsyncSession,
+    custom_date_id: str,
+) -> bool:
+    """Delete a custom publish date by ID."""
+    result = await db.execute(
+        sa.select(CustomPublishDate).where(CustomPublishDate.Id == custom_date_id)
+    )
+    record = result.scalar_one_or_none()
+    if not record:
+        return False
+    await db.delete(record)
+    await db.commit()
+    return True
+
+
+# ---------------------------------------------------------------------------
 # Valid publication dates
 # ---------------------------------------------------------------------------
 
@@ -180,6 +327,19 @@ def _month_in_range(month: int, start: int | None, end: int | None) -> bool:
     return month >= start or month <= end
 
 
+def _is_blacked_out(
+    d: date,
+    nl_type: str,
+    blackout_set: dict[str | None, set[date]],
+) -> bool:
+    """Check if a date is blacked out for a newsletter type."""
+    if d in blackout_set.get(None, set()):
+        return True
+    if d in blackout_set.get(nl_type, set()):
+        return True
+    return False
+
+
 async def get_valid_publication_dates(
     db: AsyncSession,
     from_date: date,
@@ -187,6 +347,11 @@ async def get_valid_publication_dates(
     newsletter_type: str | None = None,
 ) -> list[dict]:
     """Return valid publication dates in a range for one or both newsletter types.
+
+    Handles holiday shift logic: if a scheduled publish day is blacked out and the
+    config has Holiday_Shift_Enabled, the next weekday is offered as a replacement.
+
+    Also includes custom publish dates for winter_break (or any override) modes.
 
     Returns a list of dicts: [{"date": date, "newsletters": ["tdr", "myui"]}, ...]
     """
@@ -196,36 +361,80 @@ async def get_valid_publication_dates(
     result = await db.execute(sa.select(ScheduleConfig))
     all_configs = list(result.scalars().all())
 
-    # Load blackout dates in range
-    blackouts = await list_blackout_dates(db, from_date=from_date, to_date=to_date)
+    # Load mode overrides
+    result = await db.execute(sa.select(ScheduleModeOverride))
+    all_overrides = list(result.scalars().all())
+
+    # Load blackout dates in range (with some buffer for shift calculation)
+    buffer_start = from_date - timedelta(days=7)
+    blackouts = await list_blackout_dates(db, from_date=buffer_start, to_date=to_date)
     blackout_set: dict[str | None, set[date]] = {}
     for b in blackouts:
         blackout_set.setdefault(b.Newsletter_Type, set()).add(b.Blackout_Date)
+
+    # Load custom publish dates in range
+    custom_dates = await list_custom_publish_dates(db, from_date=from_date, to_date=to_date)
+    custom_date_map: dict[str, set[date]] = {}
+    for cd in custom_dates:
+        custom_date_map.setdefault(cd.Newsletter_Type, set()).add(cd.Publish_Date)
+
+    def _get_override_mode(nl_type: str, d: date) -> str | None:
+        for o in all_overrides:
+            if o.Newsletter_Type == nl_type and o.Start_Date <= d <= o.End_Date:
+                return o.Override_Mode
+        return None
+
+    def _get_config(nl_type: str, mode: str) -> ScheduleConfig | None:
+        for c in all_configs:
+            if c.Newsletter_Type == nl_type and c.Mode == mode:
+                return c
+        return None
 
     # Build result
     dates_map: dict[date, list[str]] = {}
     current = from_date
     while current <= to_date:
         for nl_type in newsletter_types:
-            # Find the active config for this date
+            # Determine active mode for this date
+            override_mode = _get_override_mode(nl_type, current)
             config = None
-            for c in all_configs:
-                if c.Newsletter_Type != nl_type:
-                    continue
-                if _month_in_range(current.month, c.Active_Start_Month, c.Active_End_Month):
-                    config = c
-                    break
+
+            if override_mode:
+                config = _get_config(nl_type, override_mode)
+            else:
+                # Month-based detection
+                for c in all_configs:
+                    if c.Newsletter_Type != nl_type:
+                        continue
+                    if _month_in_range(current.month, c.Active_Start_Month, c.Active_End_Month):
+                        config = c
+                        break
 
             if not config:
+                continue
+
+            # Winter break / custom mode: only custom dates are valid
+            if config.Mode == "winter_break":
+                if current in custom_date_map.get(nl_type, set()):
+                    if not _is_blacked_out(current, nl_type, blackout_set):
+                        dates_map.setdefault(current, []).append(nl_type)
                 continue
 
             if not _is_valid_publish_day(config, current):
                 continue
 
-            # Check blackout (global + newsletter-specific)
-            if current in blackout_set.get(None, set()):
-                continue
-            if current in blackout_set.get(nl_type, set()):
+            if _is_blacked_out(current, nl_type, blackout_set):
+                # Holiday shift: if enabled, offer next weekday
+                if config.Holiday_Shift_Enabled:
+                    shifted = current + timedelta(days=1)
+                    while shifted.weekday() >= 5:
+                        shifted += timedelta(days=1)
+                    if (
+                        shifted <= to_date
+                        and not _is_blacked_out(shifted, nl_type, blackout_set)
+                        and nl_type not in dates_map.get(shifted, [])
+                    ):
+                        dates_map.setdefault(shifted, []).append(nl_type)
                 continue
 
             dates_map.setdefault(current, []).append(nl_type)
@@ -272,6 +481,9 @@ async def validate_requested_date(
 
     if requested_date.weekday() >= 5:
         return f"{requested_date} falls on a weekend"
+
+    if config.Mode == "winter_break":
+        return f"{requested_date} is not a scheduled custom publish date during winter break"
 
     if config.Publish_Day_Of_Week is not None and requested_date.weekday() != config.Publish_Day_Of_Week:
         day_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]

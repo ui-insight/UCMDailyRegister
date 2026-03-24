@@ -12,6 +12,7 @@ from app.services import (
     job_posting_service,
     newsletter_service,
     recurring_message_service,
+    schedule_service,
 )
 from app.schemas.newsletter import (
     CalendarEventCandidateResponse,
@@ -186,9 +187,18 @@ async def skip_recurring_message(
 )
 async def list_calendar_events(
     newsletter_id: str,
+    extra_days: int = 0,
     db: AsyncSession = Depends(get_db),
 ):
-    """Fetch candidate calendar events for a newsletter issue."""
+    """Fetch candidate calendar events for a newsletter issue.
+
+    The day-of-week import logic determines which dates to include:
+      - Mon-Thu: events for today and tomorrow
+      - Friday: events for Fri, Sat, Sun, and Mon
+      - Weekly editions (summer/holiday): entire week + following Monday
+
+    Use extra_days to include additional days beyond the default range.
+    """
     newsletter = await newsletter_service.get_newsletter(db, newsletter_id)
     if not newsletter:
         raise HTTPException(status_code=404, detail="Newsletter not found")
@@ -198,10 +208,19 @@ async def list_calendar_events(
         for item in newsletter.External_Items
         if item.Source_Type == "calendar_event"
     ]
+
+    # Determine if this is a weekly edition by checking the schedule config
+    config = await schedule_service.get_active_config(
+        db, newsletter.Newsletter_Type, newsletter.Publish_Date
+    )
+    is_weekly = config is not None and not config.Is_Daily
+
     return await calendar_event_service.fetch_calendar_events(
         publish_date=newsletter.Publish_Date,
         newsletter_type=newsletter.Newsletter_Type,
         selected_source_ids=selected_source_ids,
+        is_weekly=is_weekly,
+        extra_days=extra_days,
     )
 
 

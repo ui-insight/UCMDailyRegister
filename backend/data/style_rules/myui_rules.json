@@ -100,5 +100,23 @@
     "rule_key": "help_wanted_two_weeks",
     "rule_text": "Student job postings are listed for two weeks. Off-campus jobs link to VandalWeb Career Center page.",
     "severity": "info"
+  },
+  {
+    "category": "content_filtering",
+    "rule_key": "flag_audience_mismatch",
+    "rule_text": "Flag items that appear employee-focused rather than student-focused. Content about employee benefits, HR policies, or faculty-only events should be redirected to The Daily Register.",
+    "severity": "warning"
+  },
+  {
+    "category": "content_filtering",
+    "rule_key": "flag_promotional_language",
+    "rule_text": "Flag overly promotional or marketing-heavy language for editor review. Newsletter items should be informational, not advertisements. Remove sales-oriented phrasing like 'Don't miss out', 'Amazing opportunity', 'Act now'.",
+    "severity": "warning"
+  },
+  {
+    "category": "content_filtering",
+    "rule_key": "flag_unclear_acronyms",
+    "rule_text": "Flag acronyms that are not spelled out on first reference. Student readers may not be familiar with university department or program abbreviations.",
+    "severity": "warning"
   }
 ]

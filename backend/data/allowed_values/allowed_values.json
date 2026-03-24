@@ -47,5 +47,6 @@
   {"Value_Group": "Severity", "Code": "info", "Label": "Info", "Display_Order": 3, "Description": "Informational note for editor"},
 
   {"Value_Group": "Schedule_Mode", "Code": "academic_year", "Label": "Academic Year", "Display_Order": 1, "Description": "August through May schedule"},
-  {"Value_Group": "Schedule_Mode", "Code": "summer", "Label": "Summer", "Display_Order": 2, "Description": "June through July schedule"}
+  {"Value_Group": "Schedule_Mode", "Code": "summer", "Label": "Summer", "Display_Order": 2, "Description": "June through July schedule"},
+  {"Value_Group": "Schedule_Mode", "Code": "winter_break", "Label": "Winter Break", "Display_Order": 3, "Description": "Custom dates at editor discretion during winter break"}
 ]

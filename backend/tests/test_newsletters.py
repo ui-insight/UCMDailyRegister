@@ -1,6 +1,6 @@
 """Tests for Newsletter CRUD and assembly endpoints."""
 
-from datetime import datetime
+from datetime import date, datetime
 
 import pytest
 from httpx import AsyncClient
@@ -172,28 +172,63 @@ class TestNewsletterItems:
 
 
 class TestCalendarEventParsing:
-    def test_parse_trumba_hcalendar(self):
-        html = """
-        <html><body>
-          <h2><a href="/event-1">Accessibility Workshop</a></h2>
-          <p>Learn how to build accessible documents. University Location: IRIC 305.
-          Thursday, March 19, 2026, 12:00 PM - 1:00 PM. For more info visit
-          <a href="https://www.uidaho.edu/event-1">event page</a>.</p>
-          <h2>Contact Us</h2>
-        </body></html>
+    def test_parse_trumba_rss(self):
+        rss = """<?xml version="1.0" encoding="utf-8"?>
+        <rss version="2.0">
+          <channel>
+            <title>University of Idaho Main</title>
+            <item>
+              <title>Accessibility Workshop</title>
+              <description>Learn how to build accessible documents. University Location: IRIC 305.
+                Thursday, March 19, 2026, 12:00 PM - 1:00 PM.</description>
+              <link>https://www.uidaho.edu/events?trumbaEmbed=view%3devent%26eventid%3d12345</link>
+              <category>2026/03/19 (Thu)</category>
+              <guid isPermaLink="false">http://uid.trumba.com/event/12345</guid>
+            </item>
+          </channel>
+        </rss>
         """
 
-        events = calendar_event_service.parse_trumba_hcalendar(
-            html,
-            "https://calendar.example.test",
-        )
+        events = calendar_event_service.parse_trumba_rss(rss)
 
         assert len(events) == 1
         event = events[0]
         assert event.title == "Accessibility Workshop"
-        assert event.location == "IRIC 305"
-        assert event.url == "https://www.uidaho.edu/event-1"
-        assert event.event_start == datetime(2026, 3, 19, 12, 0)
+        assert event.event_start is not None
+        assert event.event_start.date() == date(2026, 3, 19)
+
+    def test_import_date_range_weekday(self):
+        """Mon-Thu: today + tomorrow."""
+        # Wednesday
+        start, end = calendar_event_service._get_import_date_range(
+            date(2026, 3, 25), is_weekly=False
+        )
+        assert start == date(2026, 3, 25)
+        assert end == date(2026, 3, 26)
+
+    def test_import_date_range_friday(self):
+        """Friday: Fri + Sat + Sun + Mon."""
+        start, end = calendar_event_service._get_import_date_range(
+            date(2026, 3, 27), is_weekly=False
+        )
+        assert start == date(2026, 3, 27)
+        assert end == date(2026, 3, 30)
+
+    def test_import_date_range_weekly(self):
+        """Weekly editions: entire week + following Monday."""
+        start, end = calendar_event_service._get_import_date_range(
+            date(2026, 3, 23), is_weekly=True
+        )
+        assert start == date(2026, 3, 23)
+        assert end == date(2026, 3, 30)
+
+    def test_import_date_range_extra_days(self):
+        """Extra days extend the range."""
+        start, end = calendar_event_service._get_import_date_range(
+            date(2026, 3, 25), is_weekly=False, extra_days=3
+        )
+        assert start == date(2026, 3, 25)
+        assert end == date(2026, 3, 29)
 
 
 class TestJobPostingParsing:

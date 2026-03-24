@@ -132,16 +132,20 @@ async def seed_schedule_configs(session: AsyncSession) -> None:
     filepath = DATA_DIR / "schedule" / "schedule_config.json"
     configs = json.loads(filepath.read_text())
     for c in configs:
-        existing = await session.execute(
+        result = await session.execute(
             select(ScheduleConfig).where(
                 ScheduleConfig.Newsletter_Type == c["newsletter_type"],
                 ScheduleConfig.Mode == c["mode"],
             )
         )
-        if existing.scalar_one_or_none():
+        existing_config = result.scalar_one_or_none()
+        h, m, s = (int(x) for x in c["deadline_time"].split(":"))
+        if existing_config:
+            # Update fields that may have changed
+            existing_config.Holiday_Shift_Enabled = c.get("holiday_shift_enabled", False)
+            existing_config.Submission_Deadline_Description = c["submission_deadline_description"]
             continue
 
-        h, m, s = (int(x) for x in c["deadline_time"].split(":"))
         config = ScheduleConfig(
             Newsletter_Type=c["newsletter_type"],
             Mode=c["mode"],
@@ -152,6 +156,7 @@ async def seed_schedule_configs(session: AsyncSession) -> None:
             Is_Daily=c.get("is_daily", False),
             Active_Start_Month=c.get("active_start_month"),
             Active_End_Month=c.get("active_end_month"),
+            Holiday_Shift_Enabled=c.get("holiday_shift_enabled", False),
         )
         session.add(config)
     await session.commit()

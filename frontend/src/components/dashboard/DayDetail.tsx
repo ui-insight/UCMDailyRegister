@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Submission, SubmissionStatus } from '../../types/submission';
 import { getOccurrenceDates } from '../../utils/submissionOccurrences';
+import { rescheduleScheduleOccurrence } from '../../api/submissions';
 
 const STATUS_COLORS: Record<string, string> = {
   new: 'bg-blue-100 text-blue-800',
@@ -43,6 +45,7 @@ const NEWSLETTER_LABELS: Record<string, string> = {
 interface DayDetailProps {
   date: string;
   submissions: Submission[];
+  onReschedule?: () => void;
 }
 
 function getStatusAction(status: SubmissionStatus): string {
@@ -60,8 +63,11 @@ function getStatusAction(status: SubmissionStatus): string {
   }
 }
 
-export default function DayDetail({ date, submissions }: DayDetailProps) {
+export default function DayDetail({ date, submissions, onReschedule }: DayDetailProps) {
   const navigate = useNavigate();
+  const [movingId, setMovingId] = useState<string | null>(null);
+  const [moveDate, setMoveDate] = useState('');
+  const [moveError, setMoveError] = useState<string | null>(null);
 
   const dateLabel = new Date(date + 'T12:00:00').toLocaleDateString('en-US', {
     weekday: 'long',
@@ -75,6 +81,32 @@ export default function DayDetail({ date, submissions }: DayDetailProps) {
     getOccurrenceDates(sub).includes(date),
   );
 
+  const handleMove = async (sub: Submission) => {
+    if (!moveDate) return;
+    setMoveError(null);
+
+    // Find the schedule request that contains this date
+    const schedReq = sub.Schedule_Requests.find((sr) =>
+      sr.Occurrence_Dates?.includes(date) ||
+      sr.Requested_Date === date ||
+      sr.Second_Requested_Date === date
+    );
+
+    if (!schedReq) {
+      setMoveError('Could not find schedule request for this date');
+      return;
+    }
+
+    try {
+      await rescheduleScheduleOccurrence(sub.Id, schedReq.Id, date, moveDate);
+      setMovingId(null);
+      setMoveDate('');
+      onReschedule?.();
+    } catch (err) {
+      setMoveError(err instanceof Error ? err.message : 'Failed to reschedule');
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg shadow">
       <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
@@ -83,6 +115,13 @@ export default function DayDetail({ date, submissions }: DayDetailProps) {
           {daySubs.length} submission{daySubs.length !== 1 ? 's' : ''}
         </span>
       </div>
+
+      {moveError && (
+        <div className="mx-4 mt-2 text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
+          {moveError}
+          <button onClick={() => setMoveError(null)} className="ml-2 text-red-400">&times;</button>
+        </div>
+      )}
 
       {daySubs.length === 0 ? (
         <div className="px-4 py-8 text-center text-sm text-gray-400">
@@ -125,6 +164,46 @@ export default function DayDetail({ date, submissions }: DayDetailProps) {
                       </span>
                     )}
                   </div>
+
+                  {/* Reschedule UI */}
+                  {movingId === sub.Id ? (
+                    <div
+                      className="mt-2 flex items-center gap-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <input
+                        type="date"
+                        value={moveDate}
+                        onChange={(e) => setMoveDate(e.target.value)}
+                        className="rounded border-gray-300 text-xs px-2 py-1"
+                      />
+                      <button
+                        onClick={() => handleMove(sub)}
+                        disabled={!moveDate}
+                        className="px-2 py-1 text-xs bg-ui-gold-600 text-white rounded hover:bg-ui-gold-700 disabled:opacity-50"
+                      >
+                        Move
+                      </button>
+                      <button
+                        onClick={() => { setMovingId(null); setMoveDate(''); }}
+                        className="px-2 py-1 text-xs text-gray-500 hover:text-gray-700"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      className="mt-2 text-xs text-ui-clearwater-600 hover:text-ui-clearwater-800"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMovingId(sub.Id);
+                        setMoveDate('');
+                        setMoveError(null);
+                      }}
+                    >
+                      Move to another date
+                    </button>
+                  )}
                 </div>
                 <button
                   className="ml-4 px-3 py-1.5 text-xs font-medium rounded-md bg-ui-gold-50 text-ui-gold-700 hover:bg-ui-gold-100 whitespace-nowrap"

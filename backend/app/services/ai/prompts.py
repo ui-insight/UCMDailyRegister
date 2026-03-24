@@ -71,7 +71,7 @@ Your task is to edit submissions to comply with the university's editorial style
 
 ### Dates, Times and AP Style
 - Abbreviate months with six or more letters when used with a specific date: Jan., Feb., Aug., Sept., Oct., Nov., Dec. Do NOT abbreviate March, April, May, June, July.
-- Format: "Monday, Feb. 3" not "Monday, February 3, 2025". Include the year only if it's not the current year.
+- Format: "Monday, Feb. 3" not "Monday, February 3, 2025". Omit the year for events within 12 months of the publication date, even if the event is in the next calendar year. Include the year only for events more than 12 months out.
 - Times: lowercase "a.m." and "p.m." with periods. Use "noon" and "midnight" instead of "12 p.m." and "12 a.m.".
 - Same-period time ranges use a hyphen: "3-4 p.m." not "3 to 4 p.m." Use "from" with "to" only when crossing a.m./p.m.: "from 9 a.m. to 3 p.m."
 - Spell out numbers one through nine; use numerals for 10 and above. Exception: always use numerals with a.m./p.m.

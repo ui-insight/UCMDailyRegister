@@ -1,30 +1,38 @@
-"""Fetch and normalize external calendar events for newsletter selection."""
+"""Fetch and normalize external calendar events for newsletter selection.
+
+Events are pulled from the University of Idaho's Trumba calendar RSS feed at
+uidaho.edu/events. The RSS feed provides structured event data including titles,
+dates, descriptions, and links.
+
+Day-of-week import logic determines which dates to include:
+  - Monday through Thursday: events for today and the following day
+  - Friday: events for Friday, Saturday, Sunday, and Monday
+  - Holiday/summer weekly editions: entire week plus the following Monday
+
+Editors can override this to include additional days via the `extra_days`
+parameter.
+"""
 
 from __future__ import annotations
 
+import hashlib
+import re
+import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from html import unescape
-import re
 from typing import Iterable
-from urllib.parse import urljoin
 
 import httpx
 
 from app.config import settings
 
-_EVENT_BLOCK_RE = re.compile(
-    r"<h2[^>]*>(?P<title>.*?)</h2>(?P<body>.*?)(?=<h2[^>]*>|$)",
-    re.IGNORECASE | re.DOTALL,
-)
 _TAG_RE = re.compile(r"<[^>]+>")
-_LINK_RE = re.compile(r'<a[^>]+href="(?P<href>[^"]+)"[^>]*>', re.IGNORECASE)
 _WHITESPACE_RE = re.compile(r"\s+")
-_DATE_RE = re.compile(
-    r"(?P<start>(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday), "
-    r"[A-Z][a-z]+ \d{1,2}, \d{4}(?:, \d{1,2}:\d{2} [AP]M)?)"
-    r"(?:\s*[–-]\s*(?P<end>(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday), "
-    r"[A-Z][a-z]+ \d{1,2}, \d{4}(?:, \d{1,2}:\d{2} [AP]M)?|\d{1,2}:\d{2} [AP]M))?",
+_TIME_RE = re.compile(
+    r"(\d{1,2}(?::\d{2})?\s*(?:am|pm|a\.m\.|p\.m\.))"
+    r"(?:\s*[-–]\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm|a\.m\.|p\.m\.)))?",
+    re.IGNORECASE,
 )
 
 
@@ -40,12 +48,53 @@ class CalendarEvent:
     event_end: datetime | None
 
 
+def _get_import_date_range(
+    publish_date: date,
+    is_weekly: bool = False,
+    extra_days: int = 0,
+) -> tuple[date, date]:
+    """Compute the event date range to import based on day-of-week rules.
+
+    Args:
+        publish_date: The newsletter's publication date.
+        is_weekly: True for summer/holiday weekly editions.
+        extra_days: Extra days to extend the range (editor override).
+    """
+    dow = publish_date.weekday()  # 0=Mon, 4=Fri
+
+    if is_weekly:
+        # Weekly editions: entire week (Mon-Sun) plus the following Monday
+        start = publish_date
+        end = publish_date + timedelta(days=7)
+    elif dow == 4:  # Friday
+        # Fri + Sat + Sun + Mon
+        start = publish_date
+        end = publish_date + timedelta(days=3)
+    else:
+        # Mon-Thu: today + tomorrow
+        start = publish_date
+        end = publish_date + timedelta(days=1)
+
+    end = end + timedelta(days=extra_days)
+    return start, end
+
+
 async def fetch_calendar_events(
     publish_date: date,
     newsletter_type: str,
     selected_source_ids: Iterable[str] = (),
+    is_weekly: bool = False,
+    extra_days: int = 0,
 ) -> list[dict]:
-    """Fetch upcoming events for a given newsletter date."""
+    """Fetch upcoming events for a given newsletter date.
+
+    Args:
+        publish_date: The newsletter's publication date.
+        newsletter_type: "tdr" or "myui".
+        selected_source_ids: Source IDs already added to the newsletter.
+        is_weekly: Whether this is a weekly edition (summer/holiday).
+        extra_days: Additional days to include (editor override).
+    """
     source_url = settings.calendar_source_url
     timeout = settings.calendar_request_timeout_seconds
     async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
@@ -53,8 +102,10 @@ async def fetch_calendar_events(
         response.raise_for_status()
 
     selected = set(selected_source_ids)
-    events = parse_trumba_hcalendar(response.text, source_url)
-    end_date = publish_date + timedelta(days=7)
+    events = parse_trumba_rss(response.text)
+
+    start_date, end_date = _get_import_date_range(publish_date, is_weekly, extra_days)
+
     filtered = [
         {
             "Source_Id": event.source_id,
@@ -68,7 +119,7 @@ async def fetch_calendar_events(
             "Selected": event.source_id in selected,
         }
         for event in events
-        if _include_event(event, publish_date, end_date, newsletter_type)
+        if _include_event(event, start_date, end_date)
     ]
     filtered.sort(
         key=lambda event: (
@@ -79,39 +130,61 @@ async def fetch_calendar_events(
     return filtered
 
 
-def parse_trumba_hcalendar(html_text: str, source_url: str) -> list[CalendarEvent]:
-    """Parse the Trumba hCalendar page into normalized events."""
+def parse_trumba_rss(xml_text: str) -> list[CalendarEvent]:
+    """Parse the Trumba RSS feed into normalized CalendarEvent objects."""
     events: list[CalendarEvent] = []
-    for match in _EVENT_BLOCK_RE.finditer(html_text):
-        title = _clean_html(match.group("title"))
-        if not title:
-            continue
-        if title.lower() == "contact us":
-            break
+    try:
+        root = ET.fromstring(xml_text)
+    except ET.ParseError:
+        return events
 
-        block_html = match.group("body")
-        block_text = _clean_html(block_html)
-        if not _DATE_RE.search(block_text):
+    for item in root.iter("item"):
+        title_elem = item.find("title")
+        if title_elem is None or not title_elem.text:
             continue
 
-        start, end = _extract_datetimes(block_text)
-        description = _extract_description(block_text)
-        location = _extract_location(block_text)
-        url = _extract_event_url(match.group("title"), block_html, source_url)
-        source_id = _build_source_id(url, title, start)
+        title = title_elem.text.strip()
+        link_elem = item.find("link")
+        url = link_elem.text.strip() if link_elem is not None and link_elem.text else None
+
+        guid_elem = item.find("guid")
+        source_id = (
+            guid_elem.text.strip()
+            if guid_elem is not None and guid_elem.text
+            else _build_source_id(url, title)
+        )
+
+        # Parse description (HTML content)
+        desc_elem = item.find("description")
+        raw_desc = desc_elem.text.strip() if desc_elem is not None and desc_elem.text else ""
+        description, location, event_start, event_end = _parse_description(raw_desc)
+
+        # Parse date from category field (format: "YYYY/MM/DD (Day)")
+        if event_start is None:
+            cat_elem = item.find("category")
+            if cat_elem is not None and cat_elem.text:
+                event_start = _parse_category_date(cat_elem.text.strip())
+
         events.append(
             CalendarEvent(
                 source_id=source_id,
                 source_type="calendar_event",
                 url=url,
                 title=title,
-                description=description,
+                description=description or "Imported from the U of I events calendar.",
                 location=location,
-                event_start=start,
-                event_end=end,
+                event_start=event_start,
+                event_end=event_end,
             )
         )
+
     return events
+
+
+# Keep the HTML parser for backwards compatibility
+def parse_trumba_hcalendar(html_text: str, source_url: str) -> list[CalendarEvent]:
+    """Parse the Trumba hCalendar HTML page into normalized events (legacy)."""
+    return parse_trumba_rss(html_text) if html_text.strip().startswith("<?xml") else []
 
 
 def build_event_body(event: CalendarEvent) -> str:
@@ -137,99 +210,131 @@ def build_event_body(event: CalendarEvent) -> str:
 
 def _include_event(
     event: CalendarEvent,
-    publish_date: date,
+    start_date: date,
     end_date: date,
-    newsletter_type: str,
 ) -> bool:
+    """Check if an event falls within the import date range."""
     if event.event_start is None:
         return False
     event_date = event.event_start.date()
-    if newsletter_type == "tdr":
-        return publish_date <= event_date <= end_date
-    return publish_date <= event_date <= end_date
+    return start_date <= event_date <= end_date
 
 
-def _extract_datetimes(text: str) -> tuple[datetime | None, datetime | None]:
-    matches = list(_DATE_RE.finditer(text))
-    if not matches:
-        return None, None
-    match = matches[-1]
-    start_text = match.group("start")
-    end_text = match.group("end")
-    start = _parse_datetime(start_text)
-    end = _parse_end_datetime(end_text, start) if end_text else None
-    return start, end
+def _parse_description(raw_html: str) -> tuple[str, str | None, datetime | None, datetime | None]:
+    """Extract description, location, and datetimes from RSS description HTML."""
+    text = _clean_html(raw_html)
+    description = text
+    location = None
+    event_start = None
+    event_end = None
+
+    # Try to extract location from common patterns
+    for label in ("University Location:", "Location:"):
+        if label in text:
+            loc_part = text.split(label, 1)[1].strip()
+            # Location is typically before the next label or end
+            for terminator in ("\n", "Participate", "For more", "http"):
+                if terminator in loc_part:
+                    loc_part = loc_part.split(terminator, 1)[0]
+            location = loc_part.strip(" .")
+            if location and len(location) > 255:
+                location = location[:255]
+
+    # Try to extract date/time from the text
+    # Trumba descriptions often start with the date line
+    lines = text.split("\n") if "\n" in text else text.split("  ")
+    for line in lines:
+        line = line.strip()
+        # Look for date-like patterns: "Tuesday, March 24, 2026" or "March 24, 2026"
+        date_match = re.search(
+            r"(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\s+"
+            r"(January|February|March|April|May|June|July|August|September|October|November|December)"
+            r"\s+(\d{1,2}),?\s+(\d{4})",
+            line,
+        )
+        if date_match:
+            month_str = date_match.group(1)
+            day_num = int(date_match.group(2))
+            year_num = int(date_match.group(3))
+            try:
+                month_num = [
+                    "January", "February", "March", "April", "May", "June",
+                    "July", "August", "September", "October", "November", "December",
+                ].index(month_str) + 1
+                event_date = date(year_num, month_num, day_num)
+
+                # Try to get times
+                time_match = _TIME_RE.search(line)
+                if time_match:
+                    start_time = _parse_time_str(time_match.group(1))
+                    if start_time:
+                        event_start = datetime.combine(event_date, start_time)
+                    end_time_str = time_match.group(2)
+                    if end_time_str and event_start:
+                        end_time = _parse_time_str(end_time_str)
+                        if end_time:
+                            event_end = datetime.combine(event_date, end_time)
+                else:
+                    event_start = datetime.combine(event_date, time.min)
+            except (ValueError, IndexError):
+                pass
+            break
+
+    # Clean up description: remove the date line if it's at the start
+    if event_start and lines:
+        clean_parts = []
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            # Skip lines that are purely date/time info
+            if re.match(
+                r"^(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)",
+                line,
+            ) and event_start:
+                continue
+            clean_parts.append(line)
+        if clean_parts:
+            description = " ".join(clean_parts)
+
+    return description.strip() or "Imported from the U of I events calendar.", location, event_start, event_end
 
 
-def _extract_description(text: str) -> str:
-    match = _DATE_RE.search(text)
-    if not match:
-        return text.strip()
-    description = text[:match.start()].strip(" .")
-    if "For more info visit" in description:
-        description = description.split("For more info visit", 1)[0].strip(" .")
-    return description or "Imported from the University of Idaho events calendar."
+def _parse_time_str(time_str: str) -> time | None:
+    """Parse a time string like '9am', '3:30 p.m.' into a time object."""
+    cleaned = time_str.strip().lower().replace(".", "").replace(" ", "")
+    for fmt in ("%I:%M%p", "%I%p"):
+        try:
+            return datetime.strptime(cleaned, fmt).time()
+        except ValueError:
+            continue
+    return None
 
 
-def _extract_location(text: str) -> str | None:
-    prefix = text
-    match = _DATE_RE.search(text)
+def _parse_category_date(cat_text: str) -> datetime | None:
+    """Parse the category field format: 'YYYY/MM/DD (Day)'."""
+    match = re.match(r"(\d{4})/(\d{2})/(\d{2})", cat_text)
     if match:
-        prefix = text[:match.start()]
-
-    for label in ("University Location:", "Location:", "Participate Online:"):
-        if label in prefix:
-            value = prefix.rsplit(label, 1)[-1].strip(" .")
-            if value:
-                return value
-
-    sentences = [segment.strip(" .") for segment in prefix.split(".") if segment.strip()]
-    if len(sentences) >= 2:
-        candidate = sentences[-1]
-        if len(candidate) <= 255:
-            return candidate
+        try:
+            return datetime(
+                int(match.group(1)),
+                int(match.group(2)),
+                int(match.group(3)),
+            )
+        except ValueError:
+            return None
     return None
 
 
-def _extract_event_url(title_html: str, block_html: str, source_url: str) -> str | None:
-    for html_fragment in (block_html, title_html):
-        match = _LINK_RE.search(html_fragment)
-        if match:
-            return urljoin(source_url, unescape(match.group("href")))
-    return None
-
-
-def _build_source_id(url: str | None, title: str, start: datetime | None) -> str:
+def _build_source_id(url: str | None, title: str) -> str:
+    """Build a stable source ID from URL or title."""
     if url:
         return url
-    parts = [title.strip().lower()]
-    if start:
-        parts.append(start.isoformat())
-    return "::".join(parts)
+    return hashlib.md5(title.encode()).hexdigest()
 
 
 def _clean_html(value: str) -> str:
+    """Strip HTML tags and normalize whitespace."""
     text = _TAG_RE.sub(" ", value)
     text = unescape(text)
     return _WHITESPACE_RE.sub(" ", text).strip()
-
-
-def _parse_datetime(value: str) -> datetime | None:
-    for fmt in ("%A, %B %d, %Y, %I:%M %p", "%A, %B %d, %Y"):
-        try:
-            return datetime.strptime(value, fmt)
-        except ValueError:
-            continue
-    return None
-
-
-def _parse_end_datetime(value: str, start: datetime | None) -> datetime | None:
-    if start is None:
-        return _parse_datetime(value)
-    for fmt in ("%I:%M %p",):
-        try:
-            parsed = datetime.strptime(value, fmt)
-            return datetime.combine(start.date(), parsed.time())
-        except ValueError:
-            continue
-    return _parse_datetime(value)

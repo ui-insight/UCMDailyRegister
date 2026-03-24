@@ -169,6 +169,18 @@
   },
   {
     "category": "formatting",
+    "rule_key": "events_free_default",
+    "rule_text": "Events are assumed to be free unless otherwise noted. If an event has a cost, include the price. Do not write 'free' unless the original submission explicitly states it.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "no_year_within_12_months",
+    "rule_text": "Do not include the year for events occurring within 12 months of the publication date, even if the event is in the next calendar year. Include the year only for events more than 12 months out.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
     "rule_key": "u_of_i_abbreviation",
     "rule_text": "Abbreviate 'University of Idaho' to 'U of I' on all references. Do not write out 'University of Idaho' repeatedly. Never use 'UI' alone as an abbreviation.",
     "severity": "error"

@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listSubmissions } from '../api/submissions';
 import { getValidDates } from '../api/schedule';
 import type { Submission, SubmissionStatus } from '../types/submission';
 import CalendarView from '../components/dashboard/CalendarView';
+import WeekOverview from '../components/dashboard/WeekOverview';
 import DayDetail from '../components/dashboard/DayDetail';
 import { getPrimaryOccurrenceDate } from '../utils/submissionOccurrences';
 
@@ -66,8 +67,9 @@ export default function DashboardPage() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [validDates, setValidDates] = useState<Map<string, string[]>>(new Map());
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const fetchSubmissions = async () => {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -94,41 +96,14 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [statusFilter, categoryFilter, newsletterFilter, searchQuery, viewMode, currentMonth]);
 
   useEffect(() => {
-    void (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const params: Parameters<typeof listSubmissions>[0] = {
-          status: statusFilter || undefined,
-          category: categoryFilter || undefined,
-          target_newsletter: newsletterFilter || undefined,
-          search: searchQuery || undefined,
-          limit: 200,
-        };
+    fetchData();
+  }, [fetchData, refreshKey]);
 
-        if (viewMode === 'calendar') {
-          const year = currentMonth.getFullYear();
-          const month = currentMonth.getMonth();
-          params.date_from = toISODate(new Date(year, month, 1));
-          params.date_to = toISODate(new Date(year, month + 1, 0));
-        }
-
-        const data = await listSubmissions(params);
-        setSubmissions(data.Items);
-        setTotal(data.Total);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load submissions');
-      } finally {
-        setLoading(false);
-      }
-    })();
-
-    if (viewMode !== 'calendar') {
-      return;
-    }
+  useEffect(() => {
+    if (viewMode !== 'calendar') return;
 
     void (async () => {
       try {
@@ -146,18 +121,15 @@ export default function DashboardPage() {
         // Non-critical — calendar still works without valid dates
       }
     })();
-  }, [
-    statusFilter,
-    categoryFilter,
-    newsletterFilter,
-    searchQuery,
-    viewMode,
-    currentMonth,
-  ]);
+  }, [viewMode, currentMonth]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchSubmissions();
+    fetchData();
+  };
+
+  const handleReschedule = () => {
+    setRefreshKey((k) => k + 1);
   };
 
   const getStatusAction = (status: SubmissionStatus) => {
@@ -174,6 +146,9 @@ export default function DashboardPage() {
         return 'View';
     }
   };
+
+  // Get the week start for the WeekOverview
+  const selectedWeekStart = selectedDate ?? toISODate(new Date());
 
   return (
     <div>
@@ -250,23 +225,21 @@ export default function DashboardPage() {
               <option value="both">Both</option>
             </select>
           </div>
-          {viewMode === 'list' && (
-            <form onSubmit={handleSearch} className="flex gap-2 flex-1 min-w-[200px]">
-              <input
-                type="text"
-                placeholder="Search headlines, body, submitter..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm"
-              />
-              <button
-                type="submit"
-                className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-md hover:bg-gray-200"
-              >
-                Search
-              </button>
-            </form>
-          )}
+          <form onSubmit={handleSearch} className="flex gap-2 flex-1 min-w-[200px]">
+            <input
+              type="text"
+              placeholder="Search headlines, body, submitter..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm"
+            />
+            <button
+              type="submit"
+              className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-md hover:bg-gray-200"
+            >
+              Search
+            </button>
+          </form>
         </div>
       </div>
 
@@ -281,27 +254,44 @@ export default function DashboardPage() {
         <div className="text-center py-12 text-gray-500">Loading...</div>
       ) : viewMode === 'calendar' ? (
         /* Calendar view */
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <CalendarView
+        <div>
+          {/* Week overview bar */}
+          <div className="mb-4">
+            <WeekOverview
               submissions={submissions}
+              weekStart={selectedWeekStart}
               selectedDate={selectedDate}
               onDateClick={setSelectedDate}
-              currentMonth={currentMonth}
-              onMonthChange={setCurrentMonth}
               validDates={validDates}
             />
           </div>
-          <div>
-            {selectedDate ? (
-              <DayDetail date={selectedDate} submissions={submissions} />
-            ) : (
-              <div className="bg-white rounded-lg shadow p-8 text-center">
-                <p className="text-sm text-gray-400">
-                  Click a date to see scheduled submissions.
-                </p>
-              </div>
-            )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <CalendarView
+                submissions={submissions}
+                selectedDate={selectedDate}
+                onDateClick={setSelectedDate}
+                currentMonth={currentMonth}
+                onMonthChange={setCurrentMonth}
+                validDates={validDates}
+              />
+            </div>
+            <div>
+              {selectedDate ? (
+                <DayDetail
+                  date={selectedDate}
+                  submissions={submissions}
+                  onReschedule={handleReschedule}
+                />
+              ) : (
+                <div className="bg-white rounded-lg shadow p-8 text-center">
+                  <p className="text-sm text-gray-400">
+                    Click a date to see scheduled submissions.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       ) : /* List view */

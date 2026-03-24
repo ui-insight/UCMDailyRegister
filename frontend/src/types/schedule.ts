@@ -15,3 +15,19 @@ export interface ValidDatesResponse {
   dates: ValidPublicationDate[];
   blackout_dates: BlackoutDate[];
 }
+
+export interface ScheduleModeOverride {
+  Id: string;
+  Newsletter_Type: string;
+  Override_Mode: string;
+  Start_Date: string;
+  End_Date: string;
+  Description: string | null;
+}
+
+export interface CustomPublishDate {
+  Id: string;
+  Newsletter_Type: string;
+  Publish_Date: string;
+  Description: string | null;
+}

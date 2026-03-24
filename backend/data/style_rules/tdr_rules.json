@@ -76,5 +76,17 @@
     "rule_key": "bullet_points_long_text",
     "rule_text": "Where appropriate, reformat large blocks of text to use bullet points to make it easier to scan. Ensure bullet points have parallel sentence structure. If a bullet point completes a sentence, include a period at the end.",
     "severity": "info"
+  },
+  {
+    "category": "content_filtering",
+    "rule_key": "postdoc_grad_both",
+    "rule_text": "Postdoc and graduate student information is included in both The Daily Register and My UI. Flag these items so editors know to schedule them in both newsletters.",
+    "severity": "info"
+  },
+  {
+    "category": "content_filtering",
+    "rule_key": "no_limited_app_deadlines",
+    "rule_text": "Limited-audience application deadlines (e.g., deadlines relevant to a single department or small group) are not included in The Daily Register. These should be communicated through department channels.",
+    "severity": "warning"
   }
 ]

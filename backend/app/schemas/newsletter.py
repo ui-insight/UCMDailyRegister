@@ -131,6 +131,45 @@ class ScheduleConfigResponse(BaseModel):
     Is_Daily: bool
     Active_Start_Month: int | None
     Active_End_Month: int | None
+    Holiday_Shift_Enabled: bool
+
+    model_config = {"from_attributes": True}
+
+
+# --- Schedule mode override schemas ---
+
+class ScheduleModeOverrideCreate(BaseModel):
+    Newsletter_Type: str = Field(..., pattern=r"^(tdr|myui)$")
+    Override_Mode: str = Field(..., pattern=r"^(academic_year|summer|winter_break)$")
+    Start_Date: date
+    End_Date: date
+    Description: str | None = None
+
+
+class ScheduleModeOverrideResponse(BaseModel):
+    Id: str
+    Newsletter_Type: str
+    Override_Mode: str
+    Start_Date: date
+    End_Date: date
+    Description: str | None
+
+    model_config = {"from_attributes": True}
+
+
+# --- Custom publish date schemas ---
+
+class CustomPublishDateCreate(BaseModel):
+    Newsletter_Type: str = Field(..., pattern=r"^(tdr|myui)$")
+    Publish_Date: date
+    Description: str | None = None
+
+
+class CustomPublishDateResponse(BaseModel):
+    Id: str
+    Newsletter_Type: str
+    Publish_Date: date
+    Description: str | None
 
     model_config = {"from_attributes": True}
 

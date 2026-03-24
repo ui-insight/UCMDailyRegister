@@ -41,3 +41,4 @@ class ScheduleConfig(Base):
     Is_Daily: Mapped[bool] = mapped_column(sa.Boolean, default=False)
     Active_Start_Month: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
     Active_End_Month: Mapped[int | None] = mapped_column(sa.Integer, nullable=True)
+    Holiday_Shift_Enabled: Mapped[bool] = mapped_column(sa.Boolean, default=False)

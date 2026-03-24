@@ -29,10 +29,12 @@ Models included:
 
 from app.models.allowed_value import AllowedValue
 from app.models.blackout_date import BlackoutDate
+from app.models.custom_publish_date import CustomPublishDate
 from app.models.edit_history import EditVersion
 from app.models.newsletter import Newsletter, NewsletterExternalItem, NewsletterItem
 from app.models.recurring_message import RecurringMessage, RecurringMessageIssueOverride
 from app.models.schedule_config import ScheduleConfig
+from app.models.schedule_mode_override import ScheduleModeOverride
 from app.models.section import NewsletterSection
 from app.models.style_rule import StyleRule
 from app.models.submission import Submission, SubmissionLink, SubmissionScheduleRequest
@@ -40,6 +42,7 @@ from app.models.submission import Submission, SubmissionLink, SubmissionSchedule
 __all__ = [
     "AllowedValue",
     "BlackoutDate",
+    "CustomPublishDate",
     "EditVersion",
     "Newsletter",
     "NewsletterExternalItem",
@@ -48,6 +51,7 @@ __all__ = [
     "RecurringMessageIssueOverride",
     "NewsletterSection",
     "ScheduleConfig",
+    "ScheduleModeOverride",
     "StyleRule",
     "Submission",
     "SubmissionLink",
