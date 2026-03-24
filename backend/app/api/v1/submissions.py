@@ -84,14 +84,26 @@ async def _validate_schedule_request(
     target_newsletter: str,
     schedule_request: ScheduleRequestCreate,
 ) -> None:
-    nl_types = ["tdr", "myui"] if target_newsletter == "both" else [target_newsletter]
-    if schedule_request.Requested_Date:
-        for nl_type in nl_types:
+    if target_newsletter == "both":
+        # For "both": Requested_Date is for TDR, Second_Requested_Date is for My UI
+        if schedule_request.Requested_Date:
             error = await schedule_service.validate_requested_date(
-                db, schedule_request.Requested_Date, nl_type
+                db, schedule_request.Requested_Date, "tdr"
             )
             if error:
                 raise HTTPException(status_code=422, detail=error)
+        if schedule_request.Second_Requested_Date:
+            error = await schedule_service.validate_requested_date(
+                db, schedule_request.Second_Requested_Date, "myui"
+            )
+            if error:
+                raise HTTPException(status_code=422, detail=error)
+    elif schedule_request.Requested_Date:
+        error = await schedule_service.validate_requested_date(
+            db, schedule_request.Requested_Date, target_newsletter
+        )
+        if error:
+            raise HTTPException(status_code=422, detail=error)
 
 
 @router.post("/", response_model=SubmissionResponse, status_code=201)
@@ -217,6 +229,7 @@ async def add_schedule_request(
     sched = await submission_service.add_schedule_request(
         db, submission_id,
         requested_date=data.Requested_Date,
+        second_requested_date=data.Second_Requested_Date,
         repeat_count=data.Repeat_Count,
         repeat_note=data.Repeat_Note,
         is_flexible=data.Is_Flexible,

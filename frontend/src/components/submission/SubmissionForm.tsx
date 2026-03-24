@@ -541,6 +541,7 @@ export default function SubmissionForm() {
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
             placeholder=""
+            autoComplete="off"
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
           />
         </div>

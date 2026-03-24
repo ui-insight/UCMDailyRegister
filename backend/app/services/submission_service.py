@@ -38,6 +38,7 @@ async def create_submission(db: AsyncSession, data: SubmissionCreate) -> Submiss
         sched = SubmissionScheduleRequest(
             Submission_Id=submission.Id,
             Requested_Date=sched_data.Requested_Date,
+            Second_Requested_Date=sched_data.Second_Requested_Date,
             Repeat_Count=sched_data.Repeat_Count,
             Repeat_Note=sched_data.Repeat_Note,
             Is_Flexible=sched_data.Is_Flexible,
@@ -223,6 +224,7 @@ async def add_schedule_request(
     db: AsyncSession,
     submission_id: str,
     requested_date=None,
+    second_requested_date=None,
     repeat_count: int = 1,
     repeat_note: str | None = None,
     is_flexible: bool = False,
@@ -238,6 +240,7 @@ async def add_schedule_request(
     sched = SubmissionScheduleRequest(
         Submission_Id=submission_id,
         Requested_Date=requested_date,
+        Second_Requested_Date=second_requested_date,
         Repeat_Count=repeat_count,
         Repeat_Note=repeat_note,
         Is_Flexible=is_flexible,
