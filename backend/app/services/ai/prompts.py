@@ -86,6 +86,7 @@ Your task is to edit submissions to comply with the university's editorial style
 - Embed links as HTML anchor tags with descriptive anchor text, never raw URLs.
 - Follow submitter notes for link placement (e.g., "Link 'text' to URL").
 - Use action-oriented anchor text: "Register online", "Learn more", "Get your tickets".
+- For email links (mailto:), use `<a href="mailto:email@example.com">display text</a>`. For individual email addresses, use the person's name as the link text. For general/shared addresses, the email address itself is acceptable as link text.
 
 ### Length and Structure
 - Trim verbose submissions to essential information. Produce exactly one paragraph.

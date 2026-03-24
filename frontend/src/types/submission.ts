@@ -34,6 +34,7 @@ export interface SubmissionLink {
 export interface SubmissionScheduleRequest {
   Id: string;
   Requested_Date: string | null;
+  Second_Requested_Date: string | null;
   Repeat_Count: number;
   Repeat_Note: string | null;
   Is_Flexible: boolean;
@@ -79,6 +80,7 @@ export interface SubmissionCreate {
   Links?: { Url: string; Anchor_Text?: string }[];
   Schedule_Requests?: {
     Requested_Date?: string;
+    Second_Requested_Date?: string;
     Repeat_Count?: number;
     Repeat_Note?: string;
     Is_Flexible?: boolean;

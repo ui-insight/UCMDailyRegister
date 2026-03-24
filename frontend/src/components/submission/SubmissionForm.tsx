@@ -28,6 +28,7 @@ interface LinkEntry {
 
 interface ScheduleEntry {
   Requested_Date: string;
+  Second_Requested_Date: string;
   Repeat_Count: number;
   Repeat_Note: string;
   Is_Flexible: boolean;
@@ -125,6 +126,7 @@ export default function SubmissionForm() {
   const [links, setLinks] = useState<LinkEntry[]>([]);
   const [schedule, setSchedule] = useState<ScheduleEntry>({
     Requested_Date: '',
+    Second_Requested_Date: '',
     Repeat_Count: 1,
     Repeat_Note: '',
     Is_Flexible: false,
@@ -269,6 +271,7 @@ export default function SubmissionForm() {
         Schedule_Requests: [
           {
             Requested_Date: schedule.Requested_Date,
+            Second_Requested_Date: schedule.Second_Requested_Date || undefined,
             Repeat_Count: schedule.Repeat_Count,
             Repeat_Note: schedule.Repeat_Note || undefined,
             Is_Flexible: schedule.Is_Flexible || undefined,
@@ -291,6 +294,7 @@ export default function SubmissionForm() {
       setLinks([]);
       setSchedule({
         Requested_Date: '',
+        Second_Requested_Date: '',
         Repeat_Count: 1,
         Repeat_Note: '',
         Is_Flexible: false,

@@ -1,5 +1,6 @@
 """Newsletter CRUD and assembly service."""
 
+import logging
 from datetime import date
 
 import sqlalchemy as sa
@@ -10,6 +11,8 @@ from app.models.newsletter import Newsletter, NewsletterExternalItem, Newsletter
 from app.models.section import NewsletterSection
 from app.models.submission import Submission
 from app.services import recurring_message_service, submission_service
+
+logger = logging.getLogger(__name__)
 
 
 async def create_newsletter(
@@ -324,7 +327,12 @@ async def assemble_newsletter(
         section_slug = category_section_map.get(sub.Category)
         section = section_map.get(section_slug) if section_slug else None
         if not section:
-            section = sections[0] if sections else None
+            logger.warning(
+                "No section mapping for category '%s' (submission %s), defaulting to employee-news",
+                sub.Category,
+                sub.Id,
+            )
+            section = section_map.get("employee-news") or (sections[0] if sections else None)
         if not section:
             continue
 

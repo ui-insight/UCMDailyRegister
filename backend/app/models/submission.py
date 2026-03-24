@@ -101,6 +101,7 @@ class SubmissionScheduleRequest(Base):
         sa.String(36), sa.ForeignKey("submissions.Id"), nullable=False
     )
     Requested_Date: Mapped[date | None] = mapped_column(sa.Date, nullable=True)
+    Second_Requested_Date: Mapped[date | None] = mapped_column(sa.Date, nullable=True)
     Repeat_Count: Mapped[int] = mapped_column(sa.Integer, default=1)
     Repeat_Note: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
     Is_Flexible: Mapped[bool] = mapped_column(sa.Boolean, default=False)

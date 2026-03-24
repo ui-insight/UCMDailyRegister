@@ -232,6 +232,14 @@ export default function EditPage() {
   const handleApprove = async () => {
     if (!id) return;
     try {
+      // Save current edits first so they persist
+      const aiVersion = [...versions].reverse().find((v) => v.Version_Type === 'ai_suggested');
+      await saveEditorFinal(id, {
+        Headline: editHeadline,
+        Body: editBody,
+        Headline_Case: aiVersion?.Headline_Case || undefined,
+      });
+      // Then approve
       await updateSubmission(id, { Status: 'approved' } as Partial<Submission>);
       showToast('Submission approved');
       await loadData();

@@ -168,8 +168,11 @@ export default function SubmissionMeta({
                 )}
                 {req.Occurrence_Dates.length > 0 && (
                   <div className="mt-2 rounded-md bg-gray-50 p-2">
-                    <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">
+                    <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-0.5">
                       Upcoming occurrences
+                    </div>
+                    <div className="text-[10px] text-gray-400 mb-1">
+                      Skip Date removes this item from that day's newsletter. Move reschedules it.
                     </div>
                     <div className="space-y-2">
                       {req.Occurrence_Dates.map((occurrenceDate) => (
@@ -190,9 +193,10 @@ export default function SubmissionMeta({
                                     type="button"
                                     onClick={() => onSkipOccurrence(req.Id, occurrenceDate)}
                                     disabled={occurrenceActionLoading}
+                                    title="Don't publish this item on this date"
                                     className="text-xs rounded border border-gray-300 px-2 py-1 text-gray-700 hover:bg-white disabled:opacity-50"
                                   >
-                                    Skip
+                                    Skip Date
                                   </button>
                                 )}
                                 {onRescheduleOccurrence && (

@@ -849,10 +849,10 @@ export default function BuilderPage() {
               </CollapsibleCard>
 
               <CollapsibleCard
-                title="Calendar Events"
-                subtitle={`Import upcoming U of I calendar events into the ${
+                title="Import Calendar Events"
+                subtitle={`Pull upcoming events from the U of I events calendar into the ${
                   newsletterType === 'tdr' ? "Today's Events" : 'Weekly Events'
-                } section.`}
+                } section. These are external calendar events, not submitted announcements.`}
                 meta={`${calendarEvents.length} candidate${calendarEvents.length !== 1 ? 's' : ''}`}
                 isOpen={panelOpen.calendarEvents}
                 onToggle={() => togglePanel('calendarEvents')}

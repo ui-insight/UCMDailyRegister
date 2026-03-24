@@ -2,6 +2,7 @@ import type { TargetNewsletter } from '../../types/submission';
 
 interface ScheduleEntry {
   Requested_Date: string;
+  Second_Requested_Date: string;
   Repeat_Count: number;
   Repeat_Note: string;
   Is_Flexible: boolean;
@@ -64,6 +65,9 @@ export default function SchedulePrefs({
   };
 
   const dateError = validateDate(schedule.Requested_Date, targetNewsletter, validDates);
+  const secondDateError = schedule.Repeat_Count >= 2 && schedule.Second_Requested_Date
+    ? validateDate(schedule.Second_Requested_Date, targetNewsletter, validDates)
+    : null;
   const recurrenceEndError = schedule.Recurrence_Type !== 'once'
     && schedule.Recurrence_End_Date
     && schedule.Recurrence_End_Date < schedule.Requested_Date
@@ -117,6 +121,30 @@ export default function SchedulePrefs({
           </select>
         </div>
       </div>
+      {schedule.Repeat_Count >= 2 && (
+        <div className="mt-3">
+          <label className="block text-xs text-gray-500 mb-1">
+            Second run date
+          </label>
+          <input
+            type="date"
+            value={schedule.Second_Requested_Date}
+            onChange={(e) => update('Second_Requested_Date', e.target.value)}
+            min={schedule.Requested_Date || getMinDate()}
+            className={`w-full max-w-xs rounded-md border px-3 py-2 text-sm focus:ring-1 ${
+              secondDateError
+                ? 'border-red-400 focus:border-red-500 focus:ring-red-500'
+                : 'border-gray-300 focus:border-ui-gold-500 focus:ring-ui-gold-500'
+            }`}
+          />
+          {secondDateError && (
+            <p className="text-xs text-red-600 mt-1">{secondDateError}</p>
+          )}
+          <p className="text-xs text-gray-400 mt-1">
+            Select the date for the second run. Must be after the first run date.
+          </p>
+        </div>
+      )}
       {showRecurrenceControls ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
           <div>

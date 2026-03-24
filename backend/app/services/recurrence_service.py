@@ -15,7 +15,7 @@ def expand_schedule_request(
     """Return occurrence dates for a schedule request within a range."""
     if schedule_request.Requested_Date is None:
         return []
-    return expand_recurrence(
+    occurrences = expand_recurrence(
         anchor=schedule_request.Requested_Date,
         recurrence_type=schedule_request.Recurrence_Type or "once",
         interval=max(schedule_request.Recurrence_Interval or 1, 1),
@@ -24,6 +24,14 @@ def expand_schedule_request(
         until=schedule_request.Recurrence_End_Date,
         excluded_dates=schedule_request.Excluded_Dates or [],
     )
+    # Include the second requested date when running twice
+    second_date = getattr(schedule_request, "Second_Requested_Date", None)
+    if second_date and from_date <= second_date <= to_date:
+        excluded = {d for d in (schedule_request.Excluded_Dates or []) if isinstance(d, str)}
+        if second_date.isoformat() not in excluded and second_date not in occurrences:
+            occurrences.append(second_date)
+            occurrences.sort()
+    return occurrences
 
 
 def expand_recurrence(

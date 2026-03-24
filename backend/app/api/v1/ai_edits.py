@@ -171,7 +171,9 @@ async def save_editor_final(
     )
     session.add(version)
 
-    # Update submission status
+    # Persist the edited content on the submission so it is reflected everywhere
+    submission.Original_Headline = data.Headline
+    submission.Original_Body = data.Body
     submission.Status = "in_review"
     await session.commit()
     await session.refresh(version)

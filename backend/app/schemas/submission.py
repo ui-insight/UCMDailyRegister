@@ -26,6 +26,7 @@ class LinkResponse(BaseModel):
 
 class ScheduleRequestCreate(BaseModel):
     Requested_Date: date
+    Second_Requested_Date: date | None = None
     Repeat_Count: int = Field(1, ge=1, le=2)
     Repeat_Note: str | None = None
     Is_Flexible: bool = False
@@ -48,6 +49,7 @@ class ScheduleRequestCreate(BaseModel):
 class ScheduleRequestResponse(BaseModel):
     Id: str
     Requested_Date: date | None
+    Second_Requested_Date: date | None = None
     Repeat_Count: int
     Repeat_Note: str | None
     Is_Flexible: bool
