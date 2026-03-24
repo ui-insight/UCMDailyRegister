@@ -17,7 +17,7 @@ import SchedulePrefs from './SchedulePrefs';
  */
 const NEWSLETTER_CATEGORY_CODES: Record<TargetNewsletter, Set<string>> = {
   myui: new Set(['student', 'job_opportunity', 'survey']),
-  tdr: new Set(['faculty_staff', 'job_opportunity', 'employee_announcement', 'kudos', 'in_memoriam', 'survey']),
+  tdr: new Set(['faculty_staff', 'job_opportunity', 'employee_announcement', 'kudos', 'in_memoriam', 'survey', 'news_release', 'ucm_feature_story']),
   both: new Set(['faculty_staff', 'survey']),
 };
 
@@ -123,6 +123,18 @@ export default function SubmissionForm() {
   const [submitterEmail, setSubmitterEmail] = useState('');
   const [notes, setNotes] = useState('');
   const [surveyEndDate, setSurveyEndDate] = useState('');
+  const getMinDate = (): string => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().split('T')[0];
+  };
+
+  // Job Opportunity fields
+  const [jobUrl, setJobUrl] = useState('');
+  const [jobTitle, setJobTitle] = useState('');
+  const [jobDepartment, setJobDepartment] = useState('');
+  const [jobLocation, setJobLocation] = useState('');
+  const [jobRemoveDate, setJobRemoveDate] = useState('');
   const [links, setLinks] = useState<LinkEntry[]>([]);
   const [schedule, setSchedule] = useState<ScheduleEntry>({
     Requested_Date: '',
@@ -206,10 +218,13 @@ export default function SubmissionForm() {
   // Clear date and reset category when newsletter target changes
   const handleTargetChange = (target: TargetNewsletter) => {
     setTargetNewsletter(target);
-    // validDates will be re-fetched via useEffect; clear date to be safe
-    if (schedule.Requested_Date) {
-      setSchedule({ ...schedule, Requested_Date: '' });
-    }
+    // validDates will be re-fetched via useEffect; clear dates and adjust repeat count
+    setSchedule({
+      ...schedule,
+      Requested_Date: '',
+      Second_Requested_Date: '',
+      Repeat_Count: target === 'both' ? 2 : schedule.Repeat_Count,
+    });
     // Reset category if current selection isn't valid for the new newsletter
     // (staff categories are always valid so they won't trigger a reset)
     const allowed = NEWSLETTER_CATEGORY_CODES[target];
@@ -256,18 +271,26 @@ export default function SubmissionForm() {
     setSuccess(false);
 
     try {
+      const isJob = category === 'job_opportunity';
+
+      // For jobs, compose headline/body/links from structured fields
+      const jobAnchorText = [jobTitle, jobDepartment, jobLocation].filter(Boolean).join(', ');
+      const effectiveHeadline = isJob ? jobTitle : headline;
+      const effectiveBody = isJob ? '' : body;
+      const effectiveLinks = isJob
+        ? (jobUrl.trim() ? [{ Url: jobUrl, Anchor_Text: jobAnchorText || undefined }] : [])
+        : links.filter((l) => l.Url.trim()).map((l) => ({ Url: l.Url, Anchor_Text: l.Anchor_Text || undefined }));
+
       const data: SubmissionCreate = {
         Category: category,
-        Target_Newsletter: targetNewsletter,
-        Original_Headline: headline,
-        Original_Body: body,
+        Target_Newsletter: isJob ? 'tdr' : targetNewsletter,
+        Original_Headline: effectiveHeadline,
+        Original_Body: effectiveBody,
         Submitter_Name: submitterName,
         Submitter_Email: submitterEmail,
         Submitter_Notes: notes || undefined,
         Survey_End_Date: category === 'survey' && surveyEndDate ? surveyEndDate : undefined,
-        Links: links
-          .filter((l) => l.Url.trim())
-          .map((l) => ({ Url: l.Url, Anchor_Text: l.Anchor_Text || undefined })),
+        Links: effectiveLinks,
         Schedule_Requests: [
           {
             Requested_Date: schedule.Requested_Date,
@@ -291,6 +314,11 @@ export default function SubmissionForm() {
       setBody('');
       setNotes('');
       setSurveyEndDate('');
+      setJobUrl('');
+      setJobTitle('');
+      setJobDepartment('');
+      setJobLocation('');
+      setJobRemoveDate('');
       setLinks([]);
       setSchedule({
         Requested_Date: '',
@@ -360,50 +388,137 @@ export default function SubmissionForm() {
 
       <div className="bg-white rounded-lg shadow p-6 space-y-5">
         <h3 className="text-lg font-semibold text-gray-900 border-b pb-3">
-          Content
+          {category === 'job_opportunity' ? 'Job Posting Details' : 'Content'}
         </h3>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Headline
-          </label>
-          <input
-            type="text"
-            value={headline}
-            onChange={(e) => setHeadline(e.target.value)}
-            required
-            maxLength={500}
-            placeholder="e.g., 'Register for spring Pilates classes'"
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
-          />
-          <p className="text-xs text-gray-400 mt-1">{headline.length}/500</p>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Body Text
-          </label>
-          <p className="text-xs text-gray-500 mb-2">
-            Keep announcements concise — aim for 150–300 words. Include who, what, when, where, and cost if applicable.
-          </p>
-          <textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            required
-            rows={8}
-            placeholder="Describe your announcement briefly. Include essential details: dates, times, location, cost, and how to participate or register."
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
-          />
-          <p className={`text-xs mt-1 ${
-            (() => {
-              const wc = body.trim() ? body.trim().split(/\s+/).length : 0;
-              if (wc > 500) return 'text-red-500';
-              if (wc > 300) return 'text-amber-500';
-              return 'text-gray-400';
-            })()
-          }`}>
-            {body.trim() ? body.trim().split(/\s+/).length : 0} words
-          </p>
-        </div>
-        <LinkEditor links={links} onChange={setLinks} />
+
+        {category === 'job_opportunity' ? (
+          /* --- Simplified Job Opportunity form --- */
+          <div className="space-y-4">
+            <p className="text-xs text-gray-500 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+              Job listings run in The Daily Register for two weeks. Provide the PeopleAdmin URL and position details below.
+            </p>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Job Posting URL
+              </label>
+              <input
+                type="url"
+                value={jobUrl}
+                onChange={(e) => setJobUrl(e.target.value)}
+                required
+                placeholder="https://uidaho.peopleadmin.com/postings/..."
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Provide the specific PeopleAdmin posting link.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Position Title
+                </label>
+                <input
+                  type="text"
+                  value={jobTitle}
+                  onChange={(e) => setJobTitle(e.target.value)}
+                  required
+                  placeholder="e.g., Equal Opportunity specialist"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Department
+                </label>
+                <input
+                  type="text"
+                  value={jobDepartment}
+                  onChange={(e) => setJobDepartment(e.target.value)}
+                  required
+                  placeholder="e.g., Equal Opportunity and Compliance"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Location(s)
+                </label>
+                <input
+                  type="text"
+                  value={jobLocation}
+                  onChange={(e) => setJobLocation(e.target.value)}
+                  placeholder="e.g., Moscow/off campus/hybrid possible"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
+                />
+                <p className="text-xs text-gray-400 mt-1">
+                  Leave blank if Moscow only. Separate multiple locations with /.
+                </p>
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Remove listing early? (optional)
+              </label>
+              <input
+                type="date"
+                value={jobRemoveDate}
+                onChange={(e) => setJobRemoveDate(e.target.value)}
+                min={schedule.Requested_Date || getMinDate()}
+                className="w-full max-w-xs rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                If the position closes before two weeks, select the date to stop running.
+              </p>
+            </div>
+          </div>
+        ) : (
+          /* --- Standard announcement form --- */
+          <>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Headline
+              </label>
+              <input
+                type="text"
+                value={headline}
+                onChange={(e) => setHeadline(e.target.value)}
+                required
+                maxLength={500}
+                placeholder="e.g., 'Register for spring Pilates classes'"
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
+              />
+              <p className="text-xs text-gray-400 mt-1">{headline.length}/500</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Body Text
+              </label>
+              <p className="text-xs text-gray-500 mb-2">
+                Keep announcements concise — aim for 150–300 words. Include who, what, when, where, and cost if applicable.
+              </p>
+              <textarea
+                value={body}
+                onChange={(e) => setBody(e.target.value)}
+                required
+                rows={8}
+                placeholder="Describe your announcement briefly. Include essential details: dates, times, location, cost, and how to participate or register."
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
+              />
+              <p className={`text-xs mt-1 ${
+                (() => {
+                  const wc = body.trim() ? body.trim().split(/\s+/).length : 0;
+                  if (wc > 500) return 'text-red-500';
+                  if (wc > 300) return 'text-amber-500';
+                  return 'text-gray-400';
+                })()
+              }`}>
+                {body.trim() ? body.trim().split(/\s+/).length : 0} words
+              </p>
+            </div>
+            <LinkEditor links={links} onChange={setLinks} />
+          </>
+        )}
       </div>
 
       <div className="bg-white rounded-lg shadow p-6 space-y-5">

@@ -30,13 +30,24 @@ async def seed_allowed_values(session: AsyncSession) -> None:
     filepath = DATA_DIR / "allowed_values" / "allowed_values.json"
     values = json.loads(filepath.read_text())
     for v in values:
-        existing = await session.execute(
+        result = await session.execute(
             select(AllowedValue).where(
                 AllowedValue.Value_Group == v["Value_Group"],
                 AllowedValue.Code == v["Code"],
             )
         )
-        if existing.scalar_one_or_none():
+        existing_val = result.scalar_one_or_none()
+        if existing_val:
+            # Update fields that may have changed
+            for attr, key in [
+                ("Visibility_Role", "Visibility_Role"),
+                ("Label", "Label"),
+                ("Description", "Description"),
+                ("Display_Order", "Display_Order"),
+            ]:
+                new_val = v.get(key, getattr(existing_val, attr))
+                if getattr(existing_val, attr) != new_val:
+                    setattr(existing_val, attr, new_val)
             continue
         record = AllowedValue(
             Value_Group=v["Value_Group"],
