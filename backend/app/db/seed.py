@@ -7,7 +7,7 @@ based on unique key combinations.
 
 import asyncio
 import json
-from datetime import time
+from datetime import date, time
 from pathlib import Path
 
 from sqlalchemy import select
@@ -167,16 +167,17 @@ async def seed_blackout_dates(session: AsyncSession) -> None:
     filepath = DATA_DIR / "schedule" / "blackout_dates.json"
     dates = json.loads(filepath.read_text())
     for d in dates:
+        parsed_date = date.fromisoformat(d["date"])
         existing = await session.execute(
             select(BlackoutDate).where(
-                BlackoutDate.Blackout_Date == d["date"],
+                BlackoutDate.Blackout_Date == parsed_date,
                 BlackoutDate.Newsletter_Type == d.get("newsletter_type"),
             )
         )
         if existing.scalar_one_or_none():
             continue
         record = BlackoutDate(
-            Blackout_Date=d["date"],
+            Blackout_Date=parsed_date,
             Newsletter_Type=d.get("newsletter_type"),
             Description=d.get("description"),
         )
