@@ -82,6 +82,7 @@ export default function LinkEditor({ links, onChange }: Props) {
                       placeholder="name@uidaho.edu"
                       value={link.Url.replace(/^mailto:/, '')}
                       onChange={(e) => handleEmailChange(index, e.target.value)}
+                      autoComplete="off"
                       className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
                     />
                   ) : (
@@ -90,6 +91,7 @@ export default function LinkEditor({ links, onChange }: Props) {
                       placeholder="https://..."
                       value={link.Url}
                       onChange={(e) => updateLink(index, 'Url', e.target.value)}
+                      autoComplete="off"
                       className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
                     />
                   )}
@@ -105,6 +107,7 @@ export default function LinkEditor({ links, onChange }: Props) {
                     placeholder={emailMode ? "e.g., Jane Smith" : "e.g., Learn more"}
                     value={link.Anchor_Text}
                     onChange={(e) => updateLink(index, 'Anchor_Text', e.target.value)}
+                    autoComplete="off"
                     className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
                   />
                 </div>

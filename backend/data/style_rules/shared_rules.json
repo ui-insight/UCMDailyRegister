@@ -220,5 +220,47 @@
     "rule_key": "dei_language_flag",
     "rule_text": "Flag language that could reasonably be read as Diversity, Equity and Inclusion-related for editor review, even if it may ultimately be acceptable.",
     "severity": "warning"
+  },
+  {
+    "category": "content_filtering",
+    "rule_key": "no_fabricated_content",
+    "rule_text": "NEVER add information, facts, names, URLs, or references that are not present in the original submission. Every detail in the edited version must be traceable to the submitted text. Do not merge or cross-reference content from other submissions.",
+    "severity": "error"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "no_duplicate_link_text",
+    "rule_text": "When embedding a hyperlink, do not repeat the anchor text in the surrounding sentence. Integrate the link so the anchor text appears exactly once. Example: write 'and <a>online</a>' not 'and online via <a>online</a>'.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "capitalize_proper_names",
+    "rule_text": "Capitalize proper names, event titles, and program names in both headlines and body text. Example: 'Pizza & the Past' not 'pizza & the past'. This applies even in sentence-case headlines.",
+    "severity": "error"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "online_not_platform",
+    "rule_text": "Use the word 'online' instead of platform names like 'Zoom', 'Teams', or 'Webex' when describing virtual attendance options, unless the platform name is essential (e.g., a Teams-specific training).",
+    "severity": "warning"
+  },
+  {
+    "category": "voice",
+    "rule_key": "short_sentences",
+    "rule_text": "Write short, clear sentences. Avoid run-on sentences and compound-complex structures. Break long sentences into two or more shorter ones for readability.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "research_study_format",
+    "rule_text": "Research participant recruitment announcements should begin with 'Researchers are recruiting participants for a study...' followed by a brief description of the study topic and compensation details.",
+    "severity": "info"
+  },
+  {
+    "category": "headlines",
+    "rule_key": "headline_reader_perspective",
+    "rule_text": "Headlines must be written from the reader's perspective using verbs that address what the reader can do. Example: 'Participate in VR research study' not 'Recruit research participants'. The headline should tell the reader what action they can take.",
+    "severity": "warning"
   }
 ]
