@@ -86,6 +86,19 @@ export async function rescheduleScheduleOccurrence(
   );
 }
 
+export async function addScheduleRequest(
+  submissionId: string,
+  data: { Requested_Date: string; Second_Requested_Date?: string },
+): Promise<SubmissionScheduleRequest> {
+  return apiFetch<SubmissionScheduleRequest>(
+    `/submissions/${submissionId}/schedule`,
+    {
+      method: 'POST',
+      body: JSON.stringify(data),
+    },
+  );
+}
+
 export async function uploadImage(submissionId: string, file: File): Promise<Submission> {
   const formData = new FormData();
   formData.append('file', file);

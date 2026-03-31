@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
+  addScheduleRequest,
   getSubmission,
   rescheduleScheduleOccurrence,
   skipScheduleOccurrence,
@@ -345,6 +346,15 @@ export default function EditPage() {
     }
   };
 
+  const handleAddScheduleDate = async (newsletter: string, date: string) => {
+    if (!id) return;
+    await addScheduleRequest(id, { Requested_Date: date });
+    showToast(
+      `Added run date ${new Date(`${date}T12:00:00`).toLocaleDateString()} for ${newsletter === 'tdr' ? 'Daily Register' : 'My UI'}`,
+    );
+    await loadData();
+  };
+
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), type === 'error' ? 5000 : 3000);
@@ -613,6 +623,7 @@ export default function EditPage() {
             onChangeNewsletter={handleChangeNewsletter}
             onSkipOccurrence={isStaff ? handleSkipOccurrence : undefined}
             onRescheduleOccurrence={isStaff ? handleRescheduleOccurrence : undefined}
+            onAddScheduleDate={isStaff ? handleAddScheduleDate : undefined}
             occurrenceActionLoading={isStaff ? occurrenceActionLoading : false}
           />
 

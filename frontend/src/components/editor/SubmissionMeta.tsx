@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { Submission, TargetNewsletter } from '../../types/submission';
+import { getValidDates } from '../../api/schedule';
 
 interface SubmissionMetaProps {
   submission: Submission;
@@ -10,6 +11,7 @@ interface SubmissionMetaProps {
     occurrenceDate: string,
     newDate: string,
   ) => Promise<void>;
+  onAddScheduleDate?: (newsletter: string, date: string) => Promise<void>;
   occurrenceActionLoading?: boolean;
 }
 
@@ -43,6 +45,7 @@ export default function SubmissionMeta({
   onChangeNewsletter,
   onSkipOccurrence,
   onRescheduleOccurrence,
+  onAddScheduleDate,
   occurrenceActionLoading = false,
 }: SubmissionMetaProps) {
   const [rescheduleTarget, setRescheduleTarget] = useState<{
@@ -51,10 +54,78 @@ export default function SubmissionMeta({
   } | null>(null);
   const [replacementDate, setReplacementDate] = useState('');
 
+  const [showAddDate, setShowAddDate] = useState(false);
+  const [addDateNewsletter, setAddDateNewsletter] = useState('');
+  const [addDateValue, setAddDateValue] = useState('');
+  const [addDateLoading, setAddDateLoading] = useState(false);
+  const [addDateError, setAddDateError] = useState('');
+  const [validDatesSet, setValidDatesSet] = useState<Set<string>>(new Set());
+
   const getMinDate = () => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     return tomorrow.toISOString().split('T')[0];
+  };
+
+  const getMaxDate = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 90);
+    return d.toISOString().split('T')[0];
+  };
+
+  const resolveNewsletter = () => {
+    if (submission.Target_Newsletter === 'both') return addDateNewsletter;
+    return submission.Target_Newsletter;
+  };
+
+  useEffect(() => {
+    if (!showAddDate) return;
+    const nl = resolveNewsletter();
+    if (!nl) {
+      setValidDatesSet(new Set());
+      return;
+    }
+    let cancelled = false;
+    getValidDates(getMinDate(), getMaxDate(), nl).then((resp) => {
+      if (cancelled) return;
+      const dates = new Set(resp.dates.map((d) => d.date));
+      setValidDatesSet(dates);
+    });
+    return () => { cancelled = true; };
+  }, [showAddDate, addDateNewsletter, submission.Target_Newsletter]);
+
+  const handleOpenAddDate = () => {
+    setShowAddDate(true);
+    setAddDateValue('');
+    setAddDateError('');
+    setAddDateNewsletter(submission.Target_Newsletter === 'both' ? '' : submission.Target_Newsletter);
+  };
+
+  const handleCancelAddDate = () => {
+    setShowAddDate(false);
+    setAddDateValue('');
+    setAddDateError('');
+    setAddDateNewsletter('');
+  };
+
+  const handleSaveAddDate = async () => {
+    const nl = resolveNewsletter();
+    if (!nl || !addDateValue || !onAddScheduleDate) return;
+    if (!validDatesSet.has(addDateValue)) {
+      const label = nl === 'myui' ? 'My UI (Mondays only)' : 'The Daily Register';
+      setAddDateError(`Not a valid publication date for ${label}.`);
+      return;
+    }
+    setAddDateLoading(true);
+    setAddDateError('');
+    try {
+      await onAddScheduleDate(nl, addDateValue);
+      handleCancelAddDate();
+    } catch (err) {
+      setAddDateError(err instanceof Error ? err.message : 'Failed to add date');
+    } finally {
+      setAddDateLoading(false);
+    }
   };
 
   const handleStartReschedule = (scheduleId: string, occurrenceDate: string) => {
@@ -252,6 +323,84 @@ export default function SubmissionMeta({
                 )}
               </dd>
             ))}
+          </div>
+        )}
+        {onAddScheduleDate && !showAddDate && (
+          <div>
+            <button
+              type="button"
+              onClick={handleOpenAddDate}
+              className="text-xs rounded border border-dashed border-gray-300 px-3 py-1.5 text-gray-600 hover:border-ui-gold-400 hover:text-ui-gold-700 hover:bg-ui-gold-50 w-full"
+            >
+              + Add Run Date
+            </button>
+          </div>
+        )}
+        {onAddScheduleDate && showAddDate && (
+          <div className="rounded-md border border-ui-gold-200 bg-ui-gold-50 p-3 space-y-2">
+            <div className="text-xs font-medium text-gray-700">Add Run Date</div>
+            {submission.Target_Newsletter === 'both' && (
+              <div className="flex gap-3">
+                <label className="flex items-center gap-1 text-xs text-gray-700">
+                  <input
+                    type="radio"
+                    name="addDateNewsletter"
+                    value="tdr"
+                    checked={addDateNewsletter === 'tdr'}
+                    onChange={() => { setAddDateNewsletter('tdr'); setAddDateValue(''); setAddDateError(''); }}
+                    className="accent-ui-gold-600"
+                  />
+                  Daily Register
+                </label>
+                <label className="flex items-center gap-1 text-xs text-gray-700">
+                  <input
+                    type="radio"
+                    name="addDateNewsletter"
+                    value="myui"
+                    checked={addDateNewsletter === 'myui'}
+                    onChange={() => { setAddDateNewsletter('myui'); setAddDateValue(''); setAddDateError(''); }}
+                    className="accent-ui-gold-600"
+                  />
+                  My UI
+                </label>
+              </div>
+            )}
+            {(submission.Target_Newsletter !== 'both' || addDateNewsletter) && (
+              <>
+                <input
+                  type="date"
+                  value={addDateValue}
+                  min={getMinDate()}
+                  max={getMaxDate()}
+                  onChange={(e) => { setAddDateValue(e.target.value); setAddDateError(''); }}
+                  className="w-full rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
+                />
+                {addDateValue && validDatesSet.size > 0 && validDatesSet.has(addDateValue) && (
+                  <div className="text-[10px] text-green-600">Valid publication date</div>
+                )}
+                {addDateError && (
+                  <div className="text-[10px] text-red-600">{addDateError}</div>
+                )}
+              </>
+            )}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={handleSaveAddDate}
+                disabled={addDateLoading || !addDateValue || !resolveNewsletter()}
+                className="text-xs rounded bg-ui-gold-600 px-3 py-1 text-white hover:bg-ui-gold-700 disabled:opacity-50"
+              >
+                {addDateLoading ? 'Saving...' : 'Save'}
+              </button>
+              <button
+                type="button"
+                onClick={handleCancelAddDate}
+                disabled={addDateLoading}
+                className="text-xs rounded border border-gray-300 px-3 py-1 text-gray-600 hover:bg-white disabled:opacity-50"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         )}
         <div>
