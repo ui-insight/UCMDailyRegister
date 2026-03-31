@@ -27,12 +27,26 @@ def check_image_dimensions(filepath: str) -> tuple[int, int]:
         return img.size
 
 
+def _strip_exif(filepath: str) -> None:
+    """Remove EXIF metadata (GPS, camera info, etc.) from an image file."""
+    try:
+        with Image.open(filepath) as img:
+            if img.format == "GIF":
+                return
+            cleaned = Image.new(img.mode, img.size)
+            cleaned.putdata(list(img.getdata()))
+            cleaned.save(filepath, format=img.format)
+    except Exception:
+        pass  # If stripping fails, keep the original file
+
+
 async def save_upload(filename: str, content: bytes) -> str:
-    """Save uploaded file and return the relative path."""
+    """Save uploaded file, strip EXIF metadata, and return the relative path."""
     os.makedirs(settings.upload_dir, exist_ok=True)
     ext = Path(filename).suffix.lower()
     unique_name = f"{uuid.uuid4()}{ext}"
     filepath = os.path.join(settings.upload_dir, unique_name)
     with open(filepath, "wb") as f:
         f.write(content)
+    _strip_exif(filepath)
     return unique_name
