@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { Submission, TargetNewsletter } from '../../types/submission';
 import { getValidDates } from '../../api/schedule';
 
@@ -73,10 +73,10 @@ export default function SubmissionMeta({
     return d.toISOString().split('T')[0];
   };
 
-  const resolveNewsletter = () => {
+  const resolveNewsletter = useCallback(() => {
     if (submission.Target_Newsletter === 'both') return addDateNewsletter;
     return submission.Target_Newsletter;
-  };
+  }, [submission.Target_Newsletter, addDateNewsletter]);
 
   useEffect(() => {
     if (!showAddDate) return;
@@ -92,7 +92,7 @@ export default function SubmissionMeta({
       setValidDatesSet(dates);
     });
     return () => { cancelled = true; };
-  }, [showAddDate, addDateNewsletter, submission.Target_Newsletter]);
+  }, [showAddDate, addDateNewsletter, submission.Target_Newsletter, resolveNewsletter]);
 
   const handleOpenAddDate = () => {
     setShowAddDate(true);
