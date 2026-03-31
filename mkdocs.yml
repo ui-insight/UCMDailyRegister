@@ -45,4 +45,7 @@ nav:
   - UI Branding: branding.md
   - API Reference: api-reference.md
   - Deployment: deployment.md
+  - Data Governance: data-governance.md
+  - Backup & Recovery: backup-and-recovery.md
+  - Audit Logging: audit-logging.md
   - Contributing: contributing.md
