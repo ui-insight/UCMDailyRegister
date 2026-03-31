@@ -74,8 +74,7 @@ export default function WeekOverview({
   return (
     <div className="bg-white rounded-lg shadow p-4">
       <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-gray-900">Week Overview</h3>
-        <span className="text-xs text-gray-500">{weekLabel}</span>
+        <h3 className="text-sm font-semibold text-gray-900">Week of {weekLabel}</h3>
       </div>
 
       <div className="grid grid-cols-5 gap-2">

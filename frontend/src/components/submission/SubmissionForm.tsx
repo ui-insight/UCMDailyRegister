@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { listAllowedValues } from '../../api/allowedValues';
 import type { SubmissionCategory, TargetNewsletter, SubmissionCreate } from '../../types/submission';
 import type { AllowedValue } from '../../types/allowedValue';
@@ -154,6 +154,7 @@ export default function SubmissionForm() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const successRef = useRef<HTMLDivElement>(null);
   const isJobOpportunity = category === 'job_opportunity';
   const effectiveTargetNewsletter: TargetNewsletter = isJobOpportunity ? 'tdr' : targetNewsletter;
 
@@ -241,12 +242,20 @@ export default function SubmissionForm() {
   }, [effectiveTargetNewsletter]);
 
   // Filter categories by newsletter target; staff-visibility categories
-  // (already gated by backend) always pass through
-  const filteredCategories = categories.filter(
-    (cat) =>
-      cat.Visibility_Role === 'staff' ||
-      NEWSLETTER_CATEGORY_CODES[effectiveTargetNewsletter]?.has(cat.Code),
-  );
+  // (already gated by backend) always pass through.
+  // When "Both Newsletters" is selected, relabel "Faculty/Staff" as
+  // "News and Updates" so the dropdown matches the My UI section name.
+  const filteredCategories = categories
+    .filter(
+      (cat) =>
+        cat.Visibility_Role === 'staff' ||
+        NEWSLETTER_CATEGORY_CODES[effectiveTargetNewsletter]?.has(cat.Code),
+    )
+    .map((cat) =>
+      effectiveTargetNewsletter === 'both' && cat.Code === 'faculty_staff'
+        ? { ...cat, Label: 'News and Updates' }
+        : cat,
+    );
 
   // Clear date and reset category when newsletter target changes
   const handleTargetChange = (target: TargetNewsletter) => {
@@ -387,6 +396,7 @@ export default function SubmissionForm() {
       await createSubmission(data);
 
       setSuccess(true);
+      setTimeout(() => successRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
       // Reset form
       setHeadline('');
       setBody('');
@@ -679,7 +689,7 @@ export default function SubmissionForm() {
       </div>
 
       {success && (
-        <div className="rounded-md bg-green-50 border border-green-200 p-4">
+        <div ref={successRef} className="rounded-md bg-green-50 border border-green-200 p-4">
           <p className="text-sm text-green-800">
             Submission received! An editor will review it for the newsletter.
           </p>

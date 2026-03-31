@@ -179,18 +179,44 @@ export default function CalendarView({
       </div>
 
       {/* Legend */}
-      {validDates && (
-        <div className="px-4 py-2 border-t border-gray-100 flex items-center gap-4 text-xs text-gray-500">
+      <div className="px-4 py-2 border-t border-gray-100 space-y-1.5">
+        {validDates && (
+          <div className="flex items-center gap-4 text-xs text-gray-500">
+            <span className="text-gray-400 font-medium">Pub days:</span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-ui-gold-500" />
+              TDR
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 rounded-full bg-blue-500" />
+              My UI
+            </span>
+          </div>
+        )}
+        <div className="flex items-center gap-3 text-xs text-gray-500 flex-wrap">
+          <span className="text-gray-400 font-medium">Status:</span>
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-ui-gold-500" />
-            TDR
+            <span className="w-2 h-2 rounded-full bg-blue-400" />
+            New
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-blue-500" />
-            My UI
+            <span className="w-2 h-2 rounded-full bg-purple-400" />
+            AI Edited
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-yellow-400" />
+            In Review
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-green-400" />
+            Approved
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-cyan-400" />
+            Scheduled
           </span>
         </div>
-      )}
+      </div>
     </div>
   );
 }

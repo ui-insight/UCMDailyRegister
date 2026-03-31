@@ -50,7 +50,7 @@ export default function EditPage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [occurrenceActionLoading, setOccurrenceActionLoading] = useState(false);
 
-  const [viewMode, setViewMode] = useState<ViewMode>('diff');
+  const [viewMode, setViewMode] = useState<ViewMode>('side_by_side');
 
   // Editor state
   const [editHeadline, setEditHeadline] = useState('');

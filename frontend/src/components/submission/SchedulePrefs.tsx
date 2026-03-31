@@ -345,6 +345,7 @@ export default function SchedulePrefs({
           placeholder="e.g., 'Please skip finals week if needed'"
           value={schedule.Repeat_Note}
           onChange={(e) => update('Repeat_Note', e.target.value)}
+          autoComplete="off"
           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
         />
       </div>
