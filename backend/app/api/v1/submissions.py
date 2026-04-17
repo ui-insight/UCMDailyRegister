@@ -20,7 +20,7 @@ from app.schemas.submission import (
     SubmissionUpdate,
 )
 from app.services import allowed_value_service, schedule_service, submission_service
-from app.services.image_service import save_upload, validate_image
+from app.services.image_service import ImageProcessingError, save_upload, validate_image
 
 router = APIRouter(prefix="/submissions", tags=["submissions"])
 
@@ -358,7 +358,10 @@ async def upload_image(
     if error:
         raise HTTPException(status_code=400, detail=error)
 
-    filename = await save_upload(file.filename or "image.png", content)
+    try:
+        filename = await save_upload(file.filename or "image.png", content)
+    except ImageProcessingError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     submission = await submission_service.set_image(db, submission_id, filename)
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
