@@ -36,7 +36,7 @@ class RecurringMessage(Base):
     )
     Newsletter_Type: Mapped[str] = mapped_column(sa.String(50), nullable=False)
     Section_Id: Mapped[str] = mapped_column(
-        sa.String(36), sa.ForeignKey("newsletter_sections.Id"), nullable=False
+        sa.String(36), sa.ForeignKey("newsletter_sections.Id"), nullable=False, index=True
     )
     Headline: Mapped[str] = mapped_column(sa.Text, nullable=False)
     Body: Mapped[str] = mapped_column(sa.Text, nullable=False)
@@ -82,10 +82,10 @@ class RecurringMessageIssueOverride(Base):
         sa.String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
     Recurring_Message_Id: Mapped[str] = mapped_column(
-        sa.String(36), sa.ForeignKey("recurring_messages.Id"), nullable=False
+        sa.String(36), sa.ForeignKey("recurring_messages.Id"), nullable=False, index=True
     )
     Newsletter_Id: Mapped[str] = mapped_column(
-        sa.String(36), sa.ForeignKey("newsletters.Id"), nullable=False
+        sa.String(36), sa.ForeignKey("newsletters.Id"), nullable=False, index=True
     )
     Override_Action: Mapped[str] = mapped_column(
         sa.String(50), nullable=False, default="skip"

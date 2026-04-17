@@ -78,7 +78,7 @@ class SubmissionLink(Base):
         sa.String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
     Submission_Id: Mapped[str] = mapped_column(
-        sa.String(36), sa.ForeignKey("submissions.Id"), nullable=False
+        sa.String(36), sa.ForeignKey("submissions.Id"), nullable=False, index=True
     )
     Url: Mapped[str] = mapped_column(sa.Text, nullable=False)
     Anchor_Text: Mapped[str | None] = mapped_column(sa.String(500), nullable=True)
@@ -98,7 +98,7 @@ class SubmissionScheduleRequest(Base):
         sa.String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
     Submission_Id: Mapped[str] = mapped_column(
-        sa.String(36), sa.ForeignKey("submissions.Id"), nullable=False
+        sa.String(36), sa.ForeignKey("submissions.Id"), nullable=False, index=True
     )
     Requested_Date: Mapped[date | None] = mapped_column(sa.Date, nullable=True)
     Second_Requested_Date: Mapped[date | None] = mapped_column(sa.Date, nullable=True)
