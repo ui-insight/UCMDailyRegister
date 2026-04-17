@@ -82,7 +82,24 @@ CORS_ORIGINS=http://localhost:5173
 
 ## Database Seeding
 
-The seed script populates the database with initial reference data:
+The seed script populates the database with controlled vocabularies and
+reference data: `AllowedValue` records, newsletter sections, style rules,
+schedule configs, and blackout dates. **These tables are load-bearing** —
+empty tables break dropdowns, validations, and FK lookups across the app.
+
+### Docker deployments
+
+Seeding runs automatically on every backend container start via
+`backend/docker-entrypoint.sh`. No manual step required. The entrypoint
+runs in order: `alembic upgrade head` → `python -m app.db.seed` → `uvicorn`.
+
+Seeding is idempotent — it updates existing records where appropriate and
+skips rows that already exist.
+
+### Local development
+
+For a local (non-Docker) dev server, run the seed script once after creating
+your venv:
 
 ```bash
 cd backend
@@ -90,15 +107,16 @@ source .venv/bin/activate
 python -m app.db.seed
 ```
 
-This creates:
+### Running one-off commands in the container
 
-- **14 newsletter sections** (9 for TDR, 5 for My UI)
-- **37 style rules** (shared + newsletter-specific)
-- **4 schedule configs** (daily weekday for TDR, weekly Monday for My UI)
-- **AllowedValue records** across all 10 value groups
+The entrypoint only runs the migrate-and-seed preamble when the container
+is starting the server (CMD begins with `uvicorn`). Other commands skip it:
 
-!!! note "Idempotent Seeding"
-    The seed script checks for existing data before inserting. It is safe to run multiple times.
+```bash
+docker compose exec backend alembic revision --autogenerate -m "..."
+docker compose exec backend python -m app.db.seed    # re-seed manually
+docker compose exec backend bash
+```
 
 ## Running Dev Servers
 
@@ -183,8 +201,9 @@ git pull origin main
 ./deploy.sh dev
 ```
 
-The deploy script rebuilds the stack, runs `alembic upgrade head`, and then
-smoke-tests the frontend and key API routes before returning success.
+The deploy script rebuilds the stack, which triggers the backend entrypoint
+to run `alembic upgrade head` and seed reference data, and then smoke-tests
+the frontend and key API routes before returning success.
 
 ### Environment File Template
 
@@ -247,5 +266,5 @@ curl http://localhost:9280/api/v1/submissions/?limit=1
     - **File uploads** -- configure persistent storage for submission images (Docker volume or mounted directory)
     - **HTTPS** -- terminate TLS at a reverse proxy (nginx, Caddy, or cloud load balancer)
     - **Secrets** -- load API keys from environment variables, not committed `.env` files
-    - **Migrations** -- use `./deploy.sh <dev|prod>` so `alembic upgrade head` runs before smoke checks
+    - **Migrations** -- migrations and seeding run automatically in the backend container entrypoint on every start
     - **Backups** -- the `pgdata` Docker volume should be backed up regularly
