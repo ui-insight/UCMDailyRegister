@@ -35,7 +35,7 @@ class EditVersion(Base):
         sa.String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
     Submission_Id: Mapped[str] = mapped_column(
-        sa.String(36), sa.ForeignKey("submissions.Id"), nullable=False
+        sa.String(36), sa.ForeignKey("submissions.Id"), nullable=False, index=True
     )
     Version_Type: Mapped[str] = mapped_column(sa.String(50), nullable=False)
     Headline: Mapped[str] = mapped_column(sa.Text, nullable=False)

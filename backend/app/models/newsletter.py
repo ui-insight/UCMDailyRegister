@@ -68,13 +68,13 @@ class NewsletterItem(Base):
         sa.String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
     Newsletter_Id: Mapped[str] = mapped_column(
-        sa.String(36), sa.ForeignKey("newsletters.Id"), nullable=False
+        sa.String(36), sa.ForeignKey("newsletters.Id"), nullable=False, index=True
     )
     Submission_Id: Mapped[str] = mapped_column(
-        sa.String(36), sa.ForeignKey("submissions.Id"), nullable=False
+        sa.String(36), sa.ForeignKey("submissions.Id"), nullable=False, index=True
     )
     Section_Id: Mapped[str] = mapped_column(
-        sa.String(36), sa.ForeignKey("newsletter_sections.Id"), nullable=False
+        sa.String(36), sa.ForeignKey("newsletter_sections.Id"), nullable=False, index=True
     )
     Position: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=0)
     Final_Headline: Mapped[str] = mapped_column(sa.Text, nullable=False)
@@ -97,10 +97,10 @@ class NewsletterExternalItem(Base):
         sa.String(36), primary_key=True, default=lambda: str(uuid.uuid4())
     )
     Newsletter_Id: Mapped[str] = mapped_column(
-        sa.String(36), sa.ForeignKey("newsletters.Id"), nullable=False
+        sa.String(36), sa.ForeignKey("newsletters.Id"), nullable=False, index=True
     )
     Section_Id: Mapped[str] = mapped_column(
-        sa.String(36), sa.ForeignKey("newsletter_sections.Id"), nullable=False
+        sa.String(36), sa.ForeignKey("newsletter_sections.Id"), nullable=False, index=True
     )
     Source_Type: Mapped[str] = mapped_column(sa.String(50), nullable=False)
     Source_Id: Mapped[str] = mapped_column(sa.String(255), nullable=False)
