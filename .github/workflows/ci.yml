@@ -60,6 +60,12 @@ jobs:
         run: pip install -e ".[dev,postgres]"
       - name: Run Alembic migrations
         run: alembic upgrade head
+      - name: Check for migration drift
+        run: |
+          if ! alembic check; then
+            echo "::error::Model metadata drift detected. Run 'alembic revision --autogenerate -m \"description\"' locally, review the generated SQL, and commit the new migration alongside your model change."
+            exit 1
+          fi
       - name: PostgreSQL smoke test
         run: python tests/postgres_smoke.py
 

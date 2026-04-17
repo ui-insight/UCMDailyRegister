@@ -76,8 +76,8 @@ smoke_check() {
 echo "Deploying ${ENVIRONMENT} with project ${PROJECT_NAME}"
 "${COMPOSE[@]}" up -d --build
 
-echo "Applying database migrations"
-"${COMPOSE[@]}" exec -T backend alembic upgrade head
+# Migrations and seeding run automatically in the backend container entrypoint.
+# See backend/docker-entrypoint.sh.
 
 echo "Container status"
 "${COMPOSE[@]}" ps
