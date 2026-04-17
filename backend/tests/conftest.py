@@ -2,6 +2,7 @@
 
 import asyncio
 from collections.abc import AsyncGenerator
+from datetime import date
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -124,6 +125,29 @@ async def seed_submission_categories(setup_db, db: AsyncSession):
         ),
     ])
     await db.commit()
+
+
+@pytest.fixture
+def freeze_today(monkeypatch):
+    """Freeze ``date.today()`` inside services that preview recurrence occurrences.
+
+    Recurrence expansion filters out occurrences earlier than ``date.today()``,
+    so tests with hardcoded recurrence dates become time-dependent once real-world
+    time advances past them. Call ``freeze_today(date(Y, M, D))`` to pin today.
+    """
+    def _freeze(frozen: date) -> None:
+        class _FrozenDate(date):
+            @classmethod
+            def today(cls) -> date:
+                return frozen
+
+        for module_path in (
+            "app.services.submission_service",
+            "app.services.schedule_service",
+        ):
+            monkeypatch.setattr(f"{module_path}.date", _FrozenDate)
+
+    return _freeze
 
 
 @pytest.fixture
