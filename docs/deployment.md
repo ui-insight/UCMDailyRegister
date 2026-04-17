@@ -71,7 +71,7 @@ OPENAI_MODEL=gpt-4o
 # MindRouter — University of Idaho on-prem AI (required when LLM_PROVIDER=mindrouter)
 MINDROUTER_API_KEY=mr2_...
 MINDROUTER_ENDPOINT_URL=https://mindrouter.uidaho.edu/v1/chat/completions
-MINDROUTER_MODEL=Qwen/Qwen3-32B
+MINDROUTER_MODEL=openai/gpt-oss-120b
 
 # CORS (development)
 CORS_ORIGINS=http://localhost:5173

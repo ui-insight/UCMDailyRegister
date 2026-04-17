@@ -70,14 +70,19 @@ Requested publication dates. A submission targeting "Both" newsletters may have 
 
 Immutable audit trail of text transformations. Each version captures the text at one stage.
 
-| Key Column          | Type     | Notes                                  |
-|---------------------|----------|----------------------------------------|
-| Version_ID          | UUID PK  |                                        |
-| Submission_ID       | UUID FK  | Parent submission                      |
-| Version_Type        | String   | Original, AI_Suggested, Editor_Final   |
-| Title_Text          | String   | Title at this stage                    |
-| Body_Text           | Text     | Body at this stage                     |
-| Diff_JSON           | JSON     | Computed diff from previous version    |
+| Key Column          | Type     | Notes                                                   |
+|---------------------|----------|---------------------------------------------------------|
+| Id                  | UUID PK  |                                                         |
+| Submission_Id       | UUID FK  | Parent submission                                       |
+| Version_Type        | String   | AllowedValue-governed (Original, AI_Suggested, Final)   |
+| Headline            | Text     | Headline at this stage                                  |
+| Body                | Text     | Body at this stage                                      |
+| Headline_Case       | String   | AllowedValue-governed headline case setting             |
+| Flags               | JSON     | Structured style-rule violations detected by the AI     |
+| Changes_Made        | JSON     | Structured diff summary produced by the AI pipeline     |
+| AI_Provider         | String   | Provider slug (`claude`, `openai`, `mindrouter`)        |
+| AI_Model            | String   | Model identifier returned by the provider               |
+| Created_At          | DateTime | Set by `server_default=now()`                           |
 
 !!! warning "Immutability"
     EditVersion records are never updated after creation. Each editing action produces a new row, preserving the complete history.
