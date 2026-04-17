@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from app.api.v1.health import router as health_router
 from app.api.v1.submissions import router as submissions_router
 from app.api.v1.style_rules import router as style_rules_router
 from app.api.v1.ai_edits import router as ai_edits_router
@@ -12,12 +13,7 @@ from app.api.v1.settings import router as settings_router
 
 router = APIRouter(prefix="/api/v1")
 
-
-@router.get("/health")
-async def health_check():
-    return {"status": "ok"}
-
-
+router.include_router(health_router)
 router.include_router(submissions_router)
 router.include_router(style_rules_router)
 router.include_router(ai_edits_router)
