@@ -7,6 +7,7 @@ All endpoints are prefixed with `/api/v1`. Responses use JSON. Errors return sta
 | Method | Path              | Description          |
 |--------|-------------------|----------------------|
 | GET    | `/api/v1/health`  | Returns service status and version |
+| GET    | `/api/v1/readyz`  | Readiness probe — verifies load-bearing reference tables are seeded |
 
 ## Submissions
 
@@ -15,7 +16,7 @@ All endpoints are prefixed with `/api/v1`. Responses use JSON. Errors return sta
 | POST   | `/api/v1/submissions`                         | Create a new submission              |
 | GET    | `/api/v1/submissions`                         | List submissions (with filters)      |
 | GET    | `/api/v1/submissions/{id}`                    | Get a single submission              |
-| PUT    | `/api/v1/submissions/{id}`                    | Update a submission                  |
+| PATCH  | `/api/v1/submissions/{id}`                    | Update a submission                  |
 | DELETE | `/api/v1/submissions/{id}`                    | Delete a submission                  |
 
 ### Submission Links
@@ -23,24 +24,25 @@ All endpoints are prefixed with `/api/v1`. Responses use JSON. Errors return sta
 | Method | Path                                                  | Description                  |
 |--------|-------------------------------------------------------|------------------------------|
 | POST   | `/api/v1/submissions/{id}/links`                      | Add a link to a submission   |
-| GET    | `/api/v1/submissions/{id}/links`                      | List links for a submission  |
 | DELETE | `/api/v1/submissions/{id}/links/{link_id}`            | Remove a link                |
 
 ### Schedule Requests
 
-| Method | Path                                                          | Description                          |
-|--------|---------------------------------------------------------------|--------------------------------------|
-| POST   | `/api/v1/submissions/{id}/schedule-requests`                  | Add a schedule request               |
-| GET    | `/api/v1/submissions/{id}/schedule-requests`                  | List schedule requests               |
-| DELETE | `/api/v1/submissions/{id}/schedule-requests/{request_id}`     | Remove a schedule request            |
+| Method | Path                                                              | Description                          |
+|--------|-------------------------------------------------------------------|--------------------------------------|
+| POST   | `/api/v1/submissions/{id}/schedule`                               | Add a schedule request               |
+| DELETE | `/api/v1/submissions/{id}/schedule/{schedule_id}`                 | Remove a schedule request            |
+| POST   | `/api/v1/submissions/{id}/schedule/{schedule_id}/skip`            | Skip a recurring occurrence (staff)  |
+| POST   | `/api/v1/submissions/{id}/schedule/{schedule_id}/reschedule`      | Move a recurring occurrence (staff)  |
 
-### Images
+### Image
+
+Each submission supports at most one image attachment.
 
 | Method | Path                                                  | Description                    |
 |--------|-------------------------------------------------------|--------------------------------|
-| POST   | `/api/v1/submissions/{id}/images`                     | Upload an image attachment     |
-| GET    | `/api/v1/submissions/{id}/images`                     | List images for a submission   |
-| DELETE | `/api/v1/submissions/{id}/images/{image_id}`          | Remove an image                |
+| POST   | `/api/v1/submissions/{id}/image`                      | Upload the image attachment    |
+| GET    | `/api/v1/submissions/{id}/image`                      | Fetch the image bytes          |
 
 ## AI Edits
 
@@ -115,7 +117,7 @@ These endpoints are staff-only and manage centrally maintained editorial content
 | POST   | `/api/v1/style-rules`                         | Create a style rule                  |
 | GET    | `/api/v1/style-rules`                         | List rules (filter by rule set)      |
 | GET    | `/api/v1/style-rules/{id}`                    | Get a single rule                    |
-| PUT    | `/api/v1/style-rules/{id}`                    | Update a rule                        |
+| PATCH  | `/api/v1/style-rules/{id}`                    | Update a rule                        |
 | DELETE | `/api/v1/style-rules/{id}`                    | Delete a rule                        |
 
 ## Sections
@@ -155,7 +157,7 @@ The settings endpoint returns read-only configuration data for the frontend Sett
     ```json
     {
       "active_provider": "mindrouter",
-      "active_model": "GPT-OSS-120B",
+      "active_model": "openai/gpt-oss-120b",
       "endpoint_url": "https://mindrouter.uidaho.edu/v1/chat/completions",
       "providers": {
         "claude": {
@@ -167,7 +169,7 @@ The settings endpoint returns read-only configuration data for the frontend Sett
           "configured": false
         },
         "mindrouter": {
-          "model": "GPT-OSS-120B",
+          "model": "openai/gpt-oss-120b",
           "endpoint_url": "https://mindrouter.uidaho.edu/v1/chat/completions",
           "configured": true
         }
