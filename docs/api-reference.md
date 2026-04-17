@@ -128,10 +128,43 @@ These endpoints are staff-only and manage centrally maintained editorial content
 
 ## Schedule
 
+### Configs
+
 | Method | Path                                          | Description                          |
 |--------|-----------------------------------------------|--------------------------------------|
 | GET    | `/api/v1/schedule/configs`                    | List all schedule configs            |
-| GET    | `/api/v1/schedule/active`                     | Get the currently active config      |
+| GET    | `/api/v1/schedule/active`                     | Get the active config, next publish date, submission deadline, and any active override |
+| GET    | `/api/v1/schedule/valid-dates?from=...&to=...`| List valid publication dates in a range, respecting schedule config and blackouts (max range: 366 days) |
+
+### Blackout Dates
+
+Blackout dates block a specific date from being a valid publication date.
+
+| Method | Path                                                  | Description                          |
+|--------|-------------------------------------------------------|--------------------------------------|
+| GET    | `/api/v1/schedule/blackout-dates`                     | List active blackout dates           |
+| POST   | `/api/v1/schedule/blackout-dates`                     | Create a blackout date               |
+| DELETE | `/api/v1/schedule/blackout-dates/{blackout_id}`       | Delete a blackout date               |
+
+### Mode Overrides
+
+Mode overrides activate an alternate schedule mode (e.g., winter break) for a date range.
+
+| Method | Path                                                  | Description                          |
+|--------|-------------------------------------------------------|--------------------------------------|
+| GET    | `/api/v1/schedule/mode-overrides`                     | List schedule mode overrides         |
+| POST   | `/api/v1/schedule/mode-overrides`                     | Create a mode override for a date range |
+| DELETE | `/api/v1/schedule/mode-overrides/{override_id}`       | Delete a mode override               |
+
+### Custom Publish Dates
+
+Custom publish dates add one-off publication dates outside the regular cadence (typically used during winter break).
+
+| Method | Path                                                  | Description                          |
+|--------|-------------------------------------------------------|--------------------------------------|
+| GET    | `/api/v1/schedule/custom-dates`                       | List custom publish dates            |
+| POST   | `/api/v1/schedule/custom-dates`                       | Add a custom publish date            |
+| DELETE | `/api/v1/schedule/custom-dates/{custom_date_id}`      | Delete a custom publish date         |
 
 ## Allowed Values
 
