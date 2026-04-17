@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     upload_dir: str = "./uploads"
     cors_origins: list[str] = ["http://localhost:5173"]
     calendar_source_url: str = (
-        "https://www.trumba.com/calendars/university-of-idaho.rss"
+        "https://www.qatrumba.com/events-calendar/ui/uidaho/vandals/vandal/event/events/calendar/moscow/idaho/id/university-of-idaho"
     )
     calendar_request_timeout_seconds: float = 10.0
     job_postings_source_url: str = "https://uidaho.peopleadmin.com/postings/search"
