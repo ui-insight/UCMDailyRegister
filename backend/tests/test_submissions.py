@@ -1,5 +1,7 @@
 """Tests for Submission CRUD endpoints."""
 
+from datetime import date
+
 import pytest
 from httpx import AsyncClient
 
@@ -66,7 +68,10 @@ class TestSubmissionCRUD:
         assert resp.status_code == 201
         assert resp.json()["Survey_End_Date"] == "2026-04-15"
 
-    async def test_create_submission_with_recurring_schedule(self, client: AsyncClient):
+    async def test_create_submission_with_recurring_schedule(
+        self, client: AsyncClient, freeze_today
+    ):
+        freeze_today(date(2026, 3, 10))
         data = make_submission_data(
             Schedule_Requests=[
                 {
@@ -393,7 +398,10 @@ class TestSubmissionSchedule:
         assert list_resp.status_code == 200
         assert list_resp.json()["Total"] == 0
 
-    async def test_reschedule_schedule_occurrence(self, client: AsyncClient):
+    async def test_reschedule_schedule_occurrence(
+        self, client: AsyncClient, freeze_today
+    ):
+        freeze_today(date(2026, 3, 10))
         data = make_submission_data(
             Schedule_Requests=[
                 {
