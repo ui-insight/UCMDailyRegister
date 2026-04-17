@@ -3,12 +3,20 @@
 from datetime import date
 
 import pytest
+from freezegun import freeze_time
 from httpx import AsyncClient
 
 from tests.conftest import make_submission_data
 
 
+# Freeze the clock for date-sensitive tests. Recurrence previews filter past
+# occurrences via date.today(); the expected Occurrence_Dates assertions below
+# were written assuming "today" falls in early April 2026.
+FROZEN_TODAY = "2026-04-01"
+
+
 @pytest.mark.asyncio
+@freeze_time(FROZEN_TODAY)
 class TestSubmissionCRUD:
     async def test_create_submission(self, client: AsyncClient):
         data = make_submission_data()
@@ -299,6 +307,7 @@ class TestSubmissionCRUD:
 
 
 @pytest.mark.asyncio
+@freeze_time(FROZEN_TODAY)
 class TestSubmissionLinks:
     async def test_add_link(self, client: AsyncClient):
         create_resp = await client.post("/api/v1/submissions/", json=make_submission_data())
@@ -324,6 +333,7 @@ class TestSubmissionLinks:
 
 
 @pytest.mark.asyncio
+@freeze_time(FROZEN_TODAY)
 class TestSubmissionSchedule:
     async def test_add_schedule_request(self, client: AsyncClient):
         create_resp = await client.post("/api/v1/submissions/", json=make_submission_data())
