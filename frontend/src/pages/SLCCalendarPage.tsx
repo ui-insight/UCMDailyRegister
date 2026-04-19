@@ -2,7 +2,6 @@ import { useEffect, useState, useCallback, useMemo } from 'react';
 import { listSubmissions } from '../api/submissions';
 import type { Submission, EventClassification } from '../types/submission';
 import CalendarView from '../components/dashboard/CalendarView';
-import DayDetail from '../components/dashboard/DayDetail';
 import { getSubmitterRole } from '../utils/submitterRole';
 import { getOccurrenceDates } from '../utils/submissionOccurrences';
 

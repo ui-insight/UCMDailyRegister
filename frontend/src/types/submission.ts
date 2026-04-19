@@ -83,6 +83,8 @@ export interface SubmissionCreate {
   Submitter_Email: string;
   Submitter_Notes?: string;
   Survey_End_Date?: string;
+  Show_In_SLC_Calendar?: boolean;
+  Event_Classification?: EventClassification;
   Links?: { Url: string; Anchor_Text?: string }[];
   Schedule_Requests?: {
     Requested_Date?: string;

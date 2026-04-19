@@ -4,7 +4,9 @@ interface AIEditControlsProps {
   onRejectEdit: () => void;
   loading: boolean;
   hasAIEdit: boolean;
-  targetNewsletter: 'tdr' | 'myui' | 'both';
+  // Accepts "none" so SLC-only submissions type-check, though AI editing is never
+  // triggered for them — all button branches below gate on 'tdr'/'myui'/'both'.
+  targetNewsletter: 'tdr' | 'myui' | 'both' | 'none';
   confidence?: number;
 }
 
