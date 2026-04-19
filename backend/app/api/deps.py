@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.engine import async_session_factory
 
-SubmitterRole = Literal["public", "staff"]
+SubmitterRole = Literal["public", "staff", "slc"]
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
@@ -17,6 +17,10 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 async def get_submitter_role(
     x_user_role: str | None = Header(None, alias="X-User-Role"),
 ) -> SubmitterRole:
-    if x_user_role and x_user_role.lower() == "staff":
-        return cast(SubmitterRole, "staff")
+    if x_user_role:
+        normalized = x_user_role.lower()
+        if normalized == "staff":
+            return cast(SubmitterRole, "staff")
+        if normalized == "slc":
+            return cast(SubmitterRole, "slc")
     return cast(SubmitterRole, "public")

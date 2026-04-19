@@ -15,6 +15,12 @@ vocabulary without code changes.
 SubmissionLink stores hyperlinks that should be embedded in the published item.
 SubmissionScheduleRequest lets submitters indicate preferred publication dates
 and repeat-run preferences.
+
+Beyond the newsletter audiences, a Submission may also be flagged for inclusion
+in the Senior Leadership Council calendar (Show_In_SLC_Calendar) and optionally
+classified as a Strategic or Signature Event (Event_Classification). SLC-only
+events use Target_Newsletter = "none"; events that are both newsletter-facing
+and SLC-visible keep their newsletter target and carry the SLC flag alongside.
 """
 
 import uuid
@@ -51,6 +57,10 @@ class Submission(Base):
     Image_Path: Mapped[str | None] = mapped_column(sa.String(512), nullable=True)
     Survey_End_Date: Mapped[date | None] = mapped_column(sa.Date, nullable=True)
     Status: Mapped[str] = mapped_column(sa.String(50), nullable=False, default="new")
+    Show_In_SLC_Calendar: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=False, default=False, server_default=sa.false()
+    )
+    Event_Classification: Mapped[str | None] = mapped_column(sa.String(50), nullable=True)
     Created_At: Mapped[datetime] = mapped_column(
         sa.DateTime, nullable=False, server_default=sa.func.now()
     )

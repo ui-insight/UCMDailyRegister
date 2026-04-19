@@ -13,6 +13,7 @@ def _submission_category_visibility_filter(submission_role: SubmitterRole):
     return sa.or_(
         AllowedValue.Value_Group != "Submission_Category",
         AllowedValue.Visibility_Role == "public",
+        AllowedValue.Visibility_Role == submission_role,
     )
 
 
@@ -45,6 +46,11 @@ async def is_submission_category_allowed(
         AllowedValue.Is_Active == True,  # noqa: E712
     )
     if submission_role != "staff":
-        query = query.where(AllowedValue.Visibility_Role == "public")
+        query = query.where(
+            sa.or_(
+                AllowedValue.Visibility_Role == "public",
+                AllowedValue.Visibility_Role == submission_role,
+            )
+        )
     result = await db.execute(query)
     return result.scalar_one_or_none() is not None
