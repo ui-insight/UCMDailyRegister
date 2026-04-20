@@ -20,11 +20,20 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "schedule_configs",
-        sa.Column("Holiday_Shift_Enabled", sa.Boolean(), nullable=True, server_default=sa.text("false")),
-    )
+    # Some long-running deployments already have this column from an earlier
+    # Base.metadata.create_all() bootstrap that predated this migration. Guard
+    # the ADD so replays against a drifted DB stamp forward without failing.
+    bind = op.get_bind()
+    columns = {column["name"] for column in sa.inspect(bind).get_columns("schedule_configs")}
+    if "Holiday_Shift_Enabled" not in columns:
+        op.add_column(
+            "schedule_configs",
+            sa.Column("Holiday_Shift_Enabled", sa.Boolean(), nullable=True, server_default=sa.text("false")),
+        )
 
 
 def downgrade() -> None:
-    op.drop_column("schedule_configs", "Holiday_Shift_Enabled")
+    bind = op.get_bind()
+    columns = {column["name"] for column in sa.inspect(bind).get_columns("schedule_configs")}
+    if "Holiday_Shift_Enabled" in columns:
+        op.drop_column("schedule_configs", "Holiday_Shift_Enabled")
