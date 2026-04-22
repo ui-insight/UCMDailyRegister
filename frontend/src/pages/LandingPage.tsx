@@ -39,7 +39,7 @@ function RoleCard({
 export default function LandingPage() {
   const navigate = useNavigate();
 
-  const handleSelect = (role: 'public' | 'staff', target: string) => {
+  const handleSelect = (role: 'public' | 'staff' | 'slc', target: string) => {
     setSubmitterRole(role);
     navigate(target);
   };
@@ -67,7 +67,7 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="mt-10 grid gap-6 md:grid-cols-2">
+          <div className="mt-10 grid gap-6 md:grid-cols-3">
             <RoleCard
               title="Submitter View"
               description="Use the public-style submission experience to send announcements, events, and news items into the workflow."
@@ -81,6 +81,13 @@ export default function LandingPage() {
               actionLabel="Open Staff Workspace"
               accentClass="hover:border-ui-gold-300"
               onSelect={() => handleSelect('staff', '/dashboard')}
+            />
+            <RoleCard
+              title="SLC Leadership View"
+              description="Private calendar of strategic and signature events for Senior Leadership Council members and their admins. Exploration preview."
+              actionLabel="Open SLC Calendar"
+              accentClass="hover:border-ui-clearwater-300"
+              onSelect={() => handleSelect('slc', '/slc-calendar')}
             />
           </div>
         </div>

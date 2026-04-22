@@ -38,12 +38,14 @@ const CATEGORY_LABELS: Record<string, string> = {
   in_memoriam: 'In Memoriam',
   news_release: 'News Release',
   calendar_event: 'Calendar Event',
+  slc_event: 'SLC Event',
 };
 
 const NEWSLETTER_LABELS: Record<string, string> = {
   tdr: 'TDR',
   myui: 'My UI',
   both: 'Both',
+  none: 'SLC only',
 };
 
 function toISODate(d: Date): string {

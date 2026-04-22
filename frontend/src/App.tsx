@@ -8,6 +8,8 @@ import EditPage from './pages/EditPage';
 import SettingsPage from './pages/SettingsPage';
 import RecurringMessagesPage from './pages/RecurringMessagesPage';
 import LandingPage from './pages/LandingPage';
+import SLCCalendarPage from './pages/SLCCalendarPage';
+import SLCEventSubmitPage from './pages/SLCEventSubmitPage';
 
 export default function App() {
   return (
@@ -21,6 +23,8 @@ export default function App() {
           <Route path="/edit/:id" element={<EditPage />} />
           <Route path="/builder" element={<BuilderPage />} />
           <Route path="/recurring-messages" element={<RecurringMessagesPage />} />
+          <Route path="/slc-calendar" element={<SLCCalendarPage />} />
+          <Route path="/submit-slc-event" element={<SLCEventSubmitPage />} />
           <Route path="/style-rules" element={<StyleRulesPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>

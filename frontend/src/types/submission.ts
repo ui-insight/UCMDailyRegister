@@ -7,12 +7,16 @@ export type SubmissionCategory =
   | 'employee_announcement'
   | 'survey'
   | 'news_release'
-  | 'ucm_feature_story';
+  | 'ucm_feature_story'
+  | 'slc_event';
 
 /** Legacy categories that may exist on old submissions but are no longer submittable. */
 export type LegacyCategory = 'calendar_event';
 
-export type TargetNewsletter = 'tdr' | 'myui' | 'both';
+/** "none" = SLC calendar only, no newsletter publication. */
+export type TargetNewsletter = 'tdr' | 'myui' | 'both' | 'none';
+
+export type EventClassification = 'strategic' | 'signature';
 
 export type SubmissionStatus =
   | 'new'
@@ -61,6 +65,8 @@ export interface Submission {
   Has_Image: boolean;
   Image_Path: string | null;
   Status: SubmissionStatus;
+  Show_In_SLC_Calendar: boolean;
+  Event_Classification: EventClassification | null;
   Created_At: string;
   Updated_At: string;
   Links: SubmissionLink[];
@@ -77,6 +83,8 @@ export interface SubmissionCreate {
   Submitter_Email: string;
   Submitter_Notes?: string;
   Survey_End_Date?: string;
+  Show_In_SLC_Calendar?: boolean;
+  Event_Classification?: EventClassification;
   Links?: { Url: string; Anchor_Text?: string }[];
   Schedule_Requests?: {
     Requested_Date?: string;

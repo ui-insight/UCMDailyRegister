@@ -77,13 +77,15 @@ class ScheduleOccurrenceRescheduleRequest(BaseModel):
 
 class SubmissionCreate(BaseModel):
     Category: str = Field(..., min_length=1, max_length=100)
-    Target_Newsletter: str = Field(..., pattern=r"^(tdr|myui|both)$")
+    Target_Newsletter: str = Field(..., pattern=r"^(tdr|myui|both|none)$")
     Original_Headline: str = Field(..., min_length=1, max_length=500)
     Original_Body: str = Field(..., min_length=1)
     Submitter_Name: str = Field(..., min_length=1, max_length=255)
     Submitter_Email: str = Field(..., max_length=255)
     Submitter_Notes: str | None = None
     Survey_End_Date: date | None = None
+    Show_In_SLC_Calendar: bool = False
+    Event_Classification: str | None = Field(None, pattern=r"^(strategic|signature)$")
     Links: list[LinkCreate] = []
     Schedule_Requests: list[ScheduleRequestCreate] = Field(..., min_length=1)
 
@@ -97,7 +99,9 @@ class SubmissionUpdate(BaseModel):
     Assigned_Editor: str | None = Field(None, max_length=255)
     Editorial_Notes: str | None = None
     Category: str | None = Field(None, min_length=1, max_length=100)
-    Target_Newsletter: str | None = Field(None, pattern=r"^(tdr|myui|both)$")
+    Target_Newsletter: str | None = Field(None, pattern=r"^(tdr|myui|both|none)$")
+    Show_In_SLC_Calendar: bool | None = None
+    Event_Classification: str | None = Field(None, pattern=r"^(strategic|signature)$")
 
 
 class SubmissionResponse(BaseModel):
@@ -115,6 +119,8 @@ class SubmissionResponse(BaseModel):
     Has_Image: bool
     Image_Path: str | None
     Status: str
+    Show_In_SLC_Calendar: bool = False
+    Event_Classification: str | None = None
     Created_At: datetime
     Updated_At: datetime
     Links: list[LinkResponse]

@@ -22,6 +22,8 @@ async def create_submission(db: AsyncSession, data: SubmissionCreate) -> Submiss
         Submitter_Email=data.Submitter_Email,
         Submitter_Notes=data.Submitter_Notes,
         Survey_End_Date=data.Survey_End_Date,
+        Show_In_SLC_Calendar=data.Show_In_SLC_Calendar,
+        Event_Classification=data.Event_Classification,
     )
     db.add(submission)
     await db.flush()
@@ -86,6 +88,8 @@ async def list_submissions(
     date_to: date | None = None,
     offset: int = 0,
     limit: int = 50,
+    slc_calendar_only: bool = False,
+    exclude_slc_only: bool = False,
 ) -> tuple[list[Submission], int]:
     query = select(Submission).options(
         selectinload(Submission.Links),
@@ -102,6 +106,13 @@ async def list_submissions(
     if target_newsletter:
         query = query.where(Submission.Target_Newsletter == target_newsletter)
         count_query = count_query.where(Submission.Target_Newsletter == target_newsletter)
+    if slc_calendar_only:
+        query = query.where(Submission.Show_In_SLC_Calendar.is_(True))
+        count_query = count_query.where(Submission.Show_In_SLC_Calendar.is_(True))
+    if exclude_slc_only:
+        # Hide submissions whose only audience is the SLC calendar (Target_Newsletter="none").
+        query = query.where(Submission.Target_Newsletter != "none")
+        count_query = count_query.where(Submission.Target_Newsletter != "none")
     if search:
         pattern = f"%{search}%"
         search_filter = Submission.Original_Headline.ilike(pattern) | Submission.Original_Body.ilike(pattern) | Submission.Submitter_Name.ilike(pattern)

@@ -84,6 +84,9 @@ async def _validate_schedule_request(
     target_newsletter: str,
     schedule_request: ScheduleRequestCreate,
 ) -> None:
+    if target_newsletter == "none":
+        # SLC-only events do not publish into a newsletter; no pub-day validation.
+        return
     if target_newsletter == "both":
         # For "both": Requested_Date is for TDR, Second_Requested_Date is for My UI
         if schedule_request.Requested_Date:
@@ -134,15 +137,25 @@ async def list_submissions(
     search: str | None = None,
     date_from: date | None = None,
     date_to: date | None = None,
+    slc_calendar_only: bool = False,
     offset: int = Query(0, ge=0),
     limit: int = Query(50, ge=1, le=200),
     db: AsyncSession = Depends(get_db),
     submission_role: SubmitterRole = Depends(get_submitter_role),
 ):
+    if slc_calendar_only and submission_role not in ("staff", "slc"):
+        raise HTTPException(
+            status_code=403,
+            detail="SLC calendar events are only visible to authorized viewers.",
+        )
+    # Viewers without staff/slc access never see SLC-only submissions.
+    exclude_slc_only = submission_role not in ("staff", "slc")
     items, total = await submission_service.list_submissions(
         db, status=status, category=category, target_newsletter=target_newsletter,
         search=search, date_from=date_from, date_to=date_to,
         offset=offset, limit=limit,
+        slc_calendar_only=slc_calendar_only,
+        exclude_slc_only=exclude_slc_only,
     )
     return _to_submission_list_response(items, total, submission_role)
 
@@ -155,6 +168,11 @@ async def get_submission(
 ):
     submission = await submission_service.get_submission(db, submission_id)
     if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    if (
+        submission.Target_Newsletter == "none"
+        and submission_role not in ("staff", "slc")
+    ):
         raise HTTPException(status_code=404, detail="Submission not found")
     return _to_submission_response(submission, submission_role)
 

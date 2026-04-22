@@ -1,20 +1,33 @@
 import { NavLink } from 'react-router-dom';
 import { getSubmitterRole } from '../../utils/submitterRole';
 
-const navItems = [
-  { to: '/submit', label: 'Submit', icon: '+ ' },
-  { to: '/dashboard', label: 'Dashboard', icon: '' },
-  { to: '/builder', label: 'Builder', icon: '' },
-  { to: '/recurring-messages', label: 'Recurring', icon: '' },
-  { to: '/style-rules', label: 'Style Rules', icon: '' },
-  { to: '/settings', label: 'Settings', icon: '' },
+type NavItem = {
+  to: string;
+  label: string;
+  icon: string;
+  roles: ('public' | 'staff' | 'slc')[];
+};
+
+const navItems: NavItem[] = [
+  { to: '/submit', label: 'Submit', icon: '+ ', roles: ['public', 'staff', 'slc'] },
+  { to: '/dashboard', label: 'Dashboard', icon: '', roles: ['staff'] },
+  { to: '/builder', label: 'Builder', icon: '', roles: ['staff'] },
+  { to: '/recurring-messages', label: 'Recurring', icon: '', roles: ['staff'] },
+  { to: '/slc-calendar', label: 'SLC Calendar', icon: '', roles: ['staff', 'slc'] },
+  { to: '/submit-slc-event', label: 'Submit SLC Event', icon: '+ ', roles: ['staff', 'slc'] },
+  { to: '/style-rules', label: 'Style Rules', icon: '', roles: ['staff'] },
+  { to: '/settings', label: 'Settings', icon: '', roles: ['staff'] },
 ];
+
+const ROLE_LABEL: Record<'public' | 'staff' | 'slc', string> = {
+  public: 'Submitter View',
+  staff: 'Staff View',
+  slc: 'SLC Leadership View',
+};
 
 export default function Sidebar() {
   const role = getSubmitterRole();
-  const filteredNavItems = role === 'staff'
-    ? navItems
-    : navItems.filter((item) => item.to === '/submit');
+  const filteredNavItems = navItems.filter((item) => item.roles.includes(role));
 
   return (
     <aside className="w-64 bg-gray-900 text-white min-h-screen flex flex-col">
@@ -28,7 +41,7 @@ export default function Sidebar() {
         <div className="mt-4 rounded-lg border border-gray-700 bg-gray-800/80 px-3 py-2">
           <p className="text-[11px] uppercase tracking-wide text-gray-500">Current Mode</p>
           <p className="mt-1 text-sm font-medium text-white">
-            {role === 'staff' ? 'Staff View' : 'Submitter View'}
+            {ROLE_LABEL[role]}
           </p>
           <NavLink
             to="/"

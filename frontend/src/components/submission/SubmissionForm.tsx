@@ -19,6 +19,8 @@ const NEWSLETTER_CATEGORY_CODES: Record<TargetNewsletter, Set<string>> = {
   myui: new Set(['student', 'survey']),
   tdr: new Set(['faculty_staff', 'job_opportunity', 'employee_announcement', 'kudos', 'in_memoriam', 'survey', 'news_release', 'ucm_feature_story']),
   both: new Set(['faculty_staff', 'survey']),
+  // SLC-only events route through the dedicated SLC submission form, not this one.
+  none: new Set<string>(),
 };
 
 interface LinkEntry {

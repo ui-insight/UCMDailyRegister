@@ -23,6 +23,7 @@ export async function listSubmissions(params?: {
   date_to?: string;
   offset?: number;
   limit?: number;
+  slc_calendar_only?: boolean;
 }): Promise<SubmissionListResponse> {
   const searchParams = new URLSearchParams();
   if (params) {

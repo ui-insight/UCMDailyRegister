@@ -1,11 +1,14 @@
-export type SubmitterRole = 'public' | 'staff';
+export type SubmitterRole = 'public' | 'staff' | 'slc';
 
 const STORAGE_KEY = 'ucm_submitter_role';
 
 function parseRole(value: string | null): SubmitterRole | null {
   if (!value) return null;
   const normalized = value.toLowerCase();
-  return normalized === 'staff' ? 'staff' : normalized === 'public' ? 'public' : null;
+  if (normalized === 'staff') return 'staff';
+  if (normalized === 'slc') return 'slc';
+  if (normalized === 'public') return 'public';
+  return null;
 }
 
 export function getSubmitterRole(): SubmitterRole {
@@ -32,5 +35,5 @@ export function setSubmitterRole(role: SubmitterRole) {
 
 export function getSubmitterRoleHeaders(): HeadersInit {
   const role = getSubmitterRole();
-  return role === 'staff' ? { 'X-User-Role': role } : {};
+  return role === 'public' ? {} : { 'X-User-Role': role };
 }
