@@ -11,8 +11,9 @@ services:
       MINDROUTER_API_KEY: ${MINDROUTER_API_KEY:-}
       MINDROUTER_ENDPOINT_URL: ${MINDROUTER_ENDPOINT_URL:-https://mindrouter.uidaho.edu/v1/chat/completions}
       MINDROUTER_MODEL: ${MINDROUTER_MODEL:-Qwen/Qwen3-32B}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
       UPLOAD_DIR: /app/uploads
-      CORS_ORIGINS: '${CORS_ORIGINS:-["*"]}'
+      CORS_ORIGINS: '${CORS_ORIGINS:?Set CORS_ORIGINS in .env}'
     volumes:
       - uploads:/app/uploads
     networks:

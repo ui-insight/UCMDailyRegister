@@ -57,6 +57,9 @@ Create a `.env` file in the project root (for Docker) or `backend/` directory (f
 # Database (SQLite for development)
 DATABASE_URL=sqlite+aiosqlite:///./ucm_newsletter.db
 
+# App environment
+ENVIRONMENT=development
+
 # LLM Provider ("claude", "openai", or "mindrouter")
 LLM_PROVIDER=claude
 
@@ -73,7 +76,7 @@ MINDROUTER_API_KEY=mr2_...
 MINDROUTER_ENDPOINT_URL=https://mindrouter.uidaho.edu/v1/chat/completions
 MINDROUTER_MODEL=openai/gpt-oss-120b
 
-# CORS (development)
+# CORS (development; comma-separated origins or a JSON array)
 CORS_ORIGINS=http://localhost:5173
 ```
 
@@ -226,6 +229,12 @@ MINDROUTER_MODEL=openai/gpt-oss-120b
 # Docker
 HOST_PORT=9280          # 9290 for dev
 DOCKER_SUBNET=10.20.9.0/24  # 10.20.10.0/24 for dev
+
+# App environment and CORS
+ENVIRONMENT=production
+CORS_ORIGINS=https://ucmnews.insight.uidaho.edu
+# For deployed dev:
+# CORS_ORIGINS=https://ucmnews-dev.insight.uidaho.edu
 ```
 
 ### Nginx Proxy Timeouts
