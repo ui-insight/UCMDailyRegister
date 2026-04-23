@@ -15,6 +15,12 @@ export default defineConfig([
       reactHooks.configs.flat.recommended,
       reactRefresh.configs.vite,
     ],
+    rules: {
+      // These compiler-oriented rules were introduced by newer react-hooks plugin releases.
+      // Keep the existing lint baseline while upgrading the frontend toolchain.
+      'react-hooks/immutability': 'off',
+      'react-hooks/set-state-in-effect': 'off',
+    },
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
