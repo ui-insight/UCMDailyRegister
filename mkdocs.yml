@@ -41,6 +41,7 @@ nav:
   - Home: index.md
   - Architecture: architecture.md
   - Data Model: data-model.md
+  - UDM Alignment: udm-alignment.md
   - AI Editing: ai-editing.md
   - UI Branding: branding.md
   - API Reference: api-reference.md

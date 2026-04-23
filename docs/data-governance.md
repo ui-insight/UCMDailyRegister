@@ -22,7 +22,9 @@ The application collects a minimal set of personally identifiable information:
 |-------|-------|---------------|---------|-----------|
 | Submitter_Name | submissions | Confidential | Contact submitter, attribution tracking | Life of submission |
 | Submitter_Email | submissions | Confidential | Contact submitter for edits/questions | Life of submission |
+| Submitter_Notes | submissions | Confidential | Submitter instructions; may contain incidental PII | Life of submission |
 | Assigned_Editor | submissions | Internal | Track editorial responsibility | Life of submission |
+| Editorial_Notes | submissions | Internal | Staff-only editorial notes; may contain incidental PII | Life of submission |
 
 **PII not collected:** Social Security numbers, student IDs, financial data, health information, passwords, or authentication tokens.
 
@@ -36,8 +38,8 @@ The application collects a minimal set of personally identifiable information:
                                   │  (Claude/OpenAI/ │
                                   │   MindRouter)    │
                                   └────────▲─────────┘
-                                           │ Content only
-                                           │ (no PII)
+                                           │ Content + notes
+                                           │ (incidental PII possible)
 ┌──────────┐    ┌──────────────┐    ┌──────┴────────┐    ┌──────────────┐
 │ Submitter │───▶│  React       │───▶│  FastAPI      │───▶│  PostgreSQL  │
 │ (browser) │    │  Frontend    │    │  Backend      │    │  Database    │
@@ -124,9 +126,13 @@ External Data Sources ──▶ Backend:
 
 **Naming:** Files renamed to UUID on upload (original filename discarded).
 
-**EXIF metadata:** Currently preserved on upload. EXIF data may contain GPS coordinates, camera model, timestamps, and other metadata.
+**EXIF metadata:** Stripped on upload for supported still-image formats. The upload
+path fails closed: if the server cannot process and re-save an uploaded image
+without metadata, the saved file is deleted and the upload is rejected. GIF files
+are accepted without EXIF rewriting.
 
-**Recommendation:** Strip EXIF metadata on upload using PIL/Pillow to prevent inadvertent location or device data leakage.
+**Recommendation:** Keep EXIF-stripping tests in the release gate and document
+any future supported media types before enabling them.
 
 ---
 
@@ -165,9 +171,28 @@ The Family Educational Rights and Privacy Act (FERPA) protects student education
 | Current State | Recommendation |
 |--------------|----------------|
 | Submitter_Notes sent to LLM without sanitization | Strip email/phone patterns before LLM submission |
-| Image EXIF metadata preserved | Strip EXIF on upload |
+| Image EXIF metadata is stripped for supported formats | Keep fail-closed behavior and tests in place |
 | No automated data expiry | Implement retention-based cleanup job |
 | Assigned_Editor stored as name string | Consider referencing by internal ID |
+
+---
+
+## UDM and Portfolio Governance Alignment
+
+UCM Daily Register follows the UI Insight portfolio's UDM-derived modeling
+conventions: `PascalCase_With_Underscores` column names, async SQLAlchemy models,
+database-backed controlled vocabularies, Pydantic schemas that mirror ORM field
+names, and TypeScript interfaces that mirror API response shapes.
+
+Unlike OpenERA, UCM is not a research-administration system and does not
+implement canonical research UDM entities such as `Proposal`, `Award`,
+`Personnel`, or `Organization`. Its tables should be documented as a
+communications-domain extension of the UDM pattern language: submissions,
+editorial versions, publication issues, publication sections, recurring
+messages, schedule rules, and AI editorial policy.
+
+See [UDM Alignment](udm-alignment.md) for the table-level alignment matrix,
+extension rationale, and recommended governance artifacts.
 
 ---
 
@@ -175,9 +200,9 @@ The Family Educational Rights and Privacy Act (FERPA) protects student education
 
 | Processor | Data Shared | Purpose | Terms |
 |-----------|------------|---------|-------|
-| Anthropic | Submission content (no PII fields) | AI copyediting | API Terms of Service — data not used for training |
-| OpenAI | Submission content (no PII fields) | AI copyediting (alternate provider) | API Terms of Service — data not used for training |
-| MindRouter (U of I) | Submission content (no PII fields) | AI copyediting (on-prem) | University-controlled infrastructure |
+| Anthropic | Submission content and submitter notes; submitter name/email excluded | AI copyediting | API Terms of Service -- data not used for training |
+| OpenAI | Submission content and submitter notes; submitter name/email excluded | AI copyediting (alternate provider) | API Terms of Service -- data not used for training |
+| MindRouter (U of I) | Submission content and submitter notes; submitter name/email excluded | AI copyediting (on-prem) | University-controlled infrastructure |
 | Trumba | None (read-only RSS) | Calendar event import | Public feed |
 | PeopleAdmin | None (read-only scrape) | Job posting import | Public portal |
 
@@ -187,10 +212,14 @@ The Family Educational Rights and Privacy Act (FERPA) protects student education
 
 | Role | Can Create | Can Read | Can Edit | Can Delete | Can Export |
 |------|-----------|---------|---------|-----------|-----------|
-| Public | Own submissions | Own submissions | Own submissions (limited fields) | No | Published newsletters |
-| Staff | All submissions | All submissions | All submissions + newsletters | No (not implemented) | All newsletters |
+| Public | Submissions | Public-redacted submission responses | Submissions (limited fields) | Some delete endpoints are not role-gated | Published newsletters |
+| Staff | All submissions, newsletters, recurring messages | All submissions and configuration | All submissions + newsletters + configuration | Destructive endpoints available through API | All newsletters |
 
-**Note:** There is no admin role. Staff have full editorial access. Deletion is not exposed via the API.
+**Note:** There is no admin role. The current role model is header-based
+(`X-User-Role`) and assumes network/proxy controls around the application.
+Several staff-only workflows are checked in the API, but this is not a
+cryptographically verified authentication model. Until stronger authentication is
+implemented, deployment controls are part of the access-control boundary.
 
 ---
 
@@ -208,9 +237,12 @@ If a data breach involving PII (submitter names/emails) is suspected:
 
 ## Open Items
 
-- [ ] Implement EXIF stripping on image upload
+- [x] Implement EXIF stripping on image upload
 - [ ] Add PII sanitization to Submitter_Notes before LLM submission
 - [ ] Implement data retention cleanup job
 - [ ] Evaluate authentication hardening (JWT/OAuth vs. header-based roles)
 - [ ] Establish audit logging for data access events
 - [ ] Create submitter-facing privacy notice for the submission form
+- [ ] Add a column-level data dictionary with classifications, PII flags, and retention categories
+- [ ] Refresh the portfolio governance catalog and communications vocabulary registry
+- [ ] Add governance drift checks for ORM/catalog/vocabulary documentation

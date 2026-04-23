@@ -15,11 +15,11 @@ All SQLAlchemy column names use **PascalCase_With_Underscores**:
 
 ```python
 # Correct
-Submission_Title = sa.Column(sa.String(500), nullable=False)
+Original_Headline = sa.Column(sa.Text, nullable=False)
 Created_At = sa.Column(sa.DateTime, server_default=sa.func.now())
 
 # Incorrect
-submission_title = sa.Column(sa.String(500), nullable=False)
+original_headline = sa.Column(sa.Text, nullable=False)
 created_at = sa.Column(sa.DateTime, server_default=sa.func.now())
 ```
 
@@ -70,8 +70,8 @@ async def get_submission(db: AsyncSession, submission_id: UUID) -> Submission:
 
 When introducing a new categorical field, follow the AllowedValue pattern instead of hardcoding options:
 
-1. **Add a new value group** in the seed script (e.g., `Priority_Level`).
-2. **Insert rows** with `Value_Key`, `Display_Label`, and `Sort_Order`.
+1. **Add a new value group** in `backend/data/allowed_values/allowed_values.json` (e.g., `Priority_Level`).
+2. **Insert rows** with `Value_Group`, `Code`, `Label`, `Display_Order`, `Visibility_Role`, and `Description` where applicable.
 3. **Reference the group** in forms via `GET /api/v1/allowed-values?group=Priority_Level`.
 4. **Validate** against allowed values in the service layer.
 

@@ -64,6 +64,7 @@ npm run dev
 
 ## Recent Updates
 
+- **Apr 2026** -- Data model and UDM alignment documentation refreshed to describe the current 16-table communications-domain extension surface.
 - **Mar 2026** -- Recurring message library: staff can manage reusable editorial content, assign it to sections, and auto-surface it in the builder with issue-level skip and restore controls.
 - **Mar 2026** -- Side-by-side comparison view: editors can toggle between inline diff and two-column original-vs-AI layout when reviewing edits.
 - **Feb 2026** -- MindRouter integration: on-prem AI via the University of Idaho's `mindrouter.uidaho.edu` service, switchable alongside Claude and OpenAI.
