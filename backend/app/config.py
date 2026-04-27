@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     upload_dir: str = "./uploads"
     cors_origins: str | list[str] | None = None
+    trusted_role_header_secret: str = ""
     calendar_source_url: str = (
         "https://www.qatrumba.com/events-calendar/ui/uidaho/vandals/vandal/event/events/calendar/moscow/idaho/id/university-of-idaho"
     )

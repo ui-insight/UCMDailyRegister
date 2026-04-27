@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.config import settings
-from app.api.deps import get_db
+from app.api.deps import get_db, require_staff
 from app.models.submission import Submission
 from app.models.edit_history import EditVersion
 from app.services.ai.factory import get_llm_provider
@@ -30,6 +30,7 @@ async def trigger_ai_edit(
     submission_id: str,
     request: AIEditRequest,
     session: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
 ):
     """Trigger AI editing on a submission for a specific newsletter type.
 
@@ -111,6 +112,7 @@ async def trigger_ai_edit(
 async def list_edit_versions(
     submission_id: str,
     session: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
 ):
     """List all edit versions for a submission."""
     result = await session.execute(
@@ -129,6 +131,7 @@ async def get_edit_version(
     submission_id: str,
     version_id: str,
     session: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
 ):
     """Get a specific edit version."""
     result = await session.execute(
@@ -148,6 +151,7 @@ async def save_editor_final(
     submission_id: str,
     data: EditorFinalCreate,
     session: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
 ):
     """Save the editor's final version of a submission.
 

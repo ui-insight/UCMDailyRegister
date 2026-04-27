@@ -34,6 +34,7 @@ class TestRecurringMessageCRUD:
         self,
         client: AsyncClient,
         db: AsyncSession,
+        staff_headers: dict[str, str],
     ):
         await _seed_section(
             db,
@@ -55,14 +56,14 @@ class TestRecurringMessageCRUD:
                 "Recurrence_Interval": 1,
                 "End_Date": "2026-07-06",
             },
-            headers={"X-User-Role": "staff"},
+            headers=staff_headers,
         )
         assert create_resp.status_code == 201
         message_id = create_resp.json()["Id"]
 
         list_resp = await client.get(
             "/api/v1/recurring-messages?newsletter_type=myui",
-            headers={"X-User-Role": "staff"},
+            headers=staff_headers,
         )
         assert list_resp.status_code == 200
         assert len(list_resp.json()) == 1
@@ -70,14 +71,14 @@ class TestRecurringMessageCRUD:
         update_resp = await client.patch(
             f"/api/v1/recurring-messages/{message_id}",
             json={"Is_Active": False},
-            headers={"X-User-Role": "staff"},
+            headers=staff_headers,
         )
         assert update_resp.status_code == 200
         assert update_resp.json()["Is_Active"] is False
 
         delete_resp = await client.delete(
             f"/api/v1/recurring-messages/{message_id}",
-            headers={"X-User-Role": "staff"},
+            headers=staff_headers,
         )
         assert delete_resp.status_code == 204
 
@@ -115,6 +116,7 @@ class TestRecurringMessageIssueFlow:
         self,
         client: AsyncClient,
         db: AsyncSession,
+        staff_headers: dict[str, str],
     ):
         await _seed_section(
             db,
@@ -135,13 +137,14 @@ class TestRecurringMessageIssueFlow:
                 "Recurrence_Type": "weekly",
                 "Recurrence_Interval": 1,
             },
-            headers={"X-User-Role": "staff"},
+            headers=staff_headers,
         )
         message_id = create_resp.json()["Id"]
 
         assemble_resp = await client.post(
             "/api/v1/newsletters/assemble",
             json={"Newsletter_Type": "tdr", "Publish_Date": "2026-04-03"},
+            headers=staff_headers,
         )
         assert assemble_resp.status_code == 200
         external_items = assemble_resp.json()["External_Items"]
@@ -153,6 +156,7 @@ class TestRecurringMessageIssueFlow:
         self,
         client: AsyncClient,
         db: AsyncSession,
+        staff_headers: dict[str, str],
     ):
         await _seed_section(
             db,
@@ -174,26 +178,27 @@ class TestRecurringMessageIssueFlow:
                 "Recurrence_Interval": 1,
                 "End_Date": "2026-04-07",
             },
-            headers={"X-User-Role": "staff"},
+            headers=staff_headers,
         )
         message_id = create_resp.json()["Id"]
 
         assemble_resp = await client.post(
             "/api/v1/newsletters/assemble",
             json={"Newsletter_Type": "tdr", "Publish_Date": "2026-04-03"},
+            headers=staff_headers,
         )
         newsletter_id = assemble_resp.json()["Id"]
         assert len(assemble_resp.json()["External_Items"]) == 1
 
         skip_resp = await client.post(
             f"/api/v1/newsletters/{newsletter_id}/recurring-messages/{message_id}/skip",
-            headers={"X-User-Role": "staff"},
+            headers=staff_headers,
         )
         assert skip_resp.status_code == 204
 
         candidates_after_skip = await client.get(
             f"/api/v1/newsletters/{newsletter_id}/recurring-messages",
-            headers={"X-User-Role": "staff"},
+            headers=staff_headers,
         )
         assert candidates_after_skip.status_code == 200
         assert candidates_after_skip.json()[0]["Skipped"] is True
@@ -202,20 +207,21 @@ class TestRecurringMessageIssueFlow:
         reassemble_resp = await client.post(
             "/api/v1/newsletters/assemble",
             json={"Newsletter_Type": "tdr", "Publish_Date": "2026-04-03"},
+            headers=staff_headers,
         )
         assert reassemble_resp.status_code == 200
         assert reassemble_resp.json()["External_Items"] == []
 
         add_resp = await client.post(
             f"/api/v1/newsletters/{newsletter_id}/recurring-messages/{message_id}",
-            headers={"X-User-Role": "staff"},
+            headers=staff_headers,
         )
         assert add_resp.status_code == 201
         assert add_resp.json()["Source_Type"] == "recurring_message"
 
         candidates_after_add = await client.get(
             f"/api/v1/newsletters/{newsletter_id}/recurring-messages",
-            headers={"X-User-Role": "staff"},
+            headers=staff_headers,
         )
         assert candidates_after_add.status_code == 200
         assert candidates_after_add.json()[0]["Selected"] is True

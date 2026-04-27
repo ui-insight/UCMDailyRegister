@@ -77,7 +77,7 @@ class TestSubmissionCRUD:
         assert resp.json()["Survey_End_Date"] == "2026-04-15"
 
     async def test_create_submission_with_recurring_schedule(
-        self, client: AsyncClient, freeze_today
+        self, client: AsyncClient, freeze_today, staff_headers: dict[str, str]
     ):
         freeze_today(date(2026, 3, 10))
         data = make_submission_data(
@@ -93,7 +93,7 @@ class TestSubmissionCRUD:
         resp = await client.post(
             "/api/v1/submissions/",
             json=data,
-            headers={"X-User-Role": "staff"},
+            headers=staff_headers,
         )
         assert resp.status_code == 201
         schedule = resp.json()["Schedule_Requests"][0]
@@ -133,12 +133,14 @@ class TestSubmissionCRUD:
         assert resp.status_code == 422
         assert "not available" in resp.json()["detail"]
 
-    async def test_staff_submitter_can_use_staff_only_category(self, client: AsyncClient):
+    async def test_staff_submitter_can_use_staff_only_category(
+        self, client: AsyncClient, staff_headers: dict[str, str]
+    ):
         data = make_submission_data(Category="news_release")
         resp = await client.post(
             "/api/v1/submissions/",
             json=data,
-            headers={"X-User-Role": "staff"},
+            headers=staff_headers,
         )
         assert resp.status_code == 201
         assert resp.json()["Category"] == "news_release"
@@ -166,7 +168,7 @@ class TestSubmissionCRUD:
         assert resp.json()["Total"] == 0
 
     async def test_list_submissions_includes_recurring_occurrences_in_range(
-        self, client: AsyncClient
+        self, client: AsyncClient, staff_headers: dict[str, str]
     ):
         recurring = make_submission_data(
             Original_Headline="Recurring feature",
@@ -187,7 +189,7 @@ class TestSubmissionCRUD:
         await client.post(
             "/api/v1/submissions/",
             json=recurring,
-            headers={"X-User-Role": "staff"},
+            headers=staff_headers,
         )
         await client.post("/api/v1/submissions/", json=one_off)
 
@@ -237,7 +239,9 @@ class TestSubmissionCRUD:
         assert resp.status_code == 200
         assert resp.json()["Survey_End_Date"] == "2026-05-01"
 
-    async def test_staff_can_update_editorial_workflow_fields(self, client: AsyncClient):
+    async def test_staff_can_update_editorial_workflow_fields(
+        self, client: AsyncClient, staff_headers: dict[str, str]
+    ):
         create_resp = await client.post("/api/v1/submissions/", json=make_submission_data())
         sub_id = create_resp.json()["Id"]
 
@@ -247,7 +251,7 @@ class TestSubmissionCRUD:
                 "Assigned_Editor": "Jane Editor",
                 "Editorial_Notes": "Waiting on quote confirmation.",
             },
-            headers={"X-User-Role": "staff"},
+            headers=staff_headers,
         )
         assert resp.status_code == 200
         assert resp.json()["Assigned_Editor"] == "Jane Editor"
@@ -267,7 +271,7 @@ class TestSubmissionCRUD:
         assert "Only staff editors" in resp.json()["detail"]
 
     async def test_public_list_redacts_editorial_workflow_fields(
-        self, client: AsyncClient
+        self, client: AsyncClient, staff_headers: dict[str, str]
     ):
         create_resp = await client.post("/api/v1/submissions/", json=make_submission_data())
         sub_id = create_resp.json()["Id"]
@@ -277,7 +281,7 @@ class TestSubmissionCRUD:
                 "Assigned_Editor": "Jane Editor",
                 "Editorial_Notes": "Internal note.",
             },
-            headers={"X-User-Role": "staff"},
+            headers=staff_headers,
         )
 
         public_resp = await client.get("/api/v1/submissions/")
@@ -288,18 +292,18 @@ class TestSubmissionCRUD:
 
         staff_resp = await client.get(
             "/api/v1/submissions/",
-            headers={"X-User-Role": "staff"},
+            headers=staff_headers,
         )
         assert staff_resp.status_code == 200
         staff_item = staff_resp.json()["Items"][0]
         assert staff_item["Assigned_Editor"] == "Jane Editor"
         assert staff_item["Editorial_Notes"] == "Internal note."
 
-    async def test_delete_submission(self, client: AsyncClient):
+    async def test_delete_submission(self, client: AsyncClient, staff_headers: dict[str, str]):
         create_resp = await client.post("/api/v1/submissions/", json=make_submission_data())
         sub_id = create_resp.json()["Id"]
 
-        resp = await client.delete(f"/api/v1/submissions/{sub_id}")
+        resp = await client.delete(f"/api/v1/submissions/{sub_id}", headers=staff_headers)
         assert resp.status_code == 204
 
         resp = await client.get(f"/api/v1/submissions/{sub_id}")
@@ -320,7 +324,7 @@ class TestSubmissionLinks:
         assert resp.status_code == 201
         assert resp.json()["Url"] == "https://test.com"
 
-    async def test_delete_link(self, client: AsyncClient):
+    async def test_delete_link(self, client: AsyncClient, staff_headers: dict[str, str]):
         data = make_submission_data(
             Links=[{"Url": "https://delete-me.com", "Anchor_Text": "Delete"}]
         )
@@ -328,10 +332,15 @@ class TestSubmissionLinks:
         link_id = create_resp.json()["Links"][0]["Id"]
         sub_id = create_resp.json()["Id"]
 
-        resp = await client.delete(f"/api/v1/submissions/{sub_id}/links/{link_id}")
+        resp = await client.delete(
+            f"/api/v1/submissions/{sub_id}/links/{link_id}",
+            headers=staff_headers,
+        )
         assert resp.status_code == 204
 
-    async def test_delete_link_rejects_wrong_submission_parent(self, client: AsyncClient):
+    async def test_delete_link_rejects_wrong_submission_parent(
+        self, client: AsyncClient, staff_headers: dict[str, str]
+    ):
         owner_resp = await client.post(
             "/api/v1/submissions/",
             json=make_submission_data(
@@ -346,7 +355,10 @@ class TestSubmissionLinks:
         other_id = other_resp.json()["Id"]
         link_id = owner_resp.json()["Links"][0]["Id"]
 
-        resp = await client.delete(f"/api/v1/submissions/{other_id}/links/{link_id}")
+        resp = await client.delete(
+            f"/api/v1/submissions/{other_id}/links/{link_id}",
+            headers=staff_headers,
+        )
         assert resp.status_code == 404
 
         owner_detail = await client.get(f"/api/v1/submissions/{owner_id}")
@@ -385,7 +397,9 @@ class TestSubmissionSchedule:
         assert resp.status_code == 403
         assert "staff editors only" in resp.json()["detail"]
 
-    async def test_delete_schedule_request(self, client: AsyncClient):
+    async def test_delete_schedule_request(
+        self, client: AsyncClient, staff_headers: dict[str, str]
+    ):
         data = make_submission_data(
             Schedule_Requests=[{"Requested_Date": "2026-05-01", "Repeat_Count": 1}]
         )
@@ -393,11 +407,14 @@ class TestSubmissionSchedule:
         sched_id = create_resp.json()["Schedule_Requests"][0]["Id"]
         sub_id = create_resp.json()["Id"]
 
-        resp = await client.delete(f"/api/v1/submissions/{sub_id}/schedule/{sched_id}")
+        resp = await client.delete(
+            f"/api/v1/submissions/{sub_id}/schedule/{sched_id}",
+            headers=staff_headers,
+        )
         assert resp.status_code == 204
 
     async def test_delete_schedule_request_rejects_wrong_submission_parent(
-        self, client: AsyncClient
+        self, client: AsyncClient, staff_headers: dict[str, str]
     ):
         owner_resp = await client.post(
             "/api/v1/submissions/",
@@ -414,7 +431,8 @@ class TestSubmissionSchedule:
         schedule_id = owner_resp.json()["Schedule_Requests"][0]["Id"]
 
         resp = await client.delete(
-            f"/api/v1/submissions/{other_id}/schedule/{schedule_id}"
+            f"/api/v1/submissions/{other_id}/schedule/{schedule_id}",
+            headers=staff_headers,
         )
         assert resp.status_code == 404
 
@@ -424,7 +442,9 @@ class TestSubmissionSchedule:
             schedule["Id"] for schedule in owner_detail.json()["Schedule_Requests"]
         ] == [schedule_id]
 
-    async def test_skip_schedule_occurrence(self, client: AsyncClient):
+    async def test_skip_schedule_occurrence(
+        self, client: AsyncClient, staff_headers: dict[str, str]
+    ):
         data = make_submission_data(
             Schedule_Requests=[
                 {
@@ -438,7 +458,7 @@ class TestSubmissionSchedule:
         create_resp = await client.post(
             "/api/v1/submissions/",
             json=data,
-            headers={"X-User-Role": "staff"},
+            headers=staff_headers,
         )
         sched_id = create_resp.json()["Schedule_Requests"][0]["Id"]
         sub_id = create_resp.json()["Id"]
@@ -446,7 +466,7 @@ class TestSubmissionSchedule:
         resp = await client.post(
             f"/api/v1/submissions/{sub_id}/schedule/{sched_id}/skip",
             json={"Occurrence_Date": "2026-04-06"},
-            headers={"X-User-Role": "staff"},
+            headers=staff_headers,
         )
         assert resp.status_code == 200
         assert resp.json()["Excluded_Dates"] == ["2026-04-06"]
@@ -459,7 +479,7 @@ class TestSubmissionSchedule:
         assert list_resp.json()["Total"] == 0
 
     async def test_reschedule_schedule_occurrence(
-        self, client: AsyncClient, freeze_today
+        self, client: AsyncClient, freeze_today, staff_headers: dict[str, str]
     ):
         freeze_today(date(2026, 3, 10))
         data = make_submission_data(
@@ -475,7 +495,7 @@ class TestSubmissionSchedule:
         create_resp = await client.post(
             "/api/v1/submissions/",
             json=data,
-            headers={"X-User-Role": "staff"},
+            headers=staff_headers,
         )
         sched_id = create_resp.json()["Schedule_Requests"][0]["Id"]
         sub_id = create_resp.json()["Id"]
@@ -486,7 +506,7 @@ class TestSubmissionSchedule:
                 "Occurrence_Date": "2026-04-06",
                 "New_Date": "2026-04-08",
             },
-            headers={"X-User-Role": "staff"},
+            headers=staff_headers,
         )
         assert resp.status_code == 201
         assert resp.json()["Requested_Date"] == "2026-04-08"
@@ -500,7 +520,9 @@ class TestSubmissionSchedule:
         assert body["Total"] == 1
         assert body["Items"][0]["Occurrence_Dates"] == ["2026-04-08"]
 
-    async def test_public_submitter_cannot_skip_occurrence(self, client: AsyncClient):
+    async def test_public_submitter_cannot_skip_occurrence(
+        self, client: AsyncClient, staff_headers: dict[str, str]
+    ):
         data = make_submission_data(
             Schedule_Requests=[
                 {
@@ -514,7 +536,7 @@ class TestSubmissionSchedule:
         create_resp = await client.post(
             "/api/v1/submissions/",
             json=data,
-            headers={"X-User-Role": "staff"},
+            headers=staff_headers,
         )
         sched_id = create_resp.json()["Schedule_Requests"][0]["Id"]
         sub_id = create_resp.json()["Id"]

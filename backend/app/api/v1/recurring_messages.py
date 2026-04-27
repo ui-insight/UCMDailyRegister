@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import SubmitterRole, get_db, get_submitter_role
+from app.api.deps import get_db, require_staff
 from app.schemas.recurring_message import (
     RecurringMessageCreate,
     RecurringMessageResponse,
@@ -14,23 +14,14 @@ from app.services import recurring_message_service
 router = APIRouter(prefix="/recurring-messages", tags=["recurring-messages"])
 
 
-def _require_staff(submission_role: SubmitterRole) -> None:
-    if submission_role != "staff":
-        raise HTTPException(
-            status_code=403,
-            detail="Recurring message management is available to staff editors only.",
-        )
-
-
 @router.get("", response_model=list[RecurringMessageResponse])
 async def list_recurring_messages(
     newsletter_type: str | None = None,
     active_only: bool = False,
     db: AsyncSession = Depends(get_db),
-    submission_role: SubmitterRole = Depends(get_submitter_role),
+    _staff: None = Depends(require_staff),
 ):
     """List recurring messages."""
-    _require_staff(submission_role)
     return await recurring_message_service.list_recurring_messages(
         db,
         newsletter_type=newsletter_type,
@@ -42,10 +33,9 @@ async def list_recurring_messages(
 async def create_recurring_message(
     data: RecurringMessageCreate,
     db: AsyncSession = Depends(get_db),
-    submission_role: SubmitterRole = Depends(get_submitter_role),
+    _staff: None = Depends(require_staff),
 ):
     """Create a recurring message."""
-    _require_staff(submission_role)
     try:
         return await recurring_message_service.create_recurring_message(
             db,
@@ -68,10 +58,9 @@ async def create_recurring_message(
 async def get_recurring_message(
     recurring_message_id: str,
     db: AsyncSession = Depends(get_db),
-    submission_role: SubmitterRole = Depends(get_submitter_role),
+    _staff: None = Depends(require_staff),
 ):
     """Get a recurring message."""
-    _require_staff(submission_role)
     message = await recurring_message_service.get_recurring_message(db, recurring_message_id)
     if not message:
         raise HTTPException(status_code=404, detail="Recurring message not found")
@@ -83,10 +72,9 @@ async def update_recurring_message(
     recurring_message_id: str,
     data: RecurringMessageUpdate,
     db: AsyncSession = Depends(get_db),
-    submission_role: SubmitterRole = Depends(get_submitter_role),
+    _staff: None = Depends(require_staff),
 ):
     """Update a recurring message."""
-    _require_staff(submission_role)
     try:
         message = await recurring_message_service.update_recurring_message(
             db,
@@ -104,9 +92,8 @@ async def update_recurring_message(
 async def delete_recurring_message(
     recurring_message_id: str,
     db: AsyncSession = Depends(get_db),
-    submission_role: SubmitterRole = Depends(get_submitter_role),
+    _staff: None = Depends(require_staff),
 ):
     """Delete a recurring message."""
-    _require_staff(submission_role)
     if not await recurring_message_service.delete_recurring_message(db, recurring_message_id):
         raise HTTPException(status_code=404, detail="Recurring message not found")

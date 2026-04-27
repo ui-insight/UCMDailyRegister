@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import SubmitterRole, get_db, get_submitter_role
+from app.api.deps import SubmitterRole, get_db, get_submitter_role, require_staff
 from app.config import settings
 from app.schemas.submission import (
     LinkCreate,
@@ -199,7 +199,11 @@ async def update_submission(
 
 
 @router.delete("/{submission_id}", status_code=204)
-async def delete_submission(submission_id: str, db: AsyncSession = Depends(get_db)):
+async def delete_submission(
+    submission_id: str,
+    db: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
+):
     deleted = await submission_service.delete_submission(db, submission_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Submission not found")
@@ -221,7 +225,12 @@ async def add_link(
 
 
 @router.delete("/{submission_id}/links/{link_id}", status_code=204)
-async def delete_link(submission_id: str, link_id: str, db: AsyncSession = Depends(get_db)):
+async def delete_link(
+    submission_id: str,
+    link_id: str,
+    db: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
+):
     deleted = await submission_service.delete_link(db, submission_id, link_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Link not found")
@@ -354,7 +363,10 @@ async def reschedule_schedule_occurrence(
 
 @router.delete("/{submission_id}/schedule/{schedule_id}", status_code=204)
 async def delete_schedule_request(
-    submission_id: str, schedule_id: str, db: AsyncSession = Depends(get_db)
+    submission_id: str,
+    schedule_id: str,
+    db: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
 ):
     deleted = await submission_service.delete_schedule_request(db, submission_id, schedule_id)
     if not deleted:

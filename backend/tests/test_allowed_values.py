@@ -70,13 +70,13 @@ class TestAllowedValues:
         assert all(v["Visibility_Role"] == "public" for v in items)
 
     async def test_list_submission_categories_for_staff(
-        self, client: AsyncClient, db: AsyncSession
+        self, client: AsyncClient, db: AsyncSession, staff_headers: dict[str, str]
     ):
         await self._seed_values(db)
 
         resp = await client.get(
             "/api/v1/allowed-values?group=Submission_Category",
-            headers={"X-User-Role": "staff"},
+            headers=staff_headers,
         )
         assert resp.status_code == 200
         items = resp.json()

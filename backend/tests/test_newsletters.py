@@ -13,25 +13,47 @@ from tests.conftest import make_newsletter_data, make_submission_data
 
 @pytest.mark.asyncio
 class TestNewsletterCRUD:
-    async def test_create_newsletter(self, client: AsyncClient):
-        resp = await client.post("/api/v1/newsletters", json=make_newsletter_data())
+    async def test_create_newsletter(self, client: AsyncClient, staff_headers: dict[str, str]):
+        resp = await client.post(
+            "/api/v1/newsletters",
+            json=make_newsletter_data(),
+            headers=staff_headers,
+        )
         assert resp.status_code == 201
         body = resp.json()
         assert body["Newsletter_Type"] == "tdr"
         assert body["Status"] == "draft"
         assert body["Id"]
 
-    async def test_list_newsletters(self, client: AsyncClient):
-        await client.post("/api/v1/newsletters", json=make_newsletter_data(Publish_Date="2026-03-01"))
-        await client.post("/api/v1/newsletters", json=make_newsletter_data(Publish_Date="2026-03-02"))
+    async def test_list_newsletters(self, client: AsyncClient, staff_headers: dict[str, str]):
+        await client.post(
+            "/api/v1/newsletters",
+            json=make_newsletter_data(Publish_Date="2026-03-01"),
+            headers=staff_headers,
+        )
+        await client.post(
+            "/api/v1/newsletters",
+            json=make_newsletter_data(Publish_Date="2026-03-02"),
+            headers=staff_headers,
+        )
 
         resp = await client.get("/api/v1/newsletters")
         assert resp.status_code == 200
         assert len(resp.json()) == 2
 
-    async def test_list_newsletters_filter_type(self, client: AsyncClient):
-        await client.post("/api/v1/newsletters", json=make_newsletter_data(Newsletter_Type="tdr"))
-        await client.post("/api/v1/newsletters", json=make_newsletter_data(Newsletter_Type="myui"))
+    async def test_list_newsletters_filter_type(
+        self, client: AsyncClient, staff_headers: dict[str, str]
+    ):
+        await client.post(
+            "/api/v1/newsletters",
+            json=make_newsletter_data(Newsletter_Type="tdr"),
+            headers=staff_headers,
+        )
+        await client.post(
+            "/api/v1/newsletters",
+            json=make_newsletter_data(Newsletter_Type="myui"),
+            headers=staff_headers,
+        )
 
         resp = await client.get("/api/v1/newsletters?newsletter_type=myui")
         assert resp.status_code == 200
@@ -39,8 +61,12 @@ class TestNewsletterCRUD:
         assert len(nls) == 1
         assert nls[0]["Newsletter_Type"] == "myui"
 
-    async def test_get_newsletter(self, client: AsyncClient):
-        create_resp = await client.post("/api/v1/newsletters", json=make_newsletter_data())
+    async def test_get_newsletter(self, client: AsyncClient, staff_headers: dict[str, str]):
+        create_resp = await client.post(
+            "/api/v1/newsletters",
+            json=make_newsletter_data(),
+            headers=staff_headers,
+        )
         nl_id = create_resp.json()["Id"]
 
         resp = await client.get(f"/api/v1/newsletters/{nl_id}")
@@ -49,19 +75,32 @@ class TestNewsletterCRUD:
         assert body["Id"] == nl_id
         assert "Items" in body
 
-    async def test_update_newsletter_status(self, client: AsyncClient):
-        create_resp = await client.post("/api/v1/newsletters", json=make_newsletter_data())
+    async def test_update_newsletter_status(
+        self, client: AsyncClient, staff_headers: dict[str, str]
+    ):
+        create_resp = await client.post(
+            "/api/v1/newsletters",
+            json=make_newsletter_data(),
+            headers=staff_headers,
+        )
         nl_id = create_resp.json()["Id"]
 
-        resp = await client.patch(f"/api/v1/newsletters/{nl_id}/status?status=in_progress")
+        resp = await client.patch(
+            f"/api/v1/newsletters/{nl_id}/status?status=in_progress",
+            headers=staff_headers,
+        )
         assert resp.status_code == 200
         assert resp.json()["Status"] == "in_progress"
 
-    async def test_delete_newsletter(self, client: AsyncClient):
-        create_resp = await client.post("/api/v1/newsletters", json=make_newsletter_data())
+    async def test_delete_newsletter(self, client: AsyncClient, staff_headers: dict[str, str]):
+        create_resp = await client.post(
+            "/api/v1/newsletters",
+            json=make_newsletter_data(),
+            headers=staff_headers,
+        )
         nl_id = create_resp.json()["Id"]
 
-        resp = await client.delete(f"/api/v1/newsletters/{nl_id}")
+        resp = await client.delete(f"/api/v1/newsletters/{nl_id}", headers=staff_headers)
         assert resp.status_code == 204
 
         resp = await client.get(f"/api/v1/newsletters/{nl_id}")
@@ -70,9 +109,13 @@ class TestNewsletterCRUD:
 
 @pytest.mark.asyncio
 class TestNewsletterItems:
-    async def test_add_item(self, client: AsyncClient):
+    async def test_add_item(self, client: AsyncClient, staff_headers: dict[str, str]):
         # Create newsletter and submission
-        nl_resp = await client.post("/api/v1/newsletters", json=make_newsletter_data())
+        nl_resp = await client.post(
+            "/api/v1/newsletters",
+            json=make_newsletter_data(),
+            headers=staff_headers,
+        )
         nl_id = nl_resp.json()["Id"]
         sub_resp = await client.post("/api/v1/submissions/", json=make_submission_data())
         sub_id = sub_resp.json()["Id"]
@@ -86,12 +129,17 @@ class TestNewsletterItems:
                 "Final_Headline": "Test headline",
                 "Final_Body": "Test body",
             },
+            headers=staff_headers,
         )
         assert resp.status_code == 201
         assert resp.json()["Final_Headline"] == "Test headline"
 
-    async def test_remove_item(self, client: AsyncClient):
-        nl_resp = await client.post("/api/v1/newsletters", json=make_newsletter_data())
+    async def test_remove_item(self, client: AsyncClient, staff_headers: dict[str, str]):
+        nl_resp = await client.post(
+            "/api/v1/newsletters",
+            json=make_newsletter_data(),
+            headers=staff_headers,
+        )
         nl_id = nl_resp.json()["Id"]
         sub_resp = await client.post("/api/v1/submissions/", json=make_submission_data())
         sub_id = sub_resp.json()["Id"]
@@ -105,22 +153,28 @@ class TestNewsletterItems:
                 "Final_Headline": "Remove me",
                 "Final_Body": "Body",
             },
+            headers=staff_headers,
         )
         item_id = item_resp.json()["Id"]
 
-        resp = await client.delete(f"/api/v1/newsletters/{nl_id}/items/{item_id}")
+        resp = await client.delete(
+            f"/api/v1/newsletters/{nl_id}/items/{item_id}",
+            headers=staff_headers,
+        )
         assert resp.status_code == 204
 
     async def test_update_item_rejects_wrong_newsletter_parent(
-        self, client: AsyncClient
+        self, client: AsyncClient, staff_headers: dict[str, str]
     ):
         owner_resp = await client.post(
             "/api/v1/newsletters",
             json=make_newsletter_data(Publish_Date="2026-03-01"),
+            headers=staff_headers,
         )
         other_resp = await client.post(
             "/api/v1/newsletters",
             json=make_newsletter_data(Publish_Date="2026-03-02"),
+            headers=staff_headers,
         )
         owner_id = owner_resp.json()["Id"]
         other_id = other_resp.json()["Id"]
@@ -135,12 +189,14 @@ class TestNewsletterItems:
                 "Final_Headline": "Original headline",
                 "Final_Body": "Body",
             },
+            headers=staff_headers,
         )
         item_id = item_resp.json()["Id"]
 
         resp = await client.patch(
             f"/api/v1/newsletters/{other_id}/items/{item_id}",
             json={"Final_Headline": "Wrong parent edit"},
+            headers=staff_headers,
         )
         assert resp.status_code == 404
 
@@ -149,15 +205,17 @@ class TestNewsletterItems:
         assert detail_resp.json()["Items"][0]["Final_Headline"] == "Original headline"
 
     async def test_remove_item_rejects_wrong_newsletter_parent(
-        self, client: AsyncClient
+        self, client: AsyncClient, staff_headers: dict[str, str]
     ):
         owner_resp = await client.post(
             "/api/v1/newsletters",
             json=make_newsletter_data(Publish_Date="2026-03-01"),
+            headers=staff_headers,
         )
         other_resp = await client.post(
             "/api/v1/newsletters",
             json=make_newsletter_data(Publish_Date="2026-03-02"),
+            headers=staff_headers,
         )
         owner_id = owner_resp.json()["Id"]
         other_id = other_resp.json()["Id"]
@@ -172,10 +230,14 @@ class TestNewsletterItems:
                 "Final_Headline": "Keep me",
                 "Final_Body": "Body",
             },
+            headers=staff_headers,
         )
         item_id = item_resp.json()["Id"]
 
-        resp = await client.delete(f"/api/v1/newsletters/{other_id}/items/{item_id}")
+        resp = await client.delete(
+            f"/api/v1/newsletters/{other_id}/items/{item_id}",
+            headers=staff_headers,
+        )
         assert resp.status_code == 404
 
         detail_resp = await client.get(f"/api/v1/newsletters/{owner_id}")
@@ -186,6 +248,7 @@ class TestNewsletterItems:
         self,
         client: AsyncClient,
         db: AsyncSession,
+        staff_headers: dict[str, str],
     ):
         db.add(
             NewsletterSection(
@@ -201,10 +264,12 @@ class TestNewsletterItems:
         owner_resp = await client.post(
             "/api/v1/newsletters",
             json=make_newsletter_data(Publish_Date="2026-03-01"),
+            headers=staff_headers,
         )
         other_resp = await client.post(
             "/api/v1/newsletters",
             json=make_newsletter_data(Publish_Date="2026-03-02"),
+            headers=staff_headers,
         )
         owner_id = owner_resp.json()["Id"]
         other_id = other_resp.json()["Id"]
@@ -220,6 +285,7 @@ class TestNewsletterItems:
                 "Event_Start": "2026-03-19T12:00:00",
                 "Event_End": "2026-03-19T13:00:00",
             },
+            headers=staff_headers,
         )
         assert item_resp.status_code == 201
         item_id = item_resp.json()["Id"]
@@ -227,12 +293,13 @@ class TestNewsletterItems:
         update_resp = await client.patch(
             f"/api/v1/newsletters/{other_id}/external-items/{item_id}",
             json={"Final_Headline": "Wrong parent edit"},
-            headers={"X-User-Role": "staff"},
+            headers=staff_headers,
         )
         assert update_resp.status_code == 404
 
         delete_resp = await client.delete(
-            f"/api/v1/newsletters/{other_id}/external-items/{item_id}"
+            f"/api/v1/newsletters/{other_id}/external-items/{item_id}",
+            headers=staff_headers,
         )
         assert delete_resp.status_code == 404
 
@@ -246,6 +313,7 @@ class TestNewsletterItems:
         self,
         client: AsyncClient,
         db: AsyncSession,
+        staff_headers: dict[str, str],
     ):
         db.add(
             NewsletterSection(
@@ -271,7 +339,7 @@ class TestNewsletterItems:
                     }
                 ],
             ),
-            headers={"X-User-Role": "staff"},
+            headers=staff_headers,
         )
         recurring_id = recurring_resp.json()["Id"]
         await client.patch(
@@ -295,6 +363,7 @@ class TestNewsletterItems:
         assemble_resp = await client.post(
             "/api/v1/newsletters/assemble",
             json={"Newsletter_Type": "tdr", "Publish_Date": "2026-04-06"},
+            headers=staff_headers,
         )
         assert assemble_resp.status_code == 200
         items = assemble_resp.json()["Items"]
@@ -305,6 +374,7 @@ class TestNewsletterItems:
         self,
         client: AsyncClient,
         db: AsyncSession,
+        staff_headers: dict[str, str],
     ):
         db.add_all([
             NewsletterSection(
@@ -343,6 +413,7 @@ class TestNewsletterItems:
         assemble_resp = await client.post(
             "/api/v1/newsletters/assemble",
             json={"Newsletter_Type": "myui", "Publish_Date": "2026-04-06"},
+            headers=staff_headers,
         )
         assert assemble_resp.status_code == 200
         items = assemble_resp.json()["Items"]
@@ -474,8 +545,13 @@ class TestCalendarEventEndpoints:
         self,
         client: AsyncClient,
         monkeypatch: pytest.MonkeyPatch,
+        staff_headers: dict[str, str],
     ):
-        create_resp = await client.post("/api/v1/newsletters", json=make_newsletter_data())
+        create_resp = await client.post(
+            "/api/v1/newsletters",
+            json=make_newsletter_data(),
+            headers=staff_headers,
+        )
         nl_id = create_resp.json()["Id"]
 
         async def fake_fetch_calendar_events(*args, **kwargs):
@@ -497,7 +573,10 @@ class TestCalendarEventEndpoints:
             fake_fetch_calendar_events,
         )
 
-        resp = await client.get(f"/api/v1/newsletters/{nl_id}/calendar-events")
+        resp = await client.get(
+            f"/api/v1/newsletters/{nl_id}/calendar-events",
+            headers=staff_headers,
+        )
         assert resp.status_code == 200
         body = resp.json()
         assert len(body) == 1
@@ -507,6 +586,7 @@ class TestCalendarEventEndpoints:
         self,
         client: AsyncClient,
         db: AsyncSession,
+        staff_headers: dict[str, str],
     ):
         db.add(
             NewsletterSection(
@@ -519,7 +599,11 @@ class TestCalendarEventEndpoints:
         )
         await db.commit()
 
-        create_resp = await client.post("/api/v1/newsletters", json=make_newsletter_data())
+        create_resp = await client.post(
+            "/api/v1/newsletters",
+            json=make_newsletter_data(),
+            headers=staff_headers,
+        )
         nl_id = create_resp.json()["Id"]
 
         resp = await client.post(
@@ -533,6 +617,7 @@ class TestCalendarEventEndpoints:
                 "Event_Start": "2026-03-19T12:00:00",
                 "Event_End": "2026-03-19T13:00:00",
             },
+            headers=staff_headers,
         )
         assert resp.status_code == 201
         body = resp.json()
@@ -551,8 +636,13 @@ class TestJobPostingEndpoints:
         self,
         client: AsyncClient,
         monkeypatch: pytest.MonkeyPatch,
+        staff_headers: dict[str, str],
     ):
-        create_resp = await client.post("/api/v1/newsletters", json=make_newsletter_data())
+        create_resp = await client.post(
+            "/api/v1/newsletters",
+            json=make_newsletter_data(),
+            headers=staff_headers,
+        )
         nl_id = create_resp.json()["Id"]
 
         async def fake_fetch_job_postings(*args, **kwargs):
@@ -575,7 +665,10 @@ class TestJobPostingEndpoints:
             fake_fetch_job_postings,
         )
 
-        resp = await client.get(f"/api/v1/newsletters/{nl_id}/job-postings")
+        resp = await client.get(
+            f"/api/v1/newsletters/{nl_id}/job-postings",
+            headers=staff_headers,
+        )
         assert resp.status_code == 200
         body = resp.json()
         assert len(body) == 1
@@ -585,6 +678,7 @@ class TestJobPostingEndpoints:
         self,
         client: AsyncClient,
         db: AsyncSession,
+        staff_headers: dict[str, str],
     ):
         db.add(
             NewsletterSection(
@@ -597,7 +691,11 @@ class TestJobPostingEndpoints:
         )
         await db.commit()
 
-        create_resp = await client.post("/api/v1/newsletters", json=make_newsletter_data())
+        create_resp = await client.post(
+            "/api/v1/newsletters",
+            json=make_newsletter_data(),
+            headers=staff_headers,
+        )
         nl_id = create_resp.json()["Id"]
 
         resp = await client.post(
@@ -612,6 +710,7 @@ class TestJobPostingEndpoints:
                 "Closing_Date": "04/05/2026",
                 "Summary": "Responsible for providing complex technical support.",
             },
+            headers=staff_headers,
         )
         assert resp.status_code == 201
         body = resp.json()
