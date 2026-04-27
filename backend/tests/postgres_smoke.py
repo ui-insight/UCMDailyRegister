@@ -17,6 +17,7 @@ from datetime import date, timedelta
 import sqlalchemy as sa
 from httpx import ASGITransport, AsyncClient
 
+from app.config import settings
 from app.db.engine import async_session_factory
 from app.main import app as fastapi_app
 from app.models.edit_history import EditVersion
@@ -76,6 +77,11 @@ async def main() -> None:
         raise RuntimeError("DATABASE_URL must point to PostgreSQL for this smoke test.")
 
     submission_id = await seed_submission()
+    settings.trusted_role_header_secret = "postgres-smoke-secret"
+    staff_headers = {
+        "X-Trusted-User-Role": "staff",
+        "X-Trusted-Auth-Secret": "postgres-smoke-secret",
+    }
 
     transport = ASGITransport(app=fastapi_app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -87,7 +93,11 @@ async def main() -> None:
         assert settings_response.status_code == 200
         assert "active_provider" in settings_response.json()
 
-        submissions_response = await client.get("/api/v1/submissions/", params={"limit": 1})
+        submissions_response = await client.get(
+            "/api/v1/submissions/",
+            params={"limit": 1},
+            headers=staff_headers,
+        )
         assert submissions_response.status_code == 200
         payload = submissions_response.json()
         assert payload["Total"] >= 1
@@ -96,7 +106,10 @@ async def main() -> None:
         assert first_item["Schedule_Requests"][0]["Recurrence_Type"] == "weekly"
         assert "Occurrence_Dates" in first_item["Schedule_Requests"][0]
 
-        detail_response = await client.get(f"/api/v1/submissions/{submission_id}")
+        detail_response = await client.get(
+            f"/api/v1/submissions/{submission_id}",
+            headers=staff_headers,
+        )
         assert detail_response.status_code == 200
         detail_payload = detail_response.json()
         assert detail_payload["Schedule_Requests"][0]["Recurrence_Interval"] == 2

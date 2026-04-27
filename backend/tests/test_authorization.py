@@ -77,3 +77,62 @@ class TestTrustedRoleAuthorization:
         )
 
         assert resp.status_code == 403
+
+    async def test_public_cannot_list_or_read_submissions(
+        self,
+        client: AsyncClient,
+        staff_headers: dict[str, str],
+    ):
+        submission_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(),
+        )
+        assert submission_resp.status_code == 201
+        submission_id = submission_resp.json()["Id"]
+
+        list_resp = await client.get("/api/v1/submissions/")
+        assert list_resp.status_code == 403
+
+        detail_resp = await client.get(f"/api/v1/submissions/{submission_id}")
+        assert detail_resp.status_code == 403
+
+        staff_list_resp = await client.get("/api/v1/submissions/", headers=staff_headers)
+        assert staff_list_resp.status_code == 200
+        staff_item = staff_list_resp.json()["Items"][0]
+        assert staff_item["Submitter_Name"] == "Test User"
+        assert staff_item["Submitter_Email"] == "test@uidaho.edu"
+
+        staff_detail_resp = await client.get(
+            f"/api/v1/submissions/{submission_id}",
+            headers=staff_headers,
+        )
+        assert staff_detail_resp.status_code == 200
+        assert staff_detail_resp.json()["Submitter_Email"] == "test@uidaho.edu"
+
+    async def test_slc_calendar_feed_redacts_submitter_pii(
+        self,
+        client: AsyncClient,
+        slc_headers: dict[str, str],
+    ):
+        submission_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(
+                Target_Newsletter="none",
+                Show_In_SLC_Calendar=True,
+                Submitter_Name="Sensitive Submitter",
+                Submitter_Email="sensitive@uidaho.edu",
+                Submitter_Notes="Private note",
+            ),
+        )
+        assert submission_resp.status_code == 201
+
+        resp = await client.get(
+            "/api/v1/submissions/?slc_calendar_only=true",
+            headers=slc_headers,
+        )
+
+        assert resp.status_code == 200
+        item = resp.json()["Items"][0]
+        assert item["Submitter_Name"] == ""
+        assert item["Submitter_Email"] == ""
+        assert item["Submitter_Notes"] is None

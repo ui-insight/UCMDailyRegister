@@ -145,26 +145,31 @@ class TestSubmissionCRUD:
         assert resp.status_code == 201
         assert resp.json()["Category"] == "news_release"
 
-    async def test_list_submissions(self, client: AsyncClient):
+    async def test_list_submissions(self, client: AsyncClient, staff_headers: dict[str, str]):
         # Create two submissions
         await client.post("/api/v1/submissions/", json=make_submission_data())
         await client.post(
             "/api/v1/submissions/",
             json=make_submission_data(Original_Headline="Second one"),
         )
-        resp = await client.get("/api/v1/submissions/")
+        resp = await client.get("/api/v1/submissions/", headers=staff_headers)
         assert resp.status_code == 200
         body = resp.json()
         assert body["Total"] == 2
         assert len(body["Items"]) == 2
 
-    async def test_list_submissions_filter_status(self, client: AsyncClient):
+    async def test_list_submissions_filter_status(
+        self, client: AsyncClient, staff_headers: dict[str, str]
+    ):
         await client.post("/api/v1/submissions/", json=make_submission_data())
-        resp = await client.get("/api/v1/submissions/?status=new")
+        resp = await client.get("/api/v1/submissions/?status=new", headers=staff_headers)
         assert resp.status_code == 200
         assert resp.json()["Total"] == 1
 
-        resp = await client.get("/api/v1/submissions/?status=approved")
+        resp = await client.get(
+            "/api/v1/submissions/?status=approved",
+            headers=staff_headers,
+        )
         assert resp.json()["Total"] == 0
 
     async def test_list_submissions_includes_recurring_occurrences_in_range(
@@ -194,7 +199,8 @@ class TestSubmissionCRUD:
         await client.post("/api/v1/submissions/", json=one_off)
 
         resp = await client.get(
-            "/api/v1/submissions/?date_from=2026-04-01&date_to=2026-04-30"
+            "/api/v1/submissions/?date_from=2026-04-01&date_to=2026-04-30",
+            headers=staff_headers,
         )
         assert resp.status_code == 200
         body = resp.json()
@@ -202,16 +208,16 @@ class TestSubmissionCRUD:
         assert body["Items"][0]["Original_Headline"] == "Recurring feature"
         assert body["Items"][0]["Occurrence_Dates"] == ["2026-04-06"]
 
-    async def test_get_submission(self, client: AsyncClient):
+    async def test_get_submission(self, client: AsyncClient, staff_headers: dict[str, str]):
         create_resp = await client.post("/api/v1/submissions/", json=make_submission_data())
         sub_id = create_resp.json()["Id"]
 
-        resp = await client.get(f"/api/v1/submissions/{sub_id}")
+        resp = await client.get(f"/api/v1/submissions/{sub_id}", headers=staff_headers)
         assert resp.status_code == 200
         assert resp.json()["Id"] == sub_id
 
-    async def test_get_submission_not_found(self, client: AsyncClient):
-        resp = await client.get("/api/v1/submissions/nonexistent")
+    async def test_get_submission_not_found(self, client: AsyncClient, staff_headers: dict[str, str]):
+        resp = await client.get("/api/v1/submissions/nonexistent", headers=staff_headers)
         assert resp.status_code == 404
 
     async def test_update_submission(self, client: AsyncClient):
@@ -270,7 +276,7 @@ class TestSubmissionCRUD:
         assert resp.status_code == 403
         assert "Only staff editors" in resp.json()["detail"]
 
-    async def test_public_list_redacts_editorial_workflow_fields(
+    async def test_staff_list_includes_editorial_workflow_fields(
         self, client: AsyncClient, staff_headers: dict[str, str]
     ):
         create_resp = await client.post("/api/v1/submissions/", json=make_submission_data())
@@ -285,10 +291,7 @@ class TestSubmissionCRUD:
         )
 
         public_resp = await client.get("/api/v1/submissions/")
-        assert public_resp.status_code == 200
-        item = public_resp.json()["Items"][0]
-        assert item["Assigned_Editor"] is None
-        assert item["Editorial_Notes"] is None
+        assert public_resp.status_code == 403
 
         staff_resp = await client.get(
             "/api/v1/submissions/",
@@ -306,7 +309,7 @@ class TestSubmissionCRUD:
         resp = await client.delete(f"/api/v1/submissions/{sub_id}", headers=staff_headers)
         assert resp.status_code == 204
 
-        resp = await client.get(f"/api/v1/submissions/{sub_id}")
+        resp = await client.get(f"/api/v1/submissions/{sub_id}", headers=staff_headers)
         assert resp.status_code == 404
 
 
@@ -361,7 +364,7 @@ class TestSubmissionLinks:
         )
         assert resp.status_code == 404
 
-        owner_detail = await client.get(f"/api/v1/submissions/{owner_id}")
+        owner_detail = await client.get(f"/api/v1/submissions/{owner_id}", headers=staff_headers)
         assert owner_detail.status_code == 200
         assert [link["Id"] for link in owner_detail.json()["Links"]] == [link_id]
 
@@ -436,7 +439,7 @@ class TestSubmissionSchedule:
         )
         assert resp.status_code == 404
 
-        owner_detail = await client.get(f"/api/v1/submissions/{owner_id}")
+        owner_detail = await client.get(f"/api/v1/submissions/{owner_id}", headers=staff_headers)
         assert owner_detail.status_code == 200
         assert [
             schedule["Id"] for schedule in owner_detail.json()["Schedule_Requests"]
@@ -473,7 +476,8 @@ class TestSubmissionSchedule:
         assert resp.json()["Occurrence_Dates"] == ["2026-05-04", "2026-06-01"]
 
         list_resp = await client.get(
-            "/api/v1/submissions/?date_from=2026-04-01&date_to=2026-04-30"
+            "/api/v1/submissions/?date_from=2026-04-01&date_to=2026-04-30",
+            headers=staff_headers,
         )
         assert list_resp.status_code == 200
         assert list_resp.json()["Total"] == 0
@@ -513,7 +517,8 @@ class TestSubmissionSchedule:
         assert resp.json()["Occurrence_Dates"] == ["2026-04-08"]
 
         list_resp = await client.get(
-            "/api/v1/submissions/?date_from=2026-04-01&date_to=2026-04-30"
+            "/api/v1/submissions/?date_from=2026-04-01&date_to=2026-04-30",
+            headers=staff_headers,
         )
         assert list_resp.status_code == 200
         body = list_resp.json()
