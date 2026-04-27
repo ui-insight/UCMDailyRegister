@@ -165,11 +165,15 @@ async def add_external_item(
 
 async def update_item(
     db: AsyncSession,
+    newsletter_id: str,
     item_id: str,
     **kwargs,
 ) -> NewsletterItem | None:
     result = await db.execute(
-        sa.select(NewsletterItem).where(NewsletterItem.Id == item_id)
+        sa.select(NewsletterItem).where(
+            NewsletterItem.Id == item_id,
+            NewsletterItem.Newsletter_Id == newsletter_id,
+        )
     )
     item = result.scalar_one_or_none()
     if not item:
@@ -184,11 +188,15 @@ async def update_item(
 
 async def update_external_item(
     db: AsyncSession,
+    newsletter_id: str,
     item_id: str,
     **kwargs,
 ) -> NewsletterExternalItem | None:
     result = await db.execute(
-        sa.select(NewsletterExternalItem).where(NewsletterExternalItem.Id == item_id)
+        sa.select(NewsletterExternalItem).where(
+            NewsletterExternalItem.Id == item_id,
+            NewsletterExternalItem.Newsletter_Id == newsletter_id,
+        )
     )
     item = result.scalar_one_or_none()
     if not item:
@@ -201,9 +209,12 @@ async def update_external_item(
     return item
 
 
-async def remove_item(db: AsyncSession, item_id: str) -> bool:
+async def remove_item(db: AsyncSession, newsletter_id: str, item_id: str) -> bool:
     result = await db.execute(
-        sa.select(NewsletterItem).where(NewsletterItem.Id == item_id)
+        sa.select(NewsletterItem).where(
+            NewsletterItem.Id == item_id,
+            NewsletterItem.Newsletter_Id == newsletter_id,
+        )
     )
     item = result.scalar_one_or_none()
     if not item:
@@ -213,9 +224,14 @@ async def remove_item(db: AsyncSession, item_id: str) -> bool:
     return True
 
 
-async def remove_external_item(db: AsyncSession, item_id: str) -> bool:
+async def remove_external_item(
+    db: AsyncSession, newsletter_id: str, item_id: str
+) -> bool:
     result = await db.execute(
-        sa.select(NewsletterExternalItem).where(NewsletterExternalItem.Id == item_id)
+        sa.select(NewsletterExternalItem).where(
+            NewsletterExternalItem.Id == item_id,
+            NewsletterExternalItem.Newsletter_Id == newsletter_id,
+        )
     )
     item = result.scalar_one_or_none()
     if not item:

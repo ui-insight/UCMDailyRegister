@@ -219,8 +219,13 @@ async def add_link(
     return link
 
 
-async def delete_link(db: AsyncSession, link_id: str) -> bool:
-    result = await db.execute(select(SubmissionLink).where(SubmissionLink.Id == link_id))
+async def delete_link(db: AsyncSession, submission_id: str, link_id: str) -> bool:
+    result = await db.execute(
+        select(SubmissionLink).where(
+            SubmissionLink.Id == link_id,
+            SubmissionLink.Submission_Id == submission_id,
+        )
+    )
     link = result.scalar_one_or_none()
     if not link:
         return False
@@ -268,9 +273,14 @@ async def add_schedule_request(
     return sched
 
 
-async def delete_schedule_request(db: AsyncSession, schedule_id: str) -> bool:
+async def delete_schedule_request(
+    db: AsyncSession, submission_id: str, schedule_id: str
+) -> bool:
     result = await db.execute(
-        select(SubmissionScheduleRequest).where(SubmissionScheduleRequest.Id == schedule_id)
+        select(SubmissionScheduleRequest).where(
+            SubmissionScheduleRequest.Id == schedule_id,
+            SubmissionScheduleRequest.Submission_Id == submission_id,
+        )
     )
     sched = result.scalar_one_or_none()
     if not sched:

@@ -111,6 +111,137 @@ class TestNewsletterItems:
         resp = await client.delete(f"/api/v1/newsletters/{nl_id}/items/{item_id}")
         assert resp.status_code == 204
 
+    async def test_update_item_rejects_wrong_newsletter_parent(
+        self, client: AsyncClient
+    ):
+        owner_resp = await client.post(
+            "/api/v1/newsletters",
+            json=make_newsletter_data(Publish_Date="2026-03-01"),
+        )
+        other_resp = await client.post(
+            "/api/v1/newsletters",
+            json=make_newsletter_data(Publish_Date="2026-03-02"),
+        )
+        owner_id = owner_resp.json()["Id"]
+        other_id = other_resp.json()["Id"]
+        sub_resp = await client.post("/api/v1/submissions/", json=make_submission_data())
+
+        item_resp = await client.post(
+            f"/api/v1/newsletters/{owner_id}/items",
+            json={
+                "Submission_Id": sub_resp.json()["Id"],
+                "Section_Id": "sec-1",
+                "Position": 0,
+                "Final_Headline": "Original headline",
+                "Final_Body": "Body",
+            },
+        )
+        item_id = item_resp.json()["Id"]
+
+        resp = await client.patch(
+            f"/api/v1/newsletters/{other_id}/items/{item_id}",
+            json={"Final_Headline": "Wrong parent edit"},
+        )
+        assert resp.status_code == 404
+
+        detail_resp = await client.get(f"/api/v1/newsletters/{owner_id}")
+        assert detail_resp.status_code == 200
+        assert detail_resp.json()["Items"][0]["Final_Headline"] == "Original headline"
+
+    async def test_remove_item_rejects_wrong_newsletter_parent(
+        self, client: AsyncClient
+    ):
+        owner_resp = await client.post(
+            "/api/v1/newsletters",
+            json=make_newsletter_data(Publish_Date="2026-03-01"),
+        )
+        other_resp = await client.post(
+            "/api/v1/newsletters",
+            json=make_newsletter_data(Publish_Date="2026-03-02"),
+        )
+        owner_id = owner_resp.json()["Id"]
+        other_id = other_resp.json()["Id"]
+        sub_resp = await client.post("/api/v1/submissions/", json=make_submission_data())
+
+        item_resp = await client.post(
+            f"/api/v1/newsletters/{owner_id}/items",
+            json={
+                "Submission_Id": sub_resp.json()["Id"],
+                "Section_Id": "sec-1",
+                "Position": 0,
+                "Final_Headline": "Keep me",
+                "Final_Body": "Body",
+            },
+        )
+        item_id = item_resp.json()["Id"]
+
+        resp = await client.delete(f"/api/v1/newsletters/{other_id}/items/{item_id}")
+        assert resp.status_code == 404
+
+        detail_resp = await client.get(f"/api/v1/newsletters/{owner_id}")
+        assert detail_resp.status_code == 200
+        assert [item["Id"] for item in detail_resp.json()["Items"]] == [item_id]
+
+    async def test_external_item_mutations_reject_wrong_newsletter_parent(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+    ):
+        db.add(
+            NewsletterSection(
+                Newsletter_Type="tdr",
+                Name="Today's Events",
+                Slug="todays-events",
+                Display_Order=4,
+                Is_Active=True,
+            )
+        )
+        await db.commit()
+
+        owner_resp = await client.post(
+            "/api/v1/newsletters",
+            json=make_newsletter_data(Publish_Date="2026-03-01"),
+        )
+        other_resp = await client.post(
+            "/api/v1/newsletters",
+            json=make_newsletter_data(Publish_Date="2026-03-02"),
+        )
+        owner_id = owner_resp.json()["Id"]
+        other_id = other_resp.json()["Id"]
+
+        item_resp = await client.post(
+            f"/api/v1/newsletters/{owner_id}/calendar-events",
+            json={
+                "Source_Id": "event-1",
+                "Url": "https://example.com/event-1",
+                "Title": "Accessibility Workshop",
+                "Description": "Learn accessible PDF output.",
+                "Location": "IRIC 305",
+                "Event_Start": "2026-03-19T12:00:00",
+                "Event_End": "2026-03-19T13:00:00",
+            },
+        )
+        assert item_resp.status_code == 201
+        item_id = item_resp.json()["Id"]
+
+        update_resp = await client.patch(
+            f"/api/v1/newsletters/{other_id}/external-items/{item_id}",
+            json={"Final_Headline": "Wrong parent edit"},
+            headers={"X-User-Role": "staff"},
+        )
+        assert update_resp.status_code == 404
+
+        delete_resp = await client.delete(
+            f"/api/v1/newsletters/{other_id}/external-items/{item_id}"
+        )
+        assert delete_resp.status_code == 404
+
+        detail_resp = await client.get(f"/api/v1/newsletters/{owner_id}")
+        assert detail_resp.status_code == 200
+        external_items = detail_resp.json()["External_Items"]
+        assert [item["Id"] for item in external_items] == [item_id]
+        assert external_items[0]["Final_Headline"] == "Accessibility Workshop"
+
     async def test_assemble_newsletter_uses_matching_recurring_occurrence(
         self,
         client: AsyncClient,
