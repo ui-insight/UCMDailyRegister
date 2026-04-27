@@ -8,6 +8,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
+from app.api import deps as auth_deps
 from app.db.base import Base
 from app.api.deps import get_db
 from app.main import app as fastapi_app
@@ -17,6 +18,7 @@ from app.models.allowed_value import AllowedValue
 
 # In-memory SQLite for tests
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+TEST_TRUSTED_ROLE_SECRET = "test-trusted-role-secret"
 
 engine = create_async_engine(TEST_DATABASE_URL, connect_args={"check_same_thread": False})
 TestSession = async_sessionmaker(engine, expire_on_commit=False)
@@ -38,6 +40,25 @@ async def setup_db():
     yield
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
+
+
+@pytest.fixture(autouse=True)
+def configure_trusted_role_secret(monkeypatch: pytest.MonkeyPatch):
+    """Enable trusted role headers for tests that exercise staff-only flows."""
+    monkeypatch.setattr(
+        auth_deps.settings,
+        "trusted_role_header_secret",
+        TEST_TRUSTED_ROLE_SECRET,
+    )
+
+
+@pytest.fixture
+def staff_headers() -> dict[str, str]:
+    """Return headers that simulate the trusted auth boundary asserting staff."""
+    return {
+        "X-Trusted-User-Role": "staff",
+        "X-Trusted-Auth-Secret": TEST_TRUSTED_ROLE_SECRET,
+    }
 
 
 @pytest.fixture

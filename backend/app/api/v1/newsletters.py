@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import SubmitterRole, get_db, get_submitter_role
+from app.api.deps import get_db, require_staff
 from app.models.section import NewsletterSection
 from app.services import (
     calendar_event_service,
@@ -35,16 +35,12 @@ from app.utils.export import export_newsletter_docx
 router = APIRouter(prefix="/newsletters", tags=["newsletters"])
 
 
-def _require_staff(submission_role: SubmitterRole) -> None:
-    if submission_role != "staff":
-        raise HTTPException(
-            status_code=403,
-            detail="This action is available to staff editors only.",
-        )
-
-
 @router.post("", response_model=NewsletterResponse, status_code=201)
-async def create_newsletter(data: NewsletterCreate, db: AsyncSession = Depends(get_db)):
+async def create_newsletter(
+    data: NewsletterCreate,
+    db: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
+):
     """Create a new newsletter draft."""
     newsletter = await newsletter_service.create_newsletter(
         db, data.Newsletter_Type, data.Publish_Date
@@ -77,6 +73,7 @@ async def update_status(
     newsletter_id: str,
     status: str,
     db: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
 ):
     """Update newsletter status."""
     newsletter = await newsletter_service.update_newsletter_status(db, newsletter_id, status)
@@ -86,7 +83,11 @@ async def update_status(
 
 
 @router.delete("/{newsletter_id}", status_code=204)
-async def delete_newsletter(newsletter_id: str, db: AsyncSession = Depends(get_db)):
+async def delete_newsletter(
+    newsletter_id: str,
+    db: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
+):
     """Delete a newsletter."""
     if not await newsletter_service.delete_newsletter(db, newsletter_id):
         raise HTTPException(status_code=404, detail="Newsletter not found")
@@ -100,6 +101,7 @@ async def add_item(
     newsletter_id: str,
     data: NewsletterItemCreate,
     db: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
 ):
     """Add an item to a newsletter."""
     newsletter = await newsletter_service.get_newsletter(db, newsletter_id)
@@ -125,10 +127,9 @@ async def add_item(
 async def list_recurring_message_candidates(
     newsletter_id: str,
     db: AsyncSession = Depends(get_db),
-    submission_role: SubmitterRole = Depends(get_submitter_role),
+    _staff: None = Depends(require_staff),
 ):
     """Fetch recurring message candidates for a newsletter issue."""
-    _require_staff(submission_role)
     newsletter = await newsletter_service.get_newsletter(db, newsletter_id)
     if not newsletter:
         raise HTTPException(status_code=404, detail="Newsletter not found")
@@ -144,10 +145,9 @@ async def add_recurring_message(
     newsletter_id: str,
     recurring_message_id: str,
     db: AsyncSession = Depends(get_db),
-    submission_role: SubmitterRole = Depends(get_submitter_role),
+    _staff: None = Depends(require_staff),
 ):
     """Add a recurring message to a newsletter issue."""
-    _require_staff(submission_role)
     newsletter = await newsletter_service.get_newsletter(db, newsletter_id)
     if not newsletter:
         raise HTTPException(status_code=404, detail="Newsletter not found")
@@ -166,10 +166,9 @@ async def skip_recurring_message(
     newsletter_id: str,
     recurring_message_id: str,
     db: AsyncSession = Depends(get_db),
-    submission_role: SubmitterRole = Depends(get_submitter_role),
+    _staff: None = Depends(require_staff),
 ):
     """Skip a recurring message for a specific newsletter issue."""
-    _require_staff(submission_role)
     newsletter = await newsletter_service.get_newsletter(db, newsletter_id)
     if not newsletter:
         raise HTTPException(status_code=404, detail="Newsletter not found")
@@ -189,6 +188,7 @@ async def list_calendar_events(
     newsletter_id: str,
     extra_days: int = 0,
     db: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
 ):
     """Fetch candidate calendar events for a newsletter issue.
 
@@ -231,6 +231,7 @@ async def list_calendar_events(
 async def list_job_postings(
     newsletter_id: str,
     db: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
 ):
     """Fetch candidate job postings for a newsletter issue."""
     newsletter = await newsletter_service.get_newsletter(db, newsletter_id)
@@ -256,6 +257,7 @@ async def add_calendar_event(
     newsletter_id: str,
     data: CalendarEventImportRequest,
     db: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
 ):
     """Import a calendar event into a newsletter section."""
     newsletter = await newsletter_service.get_newsletter(db, newsletter_id)
@@ -318,6 +320,7 @@ async def add_job_posting(
     newsletter_id: str,
     data: JobPostingImportRequest,
     db: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
 ):
     """Import a job posting into a newsletter section."""
     newsletter = await newsletter_service.get_newsletter(db, newsletter_id)
@@ -378,6 +381,7 @@ async def update_item(
     item_id: str,
     data: NewsletterItemUpdate,
     db: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
 ):
     """Update a newsletter item."""
     update_data = data.model_dump(exclude_unset=True)
@@ -396,10 +400,9 @@ async def update_external_item(
     item_id: str,
     data: NewsletterExternalItemUpdate,
     db: AsyncSession = Depends(get_db),
-    submission_role: SubmitterRole = Depends(get_submitter_role),
+    _staff: None = Depends(require_staff),
 ):
     """Update an imported external item."""
-    _require_staff(submission_role)
     update_data = data.model_dump(exclude_unset=True)
     item = await newsletter_service.update_external_item(
         db, newsletter_id, item_id, **update_data
@@ -414,6 +417,7 @@ async def remove_external_item(
     newsletter_id: str,
     item_id: str,
     db: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
 ):
     """Remove an imported external item from a newsletter."""
     if not await newsletter_service.remove_external_item(db, newsletter_id, item_id):
@@ -425,6 +429,7 @@ async def remove_item(
     newsletter_id: str,
     item_id: str,
     db: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
 ):
     """Remove an item from a newsletter."""
     if not await newsletter_service.remove_item(db, newsletter_id, item_id):
@@ -436,6 +441,7 @@ async def reorder_items(
     newsletter_id: str,
     positions: list[dict],
     db: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
 ):
     """Reorder items in a newsletter. Body: [{"id": "...", "position": 0, "section_id": "..."}]"""
     await newsletter_service.reorder_items(db, newsletter_id, positions)
@@ -446,7 +452,11 @@ async def reorder_items(
 
 
 @router.post("/assemble", response_model=NewsletterDetailResponse)
-async def assemble_newsletter(data: AssembleRequest, db: AsyncSession = Depends(get_db)):
+async def assemble_newsletter(
+    data: AssembleRequest,
+    db: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
+):
     """Auto-populate a newsletter from approved submissions."""
     newsletter = await newsletter_service.assemble_newsletter(
         db, data.Newsletter_Type, data.Publish_Date
@@ -458,7 +468,11 @@ async def assemble_newsletter(data: AssembleRequest, db: AsyncSession = Depends(
 
 
 @router.get("/{newsletter_id}/export")
-async def export_newsletter(newsletter_id: str, db: AsyncSession = Depends(get_db)):
+async def export_newsletter(
+    newsletter_id: str,
+    db: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
+):
     """Export a newsletter as a Word document."""
     newsletter = await newsletter_service.get_newsletter(db, newsletter_id)
     if not newsletter:

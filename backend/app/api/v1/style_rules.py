@@ -4,7 +4,7 @@ import sqlalchemy as sa
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db
+from app.api.deps import get_db, require_staff
 from app.models.style_rule import StyleRule
 from app.schemas.ai_edit import StyleRuleCreate, StyleRuleUpdate, StyleRuleResponse
 
@@ -34,6 +34,7 @@ async def list_style_rules(
 async def create_style_rule(
     data: StyleRuleCreate,
     session: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
 ):
     """Create a new style rule."""
     rule = StyleRule(
@@ -70,6 +71,7 @@ async def update_style_rule(
     rule_id: str,
     data: StyleRuleUpdate,
     session: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
 ):
     """Update a style rule."""
     result = await session.execute(
@@ -92,6 +94,7 @@ async def update_style_rule(
 async def delete_style_rule(
     rule_id: str,
     session: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
 ):
     """Delete a style rule."""
     result = await session.execute(

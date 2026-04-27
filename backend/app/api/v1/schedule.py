@@ -5,7 +5,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db
+from app.api.deps import get_db, require_staff
 from app.services import schedule_service
 from app.schemas.newsletter import (
     BlackoutDateCreate,
@@ -101,6 +101,7 @@ async def list_blackout_dates(
 async def create_blackout_date(
     data: BlackoutDateCreate,
     db: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
 ):
     """Create a new blackout date."""
     return await schedule_service.create_blackout_date(db, data)
@@ -110,6 +111,7 @@ async def create_blackout_date(
 async def delete_blackout_date(
     blackout_id: str,
     db: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
 ):
     """Delete a blackout date."""
     deleted = await schedule_service.delete_blackout_date(db, blackout_id)
@@ -135,6 +137,7 @@ async def list_mode_overrides(
 async def create_mode_override(
     data: ScheduleModeOverrideCreate,
     db: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
 ):
     """Create a schedule mode override (e.g., activate winter break for a date range)."""
     if data.End_Date < data.Start_Date:
@@ -153,6 +156,7 @@ async def create_mode_override(
 async def delete_mode_override(
     override_id: str,
     db: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
 ):
     """Delete a schedule mode override."""
     deleted = await schedule_service.delete_mode_override(db, override_id)
@@ -178,6 +182,7 @@ async def list_custom_dates(
 async def create_custom_date(
     data: CustomPublishDateCreate,
     db: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
 ):
     """Add a custom publish date (e.g., for winter break editions)."""
     return await schedule_service.create_custom_publish_date(
@@ -192,6 +197,7 @@ async def create_custom_date(
 async def delete_custom_date(
     custom_date_id: str,
     db: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
 ):
     """Delete a custom publish date."""
     deleted = await schedule_service.delete_custom_publish_date(db, custom_date_id)

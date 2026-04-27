@@ -67,6 +67,5 @@ export function setSubmitterRole(role: SubmitterRole) {
 }
 
 export function getSubmitterRoleHeaders(): HeadersInit {
-  const role = getSubmitterRole();
-  return role === 'public' ? {} : { 'X-User-Role': role };
+  return {};
 }

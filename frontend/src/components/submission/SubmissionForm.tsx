@@ -13,7 +13,7 @@ import SchedulePrefs from './SchedulePrefs';
 /**
  * Public categories filtered by target newsletter. Staff-visibility
  * categories (e.g., news_release, ucm_feature_story) bypass this
- * filter — the backend already gates them via the X-User-Role header.
+ * filter — the backend authorizes staff-only fields via the trusted auth boundary.
  */
 const NEWSLETTER_CATEGORY_CODES: Record<TargetNewsletter, Set<string>> = {
   myui: new Set(['student', 'survey']),
