@@ -222,7 +222,7 @@ async def add_link(
 
 @router.delete("/{submission_id}/links/{link_id}", status_code=204)
 async def delete_link(submission_id: str, link_id: str, db: AsyncSession = Depends(get_db)):
-    deleted = await submission_service.delete_link(db, link_id)
+    deleted = await submission_service.delete_link(db, submission_id, link_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Link not found")
 
@@ -356,7 +356,7 @@ async def reschedule_schedule_occurrence(
 async def delete_schedule_request(
     submission_id: str, schedule_id: str, db: AsyncSession = Depends(get_db)
 ):
-    deleted = await submission_service.delete_schedule_request(db, schedule_id)
+    deleted = await submission_service.delete_schedule_request(db, submission_id, schedule_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Schedule request not found")
 

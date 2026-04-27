@@ -331,6 +331,28 @@ class TestSubmissionLinks:
         resp = await client.delete(f"/api/v1/submissions/{sub_id}/links/{link_id}")
         assert resp.status_code == 204
 
+    async def test_delete_link_rejects_wrong_submission_parent(self, client: AsyncClient):
+        owner_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(
+                Links=[{"Url": "https://owner.example", "Anchor_Text": "Owner"}]
+            ),
+        )
+        other_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(Original_Headline="Other submission"),
+        )
+        owner_id = owner_resp.json()["Id"]
+        other_id = other_resp.json()["Id"]
+        link_id = owner_resp.json()["Links"][0]["Id"]
+
+        resp = await client.delete(f"/api/v1/submissions/{other_id}/links/{link_id}")
+        assert resp.status_code == 404
+
+        owner_detail = await client.get(f"/api/v1/submissions/{owner_id}")
+        assert owner_detail.status_code == 200
+        assert [link["Id"] for link in owner_detail.json()["Links"]] == [link_id]
+
 
 @pytest.mark.asyncio
 @freeze_time(FROZEN_TODAY)
@@ -373,6 +395,34 @@ class TestSubmissionSchedule:
 
         resp = await client.delete(f"/api/v1/submissions/{sub_id}/schedule/{sched_id}")
         assert resp.status_code == 204
+
+    async def test_delete_schedule_request_rejects_wrong_submission_parent(
+        self, client: AsyncClient
+    ):
+        owner_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(
+                Schedule_Requests=[{"Requested_Date": "2026-05-01", "Repeat_Count": 1}]
+            ),
+        )
+        other_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(Original_Headline="Other submission"),
+        )
+        owner_id = owner_resp.json()["Id"]
+        other_id = other_resp.json()["Id"]
+        schedule_id = owner_resp.json()["Schedule_Requests"][0]["Id"]
+
+        resp = await client.delete(
+            f"/api/v1/submissions/{other_id}/schedule/{schedule_id}"
+        )
+        assert resp.status_code == 404
+
+        owner_detail = await client.get(f"/api/v1/submissions/{owner_id}")
+        assert owner_detail.status_code == 200
+        assert [
+            schedule["Id"] for schedule in owner_detail.json()["Schedule_Requests"]
+        ] == [schedule_id]
 
     async def test_skip_schedule_occurrence(self, client: AsyncClient):
         data = make_submission_data(

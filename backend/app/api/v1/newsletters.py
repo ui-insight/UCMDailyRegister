@@ -381,7 +381,7 @@ async def update_item(
 ):
     """Update a newsletter item."""
     update_data = data.model_dump(exclude_unset=True)
-    item = await newsletter_service.update_item(db, item_id, **update_data)
+    item = await newsletter_service.update_item(db, newsletter_id, item_id, **update_data)
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
     return item
@@ -401,7 +401,9 @@ async def update_external_item(
     """Update an imported external item."""
     _require_staff(submission_role)
     update_data = data.model_dump(exclude_unset=True)
-    item = await newsletter_service.update_external_item(db, item_id, **update_data)
+    item = await newsletter_service.update_external_item(
+        db, newsletter_id, item_id, **update_data
+    )
     if not item:
         raise HTTPException(status_code=404, detail="External item not found")
     return item
@@ -414,7 +416,7 @@ async def remove_external_item(
     db: AsyncSession = Depends(get_db),
 ):
     """Remove an imported external item from a newsletter."""
-    if not await newsletter_service.remove_external_item(db, item_id):
+    if not await newsletter_service.remove_external_item(db, newsletter_id, item_id):
         raise HTTPException(status_code=404, detail="External item not found")
 
 
@@ -425,7 +427,7 @@ async def remove_item(
     db: AsyncSession = Depends(get_db),
 ):
     """Remove an item from a newsletter."""
-    if not await newsletter_service.remove_item(db, item_id):
+    if not await newsletter_service.remove_item(db, newsletter_id, item_id):
         raise HTTPException(status_code=404, detail="Item not found")
 
 
