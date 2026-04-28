@@ -107,10 +107,14 @@ export default function SchedulePrefs({
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">
+              <label
+                htmlFor="submission-tdr-run-date"
+                className="block text-xs text-gray-500 mb-1"
+              >
                 Daily Register run date (Mon–Fri)
               </label>
               <input
+                id="submission-tdr-run-date"
                 type="date"
                 value={schedule.Requested_Date}
                 onChange={(e) => update('Requested_Date', e.target.value)}
@@ -128,10 +132,14 @@ export default function SchedulePrefs({
               <p className="text-xs text-gray-400 mt-1">Weekdays only</p>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">
+              <label
+                htmlFor="submission-myui-run-date"
+                className="block text-xs text-gray-500 mb-1"
+              >
                 My UI run date (Mondays only)
               </label>
               <input
+                id="submission-myui-run-date"
                 type="date"
                 value={schedule.Second_Requested_Date}
                 onChange={(e) => update('Second_Requested_Date', e.target.value)}
@@ -158,10 +166,14 @@ export default function SchedulePrefs({
         <>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">
+              <label
+                htmlFor="submission-preferred-run-date"
+                className="block text-xs text-gray-500 mb-1"
+              >
                 Preferred run date
               </label>
               <input
+                id="submission-preferred-run-date"
                 type="date"
                 value={schedule.Requested_Date}
                 onChange={(e) => update('Requested_Date', e.target.value)}
@@ -185,10 +197,14 @@ export default function SchedulePrefs({
               </p>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">
+              <label
+                htmlFor="submission-repeat-count"
+                className="block text-xs text-gray-500 mb-1"
+              >
                 How many times to run
               </label>
               <select
+                id="submission-repeat-count"
                 value={schedule.Repeat_Count}
                 onChange={(e) => update('Repeat_Count', parseInt(e.target.value))}
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
@@ -200,10 +216,14 @@ export default function SchedulePrefs({
           </div>
           {schedule.Repeat_Count >= 2 && (
             <div className="mt-3">
-              <label className="block text-xs text-gray-500 mb-1">
+              <label
+                htmlFor="submission-second-run-date"
+                className="block text-xs text-gray-500 mb-1"
+              >
                 Second run date
               </label>
               <input
+                id="submission-second-run-date"
                 type="date"
                 value={schedule.Second_Requested_Date}
                 onChange={(e) => update('Second_Requested_Date', e.target.value)}
@@ -228,10 +248,14 @@ export default function SchedulePrefs({
       {showRecurrenceControls ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">
+            <label
+              htmlFor="submission-recurrence-type"
+              className="block text-xs text-gray-500 mb-1"
+            >
               Repeat on a cadence
             </label>
             <select
+              id="submission-recurrence-type"
               value={schedule.Recurrence_Type}
               onChange={(e) => {
                 const recurrenceType = e.target.value as ScheduleEntry['Recurrence_Type'];
@@ -254,10 +278,14 @@ export default function SchedulePrefs({
             </p>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">
+            <label
+              htmlFor="submission-recurrence-interval"
+              className="block text-xs text-gray-500 mb-1"
+            >
               Interval
             </label>
             <input
+              id="submission-recurrence-interval"
               type="number"
               min={1}
               max={12}
@@ -275,10 +303,14 @@ export default function SchedulePrefs({
             </p>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">
+            <label
+              htmlFor="submission-recurrence-end-date"
+              className="block text-xs text-gray-500 mb-1"
+            >
               Stop after
             </label>
             <input
+              id="submission-recurrence-end-date"
               type="date"
               value={schedule.Recurrence_End_Date}
               onChange={(e) => update('Recurrence_End_Date', e.target.value)}
@@ -337,10 +369,14 @@ export default function SchedulePrefs({
         )}
       </div>
       <div className="mt-3">
-        <label className="block text-xs text-gray-500 mb-1">
+        <label
+          htmlFor="submission-scheduling-notes"
+          className="block text-xs text-gray-500 mb-1"
+        >
           Scheduling notes (optional)
         </label>
         <input
+          id="submission-scheduling-notes"
           type="text"
           placeholder="e.g., 'Please skip finals week if needed'"
           value={schedule.Repeat_Note}

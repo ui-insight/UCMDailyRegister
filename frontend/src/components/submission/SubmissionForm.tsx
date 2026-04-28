@@ -468,10 +468,11 @@ export default function SubmissionForm() {
         />
         {category === 'survey' && (
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="submission-survey-end-date" className="block text-sm font-medium text-gray-700 mb-1">
               Survey / Event End Date
             </label>
             <input
+              id="submission-survey-end-date"
               type="date"
               value={surveyEndDate}
               onChange={(e) => setSurveyEndDate(e.target.value)}
@@ -497,10 +498,11 @@ export default function SubmissionForm() {
               Job listings run in The Daily Register for two weeks. Provide the PeopleAdmin URL and position details below.
             </p>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="submission-job-url" className="block text-sm font-medium text-gray-700 mb-1">
                 Job Posting URL
               </label>
               <input
+                id="submission-job-url"
                 type="url"
                 value={jobUrl}
                 onChange={(e) => setJobUrl(e.target.value)}
@@ -514,10 +516,11 @@ export default function SubmissionForm() {
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="submission-job-title" className="block text-sm font-medium text-gray-700 mb-1">
                   Position Title
                 </label>
                 <input
+                  id="submission-job-title"
                   type="text"
                   value={jobTitle}
                   onChange={(e) => setJobTitle(e.target.value)}
@@ -527,10 +530,11 @@ export default function SubmissionForm() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="submission-job-department" className="block text-sm font-medium text-gray-700 mb-1">
                   Department
                 </label>
                 <input
+                  id="submission-job-department"
                   type="text"
                   value={jobDepartment}
                   onChange={(e) => setJobDepartment(e.target.value)}
@@ -540,10 +544,11 @@ export default function SubmissionForm() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="submission-job-location" className="block text-sm font-medium text-gray-700 mb-1">
                   Location(s)
                 </label>
                 <input
+                  id="submission-job-location"
                   type="text"
                   value={jobLocation}
                   onChange={(e) => setJobLocation(e.target.value)}
@@ -556,10 +561,11 @@ export default function SubmissionForm() {
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="submission-job-remove-date" className="block text-sm font-medium text-gray-700 mb-1">
                 Remove listing early? (optional)
               </label>
               <input
+                id="submission-job-remove-date"
                 type="date"
                 value={jobRemoveDate}
                 onChange={(e) => setJobRemoveDate(e.target.value)}
@@ -575,10 +581,11 @@ export default function SubmissionForm() {
           /* --- Standard announcement form --- */
           <>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="submission-headline" className="block text-sm font-medium text-gray-700 mb-1">
                 Headline
               </label>
               <input
+                id="submission-headline"
                 type="text"
                 value={headline}
                 onChange={(e) => setHeadline(e.target.value)}
@@ -590,13 +597,14 @@ export default function SubmissionForm() {
               <p className="text-xs text-gray-400 mt-1">{headline.length}/500</p>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="submission-body" className="block text-sm font-medium text-gray-700 mb-1">
                 Body Text
               </label>
               <p className="text-xs text-gray-500 mb-2">
                 Keep announcements concise — aim for 150–300 words. Include who, what, when, where, and cost if applicable.
               </p>
               <textarea
+                id="submission-body"
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 required
@@ -633,10 +641,11 @@ export default function SubmissionForm() {
           showRecurrenceControls={isStaff}
         />
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="submission-editor-notes" className="block text-sm font-medium text-gray-700 mb-1">
             Additional Notes for Editors
           </label>
           <textarea
+            id="submission-editor-notes"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
@@ -653,10 +662,11 @@ export default function SubmissionForm() {
         </h3>
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="submission-submitter-name" className="block text-sm font-medium text-gray-700 mb-1">
               Your Name
             </label>
             <input
+              id="submission-submitter-name"
               type="text"
               value={submitterName}
               onChange={(e) => setSubmitterName(e.target.value)}
@@ -665,10 +675,11 @@ export default function SubmissionForm() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="submission-submitter-email" className="block text-sm font-medium text-gray-700 mb-1">
               Email Address
             </label>
             <input
+              id="submission-submitter-email"
               type="email"
               value={submitterEmail}
               onChange={(e) => setSubmitterEmail(e.target.value)}
