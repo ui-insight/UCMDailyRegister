@@ -4,7 +4,7 @@
 
 1. Clone the repository and follow the [Deployment guide](deployment.md) to set up backend and frontend environments.
 2. Install backend with `pip install -e ".[dev]"` (includes test and lint tools).
-3. Seed the database with `python -m app.db.seed`.
+3. Apply migrations with `alembic upgrade head`, then seed the database with `python -m app.db.seed`.
 4. Verify both servers start cleanly before making changes.
 
 ## Code Conventions
