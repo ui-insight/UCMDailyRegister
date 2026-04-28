@@ -325,6 +325,7 @@ async def assemble_newsletter(
     sections = list(sections_result.scalars().all())
     section_map = {s.Slug: s for s in sections}
     category_section_map = _get_category_section_map(newsletter_type)
+    occurrence_cache = submission_service.OccurrenceFilterCache()
 
     for sub in submissions:
         if sub.Id in existing_sub_ids:
@@ -335,6 +336,7 @@ async def assemble_newsletter(
             publish_date,
             publish_date,
             newsletter_type=newsletter_type,
+            occurrence_cache=occurrence_cache,
         )
         if publish_date not in occurrence_dates:
             continue
