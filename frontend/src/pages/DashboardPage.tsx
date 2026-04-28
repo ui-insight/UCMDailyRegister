@@ -189,8 +189,11 @@ export default function DashboardPage() {
       <div className="bg-white rounded-lg shadow p-4 mb-6">
         <div className="flex gap-4 items-end flex-wrap">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Status</label>
+            <label htmlFor="dashboard-status-filter" className="block text-xs text-gray-500 mb-1">
+              Status
+            </label>
             <select
+              id="dashboard-status-filter"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
               className="rounded-md border border-gray-300 px-3 py-2 text-sm"
@@ -202,8 +205,11 @@ export default function DashboardPage() {
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Category</label>
+            <label htmlFor="dashboard-category-filter" className="block text-xs text-gray-500 mb-1">
+              Category
+            </label>
             <select
+              id="dashboard-category-filter"
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
               className="rounded-md border border-gray-300 px-3 py-2 text-sm"
@@ -215,8 +221,11 @@ export default function DashboardPage() {
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Newsletter</label>
+            <label htmlFor="dashboard-newsletter-filter" className="block text-xs text-gray-500 mb-1">
+              Newsletter
+            </label>
             <select
+              id="dashboard-newsletter-filter"
               value={newsletterFilter}
               onChange={(e) => setNewsletterFilter(e.target.value)}
               className="rounded-md border border-gray-300 px-3 py-2 text-sm"
