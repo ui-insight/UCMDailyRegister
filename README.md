@@ -31,6 +31,8 @@ cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 cp ../.env.example ../.env  # Edit with your API keys
+alembic upgrade head
+python -m app.db.seed
 uvicorn app.main:app --port 8001 --reload
 ```
 

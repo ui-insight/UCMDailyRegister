@@ -13,9 +13,7 @@ from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.engine import async_session_factory, engine
-from app.db.base import Base
-import app.models  # noqa: F401 — ensure all models registered with Base
+from app.db.engine import async_session_factory
 from app.models.allowed_value import AllowedValue
 from app.models.section import NewsletterSection
 from app.models.style_rule import StyleRule
@@ -186,10 +184,7 @@ async def seed_blackout_dates(session: AsyncSession) -> None:
 
 
 async def seed_all() -> None:
-    """Create all tables and seed reference data."""
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
+    """Seed reference data into an already migrated database."""
     async with async_session_factory() as session:
         await seed_allowed_values(session)
         print("Seeded allowed values.")

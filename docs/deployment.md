@@ -28,7 +28,8 @@ pip install -e ".[dev]"
 cp .env.example .env
 # Edit .env with your settings (see below)
 
-# Seed the database
+# Apply migrations and seed reference data
+alembic upgrade head
 python -m app.db.seed
 
 # Start the dev server
@@ -90,6 +91,10 @@ reference data: `AllowedValue` records, newsletter sections, style rules,
 schedule configs, and blackout dates. **These tables are load-bearing** —
 empty tables break dropdowns, validations, and FK lookups across the app.
 
+The seed script assumes the schema already exists. Run Alembic migrations
+before seeding; production schema changes must come only from checked-in
+migrations, not SQLAlchemy metadata creation at app startup.
+
 ### Docker deployments
 
 Seeding runs automatically on every backend container start via
@@ -102,11 +107,12 @@ skips rows that already exist.
 ### Local development
 
 For a local (non-Docker) dev server, run the seed script once after creating
-your venv:
+your venv and applying migrations:
 
 ```bash
 cd backend
 source .venv/bin/activate
+alembic upgrade head
 python -m app.db.seed
 ```
 
