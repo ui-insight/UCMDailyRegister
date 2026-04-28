@@ -1,7 +1,7 @@
 import os
 from datetime import date
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
+from fastapi import APIRouter, Depends, File, Header, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,7 +20,12 @@ from app.schemas.submission import (
     SubmissionUpdate,
 )
 from app.services import allowed_value_service, schedule_service, submission_service
-from app.services.image_service import ImageProcessingError, save_upload, validate_image
+from app.services.image_service import (
+    ImageProcessingError,
+    ImageTooLargeError,
+    save_upload_file,
+    validate_image_filename,
+)
 
 router = APIRouter(prefix="/submissions", tags=["submissions"])
 
@@ -388,26 +393,42 @@ async def delete_schedule_request(
 async def upload_image(
     submission_id: str,
     file: UploadFile = File(...),
+    content_length: int | None = Header(None),
     db: AsyncSession = Depends(get_db),
-    submission_role: SubmitterRole = Depends(get_submitter_role),
+    _staff: SubmitterRole = Depends(require_staff),
 ):
-    content = await file.read()
-    error = validate_image(file.filename or "unknown", len(content))
+    if content_length and content_length > settings.image_upload_max_bytes + (2 * 1024 * 1024):
+        raise HTTPException(
+            status_code=413,
+            detail="Image upload request is too large.",
+        )
+
+    filename = file.filename or "unknown"
+    error = validate_image_filename(filename)
     if error:
         raise HTTPException(status_code=400, detail=error)
 
     try:
-        filename = await save_upload(file.filename or "image.png", content)
+        filename = await save_upload_file(file, filename)
+    except ImageTooLargeError as exc:
+        raise HTTPException(
+            status_code=413,
+            detail=str(exc),
+        ) from exc
     except ImageProcessingError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     submission = await submission_service.set_image(db, submission_id, filename)
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
-    return _to_submission_response(submission, submission_role)
+    return _to_submission_response(submission, "staff")
 
 
 @router.get("/{submission_id}/image")
-async def get_image(submission_id: str, db: AsyncSession = Depends(get_db)):
+async def get_image(
+    submission_id: str,
+    db: AsyncSession = Depends(get_db),
+    _staff: SubmitterRole = Depends(require_staff),
+):
     submission = await submission_service.get_submission(db, submission_id)
     if not submission or not submission.Image_Path:
         raise HTTPException(status_code=404, detail="Image not found")

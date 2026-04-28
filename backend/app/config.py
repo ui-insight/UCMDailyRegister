@@ -32,6 +32,8 @@ class Settings(BaseSettings):
     # App
     environment: str = "development"
     upload_dir: str = "./uploads"
+    image_upload_max_bytes: int = 10 * 1024 * 1024
+    image_upload_max_pixels: int = 36_000_000
     cors_origins: str | list[str] | None = None
     trusted_role_header_secret: str = ""
     calendar_source_url: str = (
