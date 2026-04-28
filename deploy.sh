@@ -49,6 +49,21 @@ fi
 COMPOSE=(docker compose --env-file "$ENV_FILE" -p "$PROJECT_NAME")
 BASE_URL="http://127.0.0.1:${HOST_PORT}"
 
+env_file_value() {
+  local key="$1"
+  local line
+  line="$(grep -E "^${key}=" "$ENV_FILE" | tail -n 1 || true)"
+  if [[ -z "$line" ]]; then
+    return 0
+  fi
+  line="${line#*=}"
+  line="${line%\"}"
+  line="${line#\"}"
+  line="${line%\'}"
+  line="${line#\'}"
+  printf '%s' "$line"
+}
+
 retry() {
   local attempts="$1"
   shift
@@ -73,6 +88,27 @@ smoke_check() {
   retry 12 2 curl -fsS "$url" >/dev/null
 }
 
+smoke_check_trusted_role() {
+  local label="$1"
+  local url="$2"
+  local role
+  local secret
+
+  role="$(env_file_value TRUSTED_ROLE_HEADER_ROLE)"
+  secret="$(env_file_value TRUSTED_ROLE_HEADER_SECRET)"
+
+  echo "Checking ${label}: ${url}"
+  if [[ -n "$role" && -n "$secret" ]]; then
+    retry 12 2 curl -fsS \
+      -H "X-Trusted-User-Role: ${role}" \
+      -H "X-Trusted-Auth-Secret: ${secret}" \
+      "$url" >/dev/null
+    return
+  fi
+
+  echo "Skipping ${label}: TRUSTED_ROLE_HEADER_ROLE/SECRET not configured"
+}
+
 echo "Deploying ${ENVIRONMENT} with project ${PROJECT_NAME}"
 "${COMPOSE[@]}" up -d --build
 
@@ -87,7 +123,7 @@ smoke_check "frontend root" "${BASE_URL}/"
 smoke_check "SPA route" "${BASE_URL}/dashboard"
 smoke_check "health API" "${BASE_URL}/api/v1/health"
 smoke_check "settings API" "${BASE_URL}/api/v1/settings/ai"
-smoke_check "submissions API" "${BASE_URL}/api/v1/submissions/?limit=1"
+smoke_check_trusted_role "submissions API" "${BASE_URL}/api/v1/submissions/?limit=1"
 
 echo "Deployment checks passed for ${ENVIRONMENT}"
 echo "Public URL: ${PUBLIC_URL}"

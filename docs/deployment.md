@@ -241,7 +241,34 @@ ENVIRONMENT=production
 CORS_ORIGINS=https://ucmnews.insight.uidaho.edu
 # For deployed dev:
 # CORS_ORIGINS=https://ucmnews-dev.insight.uidaho.edu
+
+# Trusted auth boundary
+TRUSTED_ROLE_HEADER_SECRET=
+# Prototype deployments can assert one role for all proxied API traffic.
+# Leave blank for public-only behavior; set to "staff" to expose editor tools.
+TRUSTED_ROLE_HEADER_ROLE=
 ```
+
+### Prototype Staff Access
+
+For advanced prototype testing, the frontend nginx container can assert a
+single trusted role for every proxied API request. Set both values in the
+environment file:
+
+```bash
+TRUSTED_ROLE_HEADER_SECRET=<random-long-secret>
+TRUSTED_ROLE_HEADER_ROLE=staff
+```
+
+`docker-compose.yml` passes the secret to both containers. The frontend proxy
+overwrites `X-Trusted-User-Role` and `X-Trusted-Auth-Secret` before forwarding
+requests to the backend, and FastAPI accepts staff-only routes only when the
+secret matches.
+
+For a non-prototype production deployment, leave `TRUSTED_ROLE_HEADER_ROLE`
+blank in the app container and have the campus auth gateway or reverse proxy
+decide the real user role, strip any client-supplied trusted headers, and then
+inject the trusted headers server-side.
 
 ### Nginx Proxy Timeouts
 

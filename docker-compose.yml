@@ -14,6 +14,7 @@ services:
       ENVIRONMENT: ${ENVIRONMENT:-production}
       UPLOAD_DIR: /app/uploads
       CORS_ORIGINS: '${CORS_ORIGINS:?Set CORS_ORIGINS in .env}'
+      TRUSTED_ROLE_HEADER_SECRET: ${TRUSTED_ROLE_HEADER_SECRET:-}
     volumes:
       - uploads:/app/uploads
     networks:
@@ -29,6 +30,9 @@ services:
 
   frontend:
     build: ./frontend
+    environment:
+      TRUSTED_ROLE_HEADER_ROLE: ${TRUSTED_ROLE_HEADER_ROLE:-}
+      TRUSTED_ROLE_HEADER_SECRET: ${TRUSTED_ROLE_HEADER_SECRET:-}
     ports:
       - "${HOST_PORT:-9280}:80"
     depends_on:
