@@ -28,11 +28,16 @@ router = APIRouter(prefix="/submissions", tags=["submissions"])
 def _to_submission_response(
     submission,
     submission_role: SubmitterRole,
+    redact_pii: bool = False,
 ) -> SubmissionResponse:
     response = SubmissionResponse.model_validate(submission)
     if submission_role != "staff":
         response.Assigned_Editor = None
         response.Editorial_Notes = None
+    if redact_pii:
+        response.Submitter_Name = ""
+        response.Submitter_Email = ""
+        response.Submitter_Notes = None
     return response
 
 
@@ -40,10 +45,11 @@ def _to_submission_list_response(
     submissions: list,
     total: int,
     submission_role: SubmitterRole,
+    redact_pii: bool = False,
 ) -> SubmissionListResponse:
     return SubmissionListResponse(
         Items=[
-            _to_submission_response(submission, submission_role)
+            _to_submission_response(submission, submission_role, redact_pii=redact_pii)
             for submission in submissions
         ],
         Total=total,
@@ -143,6 +149,8 @@ async def list_submissions(
     db: AsyncSession = Depends(get_db),
     submission_role: SubmitterRole = Depends(get_submitter_role),
 ):
+    if not slc_calendar_only and submission_role != "staff":
+        raise HTTPException(status_code=403, detail="Submission listing is staff-only.")
     if slc_calendar_only and submission_role not in ("staff", "slc"):
         raise HTTPException(
             status_code=403,
@@ -157,22 +165,22 @@ async def list_submissions(
         slc_calendar_only=slc_calendar_only,
         exclude_slc_only=exclude_slc_only,
     )
-    return _to_submission_list_response(items, total, submission_role)
+    return _to_submission_list_response(
+        items,
+        total,
+        submission_role,
+        redact_pii=submission_role != "staff",
+    )
 
 
 @router.get("/{submission_id}", response_model=SubmissionResponse)
 async def get_submission(
     submission_id: str,
     db: AsyncSession = Depends(get_db),
-    submission_role: SubmitterRole = Depends(get_submitter_role),
+    submission_role: SubmitterRole = Depends(require_staff),
 ):
     submission = await submission_service.get_submission(db, submission_id)
     if not submission:
-        raise HTTPException(status_code=404, detail="Submission not found")
-    if (
-        submission.Target_Newsletter == "none"
-        and submission_role not in ("staff", "slc")
-    ):
         raise HTTPException(status_code=404, detail="Submission not found")
     return _to_submission_response(submission, submission_role)
 
