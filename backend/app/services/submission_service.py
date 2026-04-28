@@ -1,5 +1,6 @@
 """Submission CRUD and related operations."""
 
+from dataclasses import dataclass, field as dataclass_field
 from datetime import date, timedelta
 
 import sqlalchemy as sa
@@ -10,6 +11,42 @@ from sqlalchemy.orm import selectinload
 from app.models.submission import Submission, SubmissionLink, SubmissionScheduleRequest
 from app.schemas.submission import SubmissionCreate, SubmissionUpdate
 from app.services import recurrence_service, schedule_service
+
+
+@dataclass
+class OccurrenceFilterCache:
+    """Request-scoped cache for publication-date filters used during listing."""
+
+    config_exists_by_newsletter: dict[str, bool] = dataclass_field(default_factory=dict)
+    valid_dates_by_range: dict[tuple[str, date, date], set[date]] = dataclass_field(
+        default_factory=dict
+    )
+
+    async def configs_exist(self, db: AsyncSession, newsletter_type: str) -> bool:
+        if newsletter_type not in self.config_exists_by_newsletter:
+            configs = await schedule_service.list_configs(db, newsletter_type)
+            self.config_exists_by_newsletter[newsletter_type] = bool(configs)
+        return self.config_exists_by_newsletter[newsletter_type]
+
+    async def valid_dates(
+        self,
+        db: AsyncSession,
+        newsletter_type: str,
+        from_date: date,
+        to_date: date,
+    ) -> set[date]:
+        key = (newsletter_type, from_date, to_date)
+        if key not in self.valid_dates_by_range:
+            valid_for_newsletter = await schedule_service.get_valid_publication_dates(
+                db,
+                from_date,
+                to_date,
+                newsletter_type,
+            )
+            self.valid_dates_by_range[key] = {
+                item["date"] for item in valid_for_newsletter
+            }
+        return self.valid_dates_by_range[key]
 
 
 async def create_submission(db: AsyncSession, data: SubmissionCreate) -> Submission:
@@ -124,33 +161,39 @@ async def list_submissions(
         effective_from = date_from or date.today()
         effective_to = date_to or effective_from
         recurrence_filter = Submission.Schedule_Requests.any(
-            sa.and_(
-                SubmissionScheduleRequest.Requested_Date <= effective_to,
-                sa.or_(
-                    SubmissionScheduleRequest.Recurrence_End_Date.is_(None),
-                    SubmissionScheduleRequest.Recurrence_End_Date >= effective_from,
+            sa.or_(
+                SubmissionScheduleRequest.Requested_Date.between(
+                    effective_from,
+                    effective_to,
+                ),
+                SubmissionScheduleRequest.Second_Requested_Date.between(
+                    effective_from,
+                    effective_to,
+                ),
+                sa.and_(
+                    SubmissionScheduleRequest.Requested_Date <= effective_to,
+                    SubmissionScheduleRequest.Recurrence_Type != "once",
+                    sa.or_(
+                        SubmissionScheduleRequest.Recurrence_End_Date.is_(None),
+                        SubmissionScheduleRequest.Recurrence_End_Date >= effective_from,
+                    ),
                 ),
             )
         )
         query = query.where(recurrence_filter)
         candidates = list((await db.execute(query)).scalars().all())
         filtered_items: list[Submission] = []
+        occurrence_cache = OccurrenceFilterCache()
         for submission in candidates:
-            occurrence_dates = await get_submission_occurrence_dates(
+            await hydrate_submission_occurrences(
                 db,
                 submission,
                 effective_from,
                 effective_to,
                 newsletter_type=target_newsletter,
+                occurrence_cache=occurrence_cache,
             )
-            if occurrence_dates:
-                await hydrate_submission_occurrences(
-                    db,
-                    submission,
-                    effective_from,
-                    effective_to,
-                    newsletter_type=target_newsletter,
-                )
+            if submission.Occurrence_Dates:
                 filtered_items.append(submission)
         total = len(filtered_items)
         return filtered_items[offset:offset + limit], total
@@ -160,6 +203,7 @@ async def list_submissions(
 
     preview_from = date.today()
     preview_to = preview_from + timedelta(days=180)
+    occurrence_cache = OccurrenceFilterCache()
     for submission in items:
         await hydrate_submission_occurrences(
             db,
@@ -168,6 +212,7 @@ async def list_submissions(
             preview_to,
             newsletter_type=target_newsletter,
             max_occurrences=3,
+            occurrence_cache=occurrence_cache,
         )
 
     return items, total
@@ -348,6 +393,7 @@ async def get_submission_occurrence_dates(
     from_date: date,
     to_date: date,
     newsletter_type: str | None = None,
+    occurrence_cache: OccurrenceFilterCache | None = None,
 ) -> list[date]:
     """Return valid occurrence dates for a submission within a range."""
     if from_date > to_date:
@@ -366,39 +412,15 @@ async def get_submission_occurrence_dates(
     if not candidate_dates:
         return []
 
-    relevant_newsletters = (
-        [newsletter_type]
-        if newsletter_type
-        else (
-            ["tdr", "myui"]
-            if submission.Target_Newsletter == "both"
-            else [submission.Target_Newsletter]
-        )
+    return await _filter_candidate_dates(
+        db,
+        submission,
+        candidate_dates,
+        from_date,
+        to_date,
+        newsletter_type,
+        occurrence_cache,
     )
-    relevant_newsletters = [nl for nl in relevant_newsletters if nl]
-
-    if not relevant_newsletters:
-        return sorted(candidate_dates)
-
-    has_configs = False
-    valid_dates: set[date] = set()
-    for nl_type in relevant_newsletters:
-        configs = await schedule_service.list_configs(db, nl_type)
-        if not configs:
-            continue
-        has_configs = True
-        valid_for_newsletter = await schedule_service.get_valid_publication_dates(
-            db,
-            from_date,
-            to_date,
-            nl_type,
-        )
-        valid_dates.update(item["date"] for item in valid_for_newsletter)
-
-    if not has_configs:
-        return sorted(candidate_dates)
-
-    return sorted(candidate_dates & valid_dates)
 
 
 async def hydrate_submission_occurrences(
@@ -408,6 +430,7 @@ async def hydrate_submission_occurrences(
     to_date: date,
     newsletter_type: str | None = None,
     max_occurrences: int | None = None,
+    occurrence_cache: OccurrenceFilterCache | None = None,
 ) -> Submission:
     """Attach occurrence previews to a submission and each schedule request."""
     all_occurrences: list[date] = []
@@ -425,6 +448,7 @@ async def hydrate_submission_occurrences(
             from_date,
             to_date,
             newsletter_type=newsletter_type,
+            occurrence_cache=occurrence_cache,
         )
         if max_occurrences is not None:
             valid_occurrences = valid_occurrences[:max_occurrences]
@@ -450,11 +474,27 @@ async def get_submission_occurrence_dates_for_request(
     from_date: date,
     to_date: date,
     newsletter_type: str | None = None,
+    occurrence_cache: OccurrenceFilterCache | None = None,
 ) -> list[date]:
     """Filter occurrence candidates to valid publication dates."""
     if not candidate_dates:
         return []
 
+    return await _filter_candidate_dates(
+        db,
+        submission,
+        set(candidate_dates),
+        from_date,
+        to_date,
+        newsletter_type,
+        occurrence_cache,
+    )
+
+
+def _get_relevant_newsletters(
+    submission: Submission,
+    newsletter_type: str | None = None,
+) -> list[str]:
     relevant_newsletters = (
         [newsletter_type]
         if newsletter_type
@@ -464,30 +504,43 @@ async def get_submission_occurrence_dates_for_request(
             else [submission.Target_Newsletter]
         )
     )
-    relevant_newsletters = [nl for nl in relevant_newsletters if nl]
+    return [
+        nl_type
+        for nl_type in relevant_newsletters
+        if nl_type and nl_type != "none"
+    ]
 
+
+async def _filter_candidate_dates(
+    db: AsyncSession,
+    submission: Submission,
+    candidate_dates: set[date],
+    from_date: date,
+    to_date: date,
+    newsletter_type: str | None = None,
+    occurrence_cache: OccurrenceFilterCache | None = None,
+) -> list[date]:
+    """Filter occurrence candidates to valid publication dates with request caching."""
+    if not candidate_dates:
+        return []
+
+    relevant_newsletters = _get_relevant_newsletters(submission, newsletter_type)
     if not relevant_newsletters:
         return sorted(candidate_dates)
 
+    cache = occurrence_cache or OccurrenceFilterCache()
     has_configs = False
     valid_dates: set[date] = set()
     for nl_type in relevant_newsletters:
-        configs = await schedule_service.list_configs(db, nl_type)
-        if not configs:
+        if not await cache.configs_exist(db, nl_type):
             continue
         has_configs = True
-        valid_for_newsletter = await schedule_service.get_valid_publication_dates(
-            db,
-            from_date,
-            to_date,
-            nl_type,
-        )
-        valid_dates.update(item["date"] for item in valid_for_newsletter)
+        valid_dates.update(await cache.valid_dates(db, nl_type, from_date, to_date))
 
     if not has_configs:
         return sorted(candidate_dates)
 
-    return sorted(date_value for date_value in candidate_dates if date_value in valid_dates)
+    return sorted(candidate_dates & valid_dates)
 
 
 # --- Image management ---

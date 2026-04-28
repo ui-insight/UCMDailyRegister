@@ -40,6 +40,20 @@ class Submission(Base):
     """A content submission destined for one or both UCM newsletters."""
 
     __tablename__ = "submissions"
+    __table_args__ = (
+        sa.Index("ix_submissions_Status_Created_At", "Status", "Created_At"),
+        sa.Index("ix_submissions_Category_Created_At", "Category", "Created_At"),
+        sa.Index(
+            "ix_submissions_Target_Newsletter_Created_At",
+            "Target_Newsletter",
+            "Created_At",
+        ),
+        sa.Index(
+            "ix_submissions_Show_In_SLC_Calendar_Created_At",
+            "Show_In_SLC_Calendar",
+            "Created_At",
+        ),
+    )
 
     Id: Mapped[str] = mapped_column(
         sa.String(36), primary_key=True, default=lambda: str(uuid.uuid4())
@@ -103,6 +117,21 @@ class SubmissionScheduleRequest(Base):
     """A submitter's preferred publication date and repeat-run preferences."""
 
     __tablename__ = "submission_schedule_requests"
+    __table_args__ = (
+        sa.Index("ix_submission_schedule_requests_Requested_Date", "Requested_Date"),
+        sa.Index(
+            "ix_submission_schedule_requests_Second_Requested_Date",
+            "Second_Requested_Date",
+        ),
+        sa.Index(
+            "ix_submission_schedule_requests_Recurrence_End_Date",
+            "Recurrence_End_Date",
+        ),
+        sa.Index(
+            "ix_submission_schedule_requests_Recurrence_Type",
+            "Recurrence_Type",
+        ),
+    )
 
     Id: Mapped[str] = mapped_column(
         sa.String(36), primary_key=True, default=lambda: str(uuid.uuid4())
