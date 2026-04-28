@@ -38,6 +38,17 @@ export interface AIEditResponse {
   Edit_Version_Id: string;
 }
 
+export interface AIEditTaskResponse {
+  Task_Id: string;
+  Submission_Id: string;
+  Newsletter_Type: 'tdr' | 'myui';
+  Status: 'queued' | 'running' | 'succeeded' | 'failed';
+  Result: AIEditResponse | null;
+  Error_Message: string | null;
+  Created_At: string;
+  Updated_At: string;
+}
+
 export interface EditVersion {
   Id: string;
   Submission_Id: string;

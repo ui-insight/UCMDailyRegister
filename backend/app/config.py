@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     job_postings_source_url: str = "https://uidaho.peopleadmin.com/postings/search"
     job_postings_request_timeout_seconds: float = 10.0
     job_postings_max_pages: int = 5
+    ai_edit_max_concurrency: int = 2
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 
