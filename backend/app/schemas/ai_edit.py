@@ -51,6 +51,18 @@ class AIEditResponse(BaseModel):
     Edit_Version_Id: str
 
 
+class AIEditTaskResponse(BaseModel):
+    """Status response for an asynchronous AI edit task."""
+    Task_Id: str
+    Submission_Id: str
+    Newsletter_Type: str
+    Status: str = Field(..., pattern=r"^(queued|running|succeeded|failed)$")
+    Result: AIEditResponse | None = None
+    Error_Message: str | None = None
+    Created_At: datetime
+    Updated_At: datetime
+
+
 class EditVersionResponse(BaseModel):
     Id: str
     Submission_Id: str

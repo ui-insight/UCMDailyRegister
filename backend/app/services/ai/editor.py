@@ -25,6 +25,10 @@ from app.utils.hyperlinks import parse_submitter_notes
 logger = logging.getLogger(__name__)
 
 
+class AIEditError(Exception):
+    """Raised when the LLM provider cannot produce an edit suggestion."""
+
+
 @dataclass
 class EditResult:
     """Result of an AI edit operation."""
@@ -160,22 +164,7 @@ class AIEditor:
             )
         except Exception as e:
             logger.error(f"LLM call failed for submission {submission.Id}: {e}")
-            return EditResult(
-                edited_headline=submission.Original_Headline,
-                edited_body=submission.Original_Body,
-                headline_case=headline_case,
-                flags=[
-                    *pre_flags,
-                    {
-                        "type": "error",
-                        "rule_key": "ai_error",
-                        "message": f"AI editing failed: {str(e)}",
-                    },
-                ],
-                confidence=0.0,
-                ai_provider="error",
-                ai_model="error",
-            )
+            raise AIEditError(f"AI editing failed: {str(e)}") from e
 
         edited_headline = ai_result.get("edited_headline", submission.Original_Headline)
         edited_body = ai_result.get("edited_body", submission.Original_Body)
