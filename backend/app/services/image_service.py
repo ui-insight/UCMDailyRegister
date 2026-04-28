@@ -4,6 +4,7 @@ import uuid
 from pathlib import Path
 
 from PIL import Image
+from fastapi import UploadFile
 
 from app.config import settings
 
@@ -15,17 +16,25 @@ class ImageProcessingError(Exception):
     """Raised when an uploaded image cannot be processed safely (e.g., EXIF stripping failed)."""
 
 
-ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
+class ImageTooLargeError(ImageProcessingError):
+    """Raised when an uploaded image exceeds the configured byte limit."""
 
 
-def validate_image(filename: str, file_size: int) -> str | None:
+ALLOWED_IMAGE_FORMATS = {
+    ".jpg": "JPEG",
+    ".jpeg": "JPEG",
+    ".png": "PNG",
+    ".gif": "GIF",
+    ".webp": "WEBP",
+}
+UPLOAD_CHUNK_SIZE = 1024 * 1024
+
+
+def validate_image_filename(filename: str) -> str | None:
     """Return an error message if invalid, None if valid."""
     ext = Path(filename).suffix.lower()
-    if ext not in ALLOWED_EXTENSIONS:
-        return f"File type '{ext}' not allowed. Use: {', '.join(ALLOWED_EXTENSIONS)}"
-    if file_size > MAX_FILE_SIZE:
-        return f"File too large ({file_size // 1024 // 1024}MB). Max is 10MB."
+    if ext not in ALLOWED_IMAGE_FORMATS:
+        return f"File type '{ext}' not allowed. Use: {', '.join(ALLOWED_IMAGE_FORMATS)}"
     return None
 
 
@@ -33,6 +42,38 @@ def check_image_dimensions(filepath: str) -> tuple[int, int]:
     """Return (width, height) of an image file."""
     with Image.open(filepath) as img:
         return img.size
+
+
+def _verify_image_file(filepath: str, filename: str) -> tuple[str, tuple[int, int]]:
+    """Validate actual image format and dimensions, returning format and size."""
+    ext = Path(filename).suffix.lower()
+    expected_format = ALLOWED_IMAGE_FORMATS[ext]
+
+    try:
+        with Image.open(filepath) as img:
+            actual_format = img.format
+            width, height = img.size
+            img.verify()
+    except Exception as exc:
+        raise ImageProcessingError(
+            "Unable to process image. The file may be corrupt or not a real image."
+        ) from exc
+
+    if actual_format != expected_format:
+        raise ImageProcessingError(
+            f"Image content is {actual_format or 'unknown'}, but the filename uses '{ext}'."
+        )
+
+    if width <= 0 or height <= 0:
+        raise ImageProcessingError("Image dimensions are invalid.")
+
+    pixel_count = width * height
+    if pixel_count > settings.image_upload_max_pixels:
+        raise ImageProcessingError(
+            f"Image dimensions are too large ({width}x{height})."
+        )
+
+    return actual_format, (width, height)
 
 
 def _strip_exif(filepath: str) -> None:
@@ -44,41 +85,50 @@ def _strip_exif(filepath: str) -> None:
     with Image.open(filepath) as img:
         if img.format == "GIF":
             return
-        cleaned = Image.new(img.mode, img.size)
-        cleaned.putdata(list(img.getdata()))
+        cleaned = img.copy()
         cleaned.save(filepath, format=img.format)
 
 
-async def save_upload(filename: str, content: bytes) -> str:
-    """Save uploaded file, strip EXIF metadata, and return the relative path.
-
-    Fails closed: if EXIF stripping fails (corrupt file, unsupported format,
-    or a file whose extension lies about its content), the saved file is
-    deleted and ImageProcessingError is raised. We would rather reject an
-    upload than silently store an image with metadata intact.
-    """
+async def save_upload_file(file: UploadFile, filename: str) -> str:
+    """Stream an uploaded image to disk, validate real content, strip EXIF, and return path."""
     os.makedirs(settings.upload_dir, exist_ok=True)
     ext = Path(filename).suffix.lower()
     unique_name = f"{uuid.uuid4()}{ext}"
-    filepath = os.path.join(settings.upload_dir, unique_name)
-    with open(filepath, "wb") as f:
-        f.write(content)
+    final_path = os.path.join(settings.upload_dir, unique_name)
+    temp_path = f"{final_path}.part"
+
+    total_size = 0
     try:
-        _strip_exif(filepath)
+        with open(temp_path, "wb") as f:
+            while chunk := await file.read(UPLOAD_CHUNK_SIZE):
+                total_size += len(chunk)
+                if total_size > settings.image_upload_max_bytes:
+                    raise ImageTooLargeError(
+                        f"File too large. Max is {settings.image_upload_max_bytes // 1024 // 1024}MB."
+                    )
+                f.write(chunk)
+
+        _verify_image_file(temp_path, filename)
+        os.replace(temp_path, final_path)
+        _strip_exif(final_path)
+    except ImageProcessingError:
+        for path in (temp_path, final_path):
+            try:
+                if os.path.exists(path):
+                    os.remove(path)
+            except OSError:
+                logger.warning("Failed to clean up rejected upload %s", path)
+        raise
     except Exception as exc:
-        logger.warning(
-            "Failed to strip EXIF from upload %s (stored as %s): %s",
-            filename,
-            unique_name,
-            exc,
-            exc_info=True,
-        )
-        try:
-            os.remove(filepath)
-        except OSError:
-            logger.warning("Failed to clean up unprocessable upload %s", filepath)
+        for path in (temp_path, final_path):
+            try:
+                if os.path.exists(path):
+                    os.remove(path)
+            except OSError:
+                logger.warning("Failed to clean up unprocessable upload %s", path)
         raise ImageProcessingError(
             "Unable to process image. The file may be corrupt, not a real image, "
             "or in an unsupported format."
         ) from exc
+
     return unique_name
