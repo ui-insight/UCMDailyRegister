@@ -73,11 +73,15 @@ export default function LinkEditor({ links, onChange }: Props) {
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">
+                  <label
+                    htmlFor={`submission-link-${index}-url`}
+                    className="block text-xs text-gray-500 mb-1"
+                  >
                     {emailMode ? 'Email address' : 'URL'}
                   </label>
                   {emailMode ? (
                     <input
+                      id={`submission-link-${index}-url`}
                       type="email"
                       placeholder="name@uidaho.edu"
                       value={link.Url.replace(/^mailto:/, '')}
@@ -87,6 +91,7 @@ export default function LinkEditor({ links, onChange }: Props) {
                     />
                   ) : (
                     <input
+                      id={`submission-link-${index}-url`}
                       type="url"
                       placeholder="https://..."
                       value={link.Url}
@@ -97,12 +102,16 @@ export default function LinkEditor({ links, onChange }: Props) {
                   )}
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">
+                  <label
+                    htmlFor={`submission-link-${index}-anchor`}
+                    className="block text-xs text-gray-500 mb-1"
+                  >
                     {emailMode
                       ? "Link text (person's name or email address)"
                       : 'Words to link the URL to (e.g., Learn more.)'}
                   </label>
                   <input
+                    id={`submission-link-${index}-anchor`}
                     type="text"
                     placeholder={emailMode ? "e.g., Jane Smith" : "e.g., Learn more"}
                     value={link.Anchor_Text}

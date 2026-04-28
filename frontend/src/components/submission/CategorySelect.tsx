@@ -16,10 +16,14 @@ export default function CategorySelect({
 }: Props) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
+      <label
+        htmlFor="submission-category"
+        className="block text-sm font-medium text-gray-700 mb-1"
+      >
         Announcement Type
       </label>
       <select
+        id="submission-category"
         value={value}
         onChange={(e) => onChange(e.target.value as SubmissionCategory)}
         disabled={isLoading || categories.length === 0}
