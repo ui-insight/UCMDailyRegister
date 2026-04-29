@@ -315,36 +315,24 @@ export default function DashboardPage() {
         </div>
       ) : (
         <div className="space-y-3">
-          {submissions.map((sub) => (
-            <div
-              key={sub.Id}
-              className="bg-white rounded-lg shadow p-4 hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => navigate(`/edit/${sub.Id}`)}
-            >
-              <div className="flex items-start justify-between">
+          {submissions.map((sub) => {
+            const occurrenceDate = getPrimaryOccurrenceDate(sub);
+            return (
+              <div
+                key={sub.Id}
+                className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer p-4 flex items-center gap-4"
+                onClick={() => navigate(`/edit/${sub.Id}`)}
+              >
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <div className="flex items-center gap-2 mb-1.5">
                     <span
                       className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[sub.Status] || 'bg-gray-100'}`}
                     >
                       {STATUS_LABELS[sub.Status] || sub.Status}
                     </span>
-                    <span className="text-xs bg-gray-50 text-gray-600 px-2 py-0.5 rounded">
-                      {CATEGORY_LABELS[sub.Category] || sub.Category}
-                    </span>
                     <span className="text-xs bg-ui-gold-50 text-ui-gold-700 px-2 py-0.5 rounded font-medium">
                       {NEWSLETTER_LABELS[sub.Target_Newsletter]}
                     </span>
-                    {sub.Assigned_Editor && (
-                      <span className="text-xs bg-ui-clearwater-50 text-ui-clearwater-700 px-2 py-0.5 rounded font-medium">
-                        {sub.Assigned_Editor}
-                      </span>
-                    )}
-                    {sub.Editorial_Notes && (
-                      <span className="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded font-medium">
-                        Has notes
-                      </span>
-                    )}
                   </div>
                   <h3 className="text-sm font-semibold text-gray-900 truncate">
                     {sub.Original_Headline}
@@ -352,27 +340,56 @@ export default function DashboardPage() {
                   <p className="text-sm text-gray-600 mt-1 line-clamp-2">
                     {sub.Original_Body}
                   </p>
-                  <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
+                  <div className="mt-2 text-xs text-gray-500 flex items-center gap-x-2 gap-y-0.5 flex-wrap">
+                    <span>{CATEGORY_LABELS[sub.Category] || sub.Category}</span>
+                    <span aria-hidden="true" className="text-gray-300">·</span>
                     <span>{sub.Submitter_Name}</span>
-                    <span>{new Date(sub.Created_At.endsWith('Z') ? sub.Created_At : sub.Created_At + 'Z').toLocaleDateString()}</span>
-                    {sub.Links.length > 0 && (
-                      <span>{sub.Links.length} link{sub.Links.length > 1 ? 's' : ''}</span>
-                    )}
-                    {sub.Has_Image && <span>Has image</span>}
+                    <span aria-hidden="true" className="text-gray-300">·</span>
+                    <span>
+                      {new Date(
+                        sub.Created_At.endsWith('Z') ? sub.Created_At : sub.Created_At + 'Z',
+                      ).toLocaleDateString()}
+                    </span>
                     {sub.Schedule_Requests.length > 0 && (
-                      <span>
-                        {getPrimaryOccurrenceDate(sub)
-                          ? `Run: ${new Date(getPrimaryOccurrenceDate(sub)! + 'T12:00:00').toLocaleDateString()}`
-                          : 'Schedule prefs'}
-                      </span>
+                      <>
+                        <span aria-hidden="true" className="text-gray-300">·</span>
+                        <span>
+                          {occurrenceDate
+                            ? `Run: ${new Date(occurrenceDate + 'T12:00:00').toLocaleDateString()}`
+                            : 'Schedule prefs'}
+                        </span>
+                      </>
+                    )}
+                    {sub.Links.length > 0 && (
+                      <>
+                        <span aria-hidden="true" className="text-gray-300">·</span>
+                        <span>
+                          {sub.Links.length} link{sub.Links.length > 1 ? 's' : ''}
+                        </span>
+                      </>
+                    )}
+                    {sub.Has_Image && (
+                      <>
+                        <span aria-hidden="true" className="text-gray-300">·</span>
+                        <span>Has image</span>
+                      </>
                     )}
                     {sub.Assigned_Editor && (
-                      <span>Assigned: {sub.Assigned_Editor}</span>
+                      <>
+                        <span aria-hidden="true" className="text-gray-300">·</span>
+                        <span>Assigned: {sub.Assigned_Editor}</span>
+                      </>
+                    )}
+                    {sub.Editorial_Notes && (
+                      <>
+                        <span aria-hidden="true" className="text-gray-300">·</span>
+                        <span>Has notes</span>
+                      </>
                     )}
                   </div>
                 </div>
                 <button
-                  className="ml-4 px-3 py-1.5 text-xs font-medium rounded-md bg-ui-gold-50 text-ui-gold-700 hover:bg-ui-gold-100 whitespace-nowrap"
+                  className="shrink-0 px-3 py-1.5 text-xs font-medium rounded-md bg-ui-gold-50 text-ui-gold-700 hover:bg-ui-gold-100 whitespace-nowrap"
                   onClick={(e) => {
                     e.stopPropagation();
                     navigate(`/edit/${sub.Id}`);
@@ -381,8 +398,8 @@ export default function DashboardPage() {
                   {getStatusAction(sub.Status)}
                 </button>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
