@@ -1,97 +1,93 @@
 import { useNavigate } from 'react-router-dom';
-import { setSubmitterRole } from '../utils/submitterRole';
+import { setSubmitterRole, type SubmitterRole } from '../utils/submitterRole';
 
-type RoleCardProps = {
+type RoleOption = {
+  role: SubmitterRole;
   title: string;
   description: string;
-  actionLabel: string;
-  accentClass: string;
-  onSelect: () => void;
+  target: string;
 };
 
-function RoleCard({
-  title,
-  description,
-  actionLabel,
-  accentClass,
-  onSelect,
-}: RoleCardProps) {
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={`group w-full rounded-3xl border border-gray-200 bg-white p-8 text-left shadow-sm transition hover:-translate-y-1 hover:shadow-xl ${accentClass}`}
-    >
-      <div className="flex items-center justify-between gap-4">
-        <h2 className="text-2xl font-semibold text-gray-900">{title}</h2>
-        <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-gray-600">
-          Choose
-        </span>
-      </div>
-      <p className="mt-4 text-sm leading-6 text-gray-600">{description}</p>
-      <div className="mt-8 inline-flex items-center rounded-full bg-gray-900 px-4 py-2 text-sm font-medium text-white transition group-hover:bg-ui-gold-600">
-        {actionLabel}
-      </div>
-    </button>
-  );
-}
+const ROLES: RoleOption[] = [
+  {
+    role: 'public',
+    title: 'Submitter view',
+    description:
+      'Send announcements, events, and news items into the newsletter pipeline.',
+    target: '/submit',
+  },
+  {
+    role: 'staff',
+    title: 'Staff view',
+    description:
+      'Editorial workspace with dashboard, builder, style rules, and scheduling.',
+    target: '/dashboard',
+  },
+  {
+    role: 'slc',
+    title: 'SLC Leadership view',
+    description:
+      'Private calendar of strategic and signature events for SLC members and admins.',
+    target: '/slc-calendar',
+  },
+];
 
 export default function LandingPage() {
   const navigate = useNavigate();
 
-  const handleSelect = (role: 'public' | 'staff' | 'slc', target: string) => {
+  const handleSelect = (role: SubmitterRole, target: string) => {
     setSubmitterRole(role);
     navigate(target);
   };
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#f6efe1_0%,#f8fafc_45%,#eef3f7_100%)] px-6 py-12">
-      <div className="mx-auto max-w-6xl">
-        <div className="rounded-[2rem] border border-white/70 bg-white/85 p-8 shadow-[0_30px_80px_rgba(15,23,42,0.08)] backdrop-blur md:p-12">
+    <div className="min-h-screen bg-white">
+      <header className="bg-gray-900">
+        <div className="mx-auto max-w-3xl px-6 py-4">
           <img
             src="/ui-logo-gold-white-horizontal.png"
             alt="University of Idaho"
-            className="h-12 w-auto rounded-lg bg-gray-900 px-3 py-2"
+            className="h-8 w-auto"
           />
-          <div className="mt-8 max-w-3xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-ui-clearwater-700">
-              UCM Newsletter Builder
-            </p>
-            <h1 className="mt-3 text-4xl font-semibold tracking-tight text-gray-900 md:text-5xl">
-              Choose how you want to enter the application.
-            </h1>
-            <p className="mt-5 text-base leading-7 text-gray-600 md:text-lg">
-              This app supports two working modes. Submitter view is for people sending content
-              into the pipeline. Staff view is for editors managing reviews, schedules, recurring
-              messages and newsletter assembly.
-            </p>
-          </div>
-
-          <div className="mt-10 grid gap-6 md:grid-cols-3">
-            <RoleCard
-              title="Submitter View"
-              description="Use the public-style submission experience to send announcements, events, and news items into the workflow."
-              actionLabel="Open Submission Form"
-              accentClass="hover:border-ui-clearwater-300"
-              onSelect={() => handleSelect('public', '/submit')}
-            />
-            <RoleCard
-              title="Staff View"
-              description="Open the editorial workspace with dashboard, builder, style rules, recurring messages, and staff-only scheduling tools."
-              actionLabel="Open Staff Workspace"
-              accentClass="hover:border-ui-gold-300"
-              onSelect={() => handleSelect('staff', '/dashboard')}
-            />
-            <RoleCard
-              title="SLC Leadership View"
-              description="Private calendar of strategic and signature events for Senior Leadership Council members and their admins. Exploration preview."
-              actionLabel="Open SLC Calendar"
-              accentClass="hover:border-ui-clearwater-300"
-              onSelect={() => handleSelect('slc', '/slc-calendar')}
-            />
-          </div>
         </div>
-      </div>
+      </header>
+
+      <main className="mx-auto max-w-xl px-6 py-16">
+        <p className="text-sm text-ui-silver">UCM Newsletter Builder</p>
+        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-ui-black">
+          Choose your view
+        </h1>
+        <p className="mt-3 text-sm text-ui-silver">
+          Pick the workspace that matches what you're doing today.
+        </p>
+
+        <ul className="mt-10 divide-y divide-gray-200 border-y border-gray-200">
+          {ROLES.map((r) => (
+            <li key={r.role}>
+              <button
+                type="button"
+                onClick={() => handleSelect(r.role, r.target)}
+                className="group flex w-full items-center gap-4 px-2 py-5 text-left transition hover:bg-stone-50 focus:bg-stone-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-ui-clearwater-500 rounded"
+              >
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-base font-semibold text-ui-black">
+                    {r.title}
+                  </h2>
+                  <p className="mt-1 text-sm text-ui-silver">
+                    {r.description}
+                  </p>
+                </div>
+                <span
+                  aria-hidden="true"
+                  className="shrink-0 text-ui-silver transition group-hover:translate-x-0.5 group-hover:text-ui-clearwater-700"
+                >
+                  →
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </main>
     </div>
   );
 }
