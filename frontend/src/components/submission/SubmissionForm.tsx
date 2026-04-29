@@ -431,11 +431,11 @@ export default function SubmissionForm() {
   return (
     <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
       {isStaff && (
-        <div className="rounded-md bg-purple-50 border border-purple-200 px-4 py-2 flex items-center gap-2">
-          <span className="inline-flex items-center rounded-full bg-purple-500 px-2 py-0.5 text-xs font-medium text-white">
+        <div className="rounded-md bg-ui-clearwater-50 border border-ui-clearwater-200 px-4 py-2 flex items-center gap-2">
+          <span className="inline-flex items-center rounded-full bg-ui-clearwater-500 px-2 py-0.5 text-xs font-medium text-white">
             Staff
           </span>
-          <p className="text-sm text-purple-800">
+          <p className="text-sm text-ui-clearwater-800">
             UCM staff mode — additional announcement types are available.
           </p>
         </div>
@@ -451,7 +451,7 @@ export default function SubmissionForm() {
           About Your Announcement
         </h3>
         {isJobOpportunity && (
-          <p className="text-xs text-gray-500 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+          <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
             Job postings run in The Daily Register only.
           </p>
         )}
@@ -494,7 +494,7 @@ export default function SubmissionForm() {
         {category === 'job_opportunity' ? (
           /* --- Simplified Job Opportunity form --- */
           <div className="space-y-4">
-            <p className="text-xs text-gray-500 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+            <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
               Job listings run in The Daily Register for two weeks. Provide the PeopleAdmin URL and position details below.
             </p>
             <div>
@@ -695,7 +695,7 @@ export default function SubmissionForm() {
         <button
           type="submit"
           disabled={submitting}
-          className="px-6 py-3 bg-yellow-400 text-black font-medium rounded-lg hover:bg-yellow-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="px-6 py-3 bg-ui-gold-500 text-ui-black font-medium rounded-lg hover:bg-ui-gold-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {submitting ? 'Submitting...' : 'Submit Announcement'}
         </button>

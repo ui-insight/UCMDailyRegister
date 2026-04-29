@@ -31,6 +31,33 @@
   --color-ui-black: #323232;
   --color-ui-silver: #808080;
 
+  /* === Semantic Status Tokens === */
+  /* Status pills route through these so every page maps the same
+     semantic role to the same color. Add a new role here, never a
+     raw Tailwind hue in JSX. The -100 variant is the soft background;
+     the -800 variant is the strong foreground for text on it. */
+
+  --color-status-info-100:      #DBEAFE;
+  --color-status-info-800:      #1E40AF;
+
+  --color-status-edited-100:    #E0E7FF;
+  --color-status-edited-800:    #3730A3;
+
+  --color-status-warning-100:   #FEF3C7;
+  --color-status-warning-800:   #92400E;
+
+  --color-status-success-100:   #D1FAE5;
+  --color-status-success-800:   #065F46;
+
+  --color-status-attention-100: #FED7AA;
+  --color-status-attention-800: #9A3412;
+
+  --color-status-error-100:     #FEE2E2;
+  --color-status-error-800:     #991B1B;
+
+  --color-status-muted-100:     #F3F4F6;
+  --color-status-muted-800:     #374151;
+
   /* === Typography === */
   --font-sans: 'Public Sans', ui-sans-serif, system-ui, sans-serif;
 }

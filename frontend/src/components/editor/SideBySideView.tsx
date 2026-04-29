@@ -43,7 +43,7 @@ export default function SideBySideView({
           <label className="block text-xs font-medium text-gray-500 mb-1">
             Headline
           </label>
-          <p className="text-sm font-medium text-gray-900 bg-green-50 p-3 rounded">
+          <p className="text-sm font-medium text-emerald-900 bg-green-50 p-3 rounded">
             {aiHeadline}
           </p>
         </div>
@@ -51,7 +51,7 @@ export default function SideBySideView({
           <label className="block text-xs font-medium text-gray-500 mb-1">
             Body
           </label>
-          <RichBody text={aiBody} className="text-sm text-gray-700 bg-green-50 p-3 rounded" />
+          <RichBody text={aiBody} className="text-sm text-emerald-800 bg-green-50 p-3 rounded" />
         </div>
       </div>
     </div>
