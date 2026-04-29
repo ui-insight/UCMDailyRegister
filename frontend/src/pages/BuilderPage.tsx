@@ -647,11 +647,11 @@ export default function BuilderPage() {
   const sectionNameById = new Map(sections.map((section) => [section.Id, section.Name]));
 
   const STATUS_COLORS: Record<string, string> = {
-    draft: 'bg-gray-100 text-gray-800',
-    in_progress: 'bg-blue-100 text-blue-800',
-    ready_for_review: 'bg-yellow-100 text-yellow-800',
+    draft: 'bg-status-muted-100 text-status-muted-800',
+    in_progress: 'bg-status-info-100 text-status-info-800',
+    ready_for_review: 'bg-status-warning-100 text-status-warning-800',
     submitted: 'bg-ui-clearwater-100 text-ui-clearwater-800',
-    published: 'bg-green-100 text-green-800',
+    published: 'bg-status-success-100 text-status-success-800',
   };
 
   return (

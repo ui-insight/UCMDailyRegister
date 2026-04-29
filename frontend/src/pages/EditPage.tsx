@@ -25,14 +25,14 @@ type Tab = 'original' | 'ai_edit' | 'editor';
 type ViewMode = 'diff' | 'side_by_side';
 
 const STATUS_COLORS: Record<string, string> = {
-  new: 'bg-blue-100 text-blue-800',
-  ai_edited: 'bg-purple-100 text-purple-800',
-  in_review: 'bg-yellow-100 text-yellow-800',
-  approved: 'bg-green-100 text-green-800',
+  new: 'bg-status-info-100 text-status-info-800',
+  ai_edited: 'bg-status-edited-100 text-status-edited-800',
+  in_review: 'bg-status-warning-100 text-status-warning-800',
+  approved: 'bg-status-success-100 text-status-success-800',
   scheduled: 'bg-ui-clearwater-100 text-ui-clearwater-800',
-  published: 'bg-gray-100 text-gray-800',
-  rejected: 'bg-red-100 text-red-800',
-  pending_info: 'bg-orange-100 text-orange-800',
+  published: 'bg-status-muted-100 text-status-muted-800',
+  rejected: 'bg-status-error-100 text-status-error-800',
+  pending_info: 'bg-status-attention-100 text-status-attention-800',
 };
 
 export default function EditPage() {
@@ -525,7 +525,7 @@ export default function EditPage() {
                         <label className="block text-xs font-medium text-gray-500 mb-1">
                           AI Headline
                         </label>
-                        <p className="text-sm font-medium text-gray-900 bg-green-50 p-3 rounded">
+                        <p className="text-sm font-medium text-emerald-900 bg-green-50 p-3 rounded">
                           {aiVersion.Headline}
                         </p>
                       </div>
@@ -537,7 +537,7 @@ export default function EditPage() {
                         <label className="block text-xs font-medium text-gray-500 mb-1">
                           AI Body
                         </label>
-                        <RichBody text={aiVersion.Body} className="text-sm text-gray-700 bg-green-50 p-3 rounded" />
+                        <RichBody text={aiVersion.Body} className="text-sm text-emerald-800 bg-green-50 p-3 rounded" />
                       </div>
                     )}
                   </>
