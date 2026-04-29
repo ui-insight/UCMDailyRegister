@@ -4,14 +4,14 @@ import { getOccurrenceDates } from '../../utils/submissionOccurrences';
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const STATUS_DOT_COLORS: Record<string, string> = {
-  new: 'bg-blue-400',
-  ai_edited: 'bg-purple-400',
-  in_review: 'bg-yellow-400',
-  approved: 'bg-green-400',
-  scheduled: 'bg-cyan-400',
-  published: 'bg-gray-400',
-  rejected: 'bg-red-400',
-  pending_info: 'bg-orange-400',
+  new: 'bg-status-info-500',
+  ai_edited: 'bg-status-edited-500',
+  in_review: 'bg-status-warning-500',
+  approved: 'bg-status-success-500',
+  scheduled: 'bg-ui-clearwater-500',
+  published: 'bg-status-muted-500',
+  rejected: 'bg-status-error-500',
+  pending_info: 'bg-status-attention-500',
 };
 
 interface CalendarViewProps {
@@ -196,23 +196,23 @@ export default function CalendarView({
         <div className="flex items-center gap-3 text-xs text-gray-500 flex-wrap">
           <span className="text-gray-400 font-medium">Status:</span>
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-blue-400" />
+            <span className="w-2 h-2 rounded-full bg-status-info-500" />
             New
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-purple-400" />
+            <span className="w-2 h-2 rounded-full bg-status-edited-500" />
             AI Edited
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-yellow-400" />
+            <span className="w-2 h-2 rounded-full bg-status-warning-500" />
             In Review
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-green-400" />
+            <span className="w-2 h-2 rounded-full bg-status-success-500" />
             Approved
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-cyan-400" />
+            <span className="w-2 h-2 rounded-full bg-ui-clearwater-500" />
             Scheduled
           </span>
         </div>
