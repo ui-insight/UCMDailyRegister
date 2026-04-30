@@ -83,6 +83,8 @@ interface CollapsibleCardProps {
   children: ReactNode;
 }
 
+type ImportPanelKey = 'recurringMessages' | 'calendarEvents' | 'jobPostings';
+
 function CollapsibleCard({
   title,
   subtitle,
@@ -119,6 +121,37 @@ function CollapsibleCard({
   );
 }
 
+interface ImportCandidatePillProps {
+  label: string;
+  count: number;
+  loading: boolean;
+  isOpen: boolean;
+  onClick: () => void;
+}
+
+function ImportCandidatePill({
+  label,
+  count,
+  loading,
+  isOpen,
+  onClick,
+}: ImportCandidatePillProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+        isOpen
+          ? 'border-ui-clearwater-300 bg-ui-clearwater-50 text-ui-clearwater-800'
+          : 'border-gray-200 bg-white text-gray-700 hover:border-ui-clearwater-300 hover:text-ui-clearwater-800'
+      }`}
+      aria-pressed={isOpen}
+    >
+      + {loading ? '...' : count} {label}
+    </button>
+  );
+}
+
 export default function BuilderPage() {
   const [newsletterType, setNewsletterType] = useState<'tdr' | 'myui'>('tdr');
   const [publishDate, setPublishDate] = useState(
@@ -137,9 +170,9 @@ export default function BuilderPage() {
   const [jobLoading, setJobLoading] = useState(false);
   const [jobError, setJobError] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState({
-    recurringMessages: true,
-    calendarEvents: true,
-    jobPostings: true,
+    recurringMessages: false,
+    calendarEvents: false,
+    jobPostings: false,
   });
   const [sectionOpen, setSectionOpen] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
@@ -489,7 +522,7 @@ export default function BuilderPage() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const togglePanel = (panel: 'recurringMessages' | 'calendarEvents' | 'jobPostings') => {
+  const togglePanel = (panel: ImportPanelKey) => {
     setPanelOpen((current) => ({
       ...current,
       [panel]: !current[panel],
@@ -757,104 +790,131 @@ export default function BuilderPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              <CollapsibleCard
-                title="Recurring Messages"
-                subtitle="Reusable editorial copy surfaced from the recurring-message library."
-                meta={`${recurringMessages.length} candidate${recurringMessages.length !== 1 ? 's' : ''}`}
-                isOpen={panelOpen.recurringMessages}
-                onToggle={() => togglePanel('recurringMessages')}
-                actions={(
-                  <button
-                    onClick={() => void loadRecurringMessages(newsletter.Id)}
-                    disabled={recurringLoading}
-                    className="px-3 py-1.5 text-xs font-medium rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    {recurringLoading ? 'Refreshing...' : 'Refresh Messages'}
-                  </button>
-                )}
-              >
-                {recurringError && (
-                  <div className="mb-3 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
-                    {recurringError}
-                  </div>
-                )}
-                {recurringMessages.length === 0 ? (
-                  <div className="rounded-md border border-dashed border-gray-200 px-4 py-6 text-center text-xs text-gray-400">
-                    {recurringLoading ? 'Loading recurring messages...' : 'No recurring messages apply to this issue date.'}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                    {recurringMessages.map((message) => (
-                      <div
-                        key={message.Id}
-                        className={`rounded-lg border p-3 ${
-                          message.Selected
-                            ? 'border-green-200 bg-green-50'
-                            : message.Skipped
-                              ? 'border-amber-200 bg-amber-50'
-                              : 'border-gray-200 bg-white'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <p className="text-sm font-medium text-gray-900">{message.Headline}</p>
-                              {message.Selected && (
-                                <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-medium text-green-700">
-                                  Added
-                                </span>
-                              )}
-                              {message.Skipped && (
-                                <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700">
-                                  Skipped
-                                </span>
-                              )}
-                            </div>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {sectionNameById.get(message.Section_Id) ?? 'Unknown section'}
-                            </p>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => void handleAddRecurringMessage(message.Id)}
-                              disabled={message.Selected}
-                              className={`px-3 py-1.5 text-xs font-medium rounded-md ${
-                                message.Selected
-                                  ? 'bg-green-100 text-green-700 cursor-default'
-                                  : 'bg-ui-gold-600 text-white hover:bg-ui-gold-700'
-                              }`}
-                            >
-                              {message.Skipped ? 'Restore' : message.Selected ? 'Added' : 'Add'}
-                            </button>
-                            <button
-                              onClick={() => void handleSkipRecurringMessage(message.Id)}
-                              disabled={message.Skipped}
-                              className={`px-3 py-1.5 text-xs font-medium rounded-md border ${
-                                message.Skipped
-                                  ? 'border-amber-200 text-amber-700 bg-amber-100 cursor-default'
-                                  : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                              }`}
-                            >
-                              Skip
-                            </button>
-                          </div>
-                        </div>
-                        <p className="text-xs text-gray-600 mt-2 line-clamp-3">
-                          {message.Body}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CollapsibleCard>
+              <div className="flex flex-wrap items-center gap-2">
+                <ImportCandidatePill
+                  label="recurring"
+                  count={recurringMessages.length}
+                  loading={recurringLoading}
+                  isOpen={panelOpen.recurringMessages}
+                  onClick={() => togglePanel('recurringMessages')}
+                />
+                <ImportCandidatePill
+                  label="events"
+                  count={calendarEvents.length}
+                  loading={calendarLoading}
+                  isOpen={panelOpen.calendarEvents}
+                  onClick={() => togglePanel('calendarEvents')}
+                />
+                <ImportCandidatePill
+                  label="jobs"
+                  count={jobPostings.length}
+                  loading={jobLoading}
+                  isOpen={panelOpen.jobPostings}
+                  onClick={() => togglePanel('jobPostings')}
+                />
+              </div>
 
+              {panelOpen.recurringMessages && (
+                <CollapsibleCard
+                  title="Recurring Messages"
+                  subtitle="Reusable editorial copy surfaced from the recurring-message library."
+                  meta={`${recurringMessages.length} candidate${recurringMessages.length !== 1 ? 's' : ''}`}
+                  isOpen
+                  onToggle={() => togglePanel('recurringMessages')}
+                  actions={(
+                    <button
+                      onClick={() => void loadRecurringMessages(newsletter.Id)}
+                      disabled={recurringLoading}
+                      className="px-3 py-1.5 text-xs font-medium rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      {recurringLoading ? 'Refreshing...' : 'Refresh Messages'}
+                    </button>
+                  )}
+                >
+                  {recurringError && (
+                    <div className="mb-3 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
+                      {recurringError}
+                    </div>
+                  )}
+                  {recurringMessages.length === 0 ? (
+                    <div className="rounded-md border border-dashed border-gray-200 px-4 py-6 text-center text-xs text-gray-400">
+                      {recurringLoading ? 'Loading recurring messages...' : 'No recurring messages apply to this issue date.'}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                      {recurringMessages.map((message) => (
+                        <div
+                          key={message.Id}
+                          className={`rounded-lg border p-3 ${
+                            message.Selected
+                              ? 'border-green-200 bg-green-50'
+                              : message.Skipped
+                                ? 'border-amber-200 bg-amber-50'
+                                : 'border-gray-200 bg-white'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <p className="text-sm font-medium text-gray-900">{message.Headline}</p>
+                                {message.Selected && (
+                                  <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-medium text-green-700">
+                                    Added
+                                  </span>
+                                )}
+                                {message.Skipped && (
+                                  <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+                                    Skipped
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {sectionNameById.get(message.Section_Id) ?? 'Unknown section'}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                onClick={() => void handleAddRecurringMessage(message.Id)}
+                                disabled={message.Selected}
+                                className={`px-3 py-1.5 text-xs font-medium rounded-md ${
+                                  message.Selected
+                                    ? 'bg-green-100 text-green-700 cursor-default'
+                                    : 'bg-ui-gold-600 text-white hover:bg-ui-gold-700'
+                                }`}
+                              >
+                                {message.Skipped ? 'Restore' : message.Selected ? 'Added' : 'Add'}
+                              </button>
+                              <button
+                                onClick={() => void handleSkipRecurringMessage(message.Id)}
+                                disabled={message.Skipped}
+                                className={`px-3 py-1.5 text-xs font-medium rounded-md border ${
+                                  message.Skipped
+                                    ? 'border-amber-200 text-amber-700 bg-amber-100 cursor-default'
+                                    : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                                }`}
+                              >
+                                Skip
+                              </button>
+                            </div>
+                          </div>
+                          <p className="text-xs text-gray-600 mt-2 line-clamp-3">
+                            {message.Body}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CollapsibleCard>
+              )}
+
+              {panelOpen.calendarEvents && (
               <CollapsibleCard
                 title="Import Calendar Events"
                 subtitle={`Pull upcoming events from the U of I events calendar into the ${
                   newsletterType === 'tdr' ? "Today's Events" : 'Weekly Events'
                 } section. These are external calendar events, not submitted announcements.`}
                 meta={`${calendarEvents.length} candidate${calendarEvents.length !== 1 ? 's' : ''}`}
-                isOpen={panelOpen.calendarEvents}
+                isOpen
                 onToggle={() => togglePanel('calendarEvents')}
                 actions={(
                   <button
@@ -932,14 +992,16 @@ export default function BuilderPage() {
                   </div>
                 )}
               </CollapsibleCard>
+              )}
 
+              {panelOpen.jobPostings && (
               <CollapsibleCard
                 title="Job Postings"
                 subtitle={`Import U of I job postings into the ${
                   newsletterType === 'tdr' ? 'Job Opportunities' : 'Help Wanted'
                 } section.`}
                 meta={`${jobPostings.length} candidate${jobPostings.length !== 1 ? 's' : ''}`}
-                isOpen={panelOpen.jobPostings}
+                isOpen
                 onToggle={() => togglePanel('jobPostings')}
                 actions={(
                   <button
@@ -1013,6 +1075,7 @@ export default function BuilderPage() {
                   </div>
                 )}
               </CollapsibleCard>
+              )}
 
               {/* Newsletter header */}
               <div className="bg-white rounded-lg shadow p-4 flex items-center justify-between">

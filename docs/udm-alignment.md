@@ -224,10 +224,13 @@ Add explicit lifecycle diagrams for:
 
 ### 5. Tighten access-control documentation
 
-Document the current header-based role model and its limits. Several endpoints
-gate staff-only behavior through `X-User-Role`, while some destructive actions
-currently rely on network/proxy controls rather than per-user authentication.
-This should be explicit in governance docs until stronger auth is implemented.
+Keep the trusted-boundary role model and its limits explicit in governance docs.
+The backend now rejects client-controlled `X-User-Role` headers and accepts
+staff/SLC roles only when `X-Trusted-User-Role` is paired with the configured
+`X-Trusted-Auth-Secret`. This is stronger than the earlier prototype header, but
+it is still perimeter-trusted rather than per-user OAuth/JWT authorization.
+Deployment controls, trusted-header stripping, and campus proxy configuration
+remain part of the access-control boundary until stronger auth is implemented.
 
 ## Change Management Policy
 
