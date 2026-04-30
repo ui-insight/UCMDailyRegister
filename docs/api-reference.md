@@ -2,6 +2,13 @@
 
 All endpoints are prefixed with `/api/v1`. Responses use JSON. Errors return standard `{ "detail": "..." }` bodies.
 
+## Authorization
+
+Public requests have no role headers. Staff and SLC access must come from the
+trusted auth boundary: the reverse proxy injects `X-Trusted-User-Role` and
+`X-Trusted-Auth-Secret`, and the backend accepts the role only when the secret
+matches `TRUSTED_ROLE_HEADER_SECRET`. Client-supplied `X-User-Role` is rejected.
+
 ## Health
 
 | Method | Path              | Description          |

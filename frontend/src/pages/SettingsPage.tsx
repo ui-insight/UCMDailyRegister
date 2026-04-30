@@ -12,6 +12,7 @@ import {
   deleteCustomDate,
 } from '../api/schedule';
 import type { BlackoutDate, ScheduleModeOverride, CustomPublishDate } from '../types/schedule';
+import { formatScheduleFrequency } from '../utils/scheduleFrequency';
 
 interface ScheduleConfig {
   Id: string;
@@ -47,7 +48,6 @@ interface AISettings {
   providers: Record<string, ProviderInfo>;
 }
 
-const DAY_NAMES = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 const MONTH_NAMES = [
   '', 'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December',
@@ -683,13 +683,7 @@ export default function SettingsPage() {
                     {MODE_LABELS[config.Mode] ?? config.Mode}
                   </td>
                   <td className="py-2 text-gray-700">
-                    {config.Is_Daily
-                      ? 'Daily (weekdays)'
-                      : config.Publish_Day_Of_Week !== null
-                        ? `Weekly (${DAY_NAMES[config.Publish_Day_Of_Week]})`
-                        : config.Mode === 'winter_break'
-                          ? 'Custom dates'
-                          : 'Not published'}
+                    {formatScheduleFrequency(config)}
                   </td>
                   <td className="py-2 text-gray-700 text-xs">
                     {config.Submission_Deadline_Description}

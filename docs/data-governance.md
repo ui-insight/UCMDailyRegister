@@ -71,9 +71,18 @@ External Data Sources ──▶ Backend:
 - Optional image upload (media)
 - Optional submitter notes (free text — may inadvertently contain PII)
 
-**Access control:** Public submitters see only their own submissions. Staff see all submissions.
+**Access control:** Public submitters can create submissions and receive the
+created submission response. Submission list/detail views, images, destructive
+actions, AI edits, newsletter assembly, style rules, schedule configuration, and
+recurring-message management are staff-only. Authorized SLC viewers can read the
+SLC calendar feed with submitter PII redacted.
 
-**Authentication model:** Header-based role assignment (`X-User-Role`). No cryptographic token verification at the application layer — relies on network/proxy controls.
+**Authentication model:** Role assignment comes from a trusted auth boundary.
+The backend rejects client-controlled `X-User-Role` headers. Staff and SLC roles
+must be asserted through `X-Trusted-User-Role` plus a matching
+`X-Trusted-Auth-Secret`, which should be injected by nginx, a campus auth
+gateway, or another server-side reverse proxy after stripping any inbound trusted
+headers from the client.
 
 ### 2. AI Editing Pipeline
 
@@ -212,14 +221,15 @@ extension rationale, and recommended governance artifacts.
 
 | Role | Can Create | Can Read | Can Edit | Can Delete | Can Export |
 |------|-----------|---------|---------|-----------|-----------|
-| Public | Submissions | Public-redacted submission responses | Submissions (limited fields) | Some delete endpoints are not role-gated | Published newsletters |
-| Staff | All submissions, newsletters, recurring messages | All submissions and configuration | All submissions + newsletters + configuration | Destructive endpoints available through API | All newsletters |
+| Public | Submissions | Created submission response and public allowed values | Limited submission fields when the submission ID is known | No staff-gated deletes | No staff-gated exports |
+| SLC | SLC event submissions | Redacted SLC calendar feed | Same limited public submission fields | No staff-gated deletes | No staff-gated exports |
+| Staff | All submissions, newsletters, recurring messages, style rules, and schedule records | All submissions and configuration | All editorial, newsletter, recurring-message, style-rule, and schedule workflows | Staff-gated destructive endpoints | All newsletters |
 
-**Note:** There is no admin role. The current role model is header-based
-(`X-User-Role`) and assumes network/proxy controls around the application.
-Several staff-only workflows are checked in the API, but this is not a
-cryptographically verified authentication model. Until stronger authentication is
-implemented, deployment controls are part of the access-control boundary.
+**Note:** There is no admin role. The current role model is still perimeter
+trusted rather than per-user OAuth/JWT authorization: the application validates a
+shared trusted-header secret, but it does not identify individual users or verify
+campus identity tokens directly. Until stronger authentication is implemented,
+deployment controls remain part of the access-control boundary.
 
 ---
 
@@ -240,7 +250,7 @@ If a data breach involving PII (submitter names/emails) is suspected:
 - [x] Implement EXIF stripping on image upload
 - [ ] Add PII sanitization to Submitter_Notes before LLM submission
 - [ ] Implement data retention cleanup job
-- [ ] Evaluate authentication hardening (JWT/OAuth vs. header-based roles)
+- [ ] Evaluate authentication hardening (JWT/OAuth vs. trusted perimeter roles)
 - [ ] Establish audit logging for data access events
 - [ ] Create submitter-facing privacy notice for the submission form
 - [ ] Add a column-level data dictionary with classifications, PII flags, and retention categories
