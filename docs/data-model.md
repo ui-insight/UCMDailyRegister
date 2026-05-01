@@ -107,6 +107,8 @@ current workflow status.
 | `Has_Image`, `Image_Path` | Uploaded image flag and UUID filename |
 | `Survey_End_Date` | Optional date used for survey handling |
 | `Status` | AllowedValue group `Submission_Status` |
+| `Show_In_SLC_Calendar` | Staff/SLC visibility flag for leadership event review |
+| `Event_Classification` | Strategic or signature event label for the SLC calendar |
 | `Created_At`, `Updated_At` | Server timestamps |
 
 Relationships: has many `submission_links`, `submission_schedule_requests`, and
@@ -346,7 +348,9 @@ database as mutable operational state.
 ## Current Governance Gaps
 
 The schema is documented at the table level, but the application does not yet
-have OpenERA-style column-level catalog coverage. The missing artifacts are:
+have OpenERA-style persisted column-level catalog coverage. The frontend now
+includes a staff-facing **Data Governance** tab with a static interactive catalog
+for the current ORM surface, but the missing durable governance artifacts are:
 
 - A machine-readable data dictionary with column descriptions, classifications,
   retention categories, and PII flags.
@@ -354,6 +358,8 @@ have OpenERA-style column-level catalog coverage. The missing artifacts are:
 - A formal lifecycle/status transition matrix for submissions and newsletters.
 - A vocabulary sync process from runtime AllowedValue additions back into seed
   data and the portfolio governance registry.
+- First-class vocabulary governance for SLC-only values currently represented in
+  application code, such as `slc_event`, `none`, `strategic`, and `signature`.
 
 See [UDM Alignment](udm-alignment.md) for how this application aligns with and
 extends the UDM-derived portfolio standard.

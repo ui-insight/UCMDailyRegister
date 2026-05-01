@@ -10,6 +10,7 @@ import RecurringMessagesPage from './pages/RecurringMessagesPage';
 import LandingPage from './pages/LandingPage';
 import SLCCalendarPage from './pages/SLCCalendarPage';
 import SLCEventSubmitPage from './pages/SLCEventSubmitPage';
+import DataGovernancePage from './pages/DataGovernancePage';
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
           <Route path="/slc-calendar" element={<SLCCalendarPage />} />
           <Route path="/submit-slc-event" element={<SLCEventSubmitPage />} />
           <Route path="/style-rules" element={<StyleRulesPage />} />
+          <Route path="/data-governance" element={<DataGovernancePage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Routes>

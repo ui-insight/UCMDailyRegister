@@ -16,6 +16,7 @@ const navItems: NavItem[] = [
   { to: '/slc-calendar', label: 'SLC Calendar', icon: '', roles: ['staff', 'slc'] },
   { to: '/submit-slc-event', label: 'Submit SLC Event', icon: '+ ', roles: ['staff', 'slc'] },
   { to: '/style-rules', label: 'Style Rules', icon: '', roles: ['staff'] },
+  { to: '/data-governance', label: 'Data Governance', icon: '', roles: ['staff'] },
   { to: '/settings', label: 'Settings', icon: '', roles: ['staff'] },
 ];
 
