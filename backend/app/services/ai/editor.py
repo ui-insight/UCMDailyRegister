@@ -123,6 +123,7 @@ class AIEditor:
         session: AsyncSession,
         submission: Submission,
         newsletter_type: str,
+        editor_instructions: str | None = None,
     ) -> EditResult:
         """Run the full AI editing pipeline on a submission."""
         headline_case = "sentence_case"
@@ -153,6 +154,7 @@ class AIEditor:
             submitter_notes=submission.Submitter_Notes,
             links=links if links else None,
             category=submission.Category,
+            editor_instructions=editor_instructions,
         )
 
         try:
@@ -208,6 +210,7 @@ class AIEditor:
         edit_result: EditResult,
         original_headline: str,
         original_body: str,
+        editor_instructions: str | None = None,
     ) -> tuple[EditVersion, EditVersion]:
         """Save the original and AI-suggested versions to the database."""
         existing = await session.execute(
@@ -237,6 +240,7 @@ class AIEditor:
             Changes_Made=edit_result.changes_made,
             AI_Provider=edit_result.ai_provider,
             AI_Model=edit_result.ai_model,
+            Editor_Instructions=editor_instructions,
         )
         session.add(ai_version)
 

@@ -1,5 +1,8 @@
+import { useState } from 'react';
+import { Button } from '../common';
+
 interface AIEditControlsProps {
-  onTriggerEdit: (newsletterType: 'tdr' | 'myui') => void;
+  onTriggerEdit: (newsletterType: 'tdr' | 'myui', editorInstructions?: string) => void;
   onAcceptEdit: () => void;
   onRejectEdit: () => void;
   loading: boolean;
@@ -19,6 +22,7 @@ export default function AIEditControls({
   targetNewsletter,
   confidence,
 }: AIEditControlsProps) {
+  const [editorFeedback, setEditorFeedback] = useState('');
   const confidenceColor =
     confidence === undefined
       ? 'text-gray-400'
@@ -48,22 +52,23 @@ export default function AIEditControls({
           <p className="text-xs text-gray-500 mb-2">Run AI editing for:</p>
           <div className="flex gap-2">
             {(targetNewsletter === 'tdr' || targetNewsletter === 'both') && (
-              <button
+              <Button
                 onClick={() => onTriggerEdit('tdr')}
                 disabled={loading}
-                className="flex-1 px-3 py-2 text-sm font-medium rounded-md bg-ui-gold-600 text-white hover:bg-ui-gold-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                variant="primary"
+                className="flex-1"
               >
                 {loading ? 'Processing...' : 'TDR (Daily Register)'}
-              </button>
+              </Button>
             )}
             {(targetNewsletter === 'myui' || targetNewsletter === 'both') && (
-              <button
+              <Button
                 onClick={() => onTriggerEdit('myui')}
                 disabled={loading}
-                className="flex-1 px-3 py-2 text-sm font-medium rounded-md bg-ui-clearwater-600 text-white hover:bg-ui-clearwater-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 bg-ui-clearwater-600 hover:bg-ui-clearwater-700"
               >
                 {loading ? 'Processing...' : 'My UI (Student)'}
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -82,40 +87,59 @@ export default function AIEditControls({
           )}
 
           <div className="flex gap-2">
-            <button
+            <Button
               onClick={onAcceptEdit}
-              className="flex-1 px-3 py-2 text-sm font-medium rounded-md bg-green-600 text-white hover:bg-green-700"
+              variant="success"
+              className="flex-1"
               title="Accept the AI-suggested edit as the final version"
             >
               Accept AI Edit
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={onRejectEdit}
-              className="flex-1 px-3 py-2 text-sm font-medium rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200"
+              variant="secondary"
+              className="flex-1"
             >
               Edit Manually
-            </button>
+            </Button>
           </div>
 
-          <div className="flex gap-2">
-            {(targetNewsletter === 'tdr' || targetNewsletter === 'both') && (
-              <button
-                onClick={() => onTriggerEdit('tdr')}
-                disabled={loading}
-                className="flex-1 px-2 py-1.5 text-xs rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
-              >
-                {loading ? '...' : 'Re-run TDR'}
-              </button>
-            )}
-            {(targetNewsletter === 'myui' || targetNewsletter === 'both') && (
-              <button
-                onClick={() => onTriggerEdit('myui')}
-                disabled={loading}
-                className="flex-1 px-2 py-1.5 text-xs rounded border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-50"
-              >
-                {loading ? '...' : 'Re-run My UI'}
-              </button>
-            )}
+          <div className="space-y-2 rounded-md border border-gray-200 bg-gray-50 p-3">
+            <label htmlFor="editor-ai-feedback" className="block text-xs font-medium text-gray-600">
+              Editor feedback
+            </label>
+            <textarea
+              id="editor-ai-feedback"
+              value={editorFeedback}
+              onChange={(event) => setEditorFeedback(event.target.value)}
+              rows={3}
+              placeholder="e.g., tighten the first sentence and make the tone less formal"
+              className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+            />
+            <div className="flex gap-2">
+              {(targetNewsletter === 'tdr' || targetNewsletter === 'both') && (
+                <Button
+                  onClick={() => onTriggerEdit('tdr', editorFeedback)}
+                  disabled={loading || !editorFeedback.trim()}
+                  variant="secondary"
+                  size="sm"
+                  className="flex-1"
+                >
+                  {loading ? '...' : 'Revise TDR'}
+                </Button>
+              )}
+              {(targetNewsletter === 'myui' || targetNewsletter === 'both') && (
+                <Button
+                  onClick={() => onTriggerEdit('myui', editorFeedback)}
+                  disabled={loading || !editorFeedback.trim()}
+                  variant="secondary"
+                  size="sm"
+                  className="flex-1"
+                >
+                  {loading ? '...' : 'Revise My UI'}
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       )}

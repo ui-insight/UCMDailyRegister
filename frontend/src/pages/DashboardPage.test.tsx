@@ -174,7 +174,7 @@ describe('DashboardPage', () => {
         date_to: to,
       });
     });
-    expect(screen.getByText(/click a date to see scheduled submissions/i)).toBeInTheDocument();
+    expect(screen.getByText(/choose a date on the calendar/i)).toBeInTheDocument();
   });
 
   it('shows the empty state when no submissions match', async () => {
@@ -182,8 +182,8 @@ describe('DashboardPage', () => {
 
     renderDashboard();
 
-    expect(await screen.findByText('No submissions found.')).toBeInTheDocument();
-    expect(screen.getByText('Submit an announcement using the Submit page.')).toBeInTheDocument();
+    expect(await screen.findByText('No submissions match this view')).toBeInTheDocument();
+    expect(screen.getByText(/new submissions appear here as they arrive/i)).toBeInTheDocument();
   });
 
   it('shows load errors without replacing the filters', async () => {

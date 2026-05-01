@@ -60,6 +60,7 @@ export interface EditVersion {
   Changes_Made: string[] | null;
   AI_Provider: string | null;
   AI_Model: string | null;
+  Editor_Instructions: string | null;
   Created_At: string;
 }
 

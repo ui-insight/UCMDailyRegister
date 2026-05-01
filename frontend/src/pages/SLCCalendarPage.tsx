@@ -4,6 +4,7 @@ import type { Submission, EventClassification } from '../types/submission';
 import CalendarView from '../components/dashboard/CalendarView';
 import { getSubmitterRole } from '../utils/submitterRole';
 import { getOccurrenceDates } from '../utils/submissionOccurrences';
+import { EmptyState } from '../components/common';
 
 const CLASSIFICATION_STYLES: Record<EventClassification, string> = {
   strategic: 'bg-ui-clearwater-50 text-ui-clearwater-700 border-ui-clearwater-200',
@@ -166,11 +167,10 @@ export default function SLCCalendarPage() {
                 events={eventsByDate.get(selectedDate) ?? []}
               />
             ) : (
-              <div className="bg-white rounded-lg shadow p-8 text-center">
-                <p className="text-sm text-gray-400">
-                  Click a date to see SLC events.
-                </p>
-              </div>
+              <EmptyState
+                title="No date selected"
+                description="Choose a calendar date to review SLC events scheduled for that day."
+              />
             )}
           </div>
         </div>
@@ -196,7 +196,11 @@ function SLCDayPanel({ date, events }: { date: string; events: Submission[] }) {
       </div>
       <div className="p-4 space-y-3">
         {events.length === 0 && (
-          <p className="text-sm text-gray-400">No SLC events on this date.</p>
+          <EmptyState
+            title="No SLC events on this date"
+            description="Strategic and signature events appear here when they are scheduled for the selected day."
+            framed={false}
+          />
         )}
         {events.map((event) => (
           <div

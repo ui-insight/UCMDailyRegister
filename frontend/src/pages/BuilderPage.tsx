@@ -26,6 +26,7 @@ import type {
 } from '../api/newsletters';
 import type { NewsletterSection } from '../types/newsletter';
 import type { RecurringMessageIssueCandidate } from '../types/recurringMessage';
+import { EmptyState, Toast, useToast } from '../components/common';
 
 interface BuilderSectionItemBase {
   Id: string;
@@ -177,7 +178,7 @@ export default function BuilderPage() {
   const [sectionOpen, setSectionOpen] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, showToast, dismissToast } = useToast();
   const [dragState, setDragState] = useState<SubmissionDragState | null>(null);
   const dragStateRef = useRef<SubmissionDragState | null>(null);
   const newsletterId = newsletter?.Id;
@@ -517,11 +518,6 @@ export default function BuilderPage() {
     }
   };
 
-  const showToast = (message: string) => {
-    setToast(message);
-    setTimeout(() => setToast(null), 3000);
-  };
-
   const togglePanel = (panel: ImportPanelKey) => {
     setPanelOpen((current) => ({
       ...current,
@@ -690,11 +686,7 @@ export default function BuilderPage() {
   return (
     <div>
       {/* Toast */}
-      {toast && (
-        <div className="fixed top-4 right-4 z-50 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm">
-          {toast}
-        </div>
-      )}
+      <Toast toast={toast} onDismiss={dismissToast} />
       {dragState && (
         <div
           className="pointer-events-none fixed z-50 rounded-lg border border-ui-gold-300 bg-white/95 px-4 py-3 shadow-2xl ring-2 ring-ui-gold-200"
@@ -782,12 +774,12 @@ export default function BuilderPage() {
         {/* Main builder area */}
         <div className="lg:col-span-3">
           {!newsletter ? (
-            <div className="bg-white rounded-lg shadow p-8 text-center">
-              <p className="text-gray-500">
-                Select a newsletter type and date, then click "Assemble Newsletter"
-                to auto-populate from approved submissions.
-              </p>
-            </div>
+            <EmptyState
+              title="No newsletter loaded"
+              description="Choose a newsletter type and publish date, then assemble the issue from approved submissions."
+              actionLabel={loading ? undefined : 'Assemble Newsletter'}
+              onAction={loading ? undefined : () => void handleAssemble()}
+            />
           ) : (
             <div className="space-y-4">
               <div className="flex flex-wrap items-center gap-2">
@@ -837,9 +829,11 @@ export default function BuilderPage() {
                     </div>
                   )}
                   {recurringMessages.length === 0 ? (
-                    <div className="rounded-md border border-dashed border-gray-200 px-4 py-6 text-center text-xs text-gray-400">
-                      {recurringLoading ? 'Loading recurring messages...' : 'No recurring messages apply to this issue date.'}
-                    </div>
+                    <EmptyState
+                      title={recurringLoading ? 'Loading recurring messages' : 'No recurring messages apply'}
+                      description="Reusable messages appear here when their cadence matches this newsletter issue date."
+                      framed={false}
+                    />
                   ) : (
                     <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                       {recurringMessages.map((message) => (
@@ -932,9 +926,11 @@ export default function BuilderPage() {
                   </div>
                 )}
                 {calendarEvents.length === 0 ? (
-                  <div className="rounded-md border border-dashed border-gray-200 px-4 py-6 text-center text-xs text-gray-400">
-                    {calendarLoading ? 'Loading candidate events...' : 'No candidate events found for this issue window.'}
-                  </div>
+                  <EmptyState
+                    title={calendarLoading ? 'Loading candidate events' : 'No candidate events found'}
+                    description="External calendar events appear here when they fall inside this issue window."
+                    framed={false}
+                  />
                 ) : (
                   <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                     {calendarEvents.map((event) => (
@@ -1019,9 +1015,11 @@ export default function BuilderPage() {
                   </div>
                 )}
                 {jobPostings.length === 0 ? (
-                  <div className="rounded-md border border-dashed border-gray-200 px-4 py-6 text-center text-xs text-gray-400">
-                    {jobLoading ? 'Loading job postings...' : 'No candidate job postings found.'}
-                  </div>
+                  <EmptyState
+                    title={jobLoading ? 'Loading job postings' : 'No candidate job postings found'}
+                    description="Open postings appear here when they are available from the U of I jobs source."
+                    framed={false}
+                  />
                 ) : (
                   <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
                     {jobPostings.map((posting) => (
@@ -1138,11 +1136,16 @@ export default function BuilderPage() {
                         }`}
                       >
                         {items.length === 0 ? (
-                          <div className="px-4 py-6 text-center text-xs text-gray-400">
+                          <div className="px-4 py-6">
                             {isDropIndicatorVisible(section.Id, 0) && (
                               <div className="mb-3 rounded-full bg-ui-gold-500 h-1.5 w-full" />
                             )}
-                            No items in this section
+                            <div className="rounded-md border border-dashed border-gray-200 px-4 py-4 text-center">
+                              <p className="text-xs font-medium text-gray-500">No items in this section</p>
+                              <p className="mt-1 text-xs text-gray-400">
+                                Approved submissions and imports can be moved here before export.
+                              </p>
+                            </div>
                           </div>
                         ) : (
                           <div className="divide-y divide-gray-50">

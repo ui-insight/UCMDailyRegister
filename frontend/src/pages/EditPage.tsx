@@ -20,6 +20,7 @@ import SideBySideView from '../components/editor/SideBySideView';
 import SubmissionMeta from '../components/editor/SubmissionMeta';
 import RichBody from '../components/editor/RichBody';
 import { getSubmitterRole } from '../utils/submitterRole';
+import { Button, SegmentedToggle, Toast, useToast } from '../components/common';
 
 type Tab = 'original' | 'ai_edit' | 'editor';
 type ViewMode = 'diff' | 'side_by_side';
@@ -48,7 +49,7 @@ export default function EditPage() {
   const [saveLoading, setSaveLoading] = useState(false);
   const [editorialSaving, setEditorialSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const { toast, showToast, dismissToast } = useToast();
   const [occurrenceActionLoading, setOccurrenceActionLoading] = useState(false);
 
   const [viewMode, setViewMode] = useState<ViewMode>('side_by_side');
@@ -141,12 +142,17 @@ export default function EditPage() {
     }
   };
 
-  const handleTriggerEdit = async (newsletterType: 'tdr' | 'myui') => {
+  const handleTriggerEdit = async (
+    newsletterType: 'tdr' | 'myui',
+    editorInstructions?: string,
+  ) => {
     if (!id) return;
     setAiLoading(true);
     setError(null);
     try {
-      const result = await triggerAIEdit(id, newsletterType);
+      const result = editorInstructions === undefined
+        ? await triggerAIEdit(id, newsletterType)
+        : await triggerAIEdit(id, newsletterType, editorInstructions);
       setAiEditResult(result);
       setEditHeadline(result.Edited_Headline);
       setEditBody(result.Edited_Body);
@@ -156,7 +162,7 @@ export default function EditPage() {
       setSubmission(sub);
       const vers = await listEditVersions(id);
       setVersions(vers);
-      showToast('AI edit complete');
+      showToast(editorInstructions ? 'AI revision complete' : 'AI edit complete');
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'AI edit failed';
       setError(msg);
@@ -355,11 +361,6 @@ export default function EditPage() {
     await loadData();
   };
 
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), type === 'error' ? 5000 : 3000);
-  };
-
   if (loading) {
     return <div className="text-center py-12 text-gray-500">Loading submission...</div>;
   }
@@ -398,14 +399,7 @@ export default function EditPage() {
 
   return (
     <div>
-      {/* Toast */}
-      {toast && (
-        <div className={`fixed top-4 right-4 z-50 text-white px-4 py-2 rounded-lg shadow-lg text-sm ${
-          toast.type === 'error' ? 'bg-red-600' : 'bg-green-600'
-        }`}>
-          {toast.message}
-        </div>
-      )}
+      <Toast toast={toast} onDismiss={dismissToast} />
 
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
@@ -491,28 +485,15 @@ export default function EditPage() {
             {activeTab === 'ai_edit' && hasAIEdit && (
               <div className="space-y-6">
                 {/* View mode toggle */}
-                <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-0.5 w-fit">
-                  <button
-                    onClick={() => setViewMode('side_by_side')}
-                    className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                      viewMode === 'side_by_side'
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    Side by Side
-                  </button>
-                  <button
-                    onClick={() => setViewMode('diff')}
-                    className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                      viewMode === 'diff'
-                        ? 'bg-white text-gray-900 shadow-sm'
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
-                  >
-                    Inline Diff
-                  </button>
-                </div>
+                <SegmentedToggle
+                  ariaLabel="AI edit view"
+                  value={viewMode}
+                  onChange={setViewMode}
+                  options={[
+                    { value: 'side_by_side', label: 'Side by Side' },
+                    { value: 'diff', label: 'Inline Diff' },
+                  ]}
+                />
 
                 {/* Inline diff mode */}
                 {viewMode === 'diff' && (
@@ -584,22 +565,22 @@ export default function EditPage() {
                 />
                 <BodyEditor value={editBody} onChange={setEditBody} />
                 <div className="flex justify-end gap-3 pt-2">
-                  <button
+                  <Button
                     onClick={handleSaveFinal}
                     disabled={saveLoading}
-                    className="px-4 py-2 text-sm font-medium rounded-md bg-ui-gold-600 text-white hover:bg-ui-gold-700 disabled:opacity-50"
+                    variant="primary"
                     title="Save your manual edits without changing the submission status"
                   >
                     {saveLoading ? 'Saving...' : 'Save Final Version'}
-                  </button>
+                  </Button>
                   {submission.Status === 'in_review' && (
-                    <button
+                    <Button
                       onClick={handleApprove}
-                      className="px-4 py-2 text-sm font-medium rounded-md bg-green-600 text-white hover:bg-green-700"
+                      variant="success"
                       title="Mark this submission as approved and ready for the newsletter"
                     >
                       Approve for Newsletter
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>
@@ -659,31 +640,32 @@ export default function EditPage() {
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
                 />
               </div>
-              <button
+              <Button
                 onClick={handleSaveEditorialWorkflow}
                 disabled={editorialSaving}
-                className="w-full px-4 py-2 text-sm font-medium rounded-md bg-ui-clearwater-600 text-white hover:bg-ui-clearwater-700 disabled:opacity-50"
+                className="w-full bg-ui-clearwater-600 hover:bg-ui-clearwater-700"
               >
                 {editorialSaving ? 'Saving...' : 'Save Workflow Details'}
-              </button>
+              </Button>
             </div>
           )}
 
           {/* Request More Info / Pending Info controls */}
           {submission.Status === 'pending_info' ? (
-            <button
+            <Button
               onClick={handleClearPendingInfo}
-              className="w-full px-4 py-2 text-sm font-medium rounded-md bg-green-50 text-green-700 border border-green-200 hover:bg-green-100"
+              variant="success"
+              className="w-full bg-status-success-100 text-status-success-800 hover:bg-status-success-100"
             >
               Mark Info Received
-            </button>
+            </Button>
           ) : (
-            <button
+            <Button
               onClick={handleRequestInfo}
-              className="w-full px-4 py-2 text-sm font-medium rounded-md bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100"
+              className="w-full border border-status-attention-100 bg-status-attention-100 text-status-attention-800 hover:bg-status-attention-100"
             >
               Request More Info
-            </button>
+            </Button>
           )}
 
           {/* Confirmation prompt after mailto opens */}
@@ -691,18 +673,21 @@ export default function EditPage() {
             <div className="bg-orange-50 border border-orange-200 rounded-md p-3 text-sm space-y-2">
               <p className="text-orange-800">Did you send the email?</p>
               <div className="flex gap-2">
-                <button
+                <Button
                   onClick={handleConfirmPendingInfo}
-                  className="flex-1 px-3 py-1.5 text-xs font-medium rounded bg-orange-600 text-white hover:bg-orange-700"
+                  size="sm"
+                  className="flex-1 bg-status-attention-500 text-white hover:bg-status-attention-800"
                 >
                   Yes, mark pending
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => setShowPendingConfirm(false)}
-                  className="flex-1 px-3 py-1.5 text-xs font-medium rounded bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+                  variant="secondary"
+                  size="sm"
+                  className="flex-1"
                 >
                   No, cancel
-                </button>
+                </Button>
               </div>
             </div>
           )}

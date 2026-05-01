@@ -11,10 +11,14 @@ function wait(ms: number): Promise<void> {
 export async function triggerAIEdit(
   submissionId: string,
   newsletterType: 'tdr' | 'myui',
+  editorInstructions?: string,
 ): Promise<AIEditResponse> {
   const task = await apiFetch<AIEditTaskResponse>(`/ai-edits/${submissionId}/edit`, {
     method: 'POST',
-    body: JSON.stringify({ Newsletter_Type: newsletterType }),
+    body: JSON.stringify({
+      Newsletter_Type: newsletterType,
+      Editor_Instructions: editorInstructions?.trim() || null,
+    }),
   });
 
   return pollAIEditTask(task.Task_Id);

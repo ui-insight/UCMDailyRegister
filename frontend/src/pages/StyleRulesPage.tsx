@@ -6,11 +6,12 @@ import {
   deleteStyleRule,
 } from '../api/styleRules';
 import type { StyleRule } from '../types/aiEdit';
+import { Button, Card, ConfirmDialog, EmptyState, Pill, Toast, useToast } from '../components/common';
 
-const SEVERITY_COLORS: Record<string, string> = {
-  error: 'bg-red-100 text-red-800',
-  warning: 'bg-ui-gold-100 text-ui-gold-800',
-  info: 'bg-blue-100 text-blue-800',
+const SEVERITY_TONES: Record<string, 'error' | 'gold' | 'info'> = {
+  error: 'error',
+  warning: 'gold',
+  info: 'info',
 };
 
 const RULE_SET_LABELS: Record<string, string> = {
@@ -29,7 +30,8 @@ export default function StyleRulesPage() {
   const [editText, setEditText] = useState('');
   const [editSeverity, setEditSeverity] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const { toast, showToast, dismissToast } = useToast();
 
   // New rule form
   const [newRuleSet, setNewRuleSet] = useState('shared');
@@ -87,7 +89,7 @@ export default function StyleRulesPage() {
       });
       setEditingId(null);
       showToast('Rule updated');
-      loadRules();
+      void loadRules();
     } catch (err) {
       console.error('Failed to update rule:', err);
     }
@@ -97,20 +99,22 @@ export default function StyleRulesPage() {
     try {
       await updateStyleRule(rule.Id, { Is_Active: !rule.Is_Active });
       showToast(rule.Is_Active ? 'Rule deactivated' : 'Rule activated');
-      loadRules();
+      void loadRules();
     } catch (err) {
       console.error('Failed to toggle rule:', err);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this rule permanently?')) return;
+  const handleConfirmDelete = async () => {
+    if (!pendingDeleteId) return;
     try {
-      await deleteStyleRule(id);
+      await deleteStyleRule(pendingDeleteId);
+      setPendingDeleteId(null);
       showToast('Rule deleted');
-      loadRules();
+      void loadRules();
     } catch (err) {
       console.error('Failed to delete rule:', err);
+      showToast('Failed to delete rule', 'error');
     }
   };
 
@@ -129,15 +133,10 @@ export default function StyleRulesPage() {
       setNewRuleKey('');
       setNewRuleText('');
       showToast('Rule created');
-      loadRules();
+      void loadRules();
     } catch (err) {
       console.error('Failed to create rule:', err);
     }
-  };
-
-  const showToast = (message: string) => {
-    setToast(message);
-    setTimeout(() => setToast(null), 3000);
   };
 
   // Get unique categories for filter
@@ -153,27 +152,33 @@ export default function StyleRulesPage() {
 
   return (
     <div>
-      {toast && (
-        <div className="fixed top-4 right-4 z-50 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm">
-          {toast}
-        </div>
-      )}
+      <Toast toast={toast} onDismiss={dismissToast} />
+      <ConfirmDialog
+        open={pendingDeleteId !== null}
+        title="Delete style rule"
+        description="This removes the rule from the style-rule library. Existing edit versions are unchanged, but future AI edits will no longer use it."
+        confirmLabel="Delete Rule"
+        destructive
+        onConfirm={() => void handleConfirmDelete()}
+        onCancel={() => setPendingDeleteId(null)}
+      />
 
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-gray-900">Style Rules</h2>
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-500">{rules.length} rules</span>
-          <button
+          <Button
             onClick={() => setShowAddForm(true)}
-            className="px-3 py-1.5 text-sm font-medium rounded-md bg-ui-gold-600 text-white hover:bg-ui-gold-700"
+            variant="primary"
+            size="sm"
           >
             + Add Rule
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
+      <Card className="mb-6">
         <div className="flex gap-4 items-end flex-wrap">
           <div>
             <label className="block text-xs text-gray-500 mb-1">Rule Set</label>
@@ -213,11 +218,11 @@ export default function StyleRulesPage() {
             Show inactive
           </label>
         </div>
-      </div>
+      </Card>
 
       {/* Add Rule Form */}
       {showAddForm && (
-        <div className="bg-white rounded-lg shadow p-4 mb-6 border-2 border-ui-gold-200">
+        <Card className="mb-6 border-2 border-ui-gold-200">
           <h3 className="text-sm font-semibold text-gray-900 mb-3">Add New Rule</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
             <div>
@@ -273,33 +278,36 @@ export default function StyleRulesPage() {
               <option value="warning">Warning (SHOULD)</option>
               <option value="info">Info (GUIDELINE)</option>
             </select>
-            <button
+            <Button
               onClick={handleAddRule}
-              className="px-4 py-2 text-sm font-medium rounded-md bg-ui-gold-600 text-white hover:bg-ui-gold-700"
+              variant="primary"
             >
               Add Rule
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => setShowAddForm(false)}
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+              variant="ghost"
             >
               Cancel
-            </button>
+            </Button>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Rules list grouped by category */}
       {loading ? (
         <div className="text-center py-12 text-gray-500">Loading...</div>
       ) : rules.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
-          No rules found.
-        </div>
+        <EmptyState
+          title="No style rules match these filters"
+          description="Editorial rules appear here after they are added to the selected rule set and category."
+          actionLabel={ruleSetFilter || categoryFilter || showInactive ? undefined : 'Add Rule'}
+          onAction={ruleSetFilter || categoryFilter || showInactive ? undefined : () => setShowAddForm(true)}
+        />
       ) : (
         <div className="space-y-4">
           {[...rulesByCategory.entries()].map(([category, catRules]) => (
-            <div key={category} className="bg-white rounded-lg shadow">
+            <Card key={category} padded={false}>
               <div className="px-4 py-3 border-b border-gray-100">
                 <h3 className="text-sm font-semibold text-gray-900 capitalize">
                   {category.replace(/_/g, ' ')}
@@ -330,18 +338,20 @@ export default function StyleRulesPage() {
                             <option value="warning">Warning</option>
                             <option value="info">Info</option>
                           </select>
-                          <button
+                          <Button
                             onClick={handleSaveEdit}
-                            className="px-3 py-1 text-xs font-medium rounded bg-ui-gold-600 text-white hover:bg-ui-gold-700"
+                            variant="primary"
+                            size="xs"
                           >
                             Save
-                          </button>
-                          <button
+                          </Button>
+                          <Button
                             onClick={() => setEditingId(null)}
-                            className="px-3 py-1 text-xs text-gray-600 hover:text-gray-800"
+                            variant="ghost"
+                            size="xs"
                           >
                             Cancel
-                          </button>
+                          </Button>
                         </div>
                       </div>
                     ) : (
@@ -349,14 +359,12 @@ export default function StyleRulesPage() {
                       <div className="flex items-start justify-between group">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <span
-                              className={`text-xs px-1.5 py-0.5 rounded font-medium ${SEVERITY_COLORS[rule.Severity]}`}
-                            >
+                            <Pill tone={SEVERITY_TONES[rule.Severity] ?? 'muted'}>
                               {rule.Severity}
-                            </span>
-                            <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">
+                            </Pill>
+                            <Pill tone="muted" className="rounded px-1.5">
                               {RULE_SET_LABELS[rule.Rule_Set]}
-                            </span>
+                            </Pill>
                             <span className="text-xs text-gray-400 font-mono">
                               {rule.Rule_Key}
                             </span>
@@ -379,7 +387,7 @@ export default function StyleRulesPage() {
                             {rule.Is_Active ? 'Off' : 'On'}
                           </button>
                           <button
-                            onClick={() => handleDelete(rule.Id)}
+                            onClick={() => setPendingDeleteId(rule.Id)}
                             className="p-1 text-gray-400 hover:text-red-600 text-xs"
                             title="Delete"
                           >
@@ -391,7 +399,7 @@ export default function StyleRulesPage() {
                   </div>
                 ))}
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}

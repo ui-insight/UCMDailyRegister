@@ -7,6 +7,7 @@ import CalendarView from '../components/dashboard/CalendarView';
 import WeekOverview from '../components/dashboard/WeekOverview';
 import DayDetail from '../components/dashboard/DayDetail';
 import { getPrimaryOccurrenceDate } from '../utils/submissionOccurrences';
+import { Button, Card, EmptyState, SegmentedToggle } from '../components/common';
 
 const STATUS_COLORS: Record<string, string> = {
   new: 'bg-status-info-100 text-status-info-800',
@@ -160,33 +161,20 @@ export default function DashboardPage() {
           <span className="text-sm text-gray-500">
             {total} submission{total !== 1 ? 's' : ''}
           </span>
-          <div className="flex rounded-md border border-gray-300 overflow-hidden">
-            <button
-              onClick={() => setViewMode('list')}
-              className={`px-3 py-1.5 text-xs font-medium ${
-                viewMode === 'list'
-                  ? 'bg-ui-gold-500 text-white'
-                  : 'bg-white text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              List
-            </button>
-            <button
-              onClick={() => setViewMode('calendar')}
-              className={`px-3 py-1.5 text-xs font-medium border-l border-gray-300 ${
-                viewMode === 'calendar'
-                  ? 'bg-ui-gold-500 text-white'
-                  : 'bg-white text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              Calendar
-            </button>
-          </div>
+          <SegmentedToggle
+            ariaLabel="Dashboard view"
+            value={viewMode}
+            onChange={setViewMode}
+            options={[
+              { value: 'list', label: 'List' },
+              { value: 'calendar', label: 'Calendar' },
+            ]}
+          />
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
+      <Card className="mb-6">
         <div className="flex gap-4 items-end flex-wrap">
           <div>
             <label htmlFor="dashboard-status-filter" className="block text-xs text-gray-500 mb-1">
@@ -244,15 +232,15 @@ export default function DashboardPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm"
             />
-            <button
+            <Button
               type="submit"
-              className="px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-md hover:bg-gray-200"
+              variant="secondary"
             >
               Search
-            </button>
+            </Button>
           </form>
         </div>
-      </div>
+      </Card>
 
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded-lg mb-4 flex items-center justify-between">
@@ -296,23 +284,22 @@ export default function DashboardPage() {
                   onReschedule={handleReschedule}
                 />
               ) : (
-                <div className="bg-white rounded-lg shadow p-8 text-center">
-                  <p className="text-sm text-gray-400">
-                    Click a date to see scheduled submissions.
-                  </p>
-                </div>
+                <EmptyState
+                  title="No date selected"
+                  description="Choose a date on the calendar to review the submissions scheduled for that issue."
+                />
               )}
             </div>
           </div>
         </div>
       ) : /* List view */
       submissions.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-lg shadow">
-          <p className="text-gray-500">No submissions found.</p>
-          <p className="text-sm text-gray-400 mt-1">
-            Submit an announcement using the Submit page.
-          </p>
-        </div>
+        <EmptyState
+          title="No submissions match this view"
+          description="New submissions appear here as they arrive. Filters and search terms can narrow the list to zero."
+          actionLabel="Open Submit Page"
+          onAction={() => navigate('/submit')}
+        />
       ) : (
         <div className="space-y-3">
           {submissions.map((sub) => {

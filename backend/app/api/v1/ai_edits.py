@@ -40,6 +40,7 @@ class AIEditTaskState:
     Task_Id: str
     Submission_Id: str
     Newsletter_Type: str
+    Editor_Instructions: str | None
     Status: AIEditTaskStatus
     Created_At: datetime
     Updated_At: datetime
@@ -104,6 +105,7 @@ async def _run_ai_edit(
     session: AsyncSession,
     submission_id: str,
     newsletter_type: str,
+    editor_instructions: str | None = None,
 ) -> AIEditResponse:
     result = await session.execute(
         sa.select(Submission)
@@ -130,6 +132,7 @@ async def _run_ai_edit(
         session=session,
         submission=submission,
         newsletter_type=newsletter_type,
+        editor_instructions=editor_instructions,
     )
 
     _original_version, ai_version = await editor.save_edit_versions(
@@ -138,6 +141,7 @@ async def _run_ai_edit(
         edit_result=edit_result,
         original_headline=submission.Original_Headline,
         original_body=submission.Original_Body,
+        editor_instructions=editor_instructions,
     )
 
     submission.Status = "ai_edited"
@@ -164,6 +168,7 @@ async def _process_ai_edit_task(task_id: str) -> None:
                     session=session,
                     submission_id=task.Submission_Id,
                     newsletter_type=task.Newsletter_Type,
+                    editor_instructions=task.Editor_Instructions,
                 )
         task.Status = "succeeded"
         task.Error_Message = None
@@ -215,6 +220,7 @@ async def trigger_ai_edit(
         Task_Id=str(uuid.uuid4()),
         Submission_Id=submission_id,
         Newsletter_Type=request.Newsletter_Type,
+        Editor_Instructions=request.Editor_Instructions,
         Status="queued",
         Created_At=now,
         Updated_At=now,
