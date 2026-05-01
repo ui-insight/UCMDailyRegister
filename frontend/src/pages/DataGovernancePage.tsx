@@ -33,19 +33,6 @@ const STATUS_STYLES: Record<ExtensionStatus, string> = {
   'Operational support': 'bg-status-muted-100 text-status-muted-800',
 };
 
-const VALUE_GROUPS = [
-  'Submission_Category',
-  'Newsletter_Type',
-  'Target_Newsletter',
-  'Submission_Status',
-  'Newsletter_Status',
-  'Version_Type',
-  'Headline_Case',
-  'Rule_Set',
-  'Severity',
-  'Schedule_Mode',
-];
-
 function col(
   name: string,
   description: string,
@@ -346,13 +333,6 @@ const GOVERNANCE_TABLES: GovernanceTable[] = [
   },
 ];
 
-const GOVERNANCE_GAPS = [
-  'No OpenERA-style DataDictionary table or read API exists yet; this tab is a static app catalog.',
-  'No automated drift check compares ORM metadata, docs, seed vocabularies, and the catalog.',
-  'The portfolio data-governance registry still needs to be refreshed for the full UCM schema.',
-  'SLC-only submission values are implemented in code but need first-class vocabulary governance.',
-];
-
 function getTableClassification(table: GovernanceTable): DataClassification {
   if (table.columns.some((column) => column.classification === 'Restricted')) return 'Restricted';
   if (table.columns.some((column) => column.classification === 'Confidential')) return 'Confidential';
@@ -366,41 +346,6 @@ export default function DataGovernancePage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [piiOnly, setPiiOnly] = useState(false);
   const [expandedTables, setExpandedTables] = useState<Set<string>>(new Set(['submissions']));
-
-  const columns = useMemo(
-    () => GOVERNANCE_TABLES.flatMap((table) => table.columns.map((column) => ({ table, column }))),
-    [],
-  );
-
-  const stats = useMemo(() => {
-    const classificationBreakdown = columns.reduce<Record<DataClassification, number>>(
-      (acc, { column }) => {
-        acc[column.classification] += 1;
-        return acc;
-      },
-      { Public: 0, Internal: 0, Confidential: 0, Restricted: 0 },
-    );
-
-    const statusBreakdown = GOVERNANCE_TABLES.reduce<Record<ExtensionStatus, number>>(
-      (acc, table) => {
-        acc[table.status] += 1;
-        return acc;
-      },
-      {
-        'UDM-derived pattern': 0,
-        'Communications extension': 0,
-        'Operational support': 0,
-      },
-    );
-
-    return {
-      tableCount: GOVERNANCE_TABLES.length,
-      columnCount: columns.length,
-      piiCount: columns.filter(({ column }) => column.pii).length,
-      classificationBreakdown,
-      statusBreakdown,
-    };
-  }, [columns]);
 
   const filteredTables = useMemo(() => {
     const term = search.trim().toLowerCase();
@@ -460,60 +405,8 @@ export default function DataGovernancePage() {
   return (
     <div className="space-y-6">
       <header>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Data Governance</h1>
-          <p className="mt-1 max-w-3xl text-sm text-gray-600">
-            UCM extends the OpenERA UDM pattern into newsletter production: one UDM-derived vocabulary table, fifteen communications-domain tables, and a documented gap to full DataDictionary parity.
-          </p>
-        </div>
+        <h1 className="text-2xl font-bold text-gray-900">Data Governance</h1>
       </header>
-
-      <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="Tables" value={stats.tableCount} tone="clearwater" />
-        <StatCard label="Columns" value={stats.columnCount} tone="neutral" />
-        <StatCard label="PII Fields" value={stats.piiCount} tone="gold" />
-        <StatCard label="Value Groups" value={VALUE_GROUPS.length} tone="info" />
-      </section>
-
-      <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="rounded-lg bg-white p-4 shadow">
-          <h2 className="text-sm font-semibold text-gray-900">UDM Extension Map</h2>
-          <div className="mt-3 grid gap-3 md:grid-cols-3">
-            {Object.entries(stats.statusBreakdown).map(([status, count]) => (
-              <div key={status} className="rounded-md border border-gray-200 p-3">
-                <span className={`inline-flex rounded px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[status as ExtensionStatus]}`}>
-                  {status}
-                </span>
-                <p className="mt-2 text-2xl font-semibold text-gray-900">{count}</p>
-                <p className="text-xs text-gray-500">tables</p>
-              </div>
-            ))}
-          </div>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {Object.entries(stats.classificationBreakdown).map(([classification, count]) => (
-              <span
-                key={classification}
-                className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium ${CLASSIFICATION_STYLES[classification as DataClassification]}`}
-              >
-                {classification}
-                <span className="font-semibold">{count}</span>
-              </span>
-            ))}
-          </div>
-        </div>
-
-        <div className="rounded-lg bg-white p-4 shadow">
-          <h2 className="text-sm font-semibold text-gray-900">Documentation Status</h2>
-          <p className="mt-2 text-sm text-gray-600">
-            The repo now has a human-readable UDM alignment report and this interactive catalog. It is still short of OpenERA governance parity.
-          </p>
-          <ul className="mt-3 space-y-2 text-xs text-gray-600">
-            {GOVERNANCE_GAPS.map((gap) => (
-              <li key={gap} className="rounded-md bg-gray-50 px-3 py-2">{gap}</li>
-            ))}
-          </ul>
-        </div>
-      </section>
 
       <section className="rounded-lg bg-white p-4 shadow">
         <div className="flex flex-wrap items-center gap-3">
@@ -669,30 +562,6 @@ export default function DataGovernancePage() {
       <p className="text-center text-xs text-gray-400">
         Showing {filteredTables.length} of {GOVERNANCE_TABLES.length} tables
       </p>
-    </div>
-  );
-}
-
-function StatCard({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: number;
-  tone: 'clearwater' | 'neutral' | 'gold' | 'info';
-}) {
-  const styles = {
-    clearwater: 'border-ui-clearwater-100 bg-ui-clearwater-50 text-ui-clearwater-800',
-    neutral: 'border-gray-200 bg-white text-gray-800',
-    gold: 'border-ui-gold-100 bg-ui-gold-50 text-ui-gold-800',
-    info: 'border-status-info-100 bg-status-info-100 text-status-info-800',
-  };
-
-  return (
-    <div className={`rounded-lg border p-4 shadow-sm ${styles[tone]}`}>
-      <div className="text-2xl font-bold">{value}</div>
-      <div className="mt-1 text-xs font-medium">{label}</div>
     </div>
   );
 }
