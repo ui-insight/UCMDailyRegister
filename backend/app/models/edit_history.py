@@ -45,6 +45,7 @@ class EditVersion(Base):
     Changes_Made: Mapped[str | None] = mapped_column(sa.JSON, nullable=True)
     AI_Provider: Mapped[str | None] = mapped_column(sa.String(50), nullable=True)
     AI_Model: Mapped[str | None] = mapped_column(sa.String(100), nullable=True)
+    Editor_Instructions: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
     Created_At: Mapped[datetime] = mapped_column(
         sa.DateTime, nullable=False, server_default=sa.func.now()
     )

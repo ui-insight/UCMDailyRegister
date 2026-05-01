@@ -24,11 +24,13 @@ def configure_ai_edit_tasks(monkeypatch: pytest.MonkeyPatch):
 
 class SuccessfulProvider:
     model = "test-model"
+    last_user_prompt = ""
 
     async def complete(self, *args, **kwargs):  # pragma: no cover - unused interface method
         raise NotImplementedError
 
     async def complete_json(self, *args, **kwargs):
+        SuccessfulProvider.last_user_prompt = kwargs.get("user_prompt", "")
         return {
             "edited_headline": "Edited headline",
             "edited_body": "Edited body.",
@@ -111,6 +113,48 @@ class TestAIEditTasks:
         )
         assert submission_detail_resp.status_code == 200
         assert submission_detail_resp.json()["Status"] == "ai_edited"
+
+    async def test_staff_ai_edit_includes_editor_feedback_in_prompt(
+        self,
+        client: AsyncClient,
+        staff_headers: dict[str, str],
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        SuccessfulProvider.last_user_prompt = ""
+        monkeypatch.setattr(
+            "app.api.v1.ai_edits.get_llm_provider",
+            lambda settings: SuccessfulProvider(),
+        )
+        submission_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(),
+        )
+        assert submission_resp.status_code == 201
+        submission_id = submission_resp.json()["Id"]
+
+        resp = await client.post(
+            f"/api/v1/ai-edits/{submission_id}/edit",
+            json={
+                "Newsletter_Type": "tdr",
+                "Editor_Instructions": "Tighten the first sentence.",
+            },
+            headers=staff_headers,
+        )
+
+        assert resp.status_code == 202
+        task = await wait_for_task(client, resp.json()["Task_Id"], staff_headers)
+        assert task["Status"] == "succeeded"
+        assert "Editor Feedback for This Revision" in SuccessfulProvider.last_user_prompt
+        assert "Tighten the first sentence." in SuccessfulProvider.last_user_prompt
+
+        versions_resp = await client.get(
+            f"/api/v1/ai-edits/{submission_id}/versions",
+            headers=staff_headers,
+        )
+        assert versions_resp.status_code == 200
+        ai_version = versions_resp.json()[-1]
+        assert ai_version["Version_Type"] == "ai_suggested"
+        assert ai_version["Editor_Instructions"] == "Tighten the first sentence."
 
     async def test_provider_failure_does_not_save_ai_version_or_mark_ai_edited(
         self,

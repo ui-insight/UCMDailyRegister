@@ -80,6 +80,15 @@ const PROVIDER_LABELS: Record<string, { name: string; envKey: string; envModel: 
   },
 };
 
+const SETTINGS_SECTIONS = [
+  { id: 'ai-provider', label: 'AI Provider' },
+  { id: 'current-schedule', label: 'Current Schedule' },
+  { id: 'mode-overrides', label: 'Mode Overrides' },
+  { id: 'custom-dates', label: 'Custom Dates' },
+  { id: 'blackouts', label: 'Blackouts' },
+  { id: 'schedule-configs', label: 'Schedule Configs' },
+] as const;
+
 export default function SettingsPage() {
   const [scheduleConfigs, setScheduleConfigs] = useState<ScheduleConfig[]>([]);
   const [activeTdr, setActiveTdr] = useState<ActiveSchedule | null>(null);
@@ -87,6 +96,7 @@ export default function SettingsPage() {
   const [aiSettings, setAiSettings] = useState<AISettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [activeSection, setActiveSection] = useState<(typeof SETTINGS_SECTIONS)[number]['id']>('ai-provider');
 
   // Schedule management state
   const [blackoutDates, setBlackoutDates] = useState<BlackoutDate[]>([]);
@@ -102,6 +112,29 @@ export default function SettingsPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    if (loading) return undefined;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (visible?.target.id) {
+          setActiveSection(visible.target.id as (typeof SETTINGS_SECTIONS)[number]['id']);
+        }
+      },
+      { rootMargin: '-96px 0px -60% 0px', threshold: [0.1, 0.4, 0.7] },
+    );
+
+    for (const section of SETTINGS_SECTIONS) {
+      const node = document.getElementById(section.id);
+      if (node) observer.observe(node);
+    }
+
+    return () => observer.disconnect();
+  }, [loading]);
 
   const loadData = async () => {
     setLoading(true);
@@ -306,8 +339,30 @@ export default function SettingsPage() {
         </div>
       )}
 
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[12rem_minmax(0,1fr)]">
+        <nav className="lg:sticky lg:top-4 lg:self-start" aria-label="Settings sections">
+          <div className="rounded-lg border border-gray-200 bg-white p-2 shadow-sm">
+            {SETTINGS_SECTIONS.map((section) => (
+              <a
+                key={section.id}
+                href={`#${section.id}`}
+                onClick={() => setActiveSection(section.id)}
+                className={`block rounded-md px-3 py-2 text-sm font-medium transition-colors ${
+                  activeSection === section.id
+                    ? 'bg-ui-gold-50 text-ui-gold-800'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                }`}
+              >
+                {section.label}
+              </a>
+            ))}
+          </div>
+        </nav>
+
+        <div className="min-w-0">
+
       {/* LLM Provider */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
+      <div id="ai-provider" className="scroll-mt-4 bg-white rounded-lg shadow p-6 mb-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">AI Provider</h3>
         <p className="text-sm text-gray-600 mb-4">
           The LLM provider is configured via environment variables. Set <code className="bg-gray-100 px-1 py-0.5 rounded text-xs">LLM_PROVIDER</code> to
@@ -395,7 +450,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Active Schedule Info */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
+      <div id="current-schedule" className="scroll-mt-4 bg-white rounded-lg shadow p-6 mb-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Current Schedule</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {renderActiveSchedule('The Daily Register', activeTdr)}
@@ -404,7 +459,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Schedule Mode Overrides */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
+      <div id="mode-overrides" className="scroll-mt-4 bg-white rounded-lg shadow p-6 mb-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Schedule Mode Overrides</h3>
         <p className="text-sm text-gray-600 mb-4">
           Override the auto-detected schedule mode for a date range. Use this to activate summer mode early, set winter break dates, or handle other schedule transitions.
@@ -502,7 +557,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Custom Publish Dates (Winter Break) */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
+      <div id="custom-dates" className="scroll-mt-4 bg-white rounded-lg shadow p-6 mb-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Custom Publish Dates</h3>
         <p className="text-sm text-gray-600 mb-4">
           During winter break (or other custom schedule periods), manually set which dates the newsletter will publish.
@@ -579,7 +634,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Blackout Dates (Holidays) */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
+      <div id="blackouts" className="scroll-mt-4 bg-white rounded-lg shadow p-6 mb-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Blackout Dates (Holidays &amp; Closures)</h3>
         <p className="text-sm text-gray-600 mb-4">
           Dates when newsletters should not be published. When holiday shift is enabled on a schedule config
@@ -659,7 +714,7 @@ export default function SettingsPage() {
       </div>
 
       {/* All Schedule Configs */}
-      <div className="bg-white rounded-lg shadow p-6">
+      <div id="schedule-configs" className="scroll-mt-4 bg-white rounded-lg shadow p-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Schedule Configurations</h3>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -706,6 +761,8 @@ export default function SettingsPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
         </div>
       </div>
     </div>

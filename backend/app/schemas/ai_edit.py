@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 class AIEditRequest(BaseModel):
     """Request to trigger AI editing on a submission."""
     Newsletter_Type: str = Field(..., pattern=r"^(tdr|myui)$")
+    Editor_Instructions: str | None = Field(None, max_length=2000)
 
 
 class AIEditFlag(BaseModel):
@@ -74,6 +75,7 @@ class EditVersionResponse(BaseModel):
     Changes_Made: list | None
     AI_Provider: str | None
     AI_Model: str | None
+    Editor_Instructions: str | None
     Created_At: datetime
 
     model_config = {"from_attributes": True}

@@ -51,4 +51,26 @@ describe('AIEditControls', () => {
     expect(onAcceptEdit).toHaveBeenCalledOnce();
     expect(onRejectEdit).toHaveBeenCalledOnce();
   });
+
+  it('sends targeted editor feedback when revising an AI edit', async () => {
+    const user = userEvent.setup();
+    const onTriggerEdit = vi.fn();
+
+    render(
+      <AIEditControls
+        onTriggerEdit={onTriggerEdit}
+        onAcceptEdit={vi.fn()}
+        onRejectEdit={vi.fn()}
+        loading={false}
+        hasAIEdit
+        targetNewsletter="tdr"
+      />,
+    );
+
+    await user.type(screen.getByLabelText(/editor feedback/i), 'Tighten the first sentence.');
+    await user.click(screen.getByRole('button', { name: /revise tdr/i }));
+
+    expect(onTriggerEdit).toHaveBeenCalledWith('tdr', 'Tighten the first sentence.');
+    expect(screen.queryByRole('button', { name: /re-run tdr/i })).not.toBeInTheDocument();
+  });
 });

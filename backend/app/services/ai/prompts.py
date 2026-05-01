@@ -112,6 +112,7 @@ def build_edit_user_prompt(
     submitter_notes: str | None,
     links: list[dict] | None,
     category: str,
+    editor_instructions: str | None = None,
 ) -> str:
     """Build the user prompt for a single submission edit.
 
@@ -121,6 +122,7 @@ def build_edit_user_prompt(
         submitter_notes: Optional notes from the submitter
         links: Optional list of link dicts with 'url' and 'anchor_text' keys
         category: Submission category
+        editor_instructions: Optional targeted feedback from an editor
     """
     prompt = f"""Please edit the following newsletter submission. Return your response as a JSON object.
 
@@ -160,6 +162,14 @@ Key edits: sentence case headline, removed "please", specified exact dates, remo
                 prompt += f"- \"{anchor}\" → {url}\n"
             else:
                 prompt += f"- {url}\n"
+
+    if editor_instructions:
+        prompt += f"""
+**Editor Feedback for This Revision:**
+{editor_instructions}
+
+Apply this feedback while continuing to follow all system instructions. Do not add facts or details that are not present in the original submission.
+"""
 
     prompt += """
 ## Required JSON Response Format

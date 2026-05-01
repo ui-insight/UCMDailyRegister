@@ -9,6 +9,7 @@ import { listSections } from '../api/newsletters';
 import type { NewsletterSection } from '../types/newsletter';
 import type { RecurringMessage, RecurrenceType } from '../types/recurringMessage';
 import { getSubmitterRole } from '../utils/submitterRole';
+import { Button, Card, ConfirmDialog, EmptyState, Toast, useToast } from '../components/common';
 
 type NewsletterType = 'tdr' | 'myui';
 
@@ -78,13 +79,14 @@ export default function RecurringMessagesPage() {
   const [sections, setSections] = useState<NewsletterSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, showToast, dismissToast } = useToast();
   const [newsletterFilter, setNewsletterFilter] = useState('');
   const [showInactive, setShowInactive] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newForm, setNewForm] = useState<RecurringMessageFormState>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<RecurringMessageFormState>(EMPTY_FORM);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const isStaff = getSubmitterRole() === 'staff';
 
   const loadData = useCallback(async () => {
@@ -112,11 +114,6 @@ export default function RecurringMessagesPage() {
     if (!isStaff) return;
     void loadData();
   }, [isStaff, loadData]);
-
-  const showToast = (message: string) => {
-    setToast(message);
-    window.setTimeout(() => setToast(null), 3000);
-  };
 
   const getSectionsForType = (newsletterType: NewsletterType) => (
     sections.filter((section) => section.Newsletter_Type === newsletterType)
@@ -176,10 +173,11 @@ export default function RecurringMessagesPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Delete this recurring message?')) return;
+  const handleConfirmDelete = async () => {
+    if (!pendingDeleteId) return;
     try {
-      await deleteRecurringMessage(id);
+      await deleteRecurringMessage(pendingDeleteId);
+      setPendingDeleteId(null);
       showToast('Recurring message deleted');
       await loadData();
     } catch (err) {
@@ -189,24 +187,29 @@ export default function RecurringMessagesPage() {
 
   if (!isStaff) {
     return (
-      <div className="bg-white rounded-lg shadow p-8">
+      <Card className="p-8">
         <h2 className="text-2xl font-bold text-gray-900 mb-3">Recurring Messages</h2>
         <p className="text-sm text-gray-600">
           This library is available to staff editors only. Open the app with
           <code className="bg-gray-100 px-1 py-0.5 rounded text-xs mx-1">?role=staff</code>
           to manage centrally scheduled editorial content.
         </p>
-      </div>
+      </Card>
     );
   }
 
   return (
     <div>
-      {toast && (
-        <div className="fixed top-4 right-4 z-50 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg text-sm">
-          {toast}
-        </div>
-      )}
+      <Toast toast={toast} onDismiss={dismissToast} />
+      <ConfirmDialog
+        open={pendingDeleteId !== null}
+        title="Delete recurring message"
+        description="This removes the reusable message from future newsletter assembly. Existing newsletter items are not changed."
+        confirmLabel="Delete Message"
+        destructive
+        onConfirm={() => void handleConfirmDelete()}
+        onCancel={() => setPendingDeleteId(null)}
+      />
 
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -215,15 +218,16 @@ export default function RecurringMessagesPage() {
             Manage centrally maintained editorial content that runs on a cadence.
           </p>
         </div>
-        <button
+        <Button
           onClick={() => setShowAddForm(true)}
-          className="px-3 py-1.5 text-sm font-medium rounded-md bg-ui-gold-600 text-white hover:bg-ui-gold-700"
+          variant="primary"
+          size="sm"
         >
           + Add Recurring Message
-        </button>
+        </Button>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
+      <Card className="mb-6">
         <div className="flex gap-4 items-end flex-wrap">
           <div>
             <label className="block text-xs text-gray-500 mb-1">Newsletter</label>
@@ -248,7 +252,7 @@ export default function RecurringMessagesPage() {
           </label>
           <span className="text-sm text-gray-400">{messages.length} message{messages.length !== 1 ? 's' : ''}</span>
         </div>
-      </div>
+      </Card>
 
       {loadError && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded-lg mb-4">
@@ -257,7 +261,7 @@ export default function RecurringMessagesPage() {
       )}
 
       {showAddForm && (
-        <div className="bg-white rounded-lg shadow p-4 mb-6 border-2 border-ui-gold-200">
+        <Card className="mb-6 border-2 border-ui-gold-200">
           <h3 className="text-sm font-semibold text-gray-900 mb-3">New Recurring Message</h3>
           <RecurringMessageForm
             value={newForm}
@@ -265,31 +269,34 @@ export default function RecurringMessagesPage() {
             onChange={setNewForm}
           />
           <div className="flex items-center gap-3 mt-4">
-            <button
+            <Button
               onClick={() => void handleCreate()}
-              className="px-4 py-2 text-sm font-medium rounded-md bg-ui-gold-600 text-white hover:bg-ui-gold-700"
+              variant="primary"
             >
               Create Message
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => {
                 setShowAddForm(false);
                 setNewForm(EMPTY_FORM);
               }}
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+              variant="ghost"
             >
               Cancel
-            </button>
+            </Button>
           </div>
-        </div>
+        </Card>
       )}
 
       {loading ? (
         <div className="text-center py-12 text-gray-500">Loading...</div>
       ) : messages.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
-          No recurring messages found.
-        </div>
+        <EmptyState
+          title="No recurring messages match these filters"
+          description="Reusable editorial content appears here after staff create messages with a cadence and newsletter section."
+          actionLabel={newsletterFilter || showInactive ? undefined : 'Add Recurring Message'}
+          onAction={newsletterFilter || showInactive ? undefined : () => setShowAddForm(true)}
+        />
       ) : (
         <div className="space-y-4">
           {messages.map((message) => {
@@ -323,24 +330,27 @@ export default function RecurringMessagesPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <button
+                    <Button
                       onClick={() => startEdit(message)}
-                      className="px-3 py-1.5 text-xs font-medium rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
+                      variant="secondary"
+                      size="sm"
                     >
                       Edit
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       onClick={() => void handleToggleActive(message)}
-                      className="px-3 py-1.5 text-xs font-medium rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50"
+                      variant="secondary"
+                      size="sm"
                     >
                       {message.Is_Active ? 'Deactivate' : 'Activate'}
-                    </button>
-                    <button
-                      onClick={() => void handleDelete(message.Id)}
-                      className="px-3 py-1.5 text-xs font-medium rounded-md border border-red-200 text-red-600 hover:bg-red-50"
+                    </Button>
+                    <Button
+                      onClick={() => setPendingDeleteId(message.Id)}
+                      variant="destructive"
+                      size="sm"
                     >
                       Delete
-                    </button>
+                    </Button>
                   </div>
                 </div>
                 <div className="px-4 py-3">
@@ -352,18 +362,18 @@ export default function RecurringMessagesPage() {
                         onChange={setEditForm}
                       />
                       <div className="flex items-center gap-3 mt-4">
-                        <button
+                        <Button
                           onClick={() => void handleSaveEdit()}
-                          className="px-4 py-2 text-sm font-medium rounded-md bg-ui-gold-600 text-white hover:bg-ui-gold-700"
+                          variant="primary"
                         >
                           Save Changes
-                        </button>
-                        <button
+                        </Button>
+                        <Button
                           onClick={() => setEditingId(null)}
-                          className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+                          variant="ghost"
                         >
                           Cancel
-                        </button>
+                        </Button>
                       </div>
                     </>
                   ) : (
