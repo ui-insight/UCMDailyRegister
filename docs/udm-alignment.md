@@ -22,6 +22,8 @@ What is adequate today:
 - Controlled vocabularies are centralized through `allowed_values`.
 - The docs include privacy, data model, backup/recovery, audit-logging, and API
   pages.
+- The frontend includes a staff-facing Data Governance tab with a searchable,
+  expandable catalog modeled after OpenERA's Data Dictionary page.
 - Alembic migrations and idempotent seed data provide a reproducible schema and
   bootstrap reference data path.
 
@@ -34,6 +36,9 @@ What is not adequate yet:
   column-level catalog with PII/classification coverage.
 - There is no automated drift check comparing ORM metadata, documentation, seed
   data, and the portfolio catalog.
+- Some SLC event values are implemented in application code but are not yet
+  fully represented in `allowed_values` seed data or the portfolio vocabulary
+  registry.
 - There is no formal schema change protocol specific to this app that requires
   UDM alignment review, catalog updates, and vocabulary registry updates.
 
@@ -158,6 +163,7 @@ as governed metadata, not just application fixtures.
 | Seed data | Present | Adequate for bootstrap; needs clearer runtime-vs-seed distinction in all docs. |
 | Data model doc | Updated in this repo | Adequate as a human-readable inventory after this update. |
 | Privacy/data governance doc | Present | Useful, but needs column-level classification and access-control detail. |
+| Interactive governance tab | Present in frontend | Useful staff-facing catalog; static until backed by a governed DataDictionary or catalog API. |
 | API docs | Present | Good endpoint reference; not a governance catalog. |
 | Audit logging doc | Present | Mostly a planned control rather than implemented evidence. |
 | Machine-readable catalog | Stale in `../data-governance` | Inadequate until regenerated for the 16-table schema. |
@@ -175,7 +181,9 @@ Update the neighboring `data-governance` repository:
 - `catalog/ucm-daily-register.json`: regenerate from the 16-table ORM surface.
 - `vocabularies/communications/allowed_values.json`: update to current seed
   values, including `employee_announcement`, `survey`, `ucm_feature_story`,
-  `pending_info`, `winter_break`, and `Visibility_Role` metadata.
+  `pending_info`, `winter_break`, and `Visibility_Role` metadata. Include the
+  SLC-only values currently represented in code, such as `slc_event`, `none`,
+  `strategic`, and `signature`.
 - `docs/domains/communications.md`: update table count, ERD, table inventory,
   and AI/editorial workflow notes.
 - `docs/portfolio/applications.md` and `README.md`: update UCM table count.

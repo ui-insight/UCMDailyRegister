@@ -203,6 +203,12 @@ messages, schedule rules, and AI editorial policy.
 See [UDM Alignment](udm-alignment.md) for the table-level alignment matrix,
 extension rationale, and recommended governance artifacts.
 
+The staff application also includes a Data Governance tab modeled after
+OpenERA's interactive Data Dictionary page. It is a searchable, expandable
+catalog of the UCM ORM surface, classifications, PII flags, and AllowedValue
+relationships. This improves day-to-day visibility, but it is not yet a
+database-backed `DataDictionary` table or automated drift-control process.
+
 ---
 
 ## Third-Party Data Processors
@@ -253,6 +259,7 @@ If a data breach involving PII (submitter names/emails) is suspected:
 - [ ] Evaluate authentication hardening (JWT/OAuth vs. trusted perimeter roles)
 - [ ] Establish audit logging for data access events
 - [ ] Create submitter-facing privacy notice for the submission form
+- [x] Add a staff-facing interactive data governance catalog
 - [ ] Add a column-level data dictionary with classifications, PII flags, and retention categories
 - [ ] Refresh the portfolio governance catalog and communications vocabulary registry
 - [ ] Add governance drift checks for ORM/catalog/vocabulary documentation
