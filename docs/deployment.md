@@ -50,6 +50,11 @@ npm run dev
 
 The Vite dev server starts on port **5173** and proxies `/api` requests to the backend at port **8001**.
 
+Optional frontend-only Vite settings, such as `VITE_APP_ENV`, can be placed in
+`frontend/.env.local` for local `npm run dev` sessions. Docker deployments read
+the same values from the project-level environment file and pass them into the
+frontend build.
+
 ### Environment Variables
 
 Create a `.env` file in the project root (for Docker) or `backend/` directory (for local dev):
@@ -241,6 +246,9 @@ ENVIRONMENT=production
 CORS_ORIGINS=https://ucmnews.insight.uidaho.edu
 # For deployed dev:
 # CORS_ORIGINS=https://ucmnews-dev.insight.uidaho.edu
+
+# Frontend build context
+VITE_APP_ENV=production
 
 # Trusted auth boundary
 TRUSTED_ROLE_HEADER_SECRET=

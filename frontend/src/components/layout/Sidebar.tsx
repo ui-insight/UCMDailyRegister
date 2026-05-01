@@ -1,5 +1,9 @@
-import { NavLink } from 'react-router-dom';
+import { useState } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
+import { getBrowserFeedbackContext } from '../../utils/feedback';
 import { getSubmitterRole } from '../../utils/submitterRole';
+import FeedbackDialog from './FeedbackDialog';
+import { Toast, useToast } from '../common';
 
 type NavItem = {
   to: string;
@@ -16,6 +20,7 @@ const navItems: NavItem[] = [
   { to: '/slc-calendar', label: 'SLC Calendar', icon: '', roles: ['staff', 'slc'] },
   { to: '/submit-slc-event', label: 'Submit SLC Event', icon: '+ ', roles: ['staff', 'slc'] },
   { to: '/style-rules', label: 'Style Rules', icon: '', roles: ['staff'] },
+  { to: '/feedback', label: 'Feedback', icon: '', roles: ['staff'] },
   { to: '/data-governance', label: 'Data Governance', icon: '', roles: ['staff'] },
   { to: '/settings', label: 'Settings', icon: '', roles: ['staff'] },
 ];
@@ -27,11 +32,22 @@ const ROLE_LABEL: Record<'public' | 'staff' | 'slc', string> = {
 };
 
 export default function Sidebar() {
+  const location = useLocation();
   const role = getSubmitterRole();
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const { toast, showToast, dismissToast } = useToast();
   const filteredNavItems = navItems.filter((item) => item.roles.includes(role));
+  const feedbackContext = getBrowserFeedbackContext(role, location.pathname);
 
   return (
     <aside className="w-64 bg-gray-900 text-white min-h-screen flex flex-col">
+      <Toast toast={toast} onDismiss={dismissToast} />
+      <FeedbackDialog
+        open={feedbackOpen}
+        context={feedbackContext}
+        onClose={() => setFeedbackOpen(false)}
+        onSubmitted={() => showToast('Feedback submitted')}
+      />
       <div className="p-6 border-b border-gray-700">
         <img
           src="/ui-logo-gold-white-horizontal.png"
@@ -50,6 +66,20 @@ export default function Sidebar() {
           >
             Switch mode
           </NavLink>
+          <button
+            type="button"
+            onClick={() => setFeedbackOpen(true)}
+            className="mt-2 flex items-center gap-2 rounded-md border border-gray-700 bg-gray-900/70 px-2.5 py-2 text-xs font-medium text-gray-200 transition hover:border-ui-gold-400 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-ui-gold-400"
+            title="Open the in-app feedback form"
+          >
+            <span
+              aria-hidden="true"
+              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-ui-gold-500 text-[11px] font-semibold text-ui-black"
+            >
+              ?
+            </span>
+            Report bug or idea
+          </button>
         </div>
       </div>
       <nav className="flex-1 p-4 space-y-1">

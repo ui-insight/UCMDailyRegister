@@ -29,7 +29,10 @@ services:
       start_period: 30s
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        VITE_APP_ENV: ${VITE_APP_ENV:-production}
     environment:
       TRUSTED_ROLE_HEADER_ROLE: ${TRUSTED_ROLE_HEADER_ROLE:-}
       TRUSTED_ROLE_HEADER_SECRET: ${TRUSTED_ROLE_HEADER_SECRET:-}
