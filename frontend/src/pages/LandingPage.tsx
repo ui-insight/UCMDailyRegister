@@ -1,5 +1,9 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { setSubmitterRole, type SubmitterRole } from '../utils/submitterRole';
+import FeedbackDialog from '../components/layout/FeedbackDialog';
+import { Toast, useToast } from '../components/common';
+import { getBrowserFeedbackContext } from '../utils/feedback';
+import { getSubmitterRole, setSubmitterRole, type SubmitterRole } from '../utils/submitterRole';
 
 type RoleOption = {
   role: SubmitterRole;
@@ -34,6 +38,10 @@ const ROLES: RoleOption[] = [
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const { toast, showToast, dismissToast } = useToast();
+  const role = getSubmitterRole();
+  const feedbackContext = getBrowserFeedbackContext(role, '/');
 
   const handleSelect = (role: SubmitterRole, target: string) => {
     setSubmitterRole(role);
@@ -42,6 +50,13 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white">
+      <Toast toast={toast} onDismiss={dismissToast} />
+      <FeedbackDialog
+        open={feedbackOpen}
+        context={feedbackContext}
+        onClose={() => setFeedbackOpen(false)}
+        onSubmitted={() => showToast('Feedback submitted')}
+      />
       <header className="bg-gray-900">
         <div className="mx-auto max-w-3xl px-6 py-4">
           <img
@@ -87,6 +102,21 @@ export default function LandingPage() {
             </li>
           ))}
         </ul>
+
+        <button
+          type="button"
+          onClick={() => setFeedbackOpen(true)}
+          className="mt-8 inline-flex items-center gap-2 rounded-md border border-gray-200 px-3 py-2 text-sm font-medium text-ui-silver transition hover:border-ui-gold-400 hover:text-ui-black focus:outline-none focus-visible:ring-2 focus-visible:ring-ui-clearwater-500"
+          title="Open the in-app feedback form"
+        >
+          <span
+            aria-hidden="true"
+            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-ui-gold-500 text-[11px] font-semibold text-ui-black"
+          >
+            ?
+          </span>
+          Report bug or idea
+        </button>
       </main>
     </div>
   );

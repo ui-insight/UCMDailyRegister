@@ -21,6 +21,7 @@ Models included:
     NewsletterExternalItem   -- Imported external item placed within a newsletter
     RecurringMessage         -- Centrally managed recurring editorial content
     RecurringMessageIssueOverride -- Issue-level skip/override markers
+    ProductFeedback        -- In-app bug reports and feature ideas
     NewsletterSection        -- Section catalog (Announcements, Kudos, etc.)
     StyleRule                -- Writing-style rules for the AI pipeline
     ScheduleConfig           -- Publication cadence and deadline rules
@@ -32,6 +33,7 @@ from app.models.blackout_date import BlackoutDate
 from app.models.custom_publish_date import CustomPublishDate
 from app.models.edit_history import EditVersion
 from app.models.newsletter import Newsletter, NewsletterExternalItem, NewsletterItem
+from app.models.feedback import ProductFeedback
 from app.models.recurring_message import RecurringMessage, RecurringMessageIssueOverride
 from app.models.schedule_config import ScheduleConfig
 from app.models.schedule_mode_override import ScheduleModeOverride
@@ -47,6 +49,7 @@ __all__ = [
     "Newsletter",
     "NewsletterExternalItem",
     "NewsletterItem",
+    "ProductFeedback",
     "RecurringMessage",
     "RecurringMessageIssueOverride",
     "NewsletterSection",

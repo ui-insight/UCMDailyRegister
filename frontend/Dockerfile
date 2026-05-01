@@ -2,6 +2,9 @@ FROM node:22-alpine AS build
 
 WORKDIR /app
 
+ARG VITE_APP_ENV=production
+ENV VITE_APP_ENV=$VITE_APP_ENV
+
 COPY package.json package-lock.json* ./
 RUN npm ci
 
