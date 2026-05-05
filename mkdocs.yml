@@ -47,6 +47,9 @@ nav:
   - API Reference: api-reference.md
   - Deployment: deployment.md
   - Data Governance: data-governance.md
+  - Enterprise AI Framework:
+      - Overview: governance/enterprise-ai-framework/index.md
+      - Approved Stack Evidence: governance/enterprise-ai-framework/approved-stack-evidence.md
   - Backup & Recovery: backup-and-recovery.md
   - Audit Logging: audit-logging.md
   - Contributing: contributing.md
