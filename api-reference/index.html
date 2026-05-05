@@ -1,0 +1,1557 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="AI-assisted newsletter production for the University of Idaho">
+      
+      
+      
+      
+        <link rel="prev" href="../branding/">
+      
+      
+        <link rel="next" href="../deployment/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>API Reference - UCM Daily Register</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#api-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="UCM Daily Register" class="md-header__button md-logo" aria-label="UCM Daily Register" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            UCM Daily Register
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              API Reference
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/ui-insight/UCMDailyRegister" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ui-insight/UCMDailyRegister
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="UCM Daily Register" class="md-nav__button md-logo" aria-label="UCM Daily Register" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    UCM Daily Register
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ui-insight/UCMDailyRegister" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ui-insight/UCMDailyRegister
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udm-alignment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UDM Alignment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ai-editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../branding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Branding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#authorization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authorization
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#health" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Health
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#submissions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Submissions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Submissions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#submission-links" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Submission Links
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schedule-requests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schedule Requests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#image" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Image
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ai-edits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AI Edits
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#newsletters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Newsletters
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Newsletters">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#newsletter-items" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Newsletter Items
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#newsletter-builder-imports" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Newsletter Builder Imports
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#assembly-export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Assembly &amp; Export
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#recurring-messages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recurring Messages
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#style-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Style Rules
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sections" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sections
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#schedule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Schedule
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Schedule">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#configs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#blackout-dates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Blackout Dates
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mode-overrides" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Mode Overrides
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#custom-publish-dates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom Publish Dates
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#allowed-values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Allowed Values
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Settings
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-governance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Governance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../backup-and-recovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backup & Recovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../audit-logging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Audit Logging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="api-reference">API Reference<a class="headerlink" href="#api-reference" title="Permanent link">&para;</a></h1>
+<p>All endpoints are prefixed with <code>/api/v1</code>. Responses use JSON. Errors return standard <code>{ "detail": "..." }</code> bodies.</p>
+<h2 id="authorization">Authorization<a class="headerlink" href="#authorization" title="Permanent link">&para;</a></h2>
+<p>Public requests have no role headers. Staff and SLC access must come from the
+trusted auth boundary: the reverse proxy injects <code>X-Trusted-User-Role</code> and
+<code>X-Trusted-Auth-Secret</code>, and the backend accepts the role only when the secret
+matches <code>TRUSTED_ROLE_HEADER_SECRET</code>. Client-supplied <code>X-User-Role</code> is rejected.</p>
+<h2 id="health">Health<a class="headerlink" href="#health" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/health</code></td>
+<td>Returns service status and version</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/readyz</code></td>
+<td>Readiness probe — verifies load-bearing reference tables are seeded</td>
+</tr>
+</tbody>
+</table>
+<h2 id="submissions">Submissions<a class="headerlink" href="#submissions" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/submissions</code></td>
+<td>Create a new submission</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/submissions</code></td>
+<td>List submissions (with filters)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/submissions/{id}</code></td>
+<td>Get a single submission</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/api/v1/submissions/{id}</code></td>
+<td>Update a submission</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/v1/submissions/{id}</code></td>
+<td>Delete a submission</td>
+</tr>
+</tbody>
+</table>
+<h3 id="submission-links">Submission Links<a class="headerlink" href="#submission-links" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/submissions/{id}/links</code></td>
+<td>Add a link to a submission</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/v1/submissions/{id}/links/{link_id}</code></td>
+<td>Remove a link</td>
+</tr>
+</tbody>
+</table>
+<h3 id="schedule-requests">Schedule Requests<a class="headerlink" href="#schedule-requests" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/submissions/{id}/schedule</code></td>
+<td>Add a schedule request</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/v1/submissions/{id}/schedule/{schedule_id}</code></td>
+<td>Remove a schedule request</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/submissions/{id}/schedule/{schedule_id}/skip</code></td>
+<td>Skip a recurring occurrence (staff)</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/submissions/{id}/schedule/{schedule_id}/reschedule</code></td>
+<td>Move a recurring occurrence (staff)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="image">Image<a class="headerlink" href="#image" title="Permanent link">&para;</a></h3>
+<p>Each submission supports at most one image attachment.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/submissions/{id}/image</code></td>
+<td>Upload the image attachment</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/submissions/{id}/image</code></td>
+<td>Fetch the image bytes</td>
+</tr>
+</tbody>
+</table>
+<h2 id="ai-edits">AI Edits<a class="headerlink" href="#ai-edits" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/ai-edits/{id}/edit</code></td>
+<td>Trigger AI edit for a submission</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/ai-edits/{id}/versions</code></td>
+<td>List all edit versions</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/ai-edits/{id}/versions/{version_id}</code></td>
+<td>Get a specific edit version</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/ai-edits/{id}/finalize</code></td>
+<td>Save the editor's final version</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition info">
+<p class="admonition-title">Edit Triggering</p>
+<p><code>POST /ai-edits/{id}/edit</code> triggers the full AI editing pipeline: pre-analysis, LLM call, post-processing, and diff generation. The response includes the edited text, confidence score, flags, embedded links, and the provider/model used.</p>
+</div>
+<p>The edit response includes <code>AI_Provider</code> and <code>AI_Model</code> fields so the UI can display which LLM produced the suggestion.</p>
+<h2 id="newsletters">Newsletters<a class="headerlink" href="#newsletters" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/newsletters</code></td>
+<td>Create a new newsletter issue</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/newsletters</code></td>
+<td>List newsletters (with filters)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/newsletters/{id}</code></td>
+<td>Get a newsletter with items</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/api/v1/newsletters/{id}/status?status=...</code></td>
+<td>Update newsletter status</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/v1/newsletters/{id}</code></td>
+<td>Delete a newsletter</td>
+</tr>
+</tbody>
+</table>
+<h3 id="newsletter-items">Newsletter Items<a class="headerlink" href="#newsletter-items" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/newsletters/{id}/items</code></td>
+<td>Add an item to the newsletter</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/api/v1/newsletters/{id}/items/{item_id}</code></td>
+<td>Update item (section, order)</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/api/v1/newsletters/{id}/external-items/{item_id}</code></td>
+<td>Update an imported external item</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/v1/newsletters/{id}/items/{item_id}</code></td>
+<td>Remove an item</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/v1/newsletters/{id}/external-items/{item_id}</code></td>
+<td>Remove an imported external item</td>
+</tr>
+<tr>
+<td>PUT</td>
+<td><code>/api/v1/newsletters/{id}/reorder</code></td>
+<td>Bulk reorder submission items</td>
+</tr>
+</tbody>
+</table>
+<h3 id="newsletter-builder-imports">Newsletter Builder Imports<a class="headerlink" href="#newsletter-builder-imports" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/newsletters/{id}/recurring-messages</code></td>
+<td>List recurring-message candidates for issue</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/newsletters/{id}/recurring-messages/{recurring_message_id}</code></td>
+<td>Add or restore a recurring message</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/newsletters/{id}/recurring-messages/{recurring_message_id}/skip</code></td>
+<td>Skip a recurring message for this issue</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/newsletters/{id}/calendar-events</code></td>
+<td>List candidate calendar events</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/newsletters/{id}/calendar-events</code></td>
+<td>Import a calendar event</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/newsletters/{id}/job-postings</code></td>
+<td>List candidate job postings</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/newsletters/{id}/job-postings</code></td>
+<td>Import a job posting</td>
+</tr>
+</tbody>
+</table>
+<h3 id="assembly-export">Assembly &amp; Export<a class="headerlink" href="#assembly-export" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/newsletters/assemble</code></td>
+<td>Auto-assemble issue content</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/newsletters/{id}/export</code></td>
+<td>Export newsletter as .docx</td>
+</tr>
+</tbody>
+</table>
+<h2 id="recurring-messages">Recurring Messages<a class="headerlink" href="#recurring-messages" title="Permanent link">&para;</a></h2>
+<p>These endpoints are staff-only and manage centrally maintained editorial content that can be scheduled independently of public submissions.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/recurring-messages</code></td>
+<td>List recurring messages</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/recurring-messages</code></td>
+<td>Create a recurring message</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/recurring-messages/{id}</code></td>
+<td>Get a single recurring message</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/api/v1/recurring-messages/{id}</code></td>
+<td>Update a recurring message</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/v1/recurring-messages/{id}</code></td>
+<td>Delete a recurring message</td>
+</tr>
+</tbody>
+</table>
+<h2 id="style-rules">Style Rules<a class="headerlink" href="#style-rules" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/style-rules</code></td>
+<td>Create a style rule</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/style-rules</code></td>
+<td>List rules (filter by rule set)</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/style-rules/{id}</code></td>
+<td>Get a single rule</td>
+</tr>
+<tr>
+<td>PATCH</td>
+<td><code>/api/v1/style-rules/{id}</code></td>
+<td>Update a rule</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/v1/style-rules/{id}</code></td>
+<td>Delete a rule</td>
+</tr>
+</tbody>
+</table>
+<h2 id="sections">Sections<a class="headerlink" href="#sections" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/sections</code></td>
+<td>List all sections (filter by newsletter type)</td>
+</tr>
+</tbody>
+</table>
+<h2 id="schedule">Schedule<a class="headerlink" href="#schedule" title="Permanent link">&para;</a></h2>
+<h3 id="configs">Configs<a class="headerlink" href="#configs" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/schedule/configs</code></td>
+<td>List all schedule configs</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/schedule/active</code></td>
+<td>Get the active config, next publish date, submission deadline, and any active override</td>
+</tr>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/schedule/valid-dates?from=...&amp;to=...</code></td>
+<td>List valid publication dates in a range, respecting schedule config and blackouts (max range: 366 days)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="blackout-dates">Blackout Dates<a class="headerlink" href="#blackout-dates" title="Permanent link">&para;</a></h3>
+<p>Blackout dates block a specific date from being a valid publication date.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/schedule/blackout-dates</code></td>
+<td>List active blackout dates</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/schedule/blackout-dates</code></td>
+<td>Create a blackout date</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/v1/schedule/blackout-dates/{blackout_id}</code></td>
+<td>Delete a blackout date</td>
+</tr>
+</tbody>
+</table>
+<h3 id="mode-overrides">Mode Overrides<a class="headerlink" href="#mode-overrides" title="Permanent link">&para;</a></h3>
+<p>Mode overrides activate an alternate schedule mode (e.g., winter break) for a date range.</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/schedule/mode-overrides</code></td>
+<td>List schedule mode overrides</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/schedule/mode-overrides</code></td>
+<td>Create a mode override for a date range</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/v1/schedule/mode-overrides/{override_id}</code></td>
+<td>Delete a mode override</td>
+</tr>
+</tbody>
+</table>
+<h3 id="custom-publish-dates">Custom Publish Dates<a class="headerlink" href="#custom-publish-dates" title="Permanent link">&para;</a></h3>
+<p>Custom publish dates add one-off publication dates outside the regular cadence (typically used during winter break).</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/schedule/custom-dates</code></td>
+<td>List custom publish dates</td>
+</tr>
+<tr>
+<td>POST</td>
+<td><code>/api/v1/schedule/custom-dates</code></td>
+<td>Add a custom publish date</td>
+</tr>
+<tr>
+<td>DELETE</td>
+<td><code>/api/v1/schedule/custom-dates/{custom_date_id}</code></td>
+<td>Delete a custom publish date</td>
+</tr>
+</tbody>
+</table>
+<h2 id="allowed-values">Allowed Values<a class="headerlink" href="#allowed-values" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/allowed-values</code></td>
+<td>List values (requires <code>?group=</code> param)</td>
+</tr>
+</tbody>
+</table>
+<details class="example">
+<summary>Query Example</summary>
+<p><div class="highlight"><pre><span></span><code>GET /api/v1/allowed-values?group=Submission_Category
+</code></pre></div>
+Returns all allowed values for submission categories (Event, Announcement, Deadline, Opportunity, etc.).</p>
+</details>
+<h2 id="settings">Settings<a class="headerlink" href="#settings" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Path</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>GET</td>
+<td><code>/api/v1/settings/ai</code></td>
+<td>Get active LLM provider and configuration</td>
+</tr>
+</tbody>
+</table>
+<p>The settings endpoint returns read-only configuration data for the frontend Settings page. No secrets are exposed.</p>
+<details class="example">
+<summary>Response Example</summary>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;active_provider&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;mindrouter&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;active_model&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;openai/gpt-oss-120b&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;endpoint_url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://mindrouter.uidaho.edu/v1/chat/completions&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;providers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;claude&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;model&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;claude-sonnet-4-20250514&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;configured&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;openai&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;model&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;gpt-4o&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;configured&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="w">    </span><span class="nt">&quot;mindrouter&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;model&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;openai/gpt-oss-120b&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;endpoint_url&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;https://mindrouter.uidaho.edu/v1/chat/completions&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;configured&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<ul>
+<li><code>active_provider</code> -- the <code>LLM_PROVIDER</code> environment variable value</li>
+<li><code>active_model</code> -- the model string for the active provider</li>
+<li><code>endpoint_url</code> -- present only when provider is <code>mindrouter</code></li>
+<li><code>providers[*].configured</code> -- <code>true</code> if the API key environment variable is set (non-empty)</li>
+</ul>
+</details>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

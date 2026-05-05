@@ -1,0 +1,1790 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="AI-assisted newsletter production for the University of Idaho">
+      
+      
+      
+      
+        <link rel="prev" href="../architecture/">
+      
+      
+        <link rel="next" href="../udm-alignment/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Data Model - UCM Daily Register</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#data-model" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="UCM Daily Register" class="md-header__button md-logo" aria-label="UCM Daily Register" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            UCM Daily Register
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Data Model
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/ui-insight/UCMDailyRegister" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ui-insight/UCMDailyRegister
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="UCM Daily Register" class="md-nav__button md-logo" aria-label="UCM Daily Register" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    UCM Daily Register
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ui-insight/UCMDailyRegister" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ui-insight/UCMDailyRegister
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Model
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#portfolio-naming-convention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Portfolio Naming Convention
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#entity-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Entity Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#relationship-diagram" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Relationship Diagram
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#table-inventory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Table Inventory
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Table Inventory">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#allowed_values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        allowed_values
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#submissions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        submissions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#submission_links" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        submission_links
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#submission_schedule_requests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        submission_schedule_requests
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#edit_versions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        edit_versions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#newsletters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        newsletters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#newsletter_items" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        newsletter_items
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#newsletter_external_items" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        newsletter_external_items
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#newsletter_sections" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        newsletter_sections
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recurring_messages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        recurring_messages
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#recurring_message_issue_overrides" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        recurring_message_issue_overrides
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#style_rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        style_rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schedule_configs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        schedule_configs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#blackout_dates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        blackout_dates
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#schedule_mode_overrides" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        schedule_mode_overrides
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#custom_publish_dates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        custom_publish_dates
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#controlled-vocabularies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Controlled Vocabularies
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#derived-and-json-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Derived and JSON Fields
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#current-governance-gaps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current Governance Gaps
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udm-alignment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UDM Alignment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ai-editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../branding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Branding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-governance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Governance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../backup-and-recovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backup & Recovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../audit-logging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Audit Logging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="data-model">Data Model<a class="headerlink" href="#data-model" title="Permanent link">&para;</a></h1>
+<p>This document describes the current SQLAlchemy ORM surface for the UCM Daily
+Register application. It is intended to be the human-readable schema inventory
+for engineers, data stewards, and governance reviewers.</p>
+<div class="admonition info">
+<p class="admonition-title">Source of truth</p>
+<p>The SQLAlchemy models in <code>backend/app/models/</code> define the application schema.
+Alembic migrations define reproducible schema evolution. Seed JSON under
+<code>backend/data/</code> defines bootstrap reference data, not the expected contents
+of long-lived dev or production databases.</p>
+</div>
+<h2 id="portfolio-naming-convention">Portfolio Naming Convention<a class="headerlink" href="#portfolio-naming-convention" title="Permanent link">&para;</a></h2>
+<p>UCM follows the UI Insight / AI4RA-UDM column naming convention:
+<code>PascalCase_With_Underscores</code>, such as <code>Target_Newsletter</code>, <code>Created_At</code>, and
+<code>Submission_Id</code>.</p>
+<p>The application intentionally differs from OpenERA in two ways:</p>
+<ul>
+<li>Table names are lowercase plural, such as <code>submissions</code> and <code>newsletters</code>.</li>
+<li>Primary keys are UUID strings named <code>Id</code> rather than UDM-style
+  <code>{Entity}_ID</code> columns.</li>
+</ul>
+<p>These differences are documented in the UDM alignment report and should be
+treated as legacy application conventions, not the preferred pattern for new
+governed applications.</p>
+<h2 id="entity-overview">Entity Overview<a class="headerlink" href="#entity-overview" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Tables</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Controlled vocabularies</td>
+<td><code>allowed_values</code></td>
+<td>Database-backed pick lists and status/type codes</td>
+</tr>
+<tr>
+<td>Submission intake</td>
+<td><code>submissions</code>, <code>submission_links</code>, <code>submission_schedule_requests</code></td>
+<td>Public and staff-submitted newsletter content, links, and requested run dates</td>
+</tr>
+<tr>
+<td>Editorial history</td>
+<td><code>edit_versions</code></td>
+<td>Immutable original, AI-suggested, and editor-final snapshots</td>
+</tr>
+<tr>
+<td>Newsletter assembly</td>
+<td><code>newsletters</code>, <code>newsletter_items</code>, <code>newsletter_external_items</code>, <code>newsletter_sections</code></td>
+<td>Dated issues, section placement, and imported calendar/job items</td>
+</tr>
+<tr>
+<td>Recurring editorial content</td>
+<td><code>recurring_messages</code>, <code>recurring_message_issue_overrides</code></td>
+<td>Staff-managed reusable copy and issue-level skip overrides</td>
+</tr>
+<tr>
+<td>Publication schedule</td>
+<td><code>schedule_configs</code>, <code>blackout_dates</code>, <code>schedule_mode_overrides</code>, <code>custom_publish_dates</code></td>
+<td>Academic-year, summer, winter-break, blackout, and ad hoc publish rules</td>
+</tr>
+<tr>
+<td>AI editing policy</td>
+<td><code>style_rules</code></td>
+<td>Database-managed editorial rules injected into LLM prompts</td>
+</tr>
+</tbody>
+</table>
+<p>The current ORM surface has 16 tables.</p>
+<h2 id="relationship-diagram">Relationship Diagram<a class="headerlink" href="#relationship-diagram" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>erDiagram
+    SUBMISSIONS ||--o{ SUBMISSION_LINKS : has
+    SUBMISSIONS ||--o{ SUBMISSION_SCHEDULE_REQUESTS : requests
+    SUBMISSIONS ||--o{ EDIT_VERSIONS : versions
+    SUBMISSIONS ||--o{ NEWSLETTER_ITEMS : placed_as
+
+    NEWSLETTERS ||--o{ NEWSLETTER_ITEMS : contains
+    NEWSLETTERS ||--o{ NEWSLETTER_EXTERNAL_ITEMS : contains
+    NEWSLETTER_SECTIONS ||--o{ NEWSLETTER_ITEMS : categorizes
+    NEWSLETTER_SECTIONS ||--o{ NEWSLETTER_EXTERNAL_ITEMS : categorizes
+
+    NEWSLETTER_SECTIONS ||--o{ RECURRING_MESSAGES : owns
+    RECURRING_MESSAGES ||--o{ RECURRING_MESSAGE_ISSUE_OVERRIDES : overridden_by
+    NEWSLETTERS ||--o{ RECURRING_MESSAGE_ISSUE_OVERRIDES : records
+
+    ALLOWED_VALUES {
+        string Id PK
+        string Value_Group
+        string Code
+    }
+</code></pre></div>
+<p><code>allowed_values</code>, <code>style_rules</code>, and the schedule reference tables are joined by
+code conventions rather than database foreign keys. For example,
+<code>submissions.Category</code> references <code>allowed_values</code> where
+<code>Value_Group = 'Submission_Category'</code>.</p>
+<h2 id="table-inventory">Table Inventory<a class="headerlink" href="#table-inventory" title="Permanent link">&para;</a></h2>
+<h3 id="allowed_values"><code>allowed_values</code><a class="headerlink" href="#allowed_values" title="Permanent link">&para;</a></h3>
+<p>Central controlled vocabulary table for category, type, status, severity, and
+schedule-mode values.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Id</code></td>
+<td>UUID string primary key</td>
+</tr>
+<tr>
+<td><code>Value_Group</code></td>
+<td>Vocabulary group, such as <code>Submission_Status</code></td>
+</tr>
+<tr>
+<td><code>Code</code></td>
+<td>Machine-readable value code</td>
+</tr>
+<tr>
+<td><code>Label</code></td>
+<td>Human-readable UI label</td>
+</tr>
+<tr>
+<td><code>Display_Order</code></td>
+<td>Ordering for dropdowns and settings pages</td>
+</tr>
+<tr>
+<td><code>Is_Active</code></td>
+<td>Soft-disable flag</td>
+</tr>
+<tr>
+<td><code>Visibility_Role</code></td>
+<td><code>public</code> or <code>staff</code>, used for submitter category filtering</td>
+</tr>
+<tr>
+<td><code>Description</code></td>
+<td>Optional steward-facing description</td>
+</tr>
+</tbody>
+</table>
+<p>Unique constraint: <code>(Value_Group, Code)</code>.</p>
+<h3 id="submissions"><code>submissions</code><a class="headerlink" href="#submissions" title="Permanent link">&para;</a></h3>
+<p>Core content-intake entity. A submission stores the original headline/body,
+submitter contact data, editorial workflow fields, optional image reference, and
+current workflow status.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Category</code></td>
+<td>AllowedValue group <code>Submission_Category</code></td>
+</tr>
+<tr>
+<td><code>Target_Newsletter</code></td>
+<td>AllowedValue group <code>Target_Newsletter</code></td>
+</tr>
+<tr>
+<td><code>Original_Headline</code>, <code>Original_Body</code></td>
+<td>Submitted content</td>
+</tr>
+<tr>
+<td><code>Submitter_Name</code>, <code>Submitter_Email</code></td>
+<td>PII used for editorial contact</td>
+</tr>
+<tr>
+<td><code>Submitter_Notes</code></td>
+<td>Free-text instructions; may contain incidental PII</td>
+</tr>
+<tr>
+<td><code>Assigned_Editor</code>, <code>Editorial_Notes</code></td>
+<td>Staff-only editorial fields in API responses</td>
+</tr>
+<tr>
+<td><code>Has_Image</code>, <code>Image_Path</code></td>
+<td>Uploaded image flag and UUID filename</td>
+</tr>
+<tr>
+<td><code>Survey_End_Date</code></td>
+<td>Optional date used for survey handling</td>
+</tr>
+<tr>
+<td><code>Status</code></td>
+<td>AllowedValue group <code>Submission_Status</code></td>
+</tr>
+<tr>
+<td><code>Show_In_SLC_Calendar</code></td>
+<td>Staff/SLC visibility flag for leadership event review</td>
+</tr>
+<tr>
+<td><code>Event_Classification</code></td>
+<td>Strategic or signature event label for the SLC calendar</td>
+</tr>
+<tr>
+<td><code>Created_At</code>, <code>Updated_At</code></td>
+<td>Server timestamps</td>
+</tr>
+</tbody>
+</table>
+<p>Relationships: has many <code>submission_links</code>, <code>submission_schedule_requests</code>, and
+<code>edit_versions</code>; can be placed in many <code>newsletter_items</code>.</p>
+<h3 id="submission_links"><code>submission_links</code><a class="headerlink" href="#submission_links" title="Permanent link">&para;</a></h3>
+<p>Hyperlinks associated with a submission.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Submission_Id</code></td>
+<td>FK to <code>submissions.Id</code></td>
+</tr>
+<tr>
+<td><code>Url</code></td>
+<td>Destination URL</td>
+</tr>
+<tr>
+<td><code>Anchor_Text</code></td>
+<td>Optional display text</td>
+</tr>
+<tr>
+<td><code>Display_Order</code></td>
+<td>Link ordering within the submission</td>
+</tr>
+</tbody>
+</table>
+<h3 id="submission_schedule_requests"><code>submission_schedule_requests</code><a class="headerlink" href="#submission_schedule_requests" title="Permanent link">&para;</a></h3>
+<p>Requested publication dates and recurrence preferences for a submission.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Submission_Id</code></td>
+<td>FK to <code>submissions.Id</code></td>
+</tr>
+<tr>
+<td><code>Requested_Date</code></td>
+<td>Primary requested publication date</td>
+</tr>
+<tr>
+<td><code>Second_Requested_Date</code></td>
+<td>Secondary date, used when <code>Target_Newsletter = both</code></td>
+</tr>
+<tr>
+<td><code>Repeat_Count</code>, <code>Repeat_Note</code></td>
+<td>Legacy repeat-run metadata</td>
+</tr>
+<tr>
+<td><code>Is_Flexible</code>, <code>Flexible_Deadline</code></td>
+<td>Submitter flexibility metadata</td>
+</tr>
+<tr>
+<td><code>Recurrence_Type</code>, <code>Recurrence_Interval</code>, <code>Recurrence_End_Date</code></td>
+<td>Staff recurrence rules</td>
+</tr>
+<tr>
+<td><code>Excluded_Dates</code></td>
+<td>JSON list of skipped or rescheduled occurrences</td>
+</tr>
+</tbody>
+</table>
+<h3 id="edit_versions"><code>edit_versions</code><a class="headerlink" href="#edit_versions" title="Permanent link">&para;</a></h3>
+<p>Append-only editorial snapshots. The application creates an <code>original</code> version
+and one or more <code>ai_suggested</code> or <code>editor_final</code> versions rather than rewriting
+previous content in place.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Submission_Id</code></td>
+<td>FK to <code>submissions.Id</code></td>
+</tr>
+<tr>
+<td><code>Version_Type</code></td>
+<td>AllowedValue group <code>Version_Type</code></td>
+</tr>
+<tr>
+<td><code>Headline</code>, <code>Body</code></td>
+<td>Text snapshot at this editing stage</td>
+</tr>
+<tr>
+<td><code>Headline_Case</code></td>
+<td>AllowedValue group <code>Headline_Case</code></td>
+</tr>
+<tr>
+<td><code>Flags</code></td>
+<td>JSON list of AI/rule findings for editor review</td>
+</tr>
+<tr>
+<td><code>Changes_Made</code></td>
+<td>JSON list of substantive changes</td>
+</tr>
+<tr>
+<td><code>AI_Provider</code>, <code>AI_Model</code></td>
+<td>Provider and model used for AI-generated versions</td>
+</tr>
+<tr>
+<td><code>Created_At</code></td>
+<td>Immutable creation timestamp</td>
+</tr>
+</tbody>
+</table>
+<h3 id="newsletters"><code>newsletters</code><a class="headerlink" href="#newsletters" title="Permanent link">&para;</a></h3>
+<p>A dated edition of The Daily Register or My UI.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Newsletter_Type</code></td>
+<td>AllowedValue group <code>Newsletter_Type</code></td>
+</tr>
+<tr>
+<td><code>Publish_Date</code></td>
+<td>Issue date</td>
+</tr>
+<tr>
+<td><code>Status</code></td>
+<td>AllowedValue group <code>Newsletter_Status</code></td>
+</tr>
+<tr>
+<td><code>Created_At</code>, <code>Updated_At</code></td>
+<td>Server timestamps</td>
+</tr>
+</tbody>
+</table>
+<p>Unique constraint: <code>(Newsletter_Type, Publish_Date)</code>.</p>
+<h3 id="newsletter_items"><code>newsletter_items</code><a class="headerlink" href="#newsletter_items" title="Permanent link">&para;</a></h3>
+<p>Placement of a submission into a newsletter issue and section.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Newsletter_Id</code></td>
+<td>FK to <code>newsletters.Id</code></td>
+</tr>
+<tr>
+<td><code>Submission_Id</code></td>
+<td>FK to <code>submissions.Id</code></td>
+</tr>
+<tr>
+<td><code>Section_Id</code></td>
+<td>FK to <code>newsletter_sections.Id</code></td>
+</tr>
+<tr>
+<td><code>Position</code></td>
+<td>Ordering within a section</td>
+</tr>
+<tr>
+<td><code>Final_Headline</code>, <code>Final_Body</code></td>
+<td>Copy as placed in the issue</td>
+</tr>
+<tr>
+<td><code>Run_Number</code></td>
+<td>Which run of the item this placement represents</td>
+</tr>
+</tbody>
+</table>
+<h3 id="newsletter_external_items"><code>newsletter_external_items</code><a class="headerlink" href="#newsletter_external_items" title="Permanent link">&para;</a></h3>
+<p>Placement of imported non-submission content, such as calendar events or job
+postings, into a newsletter issue.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Newsletter_Id</code></td>
+<td>FK to <code>newsletters.Id</code></td>
+</tr>
+<tr>
+<td><code>Section_Id</code></td>
+<td>FK to <code>newsletter_sections.Id</code></td>
+</tr>
+<tr>
+<td><code>Source_Type</code></td>
+<td>Source category, such as <code>calendar_event</code> or <code>job_posting</code></td>
+</tr>
+<tr>
+<td><code>Source_Id</code>, <code>Source_Url</code></td>
+<td>Source system identifier and URL</td>
+</tr>
+<tr>
+<td><code>Event_Start</code>, <code>Event_End</code>, <code>Location</code></td>
+<td>Event-specific metadata</td>
+</tr>
+<tr>
+<td><code>Position</code></td>
+<td>Ordering within a section</td>
+</tr>
+<tr>
+<td><code>Final_Headline</code>, <code>Final_Body</code></td>
+<td>Copy as placed in the issue</td>
+</tr>
+</tbody>
+</table>
+<h3 id="newsletter_sections"><code>newsletter_sections</code><a class="headerlink" href="#newsletter_sections" title="Permanent link">&para;</a></h3>
+<p>Seeded section definitions for each newsletter type.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Newsletter_Type</code></td>
+<td>AllowedValue group <code>Newsletter_Type</code></td>
+</tr>
+<tr>
+<td><code>Name</code>, <code>Slug</code></td>
+<td>Human-readable and machine-readable section names</td>
+</tr>
+<tr>
+<td><code>Display_Order</code></td>
+<td>Default section order</td>
+</tr>
+<tr>
+<td><code>Description</code></td>
+<td>Section purpose</td>
+</tr>
+<tr>
+<td><code>Requires_Image</code>, <code>Image_Dimensions</code></td>
+<td>Layout requirements</td>
+</tr>
+<tr>
+<td><code>Is_Active</code></td>
+<td>Soft-retirement flag</td>
+</tr>
+</tbody>
+</table>
+<p>Unique constraint: <code>(Newsletter_Type, Slug)</code>.</p>
+<h3 id="recurring_messages"><code>recurring_messages</code><a class="headerlink" href="#recurring_messages" title="Permanent link">&para;</a></h3>
+<p>Staff-managed reusable editorial copy that can be automatically surfaced when
+assembling future issues.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Newsletter_Type</code></td>
+<td>Newsletter the message belongs to</td>
+</tr>
+<tr>
+<td><code>Section_Id</code></td>
+<td>FK to <code>newsletter_sections.Id</code></td>
+</tr>
+<tr>
+<td><code>Headline</code>, <code>Body</code></td>
+<td>Reusable copy</td>
+</tr>
+<tr>
+<td><code>Start_Date</code>, <code>End_Date</code></td>
+<td>Active date range</td>
+</tr>
+<tr>
+<td><code>Recurrence_Type</code>, <code>Recurrence_Interval</code></td>
+<td>Cadence rules</td>
+</tr>
+<tr>
+<td><code>Excluded_Dates</code></td>
+<td>JSON list of skipped dates</td>
+</tr>
+<tr>
+<td><code>Is_Active</code></td>
+<td>Soft-disable flag</td>
+</tr>
+<tr>
+<td><code>Created_At</code>, <code>Updated_At</code></td>
+<td>Server timestamps</td>
+</tr>
+</tbody>
+</table>
+<h3 id="recurring_message_issue_overrides"><code>recurring_message_issue_overrides</code><a class="headerlink" href="#recurring_message_issue_overrides" title="Permanent link">&para;</a></h3>
+<p>Issue-level exception records for recurring messages. The current implementation
+uses this table to remember skip actions so reassembly does not reinsert a
+message that an editor intentionally removed.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Recurring_Message_Id</code></td>
+<td>FK to <code>recurring_messages.Id</code></td>
+</tr>
+<tr>
+<td><code>Newsletter_Id</code></td>
+<td>FK to <code>newsletters.Id</code></td>
+</tr>
+<tr>
+<td><code>Override_Action</code></td>
+<td>Currently <code>skip</code></td>
+</tr>
+<tr>
+<td><code>Created_At</code></td>
+<td>Server timestamp</td>
+</tr>
+</tbody>
+</table>
+<p>Unique constraint: <code>(Recurring_Message_Id, Newsletter_Id)</code>.</p>
+<h3 id="style_rules"><code>style_rules</code><a class="headerlink" href="#style_rules" title="Permanent link">&para;</a></h3>
+<p>Database-managed editorial policy loaded into the AI editing system prompt.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Rule_Set</code></td>
+<td>AllowedValue group <code>Rule_Set</code>: <code>shared</code>, <code>tdr</code>, <code>myui</code></td>
+</tr>
+<tr>
+<td><code>Category</code></td>
+<td>Editorial rule category</td>
+</tr>
+<tr>
+<td><code>Rule_Key</code></td>
+<td>Machine-readable rule key</td>
+</tr>
+<tr>
+<td><code>Rule_Text</code></td>
+<td>Natural-language instruction</td>
+</tr>
+<tr>
+<td><code>Is_Active</code></td>
+<td>Whether the AI pipeline should use the rule</td>
+</tr>
+<tr>
+<td><code>Severity</code></td>
+<td>AllowedValue group <code>Severity</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="schedule_configs"><code>schedule_configs</code><a class="headerlink" href="#schedule_configs" title="Permanent link">&para;</a></h3>
+<p>Publication cadence and submission deadline rules by newsletter type and
+schedule mode.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Newsletter_Type</code></td>
+<td>AllowedValue group <code>Newsletter_Type</code></td>
+</tr>
+<tr>
+<td><code>Mode</code></td>
+<td>AllowedValue group <code>Schedule_Mode</code></td>
+</tr>
+<tr>
+<td><code>Submission_Deadline_Description</code></td>
+<td>Human-readable deadline rule</td>
+</tr>
+<tr>
+<td><code>Deadline_Day_Of_Week</code>, <code>Deadline_Time</code></td>
+<td>Deadline calculation fields</td>
+</tr>
+<tr>
+<td><code>Publish_Day_Of_Week</code></td>
+<td>Weekly publish day where applicable</td>
+</tr>
+<tr>
+<td><code>Is_Daily</code></td>
+<td>Whether the mode publishes on weekdays rather than one weekday</td>
+</tr>
+<tr>
+<td><code>Active_Start_Month</code>, <code>Active_End_Month</code></td>
+<td>Month-based mode selection</td>
+</tr>
+<tr>
+<td><code>Holiday_Shift_Enabled</code></td>
+<td>Whether holiday-aware shifting applies</td>
+</tr>
+</tbody>
+</table>
+<h3 id="blackout_dates"><code>blackout_dates</code><a class="headerlink" href="#blackout_dates" title="Permanent link">&para;</a></h3>
+<p>Dates when one or all newsletters should not publish.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Blackout_Date</code></td>
+<td>Date to suppress</td>
+</tr>
+<tr>
+<td><code>Newsletter_Type</code></td>
+<td>Optional newsletter-specific scope; null applies broadly</td>
+</tr>
+<tr>
+<td><code>Description</code></td>
+<td>Reason for the blackout</td>
+</tr>
+<tr>
+<td><code>Is_Active</code></td>
+<td>Soft-disable flag</td>
+</tr>
+</tbody>
+</table>
+<p>Unique constraint: <code>(Blackout_Date, Newsletter_Type)</code>.</p>
+<h3 id="schedule_mode_overrides"><code>schedule_mode_overrides</code><a class="headerlink" href="#schedule_mode_overrides" title="Permanent link">&para;</a></h3>
+<p>Date-range overrides that force a newsletter into a specific schedule mode,
+such as winter break.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Newsletter_Type</code></td>
+<td>Newsletter being overridden</td>
+</tr>
+<tr>
+<td><code>Override_Mode</code></td>
+<td>AllowedValue group <code>Schedule_Mode</code></td>
+</tr>
+<tr>
+<td><code>Start_Date</code>, <code>End_Date</code></td>
+<td>Inclusive override range</td>
+</tr>
+<tr>
+<td><code>Description</code></td>
+<td>Reason for override</td>
+</tr>
+<tr>
+<td><code>Created_At</code></td>
+<td>Creation timestamp</td>
+</tr>
+</tbody>
+</table>
+<h3 id="custom_publish_dates"><code>custom_publish_dates</code><a class="headerlink" href="#custom_publish_dates" title="Permanent link">&para;</a></h3>
+<p>Ad hoc publish dates used during schedule modes where editors choose exact issue
+dates rather than relying on a regular cadence.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Newsletter_Type</code></td>
+<td>Newsletter type</td>
+</tr>
+<tr>
+<td><code>Publish_Date</code></td>
+<td>Manually configured issue date</td>
+</tr>
+<tr>
+<td><code>Description</code></td>
+<td>Reason for the custom date</td>
+</tr>
+<tr>
+<td><code>Created_At</code></td>
+<td>Creation timestamp</td>
+</tr>
+</tbody>
+</table>
+<p>Unique constraint: <code>(Newsletter_Type, Publish_Date)</code>.</p>
+<h2 id="controlled-vocabularies">Controlled Vocabularies<a class="headerlink" href="#controlled-vocabularies" title="Permanent link">&para;</a></h2>
+<p>Bootstrap AllowedValues live in
+<code>backend/data/allowed_values/allowed_values.json</code>. The current seed file
+contains 10 value groups and 41 values.</p>
+<table>
+<thead>
+<tr>
+<th>Value Group</th>
+<th>Codes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Submission_Category</code></td>
+<td><code>faculty_staff</code>, <code>student</code>, <code>job_opportunity</code>, <code>kudos</code>, <code>in_memoriam</code>, <code>employee_announcement</code>, <code>survey</code>, <code>news_release</code>, <code>ucm_feature_story</code></td>
+</tr>
+<tr>
+<td><code>Newsletter_Type</code></td>
+<td><code>tdr</code>, <code>myui</code></td>
+</tr>
+<tr>
+<td><code>Target_Newsletter</code></td>
+<td><code>tdr</code>, <code>myui</code>, <code>both</code></td>
+</tr>
+<tr>
+<td><code>Submission_Status</code></td>
+<td><code>new</code>, <code>ai_edited</code>, <code>in_review</code>, <code>approved</code>, <code>scheduled</code>, <code>published</code>, <code>rejected</code>, <code>pending_info</code></td>
+</tr>
+<tr>
+<td><code>Newsletter_Status</code></td>
+<td><code>draft</code>, <code>in_progress</code>, <code>ready_for_review</code>, <code>submitted</code>, <code>published</code></td>
+</tr>
+<tr>
+<td><code>Version_Type</code></td>
+<td><code>original</code>, <code>ai_suggested</code>, <code>editor_final</code></td>
+</tr>
+<tr>
+<td><code>Headline_Case</code></td>
+<td><code>sentence_case</code>, <code>title_case</code></td>
+</tr>
+<tr>
+<td><code>Rule_Set</code></td>
+<td><code>shared</code>, <code>tdr</code>, <code>myui</code></td>
+</tr>
+<tr>
+<td><code>Severity</code></td>
+<td><code>error</code>, <code>warning</code>, <code>info</code></td>
+</tr>
+<tr>
+<td><code>Schedule_Mode</code></td>
+<td><code>academic_year</code>, <code>summer</code>, <code>winter_break</code></td>
+</tr>
+</tbody>
+</table>
+<p>Live deployments can contain additional runtime-created AllowedValue or
+StyleRule records. Treat the seed file as the bootstrap baseline and the live
+database as mutable operational state.</p>
+<h2 id="derived-and-json-fields">Derived and JSON Fields<a class="headerlink" href="#derived-and-json-fields" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Table</th>
+<th>Lifecycle</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Flags</code></td>
+<td><code>edit_versions</code></td>
+<td>Created by rule-based pre-analysis and LLM response parsing</td>
+</tr>
+<tr>
+<td><code>Changes_Made</code></td>
+<td><code>edit_versions</code></td>
+<td>Created from AI response and editor workflow</td>
+</tr>
+<tr>
+<td><code>Excluded_Dates</code></td>
+<td><code>submission_schedule_requests</code>, <code>recurring_messages</code></td>
+<td>Maintained by skip/reschedule and recurring-message workflows</td>
+</tr>
+<tr>
+<td><code>Occurrence_Dates</code></td>
+<td>API response only</td>
+<td>Derived by recurrence service; not stored as a column</td>
+</tr>
+<tr>
+<td><code>Run_Number</code></td>
+<td><code>newsletter_items</code></td>
+<td>Calculated when assembling an issue based on prior placements</td>
+</tr>
+</tbody>
+</table>
+<h2 id="current-governance-gaps">Current Governance Gaps<a class="headerlink" href="#current-governance-gaps" title="Permanent link">&para;</a></h2>
+<p>The schema is documented at the table level, but the application does not yet
+have OpenERA-style persisted column-level catalog coverage. The frontend now
+includes a staff-facing <strong>Data Governance</strong> tab with a static interactive catalog
+for the current ORM surface, but the missing durable governance artifacts are:</p>
+<ul>
+<li>A machine-readable data dictionary with column descriptions, classifications,
+  retention categories, and PII flags.</li>
+<li>Automated drift checks that compare ORM metadata to a catalog JSON.</li>
+<li>A formal lifecycle/status transition matrix for submissions and newsletters.</li>
+<li>A vocabulary sync process from runtime AllowedValue additions back into seed
+  data and the portfolio governance registry.</li>
+<li>First-class vocabulary governance for SLC-only values currently represented in
+  application code, such as <code>slc_event</code>, <code>none</code>, <code>strategic</code>, and <code>signature</code>.</li>
+</ul>
+<p>See <a href="../udm-alignment/">UDM Alignment</a> for how this application aligns with and
+extends the UDM-derived portfolio standard.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
