@@ -291,6 +291,9 @@ async def save_editor_final(
     """Save the editor's final version of a submission.
 
     This creates an 'editor_final' EditVersion and updates the submission status.
+    The submitted Original_Headline/Original_Body are never modified — the
+    edited text lives in the version history, and newsletter assembly prefers
+    the 'editor_final' version via _get_best_text.
     """
     # Verify submission exists
     result = await session.execute(
@@ -299,6 +302,24 @@ async def save_editor_final(
     submission = result.scalar_one_or_none()
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
+
+    # Snapshot the original into the version history if no AI edit did so yet,
+    # so the timeline is complete even for purely manual edits
+    existing_original = await session.execute(
+        sa.select(EditVersion).where(
+            EditVersion.Submission_Id == submission_id,
+            EditVersion.Version_Type == "original",
+        )
+    )
+    if not existing_original.scalar_one_or_none():
+        session.add(
+            EditVersion(
+                Submission_Id=submission_id,
+                Version_Type="original",
+                Headline=submission.Original_Headline,
+                Body=submission.Original_Body,
+            )
+        )
 
     # Create final version
     version = EditVersion(
@@ -310,9 +331,6 @@ async def save_editor_final(
     )
     session.add(version)
 
-    # Persist the edited content on the submission so it is reflected everywhere
-    submission.Original_Headline = data.Headline
-    submission.Original_Body = data.Body
     submission.Status = "in_review"
     await session.commit()
     await session.refresh(version)
