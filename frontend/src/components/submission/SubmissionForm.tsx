@@ -5,6 +5,7 @@ import type { AllowedValue } from '../../types/allowedValue';
 import { createSubmission } from '../../api/submissions';
 import { getValidDates } from '../../api/schedule';
 import { getSubmitterRole } from '../../utils/submitterRole';
+import { parseISODate, todayISO, addDaysISO, addMonthsISO } from '../../utils/date';
 import CategorySelect from './CategorySelect';
 import NewsletterTargetSelect from './NewsletterTargetSelect';
 import LinkEditor from './LinkEditor';
@@ -125,11 +126,7 @@ export default function SubmissionForm() {
   const [submitterEmail, setSubmitterEmail] = useState('');
   const [notes, setNotes] = useState('');
   const [surveyEndDate, setSurveyEndDate] = useState('');
-  const getMinDate = (): string => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().split('T')[0];
-  };
+  const getMinDate = (): string => addDaysISO(1);
 
   // Job Opportunity fields
   const [jobUrl, setJobUrl] = useState('');
@@ -211,11 +208,8 @@ export default function SubmissionForm() {
   useEffect(() => {
     const fetchDates = async () => {
       try {
-        const today = new Date();
-        const from = today.toISOString().split('T')[0];
-        const future = new Date(today);
-        future.setMonth(future.getMonth() + 3);
-        const to = future.toISOString().split('T')[0];
+        const from = todayISO();
+        const to = addMonthsISO(3);
         if (effectiveTargetNewsletter === 'both') {
           const data = await getValidDates(from, to);
           setValidDates(new Set(
@@ -287,7 +281,7 @@ export default function SubmissionForm() {
       return !validDates.has(schedule.Requested_Date);
     }
     // Fallback client-side check
-    const d = new Date(schedule.Requested_Date + 'T00:00:00');
+    const d = parseISODate(schedule.Requested_Date);
     const day = d.getDay();
     if (effectiveTargetNewsletter === 'myui' || effectiveTargetNewsletter === 'both') return day !== 1;
     if (effectiveTargetNewsletter === 'tdr') return day === 0 || day === 6;
@@ -302,7 +296,7 @@ export default function SubmissionForm() {
       if (secondaryValidDates.size > 0 && !secondaryValidDates.has(schedule.Second_Requested_Date)) {
         return 'Please select a valid My UI run date.';
       }
-      const d = new Date(`${schedule.Second_Requested_Date}T00:00:00`);
+      const d = parseISODate(schedule.Second_Requested_Date);
       if (d.getDay() !== 1) {
         return 'Please select a valid My UI run date.';
       }
@@ -316,7 +310,7 @@ export default function SubmissionForm() {
       return 'Please select a valid second run date for the chosen newsletter.';
     }
 
-    const d = new Date(`${schedule.Second_Requested_Date}T00:00:00`);
+    const d = parseISODate(schedule.Second_Requested_Date);
     const day = d.getDay();
     if (effectiveTargetNewsletter === 'myui' && day !== 1) {
       return 'Please select a valid second run date for the chosen newsletter.';

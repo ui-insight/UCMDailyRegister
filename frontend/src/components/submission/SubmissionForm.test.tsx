@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { listAllowedValues } from '../../api/allowedValues';
 import { getValidDates } from '../../api/schedule';
 import { createSubmission } from '../../api/submissions';
@@ -114,6 +114,9 @@ async function fillStandardAnnouncement(user: ReturnType<typeof userEvent.setup>
 }
 
 beforeEach(() => {
+  // Pin the clock so the hardcoded run dates below stay in the future
+  // (the date inputs enforce min = tomorrow).
+  vi.useFakeTimers({ shouldAdvanceTime: true, now: new Date(2026, 4, 1, 9, 0, 0) });
   vi.clearAllMocks();
   submitterRoleMock.value = 'public';
   listAllowedValuesMock.mockResolvedValue(allowedCategories);
@@ -126,6 +129,10 @@ beforeEach(() => {
     blackout_dates: [],
   });
   createSubmissionMock.mockResolvedValue(makeSubmission());
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe('SubmissionForm', () => {

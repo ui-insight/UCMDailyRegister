@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Submission, TargetNewsletter } from '../../types/submission';
 import { getValidDates } from '../../api/schedule';
+import { parseISODate, addDaysISO } from '../../utils/date';
 
 interface SubmissionMetaProps {
   submission: Submission;
@@ -61,17 +62,9 @@ export default function SubmissionMeta({
   const [addDateError, setAddDateError] = useState('');
   const [validDatesSet, setValidDatesSet] = useState<Set<string>>(new Set());
 
-  const getMinDate = () => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().split('T')[0];
-  };
+  const getMinDate = () => addDaysISO(1);
 
-  const getMaxDate = () => {
-    const d = new Date();
-    d.setDate(d.getDate() + 90);
-    return d.toISOString().split('T')[0];
-  };
+  const getMaxDate = () => addDaysISO(90);
 
   const resolveNewsletter = useCallback(() => {
     if (submission.Target_Newsletter === 'both') return addDateNewsletter;
@@ -184,7 +177,7 @@ export default function SubmissionMeta({
           <div>
             <dt className="text-xs text-gray-500">Survey Ends</dt>
             <dd className="text-gray-900">
-              {new Date(submission.Survey_End_Date).toLocaleDateString(undefined, {
+              {parseISODate(submission.Survey_End_Date).toLocaleDateString(undefined, {
                 weekday: 'short',
                 year: 'numeric',
                 month: 'short',
@@ -200,7 +193,7 @@ export default function SubmissionMeta({
               <dd key={req.Id} className="mt-1 text-gray-900 font-medium">
                 <div>
                   {req.Requested_Date
-                    ? new Date(req.Requested_Date).toLocaleDateString(undefined, {
+                    ? parseISODate(req.Requested_Date).toLocaleDateString(undefined, {
                         weekday: 'short',
                         year: 'numeric',
                         month: 'short',
@@ -226,7 +219,7 @@ export default function SubmissionMeta({
                 </div>
                 {req.Recurrence_End_Date && (
                   <div className="text-xs text-gray-500 font-normal mt-0.5">
-                    Ends: {new Date(req.Recurrence_End_Date).toLocaleDateString()}
+                    Ends: {parseISODate(req.Recurrence_End_Date).toLocaleDateString()}
                   </div>
                 )}
                 {req.Excluded_Dates.length > 0 && (
@@ -250,7 +243,7 @@ export default function SubmissionMeta({
                         <div key={`${req.Id}-${occurrenceDate}`} className="flex flex-col gap-2">
                           <div className="flex items-center justify-between gap-2">
                             <span className="text-xs font-normal text-gray-700">
-                              {new Date(`${occurrenceDate}T12:00:00`).toLocaleDateString(undefined, {
+                              {parseISODate(occurrenceDate).toLocaleDateString(undefined, {
                                 weekday: 'short',
                                 year: 'numeric',
                                 month: 'short',

@@ -1,4 +1,5 @@
 import type { TargetNewsletter } from '../../types/submission';
+import { parseISODate, addDaysISO } from '../../utils/date';
 
 interface ScheduleEntry {
   Requested_Date: string;
@@ -37,7 +38,7 @@ function validateDate(
   }
 
   // Fallback: client-side validation
-  const d = new Date(dateStr + 'T00:00:00');
+  const d = parseISODate(dateStr);
   const day = d.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
 
   if (target === 'myui') {
@@ -54,15 +55,13 @@ function validateDate(
 /** Validate a date specifically for My UI (Monday only). */
 function validateMyUIDate(dateStr: string): string | null {
   if (!dateStr) return null;
-  const d = new Date(dateStr + 'T00:00:00');
+  const d = parseISODate(dateStr);
   if (d.getDay() !== 1) return 'My UI publishes on Mondays only.';
   return null;
 }
 
 function getMinDate(): string {
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  return tomorrow.toISOString().split('T')[0];
+  return addDaysISO(1);
 }
 
 export default function SchedulePrefs({

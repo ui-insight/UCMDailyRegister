@@ -27,6 +27,7 @@ import type {
 import type { NewsletterSection } from '../types/newsletter';
 import type { RecurringMessageIssueCandidate } from '../types/recurringMessage';
 import { EmptyState, Toast, useToast } from '../components/common';
+import { parseISODate, todayISO } from '../utils/date';
 
 interface BuilderSectionItemBase {
   Id: string;
@@ -155,9 +156,7 @@ function ImportCandidatePill({
 
 export default function BuilderPage() {
   const [newsletterType, setNewsletterType] = useState<'tdr' | 'myui'>('tdr');
-  const [publishDate, setPublishDate] = useState(
-    new Date().toISOString().split('T')[0],
-  );
+  const [publishDate, setPublishDate] = useState(todayISO());
   const [newsletter, setNewsletter] = useState<NewsletterDetailResponse | null>(null);
   const [newsletters, setNewsletters] = useState<NewsletterDetailResponse[]>([]);
   const [sections, setSections] = useState<NewsletterSection[]>([]);
@@ -1082,7 +1081,7 @@ export default function BuilderPage() {
                     {newsletterType === 'tdr' ? 'The Daily Register' : 'My UI'}
                   </h3>
                   <p className="text-sm text-gray-500">
-                    {new Date(newsletter.Publish_Date).toLocaleDateString('en-US', {
+                    {parseISODate(newsletter.Publish_Date).toLocaleDateString('en-US', {
                       weekday: 'long',
                       year: 'numeric',
                       month: 'long',
@@ -1314,7 +1313,7 @@ export default function BuilderPage() {
                     }`}
                   >
                     <p className="font-medium text-gray-900">
-                      {new Date(nl.Publish_Date).toLocaleDateString()}
+                      {parseISODate(nl.Publish_Date).toLocaleDateString()}
                     </p>
                     <p className="text-xs text-gray-500">
                       <span
