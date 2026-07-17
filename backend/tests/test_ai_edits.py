@@ -225,3 +225,101 @@ class TestAIEditTasks:
             json={"Headline": "Final", "Body": "Final body."},
         )
         assert finalize_resp.status_code == 403
+
+
+@pytest.mark.asyncio
+class TestFinalizePreservesOriginal:
+    async def test_finalize_without_prior_ai_edit_keeps_original_and_snapshots_it(
+        self,
+        client: AsyncClient,
+        staff_headers: dict[str, str],
+    ):
+        submission_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(),
+        )
+        assert submission_resp.status_code == 201
+        created = submission_resp.json()
+        submission_id = created["Id"]
+        original_headline = created["Original_Headline"]
+        original_body = created["Original_Body"]
+
+        finalize_resp = await client.post(
+            f"/api/v1/ai-edits/{submission_id}/finalize",
+            json={"Headline": "Editor headline", "Body": "Editor body."},
+            headers=staff_headers,
+        )
+        assert finalize_resp.status_code == 200
+        assert finalize_resp.json()["Version_Type"] == "editor_final"
+
+        detail_resp = await client.get(
+            f"/api/v1/submissions/{submission_id}",
+            headers=staff_headers,
+        )
+        assert detail_resp.status_code == 200
+        detail = detail_resp.json()
+        assert detail["Original_Headline"] == original_headline
+        assert detail["Original_Body"] == original_body
+        assert detail["Status"] == "in_review"
+
+        versions_resp = await client.get(
+            f"/api/v1/ai-edits/{submission_id}/versions",
+            headers=staff_headers,
+        )
+        assert versions_resp.status_code == 200
+        versions = versions_resp.json()
+        assert [v["Version_Type"] for v in versions] == ["original", "editor_final"]
+        assert versions[0]["Headline"] == original_headline
+        assert versions[0]["Body"] == original_body
+        assert versions[1]["Headline"] == "Editor headline"
+        assert versions[1]["Body"] == "Editor body."
+
+    async def test_repeated_finalize_keeps_single_original_snapshot(
+        self,
+        client: AsyncClient,
+        staff_headers: dict[str, str],
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        monkeypatch.setattr(
+            "app.api.v1.ai_edits.get_llm_provider",
+            lambda settings: SuccessfulProvider(),
+        )
+        submission_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(),
+        )
+        assert submission_resp.status_code == 201
+        created = submission_resp.json()
+        submission_id = created["Id"]
+
+        # AI edit first (creates the 'original' snapshot), then finalize twice
+        edit_resp = await client.post(
+            f"/api/v1/ai-edits/{submission_id}/edit",
+            json={"Newsletter_Type": "tdr"},
+            headers=staff_headers,
+        )
+        assert edit_resp.status_code == 202
+        task = await wait_for_task(client, edit_resp.json()["Task_Id"], staff_headers)
+        assert task["Status"] == "succeeded"
+
+        for headline in ("First final", "Second final"):
+            finalize_resp = await client.post(
+                f"/api/v1/ai-edits/{submission_id}/finalize",
+                json={"Headline": headline, "Body": f"{headline} body."},
+                headers=staff_headers,
+            )
+            assert finalize_resp.status_code == 200
+
+        detail_resp = await client.get(
+            f"/api/v1/submissions/{submission_id}",
+            headers=staff_headers,
+        )
+        assert detail_resp.json()["Original_Headline"] == created["Original_Headline"]
+
+        versions_resp = await client.get(
+            f"/api/v1/ai-edits/{submission_id}/versions",
+            headers=staff_headers,
+        )
+        version_types = [v["Version_Type"] for v in versions_resp.json()]
+        assert version_types.count("original") == 1
+        assert version_types.count("editor_final") == 2
