@@ -8,6 +8,7 @@ import WeekOverview from '../components/dashboard/WeekOverview';
 import DayDetail from '../components/dashboard/DayDetail';
 import { getPrimaryOccurrenceDate } from '../utils/submissionOccurrences';
 import { Button, Card, EmptyState, SegmentedToggle } from '../components/common';
+import { toISODate } from '../utils/date';
 
 const STATUS_COLORS: Record<string, string> = {
   new: 'bg-status-info-100 text-status-info-800',
@@ -48,13 +49,6 @@ const NEWSLETTER_LABELS: Record<string, string> = {
   both: 'Both',
   none: 'SLC only',
 };
-
-function toISODate(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
 
 export default function DashboardPage() {
   const navigate = useNavigate();

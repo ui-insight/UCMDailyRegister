@@ -5,18 +5,12 @@ import CalendarView from '../components/dashboard/CalendarView';
 import { getSubmitterRole } from '../utils/submitterRole';
 import { getOccurrenceDates } from '../utils/submissionOccurrences';
 import { EmptyState } from '../components/common';
+import { toISODate } from '../utils/date';
 
 const CLASSIFICATION_STYLES: Record<EventClassification, string> = {
   strategic: 'bg-ui-clearwater-50 text-ui-clearwater-700 border-ui-clearwater-200',
   signature: 'bg-ui-gold-50 text-ui-gold-700 border-ui-gold-200',
 };
-
-function toISODate(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
 
 export default function SLCCalendarPage() {
   const role = getSubmitterRole();
@@ -25,7 +19,7 @@ export default function SLCCalendarPage() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentMonth, setCurrentMonth] = useState(() => new Date(2026, 3, 1));
+  const [currentMonth, setCurrentMonth] = useState(() => new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [classificationFilter, setClassificationFilter] = useState<'' | EventClassification>('');
 

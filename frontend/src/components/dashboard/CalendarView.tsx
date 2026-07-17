@@ -1,5 +1,6 @@
 import type { Submission } from '../../types/submission';
 import { getOccurrenceDates } from '../../utils/submissionOccurrences';
+import { toISODate } from '../../utils/date';
 
 const DAYS_OF_WEEK = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
@@ -21,13 +22,6 @@ interface CalendarViewProps {
   currentMonth: Date;
   onMonthChange: (date: Date) => void;
   validDates?: Map<string, string[]>;
-}
-
-function toISODate(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
 }
 
 function getSubmissionsByDate(submissions: Submission[]): Map<string, Submission[]> {
