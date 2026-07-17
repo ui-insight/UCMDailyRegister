@@ -3,10 +3,17 @@
 Seeds AllowedValue controlled vocabulary, newsletter sections, style rules,
 and schedule configurations. Idempotent — skips records that already exist
 based on unique key combinations.
+
+Existing rows are never modified by default: staff edit style rules, allowed
+values, and schedule configs through the app, and the seed runs on every
+container start (see backend/docker-entrypoint.sh), so updating existing rows
+would silently revert their edits on each deploy. Set SEED_OVERWRITE=1 to
+deliberately reset those fields to the JSON files.
 """
 
 import asyncio
 import json
+import os
 from datetime import date, time
 from pathlib import Path
 
@@ -23,6 +30,11 @@ from app.models.schedule_config import ScheduleConfig
 DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
 
 
+def overwrite_enabled() -> bool:
+    """Whether existing rows should be reset to the JSON seed values."""
+    return os.environ.get("SEED_OVERWRITE", "").lower() in ("1", "true", "yes")
+
+
 async def seed_allowed_values(session: AsyncSession) -> None:
     """Seed the AllowedValue table from allowed_values.json."""
     filepath = DATA_DIR / "allowed_values" / "allowed_values.json"
@@ -36,16 +48,16 @@ async def seed_allowed_values(session: AsyncSession) -> None:
         )
         existing_val = result.scalar_one_or_none()
         if existing_val:
-            # Update fields that may have changed
-            for attr, key in [
-                ("Visibility_Role", "Visibility_Role"),
-                ("Label", "Label"),
-                ("Description", "Description"),
-                ("Display_Order", "Display_Order"),
-            ]:
-                new_val = v.get(key, getattr(existing_val, attr))
-                if getattr(existing_val, attr) != new_val:
-                    setattr(existing_val, attr, new_val)
+            if overwrite_enabled():
+                for attr, key in [
+                    ("Visibility_Role", "Visibility_Role"),
+                    ("Label", "Label"),
+                    ("Description", "Description"),
+                    ("Display_Order", "Display_Order"),
+                ]:
+                    new_val = v.get(key, getattr(existing_val, attr))
+                    if getattr(existing_val, attr) != new_val:
+                        setattr(existing_val, attr, new_val)
             continue
         record = AllowedValue(
             Value_Group=v["Value_Group"],
@@ -104,8 +116,7 @@ async def seed_style_rules(session: AsyncSession) -> None:
             )
             existing_rule = result.scalar_one_or_none()
             if existing_rule:
-                # Update rule text and severity if they've changed
-                if (
+                if overwrite_enabled() and (
                     existing_rule.Rule_Text != r["rule_text"]
                     or existing_rule.Severity != r.get("severity", "warning")
                     or existing_rule.Category != r["category"]
@@ -139,9 +150,9 @@ async def seed_schedule_configs(session: AsyncSession) -> None:
         existing_config = result.scalar_one_or_none()
         h, m, s = (int(x) for x in c["deadline_time"].split(":"))
         if existing_config:
-            # Update fields that may have changed
-            existing_config.Holiday_Shift_Enabled = c.get("holiday_shift_enabled", False)
-            existing_config.Submission_Deadline_Description = c["submission_deadline_description"]
+            if overwrite_enabled():
+                existing_config.Holiday_Shift_Enabled = c.get("holiday_shift_enabled", False)
+                existing_config.Submission_Deadline_Description = c["submission_deadline_description"]
             continue
 
         config = ScheduleConfig(
