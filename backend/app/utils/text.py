@@ -35,36 +35,23 @@ LOCATION_PATTERN = re.compile(
 
 
 def to_sentence_case(text: str) -> str:
-    """Convert a headline to sentence case (capitalize first word and proper nouns only).
+    """Normalize the first character without destroying meaningful capitalization.
 
-    Since we can't reliably detect proper nouns, this lowercases everything
-    except the first character and known proper nouns/acronyms.
+    The LLM is responsible for sentence case because deterministic code cannot
+    distinguish an incorrectly capitalized common noun from a proper name. The
+    previous implementation lowercased the entire headline and then restored a
+    small allowlist, corrupting names such as ``Elizabeth Bradfield`` and official
+    names such as ``Copy Print Center`` after the model had formatted them correctly.
     """
     if not text:
         return text
 
-    # Known proper nouns and acronyms to preserve
-    preserve = {
-        "University of Idaho", "U of I", "Idaho", "Moscow", "Boise",
-        "Coeur d'Alene", "Vandal", "Vandals", "ASUI", "UCM", "UI",
-        "ISUB", "SUB", "Kibbie", "Pitman", "TLC", "VandalStar",
-        "PeopleAdmin", "VandalWeb", "USA", "NCAA", "AP", "HR",
-    }
+    first_letter = re.search(r"[A-Za-z]", text)
+    if not first_letter:
+        return text
 
-    # Start by lowercasing everything
-    result = text[0].upper() + text[1:].lower() if len(text) > 1 else text.upper()
-
-    # Restore preserved terms
-    for term in preserve:
-        pattern = re.compile(re.escape(term), re.IGNORECASE)
-        for match in pattern.finditer(text):
-            original = match.group()
-            start = match.start()
-            end = match.end()
-            # Find the corresponding position in result
-            result = result[:start] + original + result[end:]
-
-    return result
+    index = first_letter.start()
+    return text[:index] + text[index].upper() + text[index + 1 :]
 
 
 def to_title_case(text: str) -> str:

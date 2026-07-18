@@ -51,6 +51,23 @@ class FailingProvider:
         raise RuntimeError("provider unavailable")
 
 
+class ProperNounProvider:
+    model = "test-model"
+
+    async def complete(self, *args, **kwargs):  # pragma: no cover - unused interface method
+        raise NotImplementedError
+
+    async def complete_json(self, *args, **kwargs):
+        return {
+            "edited_headline": "Attend Elizabeth Bradfield reading from SoFar",
+            "edited_body": "Elizabeth Bradfield will read from SoFar.",
+            "changes_made": ["Rewrote the headline in sentence case"],
+            "flags": [],
+            "embedded_links": [],
+            "confidence": 0.95,
+        }
+
+
 async def wait_for_task(
     client: AsyncClient,
     task_id: str,
@@ -155,6 +172,45 @@ class TestAIEditTasks:
         ai_version = versions_resp.json()[-1]
         assert ai_version["Version_Type"] == "ai_suggested"
         assert ai_version["Editor_Instructions"] == "Tighten the first sentence."
+
+    async def test_ai_edit_preserves_proper_nouns_in_sentence_case_headline(
+        self,
+        client: AsyncClient,
+        staff_headers: dict[str, str],
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        """Do not undo correct proper-noun casing returned by the model.
+
+        This is the exact failure pattern from Joy's feedback: a model can return
+        sentence case with a correctly capitalized name, but deterministic
+        post-processing must not lowercase that name afterward.
+        """
+        monkeypatch.setattr(
+            "app.api.v1.ai_edits.get_llm_provider",
+            lambda settings: ProperNounProvider(),
+        )
+        submission_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(
+                Original_Headline="ELIZABETH BRADFIELD READING FROM SOFAR",
+            ),
+        )
+        assert submission_resp.status_code == 201
+        submission_id = submission_resp.json()["Id"]
+
+        resp = await client.post(
+            f"/api/v1/ai-edits/{submission_id}/edit",
+            json={"Newsletter_Type": "tdr"},
+            headers=staff_headers,
+        )
+
+        assert resp.status_code == 202
+        task = await wait_for_task(client, resp.json()["Task_Id"], staff_headers)
+        assert task["Status"] == "succeeded"
+        assert (
+            task["Result"]["Edited_Headline"]
+            == "Attend Elizabeth Bradfield reading from SoFar"
+        )
 
     async def test_provider_failure_does_not_save_ai_version_or_mark_ai_edited(
         self,
