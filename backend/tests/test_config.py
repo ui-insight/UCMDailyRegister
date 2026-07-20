@@ -46,3 +46,10 @@ def test_production_rejects_wildcard_cors_origin(monkeypatch: pytest.MonkeyPatch
 
     with pytest.raises(ValidationError, match="cannot include"):
         Settings(_env_file=None)
+
+
+def test_feedback_notifications_fail_closed(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("FEEDBACK_NOTIFICATION_CHANNEL", "power-automate")
+
+    with pytest.raises(ValidationError, match="feedback_notification_channel"):
+        Settings(_env_file=None)

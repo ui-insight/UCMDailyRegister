@@ -4,6 +4,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getValidDates } from '../api/schedule';
 import { listSubmissions } from '../api/submissions';
+import { getFeedbackSummary } from '../api/feedback';
 import type { Submission, SubmissionStatus, TargetNewsletter } from '../types/submission';
 import DashboardPage from './DashboardPage';
 
@@ -15,8 +16,13 @@ vi.mock('../api/schedule', () => ({
   getValidDates: vi.fn(),
 }));
 
+vi.mock('../api/feedback', () => ({
+  getFeedbackSummary: vi.fn(),
+}));
+
 const listSubmissionsMock = vi.mocked(listSubmissions);
 const getValidDatesMock = vi.mocked(getValidDates);
+const getFeedbackSummaryMock = vi.mocked(getFeedbackSummary);
 
 function renderDashboard() {
   return render(
@@ -111,6 +117,11 @@ beforeEach(() => {
     ],
     blackout_dates: [],
   });
+  getFeedbackSummaryMock.mockResolvedValue({
+    New_Count: 0,
+    Failed_Notification_Count: 0,
+    Pending_Notification_Count: 0,
+  });
 });
 
 describe('DashboardPage', () => {
@@ -125,6 +136,34 @@ describe('DashboardPage', () => {
     expect(screen.getByText('Assigned: Alex')).toBeInTheDocument();
     expect(screen.getByText('Has notes')).toBeInTheDocument();
     expect(screen.getByText('Has image')).toBeInTheDocument();
+  });
+
+  it('surfaces new feedback and notification failures', async () => {
+    getFeedbackSummaryMock.mockResolvedValueOnce({
+      New_Count: 3,
+      Failed_Notification_Count: 1,
+      Pending_Notification_Count: 0,
+    });
+
+    renderDashboard();
+
+    expect(await screen.findByRole('button', { name: /3 new feedback items are waiting/i })).toBeInTheDocument();
+    expect(screen.getByText(/1 notification attempt needs attention/i)).toBeInTheDocument();
+    expect(screen.getByText('Review feedback')).toBeInTheDocument();
+  });
+
+  it('uses delivery-focused copy when no reports are new', async () => {
+    getFeedbackSummaryMock.mockResolvedValueOnce({
+      New_Count: 0,
+      Failed_Notification_Count: 2,
+      Pending_Notification_Count: 0,
+    });
+
+    renderDashboard();
+
+    expect(await screen.findByText('Feedback notifications need attention')).toBeInTheDocument();
+    expect(screen.getByText(/2 notification attempts need attention/i)).toBeInTheDocument();
+    expect(screen.queryByText(/0 new feedback items/i)).not.toBeInTheDocument();
   });
 
   it('sends selected filters and search text to the submissions API', async () => {

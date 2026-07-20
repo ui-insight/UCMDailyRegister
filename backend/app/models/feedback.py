@@ -41,6 +41,16 @@ class ProductFeedback(Base):
     Viewport: Mapped[str] = mapped_column(sa.String(50), nullable=False)
     Status: Mapped[str] = mapped_column(sa.String(30), nullable=False, default="new", index=True)
     GitHub_URL: Mapped[str | None] = mapped_column(sa.String(500), nullable=True)
+    Notification_Status: Mapped[str] = mapped_column(
+        sa.String(30), nullable=False, default="pending", index=True
+    )
+    Notification_Attempts: Mapped[int] = mapped_column(
+        sa.Integer, nullable=False, default=0
+    )
+    Notification_Sent_At: Mapped[datetime | None] = mapped_column(
+        sa.DateTime, nullable=True
+    )
+    Notification_Last_Error: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
     Created_At: Mapped[datetime] = mapped_column(
         sa.DateTime, nullable=False, server_default=sa.func.now(), index=True
     )

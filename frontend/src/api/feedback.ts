@@ -5,6 +5,7 @@ import type {
   ProductFeedback,
   ProductFeedbackCreate,
   ProductFeedbackExport,
+  ProductFeedbackSummary,
 } from '../types/feedback';
 
 export async function createFeedback(
@@ -41,4 +42,16 @@ export async function getFeedbackGitHubExport(
   id: string,
 ): Promise<ProductFeedbackExport> {
   return apiFetch<ProductFeedbackExport>(`/feedback/${id}/github-export`);
+}
+
+export async function getFeedbackSummary(): Promise<ProductFeedbackSummary> {
+  return apiFetch<ProductFeedbackSummary>('/feedback/summary');
+}
+
+export async function retryFeedbackNotification(
+  id: string,
+): Promise<ProductFeedback> {
+  return apiFetch<ProductFeedback>(`/feedback/${id}/notification/retry`, {
+    method: 'POST',
+  });
 }

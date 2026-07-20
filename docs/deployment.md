@@ -86,6 +86,25 @@ MINDROUTER_MODEL=openai/gpt-oss-120b
 CORS_ORIGINS=http://localhost:5173
 ```
 
+### Feedback notifications
+
+Feedback capture is database-first: a report is committed before any delivery
+attempt, and notification failure never discards the report. Staff can see new
+report counts and delivery state in the application.
+
+Phase one does not send feedback outside the application. Keep the notification
+channel explicitly disabled in every environment:
+
+```bash
+FEEDBACK_NOTIFICATION_CHANNEL=disabled
+```
+
+The notification payload boundary is intentionally privacy-limited to feedback
+ID, type, summary, route, environment, submission time, and an optional contact
+email. It excludes report details, browser and host strings, submission content,
+submitter records, and editorial notes. Add and document an outbound adapter only
+after UCM and OIT approve the destination and credential model.
+
 !!! warning "Port Conflict"
     Port 8000 may be in use by another application. This project defaults to **port 8001** for the backend.
 

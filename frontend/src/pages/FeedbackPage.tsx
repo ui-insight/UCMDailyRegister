@@ -2,9 +2,15 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   getFeedbackGitHubExport,
   listFeedback,
+  retryFeedbackNotification,
   updateFeedback,
 } from '../api/feedback';
-import type { FeedbackStatus, FeedbackType, ProductFeedback } from '../types/feedback';
+import type {
+  FeedbackNotificationStatus,
+  FeedbackStatus,
+  FeedbackType,
+  ProductFeedback,
+} from '../types/feedback';
 import { buildGitHubIssueUrl } from '../utils/feedback';
 import { getSubmitterRole } from '../utils/submitterRole';
 import { Button, Card, EmptyState, Toast, useToast } from '../components/common';
@@ -30,6 +36,20 @@ const STATUS_CLASSES: Record<FeedbackStatus, string> = {
   closed: 'bg-status-muted-100 text-status-muted-800',
 };
 
+const NOTIFICATION_LABELS: Record<FeedbackNotificationStatus, string> = {
+  pending: 'Delivery pending',
+  sent: 'Alert sent',
+  failed: 'Delivery failed',
+  disabled: 'Alerts off',
+};
+
+const NOTIFICATION_CLASSES: Record<FeedbackNotificationStatus, string> = {
+  pending: 'bg-status-warning-100 text-status-warning-800',
+  sent: 'bg-status-success-100 text-status-success-800',
+  failed: 'bg-status-error-100 text-status-error-800',
+  disabled: 'bg-status-muted-100 text-status-muted-800',
+};
+
 function formatDate(value: string) {
   return new Date(value).toLocaleString('en-US', {
     month: 'short',
@@ -47,6 +67,7 @@ export default function FeedbackPage() {
   const [typeFilter, setTypeFilter] = useState<FeedbackType | ''>('');
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [retryingId, setRetryingId] = useState<string | null>(null);
   const { toast, showToast, dismissToast } = useToast();
 
   const loadData = useCallback(async () => {
@@ -108,6 +129,29 @@ export default function FeedbackPage() {
       await loadData();
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Failed to save GitHub URL', 'error');
+    }
+  };
+
+  const handleRetryNotification = async (item: ProductFeedback) => {
+    setRetryingId(item.Id);
+    try {
+      const updated = await retryFeedbackNotification(item.Id);
+      setSelected(updated);
+      showToast(
+        updated.Notification_Status === 'sent'
+          ? 'Notification sent'
+          : 'No external notification channel is configured',
+        updated.Notification_Status === 'failed'
+          ? 'error'
+          : updated.Notification_Status === 'sent'
+            ? 'success'
+            : 'info',
+      );
+      await loadData();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to retry notification', 'error');
+    } finally {
+      setRetryingId(null);
     }
   };
 
@@ -200,6 +244,9 @@ export default function FeedbackPage() {
                   <span className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${STATUS_CLASSES[item.Status]}`}>
                     {item.Status}
                   </span>
+                  <span className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${NOTIFICATION_CLASSES[item.Notification_Status]}`}>
+                    {NOTIFICATION_LABELS[item.Notification_Status]}
+                  </span>
                   <span className="ml-auto text-xs text-gray-400">{formatDate(item.Created_At)}</span>
                 </div>
                 <h3 className="text-sm font-semibold text-gray-900">{item.Summary}</h3>
@@ -271,6 +318,48 @@ export default function FeedbackPage() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              <div className="mt-5 border-t border-gray-100 pt-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-medium text-gray-500">Maintainer notification</p>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                      <span className={`rounded px-2 py-0.5 text-xs font-medium ${NOTIFICATION_CLASSES[selected.Notification_Status]}`}>
+                        {NOTIFICATION_LABELS[selected.Notification_Status]}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {selected.Notification_Attempts} {selected.Notification_Attempts === 1 ? 'attempt' : 'attempts'}
+                      </span>
+                      {selected.Notification_Sent_At && (
+                        <span className="text-xs text-gray-500">
+                          Sent {formatDate(selected.Notification_Sent_At)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {(selected.Notification_Status === 'failed' || selected.Notification_Status === 'pending') && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={retryingId === selected.Id}
+                      onClick={() => void handleRetryNotification(selected)}
+                    >
+                      {retryingId === selected.Id ? 'Retrying...' : 'Retry notification'}
+                    </Button>
+                  )}
+                </div>
+                {selected.Notification_Status === 'disabled' && (
+                  <p className="mt-2 max-w-[70ch] text-xs text-gray-500">
+                    External alerts are disabled while UCM confirms an approved delivery channel.
+                    The report is safely stored in this queue.
+                  </p>
+                )}
+                {selected.Notification_Last_Error && (
+                  <p className="mt-2 rounded-md border border-status-error-100 bg-status-error-100/60 px-3 py-2 text-xs text-status-error-800">
+                    {selected.Notification_Last_Error}
+                  </p>
+                )}
               </div>
 
               <div className="mt-4">

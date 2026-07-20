@@ -2,7 +2,9 @@ import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listSubmissions } from '../api/submissions';
 import { getValidDates } from '../api/schedule';
+import { getFeedbackSummary } from '../api/feedback';
 import type { Submission, SubmissionStatus } from '../types/submission';
+import type { ProductFeedbackSummary } from '../types/feedback';
 import CalendarView from '../components/dashboard/CalendarView';
 import WeekOverview from '../components/dashboard/WeekOverview';
 import DayDetail from '../components/dashboard/DayDetail';
@@ -65,6 +67,7 @@ export default function DashboardPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [validDates, setValidDates] = useState<Map<string, string[]>>(new Map());
   const [refreshKey, setRefreshKey] = useState(0);
+  const [feedbackSummary, setFeedbackSummary] = useState<ProductFeedbackSummary | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -98,6 +101,14 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData, refreshKey]);
+
+  useEffect(() => {
+    void getFeedbackSummary()
+      .then(setFeedbackSummary)
+      .catch(() => {
+        // Feedback visibility is useful but must not block the editorial dashboard.
+      });
+  }, [refreshKey]);
 
   useEffect(() => {
     if (viewMode !== 'calendar') return;
@@ -166,6 +177,45 @@ export default function DashboardPage() {
           />
         </div>
       </div>
+
+      {feedbackSummary && (
+        feedbackSummary.New_Count > 0
+        || feedbackSummary.Failed_Notification_Count > 0
+        || feedbackSummary.Pending_Notification_Count > 0
+      ) && (
+        <button
+          type="button"
+          onClick={() => navigate('/feedback')}
+          className="mb-6 flex w-full items-center gap-4 rounded-lg border border-status-attention-100 bg-status-attention-100/60 px-4 py-3 text-left transition-colors hover:bg-status-attention-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-ui-clearwater-700"
+        >
+          <span className="flex h-9 min-w-9 items-center justify-center rounded-full bg-status-attention-800 px-2 text-sm font-semibold text-white">
+            {feedbackSummary.New_Count > 0
+              ? feedbackSummary.New_Count
+              : feedbackSummary.Failed_Notification_Count + feedbackSummary.Pending_Notification_Count}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block text-sm font-semibold text-gray-900">
+              {feedbackSummary.New_Count === 0
+                ? feedbackSummary.Failed_Notification_Count > 0
+                  ? 'Feedback notifications need attention'
+                  : 'Feedback notifications are pending'
+                : feedbackSummary.New_Count === 1
+                  ? 'New feedback is waiting'
+                  : `${feedbackSummary.New_Count} new feedback items are waiting`}
+            </span>
+            <span className="mt-0.5 block text-xs text-gray-600">
+              {feedbackSummary.Failed_Notification_Count > 0
+                ? `${feedbackSummary.Failed_Notification_Count} notification ${feedbackSummary.Failed_Notification_Count === 1 ? 'attempt needs' : 'attempts need'} attention.`
+                : feedbackSummary.Pending_Notification_Count > 0
+                  ? `${feedbackSummary.Pending_Notification_Count} notification ${feedbackSummary.Pending_Notification_Count === 1 ? 'attempt is' : 'attempts are'} waiting for delivery.`
+                  : 'Review reports before they are exported to GitHub.'}
+            </span>
+          </span>
+          <span className="shrink-0 text-sm font-medium text-ui-clearwater-800">
+            Review feedback
+          </span>
+        </button>
+      )}
 
       {/* Filters */}
       <Card className="mb-6">
