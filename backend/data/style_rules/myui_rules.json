@@ -2,7 +2,7 @@
   {
     "category": "headlines",
     "rule_key": "sentence_case",
-    "rule_text": "Headlines must be sentence case (capitalize only the first word and proper nouns). Example: 'Register for spring break activities' not 'Register for Spring Break Activities'.",
+    "rule_text": "Headlines must be sentence case: capitalize only the first word and proper nouns. Capitalize proper nouns, including official names of departments, offices, buildings and programs (e.g., Copy Print Center, Creative Services, Elizabeth Bradfield). Never leave proper names in lowercase. Example: 'Register for spring break activities' not 'Register for Spring Break Activities'.",
     "severity": "error"
   },
   {

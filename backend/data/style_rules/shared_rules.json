@@ -44,7 +44,7 @@
   {
     "category": "formatting",
     "rule_key": "ap_style_times",
-    "rule_text": "Use AP style for times: lowercase a.m. and p.m. with periods. Use noon and midnight instead of 12 p.m. and 12 a.m. Use figures: 1 p.m., 3:30 p.m. Use a hyphen for same-period time ranges: '3-4 p.m.' Use 'from' with 'to' only when spanning a.m. to p.m.: 'from 9 a.m. to 3 p.m.'",
+    "rule_text": "Use AP style for times: lowercase a.m. and p.m. with periods. Use noon and midnight instead of 12 p.m. and 12 a.m. Use figures: 1 p.m., 3:30 p.m. Use a hyphen for same-period time ranges: '3-4 p.m.' Use 'from' with 'to' only when spanning a.m. to p.m.: 'from 9 a.m. to 3 p.m.' Avoid 'o'clock'. Remove redundant time phrases such as 'this morning' or 'tonight'.",
     "severity": "warning"
   },
   {
@@ -188,7 +188,7 @@
   {
     "category": "formatting",
     "rule_key": "event_detail_ordering",
-    "rule_text": "Order event details as: time, day, date, location. Example: '3-4 p.m. Wednesday, Feb. 12, in the Pitman Center Vandal Ballroom'.",
+    "rule_text": "Order event details as: time, day, date, location. Example: '3-4 p.m. Wednesday, Feb. 12, in the Pitman Center Vandal Ballroom'. Do not reorder or omit these elements. If the event is more than one month away, omit the day of the week.",
     "severity": "warning"
   },
   {
@@ -212,7 +212,7 @@
   {
     "category": "formatting",
     "rule_key": "spell_out_acronyms",
-    "rule_text": "Spell out acronyms on first reference and define key terms. Use the acronym in parentheses after the first spelled-out reference.",
+    "rule_text": "Spell out acronyms on first reference and define key terms. Use the acronym in parentheses after the first spelled-out reference. Acronyms are allowed in headlines if the full term is spelled out on first reference in the body text.",
     "severity": "warning"
   },
   {
@@ -248,7 +248,7 @@
   {
     "category": "voice",
     "rule_key": "short_sentences",
-    "rule_text": "Write short, clear sentences. Avoid run-on sentences and compound-complex structures. Break long sentences into two or more shorter ones for readability.",
+    "rule_text": "Write short, clear sentences. Avoid run-on sentences and compound-complex structures. Break long sentences into two or more shorter ones for readability. Replace semicolons with periods.",
     "severity": "warning"
   },
   {
@@ -261,6 +261,42 @@
     "category": "headlines",
     "rule_key": "headline_reader_perspective",
     "rule_text": "Headlines must be written from the reader's perspective using verbs that address what the reader can do. Example: 'Participate in VR research study' not 'Recruit research participants'. The headline should tell the reader what action they can take.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "spell_out_state_names",
+    "rule_text": "Always spell out the name of a state. Example: 'Moscow, Idaho' not 'Moscow, ID'.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "ampersand_to_and",
+    "rule_text": "Replace '&' with 'and' in plain text. Keep '&' only when it is part of an official title or event name that uses it.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "preserve_event_title_case",
+    "rule_text": "Do not change event titles. Keep event titles in title case exactly as submitted, even when the surrounding text uses sentence case.",
+    "severity": "error"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "mountain_time_not_mdt",
+    "rule_text": "If the submission includes 'Mountain time', retain it exactly as written. If 'MDT' or 'MST' appears, replace it with 'Mountain time'. Do not omit, rephrase or alter this wording.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "directional_abbreviation_periods",
+    "rule_text": "When an address includes a directional abbreviation (N, S, E or W), add a period after the letter. Example: '1000 W. Pullman Road'. Do not leave directional abbreviations without a period.",
+    "severity": "warning"
+  },
+  {
+    "category": "voice",
+    "rule_key": "cta_structure",
+    "rule_text": "Structure announcements around a clear call to action: open with the action the reader should take, follow with context, dates and incentives, and close with an explicit final call to action such as 'Learn more and register'. Replace vague instructions with explicit actions. Do not introduce audience qualifiers that are not in the original submission. When the submission provides a contact's full name, use it rather than a bare email address.",
     "severity": "warning"
   }
 ]
