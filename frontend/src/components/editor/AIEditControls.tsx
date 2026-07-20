@@ -3,8 +3,7 @@ import { Button } from '../common';
 
 interface AIEditControlsProps {
   onTriggerEdit: (newsletterType: 'tdr' | 'myui', editorInstructions?: string) => void;
-  onAcceptEdit: () => void;
-  onRejectEdit: () => void;
+  onReviewFinalEdit: () => void;
   loading: boolean;
   hasAIEdit: boolean;
   // Accepts "none" so SLC-only submissions type-check, though AI editing is never
@@ -15,8 +14,7 @@ interface AIEditControlsProps {
 
 export default function AIEditControls({
   onTriggerEdit,
-  onAcceptEdit,
-  onRejectEdit,
+  onReviewFinalEdit,
   loading,
   hasAIEdit,
   targetNewsletter,
@@ -86,23 +84,13 @@ export default function AIEditControls({
             </div>
           )}
 
-          <div className="flex gap-2">
-            <Button
-              onClick={onAcceptEdit}
-              variant="success"
-              className="flex-1"
-              title="Accept the AI-suggested edit as the final version"
-            >
-              Accept AI Edit
-            </Button>
-            <Button
-              onClick={onRejectEdit}
-              variant="secondary"
-              className="flex-1"
-            >
-              Edit Manually
-            </Button>
-          </div>
+          <Button
+            onClick={onReviewFinalEdit}
+            variant="secondary"
+            className="w-full"
+          >
+            Continue to Final Edit
+          </Button>
 
           <div className="space-y-2 rounded-md border border-gray-200 bg-gray-50 p-3">
             <label htmlFor="editor-ai-feedback" className="block text-xs font-medium text-gray-600">

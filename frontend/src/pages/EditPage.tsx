@@ -24,6 +24,7 @@ import { Button, SegmentedToggle, Toast, useToast } from '../components/common';
 
 type Tab = 'original' | 'ai_edit' | 'editor';
 type ViewMode = 'diff' | 'side_by_side';
+type FinalizationAction = 'draft' | 'approve' | null;
 
 const STATUS_COLORS: Record<string, string> = {
   new: 'bg-status-info-100 text-status-info-800',
@@ -46,7 +47,7 @@ export default function EditPage() {
   const [activeTab, setActiveTab] = useState<Tab>('original');
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
-  const [saveLoading, setSaveLoading] = useState(false);
+  const [finalizationAction, setFinalizationAction] = useState<FinalizationAction>(null);
   const [editorialSaving, setEditorialSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast, showToast, dismissToast } = useToast();
@@ -172,46 +173,38 @@ export default function EditPage() {
     }
   };
 
-  const handleAcceptEdit = async () => {
-    if (!id) return;
-    setSaveLoading(true);
-    try {
-      const aiVersion = [...versions].reverse().find((v) => v.Version_Type === 'ai_suggested');
-      await saveEditorFinal(id, {
-        Headline: aiVersion?.Headline || editHeadline,
-        Body: aiVersion?.Body || editBody,
-        Headline_Case: aiVersion?.Headline_Case || undefined,
-      });
-      showToast('Edit accepted and finalized');
-      await loadData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save');
-    } finally {
-      setSaveLoading(false);
-    }
-  };
-
-  const handleRejectEdit = () => {
-    // Switch to editor tab for manual editing
+  const handleReviewFinalEdit = () => {
     setActiveTab('editor');
   };
 
-  const handleSaveFinal = async () => {
+  const handleFinalize = async (approveForNewsletter: boolean) => {
     if (!id) return;
-    setSaveLoading(true);
+    setFinalizationAction(approveForNewsletter ? 'approve' : 'draft');
+    setError(null);
     try {
       const aiVersion = [...versions].reverse().find((v) => v.Version_Type === 'ai_suggested');
       await saveEditorFinal(id, {
         Headline: editHeadline,
         Body: editBody,
         Headline_Case: aiVersion?.Headline_Case || undefined,
+        Approve_For_Newsletter: approveForNewsletter,
       });
-      showToast('Final version saved');
+      showToast(
+        approveForNewsletter
+          ? 'Final version saved and approved for newsletter'
+          : 'Draft saved. Submission remains in review',
+      );
       await loadData();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save');
+      const message = err instanceof Error
+        ? err.message
+        : approveForNewsletter
+          ? 'Failed to save and approve'
+          : 'Failed to save draft';
+      setError(message);
+      showToast(message, 'error');
     } finally {
-      setSaveLoading(false);
+      setFinalizationAction(null);
     }
   };
 
@@ -233,25 +226,6 @@ export default function EditPage() {
       showToast(msg, 'error');
     } finally {
       setEditorialSaving(false);
-    }
-  };
-
-  const handleApprove = async () => {
-    if (!id) return;
-    try {
-      // Save current edits first so they persist
-      const aiVersion = [...versions].reverse().find((v) => v.Version_Type === 'ai_suggested');
-      await saveEditorFinal(id, {
-        Headline: editHeadline,
-        Body: editBody,
-        Headline_Case: aiVersion?.Headline_Case || undefined,
-      });
-      // Then approve
-      await updateSubmission(id, { Status: 'approved' } as Partial<Submission>);
-      showToast('Submission approved');
-      await loadData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to approve');
     }
   };
 
@@ -390,6 +364,9 @@ export default function EditPage() {
   const flags: AIFlag[] = aiEditResult?.Flags || aiVersion?.Flags || [];
   const changesMade: string[] = aiEditResult?.Changes_Made || aiVersion?.Changes_Made || [];
   const confidence = aiEditResult?.Confidence;
+  const canApproveFinal = ['new', 'ai_edited', 'in_review', 'approved'].includes(
+    submission.Status,
+  );
 
   const tabs: { id: Tab; label: string; available: boolean }[] = [
     { id: 'original', label: 'Original', available: true },
@@ -564,24 +541,40 @@ export default function EditPage() {
                   headlineCase={aiVersion?.Headline_Case || null}
                 />
                 <BodyEditor value={editBody} onChange={setEditBody} />
-                <div className="flex justify-end gap-3 pt-2">
-                  <Button
-                    onClick={handleSaveFinal}
-                    disabled={saveLoading}
-                    variant="primary"
-                    title="Save your manual edits without changing the submission status"
-                  >
-                    {saveLoading ? 'Saving...' : 'Save Final Version'}
-                  </Button>
-                  {submission.Status === 'in_review' && (
+                <div className="flex flex-col gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">
+                      {canApproveFinal
+                        ? 'Ready for newsletter assembly?'
+                        : 'Save your work before leaving'}
+                    </p>
+                    <p className="mt-0.5 max-w-[65ch] text-xs text-gray-500">
+                      {canApproveFinal
+                        ? 'Save a draft for continued review, or approve the current text for the newsletter.'
+                        : 'This submission cannot be approved in its current status, but you can keep your edits as a draft.'}
+                    </p>
+                  </div>
+                  <div className="flex shrink-0 flex-wrap justify-end gap-2">
                     <Button
-                      onClick={handleApprove}
-                      variant="success"
-                      title="Mark this submission as approved and ready for the newsletter"
+                      onClick={() => void handleFinalize(false)}
+                      disabled={finalizationAction !== null}
+                      variant="secondary"
                     >
-                      Approve for Newsletter
+                      {finalizationAction === 'draft' ? 'Saving draft...' : 'Save Draft'}
                     </Button>
-                  )}
+                    {canApproveFinal && (
+                      <Button
+                        onClick={() => void handleFinalize(true)}
+                        disabled={finalizationAction !== null}
+                        variant="success"
+                        title="Save this final version and approve it for newsletter assembly"
+                      >
+                        {finalizationAction === 'approve'
+                          ? 'Saving and approving...'
+                          : 'Save and Approve'}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -592,8 +585,7 @@ export default function EditPage() {
         <div className="space-y-4">
           <AIEditControls
             onTriggerEdit={handleTriggerEdit}
-            onAcceptEdit={handleAcceptEdit}
-            onRejectEdit={handleRejectEdit}
+            onReviewFinalEdit={handleReviewFinalEdit}
             loading={aiLoading}
             hasAIEdit={hasAIEdit}
             targetNewsletter={submission.Target_Newsletter}
