@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, field_validator
 
 FEEDBACK_TYPE_PATTERN = r"^(bug|idea)$"
 FEEDBACK_STATUS_PATTERN = r"^(new|reviewed|exported|closed)$"
+NOTIFICATION_STATUS_PATTERN = r"^(pending|sent|failed|disabled)$"
 ROLE_PATTERN = r"^(public|staff|slc)$"
 
 
@@ -62,6 +63,10 @@ class ProductFeedbackResponse(BaseModel):
     Viewport: str
     Status: str
     GitHub_URL: str | None
+    Notification_Status: str = Field(..., pattern=NOTIFICATION_STATUS_PATTERN)
+    Notification_Attempts: int
+    Notification_Sent_At: datetime | None
+    Notification_Last_Error: str | None
     Created_At: datetime
     Updated_At: datetime
 
@@ -71,3 +76,9 @@ class ProductFeedbackResponse(BaseModel):
 class ProductFeedbackExportResponse(BaseModel):
     Title: str
     Body: str
+
+
+class ProductFeedbackSummaryResponse(BaseModel):
+    New_Count: int
+    Failed_Notification_Count: int
+    Pending_Notification_Count: int

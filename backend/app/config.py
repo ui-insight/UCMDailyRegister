@@ -1,5 +1,5 @@
 import json
-from typing import Any, Self
+from typing import Any, Literal, Self
 
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings
@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     job_postings_request_timeout_seconds: float = 10.0
     job_postings_max_pages: int = 5
     ai_edit_max_concurrency: int = 2
+    feedback_notification_channel: Literal["disabled"] = "disabled"
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
 

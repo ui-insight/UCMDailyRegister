@@ -1,7 +1,29 @@
 """Tests for in-app product feedback capture and staff review."""
 
+from dataclasses import asdict
+
 import pytest
 from httpx import AsyncClient
+
+from app.main import app as fastapi_app
+from app.services.feedback_notifications import (
+    FeedbackNotificationPayload,
+    get_feedback_notifier,
+)
+
+
+class RecordingFeedbackNotifier:
+    name = "recording-test"
+    enabled = True
+
+    def __init__(self, *, should_fail: bool = False):
+        self.should_fail = should_fail
+        self.payloads: list[FeedbackNotificationPayload] = []
+
+    async def send(self, payload: FeedbackNotificationPayload) -> None:
+        self.payloads.append(payload)
+        if self.should_fail:
+            raise RuntimeError("Test notification channel unavailable")
 
 
 def make_feedback_payload(**overrides) -> dict:
@@ -35,6 +57,116 @@ class TestProductFeedback:
         assert data["Summary"] == "The dashboard filter is confusing"
         assert data["Status"] == "new"
         assert data["GitHub_URL"] is None
+        assert data["Notification_Status"] == "disabled"
+        assert data["Notification_Attempts"] == 0
+        assert data["Notification_Sent_At"] is None
+        assert data["Notification_Last_Error"] is None
+
+    async def test_enabled_notifier_receives_only_sanitized_context(
+        self,
+        client: AsyncClient,
+    ):
+        notifier = RecordingFeedbackNotifier()
+        fastapi_app.dependency_overrides[get_feedback_notifier] = lambda: notifier
+
+        resp = await client.post("/api/v1/feedback", json=make_feedback_payload())
+
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["Notification_Status"] == "sent"
+        assert data["Notification_Attempts"] == 1
+        assert data["Notification_Sent_At"] is not None
+        assert data["Notification_Last_Error"] is None
+
+        assert len(notifier.payloads) == 1
+        payload = asdict(notifier.payloads[0])
+        assert payload == {
+            "Feedback_Id": data["Id"],
+            "Feedback_Type": "bug",
+            "Summary": "The dashboard filter is confusing",
+            "Route": "/dashboard",
+            "App_Environment": "test",
+            "Submitted_At": notifier.payloads[0].Submitted_At,
+            "Contact_Email": "editor@uidaho.edu",
+        }
+        assert "Details" not in payload
+        assert "Browser" not in payload
+        assert "Host" not in payload
+        assert "Viewport" not in payload
+
+    async def test_notification_failure_does_not_lose_feedback(
+        self,
+        client: AsyncClient,
+        staff_headers: dict[str, str],
+    ):
+        notifier = RecordingFeedbackNotifier(should_fail=True)
+        fastapi_app.dependency_overrides[get_feedback_notifier] = lambda: notifier
+
+        create_resp = await client.post(
+            "/api/v1/feedback",
+            json=make_feedback_payload(Details="Private details stay in the application."),
+        )
+
+        assert create_resp.status_code == 201
+        created = create_resp.json()
+        assert created["Notification_Status"] == "failed"
+        assert created["Notification_Attempts"] == 1
+        assert created["Notification_Sent_At"] is None
+        assert created["Notification_Last_Error"] == "Test notification channel unavailable"
+        assert "Private details" not in created["Notification_Last_Error"]
+
+        list_resp = await client.get("/api/v1/feedback", headers=staff_headers)
+        assert list_resp.status_code == 200
+        assert [item["Id"] for item in list_resp.json()] == [created["Id"]]
+
+    async def test_staff_can_retry_a_failed_notification(
+        self,
+        client: AsyncClient,
+        staff_headers: dict[str, str],
+    ):
+        notifier = RecordingFeedbackNotifier(should_fail=True)
+        fastapi_app.dependency_overrides[get_feedback_notifier] = lambda: notifier
+        create_resp = await client.post("/api/v1/feedback", json=make_feedback_payload())
+        feedback_id = create_resp.json()["Id"]
+
+        notifier.should_fail = False
+        retry_resp = await client.post(
+            f"/api/v1/feedback/{feedback_id}/notification/retry",
+            headers=staff_headers,
+        )
+
+        assert retry_resp.status_code == 200
+        retried = retry_resp.json()
+        assert retried["Notification_Status"] == "sent"
+        assert retried["Notification_Attempts"] == 2
+        assert retried["Notification_Sent_At"] is not None
+        assert retried["Notification_Last_Error"] is None
+
+    async def test_notification_retry_and_summary_require_staff(
+        self,
+        client: AsyncClient,
+        staff_headers: dict[str, str],
+    ):
+        create_resp = await client.post("/api/v1/feedback", json=make_feedback_payload())
+        feedback_id = create_resp.json()["Id"]
+
+        public_summary_resp = await client.get("/api/v1/feedback/summary")
+        public_retry_resp = await client.post(
+            f"/api/v1/feedback/{feedback_id}/notification/retry"
+        )
+        staff_summary_resp = await client.get(
+            "/api/v1/feedback/summary",
+            headers=staff_headers,
+        )
+
+        assert public_summary_resp.status_code == 403
+        assert public_retry_resp.status_code == 403
+        assert staff_summary_resp.status_code == 200
+        assert staff_summary_resp.json() == {
+            "New_Count": 1,
+            "Failed_Notification_Count": 0,
+            "Pending_Notification_Count": 0,
+        }
 
     async def test_public_user_cannot_list_feedback(
         self,
