@@ -151,8 +151,14 @@ async def seed_schedule_configs(session: AsyncSession) -> None:
         h, m, s = (int(x) for x in c["deadline_time"].split(":"))
         if existing_config:
             if overwrite_enabled():
-                existing_config.Holiday_Shift_Enabled = c.get("holiday_shift_enabled", False)
                 existing_config.Submission_Deadline_Description = c["submission_deadline_description"]
+                existing_config.Deadline_Day_Of_Week = c.get("deadline_day_of_week")
+                existing_config.Deadline_Time = time(h, m, s)
+                existing_config.Publish_Day_Of_Week = c.get("publish_day_of_week")
+                existing_config.Is_Daily = c.get("is_daily", False)
+                existing_config.Active_Start_Month = c.get("active_start_month")
+                existing_config.Active_End_Month = c.get("active_end_month")
+                existing_config.Holiday_Shift_Enabled = c.get("holiday_shift_enabled", False)
             continue
 
         config = ScheduleConfig(

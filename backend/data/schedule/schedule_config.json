@@ -45,18 +45,18 @@
     "is_daily": false,
     "active_start_month": 8,
     "active_end_month": 5,
-    "holiday_shift_enabled": true
+    "holiday_shift_enabled": false
   },
   {
     "newsletter_type": "myui",
     "mode": "summer",
-    "submission_deadline_description": "My UI is not published during summer break",
-    "deadline_day_of_week": null,
+    "submission_deadline_description": "Submissions due by noon Wednesday for Monday's edition",
+    "deadline_day_of_week": 2,
     "deadline_time": "12:00:00",
-    "publish_day_of_week": null,
+    "publish_day_of_week": 0,
     "is_daily": false,
-    "active_start_month": null,
-    "active_end_month": null,
+    "active_start_month": 6,
+    "active_end_month": 7,
     "holiday_shift_enabled": false
   },
   {
