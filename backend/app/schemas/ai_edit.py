@@ -4,6 +4,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from app.schemas.submission import LinkCreate
+
 
 class AIEditRequest(BaseModel):
     """Request to trigger AI editing on a submission."""
@@ -88,6 +90,7 @@ class EditorFinalCreate(BaseModel):
     Body: str = Field(..., min_length=1)
     Headline_Case: str | None = Field(None, pattern=r"^(sentence_case|title_case)$")
     Approve_For_Newsletter: bool = False
+    Links: list[LinkCreate] | None = Field(None, max_length=3)
 
 
 # --- Style rules schemas ---

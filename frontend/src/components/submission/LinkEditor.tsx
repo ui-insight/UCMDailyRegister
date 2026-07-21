@@ -1,4 +1,4 @@
-interface LinkEntry {
+export interface LinkEntry {
   Url: string;
   Anchor_Text: string;
 }
@@ -6,6 +6,8 @@ interface LinkEntry {
 interface Props {
   links: LinkEntry[];
   onChange: (links: LinkEntry[]) => void;
+  label?: string;
+  description?: string;
 }
 
 const MAX_LINKS = 3;
@@ -18,7 +20,12 @@ function ensureSlots(links: LinkEntry[]): LinkEntry[] {
   return slots.slice(0, MAX_LINKS);
 }
 
-export default function LinkEditor({ links, onChange }: Props) {
+export default function LinkEditor({
+  links,
+  onChange,
+  label = 'Links to Embed',
+  description = `Add up to ${MAX_LINKS} web URLs or email addresses to embed in your announcement.`,
+}: Props) {
   const slots = ensureSlots(links);
 
   const updateLink = (index: number, field: keyof LinkEntry, value: string) => {
@@ -51,10 +58,10 @@ export default function LinkEditor({ links, onChange }: Props) {
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-2">
-        Links to Embed
+        {label}
       </label>
       <p className="text-xs text-gray-500 mb-3">
-        Add up to {MAX_LINKS} web URLs or email addresses to embed in your announcement.
+        {description}
       </p>
       <div className="space-y-3">
         {slots.map((link, index) => {

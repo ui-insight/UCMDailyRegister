@@ -19,7 +19,13 @@ import ChangesList from '../components/editor/ChangesList';
 import SideBySideView from '../components/editor/SideBySideView';
 import SubmissionMeta from '../components/editor/SubmissionMeta';
 import RichBody from '../components/editor/RichBody';
+import LinkEditor, { type LinkEntry } from '../components/submission/LinkEditor';
 import { getSubmitterRole } from '../utils/submitterRole';
+import {
+  buildLinkedBody,
+  normalizedBodyLinks,
+  prepareBodyForEditing,
+} from '../utils/bodyLinks';
 import { Button, SegmentedToggle, Toast, useToast } from '../components/common';
 
 type Tab = 'original' | 'ai_edit' | 'editor';
@@ -58,6 +64,7 @@ export default function EditPage() {
   // Editor state
   const [editHeadline, setEditHeadline] = useState('');
   const [editBody, setEditBody] = useState('');
+  const [editLinks, setEditLinks] = useState<LinkEntry[]>([]);
   const [assignedEditor, setAssignedEditor] = useState('');
   const [editorialNotes, setEditorialNotes] = useState('');
   const isStaff = getSubmitterRole() === 'staff';
@@ -80,20 +87,28 @@ export default function EditPage() {
           const aiVersion = [...vers].reverse().find((v) => v.Version_Type === 'ai_suggested');
           const editorVersion = [...vers].reverse().find((v) => v.Version_Type === 'editor_final');
           if (editorVersion) {
+            const editable = prepareBodyForEditing(editorVersion.Body, sub.Links);
             setEditHeadline(editorVersion.Headline);
-            setEditBody(editorVersion.Body);
+            setEditBody(editable.body);
+            setEditLinks(editable.links);
             setActiveTab('editor');
           } else if (aiVersion) {
+            const editable = prepareBodyForEditing(aiVersion.Body, sub.Links);
             setEditHeadline(aiVersion.Headline);
-            setEditBody(aiVersion.Body);
+            setEditBody(editable.body);
+            setEditLinks(editable.links);
             setActiveTab('ai_edit');
           } else {
+            const editable = prepareBodyForEditing(sub.Original_Body, sub.Links);
             setEditHeadline(sub.Original_Headline);
-            setEditBody(sub.Original_Body);
+            setEditBody(editable.body);
+            setEditLinks(editable.links);
           }
         } catch {
+          const editable = prepareBodyForEditing(sub.Original_Body, sub.Links);
           setEditHeadline(sub.Original_Headline);
-          setEditBody(sub.Original_Body);
+          setEditBody(editable.body);
+          setEditLinks(editable.links);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load submission');
@@ -120,21 +135,29 @@ export default function EditPage() {
         const aiVersion = [...vers].reverse().find((v) => v.Version_Type === 'ai_suggested');
         const editorVersion = [...vers].reverse().find((v) => v.Version_Type === 'editor_final');
         if (editorVersion) {
+          const editable = prepareBodyForEditing(editorVersion.Body, sub.Links);
           setEditHeadline(editorVersion.Headline);
-          setEditBody(editorVersion.Body);
+          setEditBody(editable.body);
+          setEditLinks(editable.links);
           setActiveTab('editor');
         } else if (aiVersion) {
+          const editable = prepareBodyForEditing(aiVersion.Body, sub.Links);
           setEditHeadline(aiVersion.Headline);
-          setEditBody(aiVersion.Body);
+          setEditBody(editable.body);
+          setEditLinks(editable.links);
           setActiveTab('ai_edit');
         } else {
+          const editable = prepareBodyForEditing(sub.Original_Body, sub.Links);
           setEditHeadline(sub.Original_Headline);
-          setEditBody(sub.Original_Body);
+          setEditBody(editable.body);
+          setEditLinks(editable.links);
         }
       } catch {
         // No versions yet — that's fine
+        const editable = prepareBodyForEditing(sub.Original_Body, sub.Links);
         setEditHeadline(sub.Original_Headline);
-        setEditBody(sub.Original_Body);
+        setEditBody(editable.body);
+        setEditLinks(editable.links);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load submission');
@@ -154,9 +177,21 @@ export default function EditPage() {
       const result = editorInstructions === undefined
         ? await triggerAIEdit(id, newsletterType)
         : await triggerAIEdit(id, newsletterType, editorInstructions);
+      const editable = prepareBodyForEditing(
+        result.Edited_Body,
+        [
+          ...result.Embedded_Links.map((link, index) => ({
+            Url: link.url,
+            Anchor_Text: link.anchor_text,
+            Display_Order: index,
+          })),
+          ...(submission?.Links ?? []),
+        ],
+      );
       setAiEditResult(result);
       setEditHeadline(result.Edited_Headline);
-      setEditBody(result.Edited_Body);
+      setEditBody(editable.body);
+      setEditLinks(editable.links);
       setActiveTab('ai_edit');
       // Refresh data
       const sub = await getSubmission(id);
@@ -183,11 +218,15 @@ export default function EditPage() {
     setError(null);
     try {
       const aiVersion = [...versions].reverse().find((v) => v.Version_Type === 'ai_suggested');
+      const links = normalizedBodyLinks(editLinks);
       await saveEditorFinal(id, {
         Headline: editHeadline,
-        Body: editBody,
+        Body: buildLinkedBody(editBody, links),
         Headline_Case: aiVersion?.Headline_Case || undefined,
         Approve_For_Newsletter: approveForNewsletter,
+        ...((submission?.Links.length ?? 0) > 0 || links.length > 0
+          ? { Links: links }
+          : {}),
       });
       showToast(
         approveForNewsletter
@@ -541,6 +580,26 @@ export default function EditPage() {
                   headlineCase={aiVersion?.Headline_Case || null}
                 />
                 <BodyEditor value={editBody} onChange={setEditBody} />
+                <div className="border-t border-gray-100 pt-4">
+                  <LinkEditor
+                    links={editLinks}
+                    onChange={setEditLinks}
+                    label="Links and CTA text"
+                    description="Link text stays readable in the body while its destination is edited here. Add a secure web URL or an email address."
+                  />
+                </div>
+                {editLinks.some((link) => link.Url.trim()) && (
+                  <section
+                    aria-label="Newsletter body preview"
+                    className="rounded-md border border-gray-200 bg-gray-50 px-4 py-3"
+                  >
+                    <p className="mb-2 text-xs font-medium text-gray-500">Live preview</p>
+                    <RichBody
+                      text={buildLinkedBody(editBody, editLinks)}
+                      className="text-sm leading-6 text-gray-800"
+                    />
+                  </section>
+                )}
                 <div className="flex flex-col gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-medium text-gray-900">

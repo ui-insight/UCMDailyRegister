@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -316,6 +316,64 @@ describe('EditPage', () => {
     expect(
       await screen.findByText('Final version saved and approved for newsletter'),
     ).toBeInTheDocument();
+  });
+
+  it('shows live CTA links while keeping destination fields separately editable', async () => {
+    const user = userEvent.setup();
+    getSubmissionMock.mockResolvedValue(makeSubmission({
+      Links: [
+        {
+          Id: 'link-1',
+          Url: 'https://example.com/register',
+          Anchor_Text: 'Register now',
+          Display_Order: 0,
+        },
+      ],
+    }));
+    listEditVersionsMock.mockResolvedValue([
+      makeVersion({
+        Version_Type: 'editor_final',
+        Headline: 'Final event headline',
+        Body: 'Reserve a seat. <a href="https://example.com/register">Register now</a>.',
+      }),
+    ]);
+
+    renderEditPage();
+
+    const preview = await screen.findByRole('region', { name: 'Newsletter body preview' });
+    expect(within(preview).getByRole('link', { name: 'Register now' })).toHaveAttribute(
+      'href',
+      'https://example.com/register',
+    );
+    expect(screen.getByPlaceholderText('Enter body text...')).toHaveValue(
+      'Reserve a seat. Register now.',
+    );
+    expect(screen.getByPlaceholderText('Enter body text...')).not.toHaveValue(
+      expect.stringContaining('<a'),
+    );
+
+    await user.click(screen.getAllByRole('button', { name: 'Switch to email link' })[0]);
+    await user.type(screen.getByLabelText('Email address'), 'events@uidaho.edu');
+    const linkText = screen.getByLabelText("Link text (person's name or email address)");
+    await user.clear(linkText);
+    await user.type(linkText, 'UCM events');
+    await user.click(screen.getByRole('button', { name: /save draft/i }));
+
+    await waitFor(() => {
+      expect(saveEditorFinalMock).toHaveBeenCalledWith('submission-1', {
+        Headline: 'Final event headline',
+        Body: 'Reserve a seat. Register now.\n<a href="mailto:events@uidaho.edu">UCM events</a>',
+        Headline_Case: undefined,
+        Approve_For_Newsletter: false,
+        Links: [
+          {
+            Url: 'mailto:events@uidaho.edu',
+            Anchor_Text: 'UCM events',
+            Display_Order: 0,
+          },
+        ],
+      });
+    });
   });
 
   it('keeps the explicit draft action distinct from approval', async () => {
