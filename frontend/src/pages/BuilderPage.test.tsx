@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BuilderPage from './BuilderPage';
@@ -55,6 +55,31 @@ const myUiSections = [
   },
 ];
 
+const tdrSections = [
+  {
+    Id: 'section-employee-announcements',
+    Newsletter_Type: 'tdr' as const,
+    Name: 'Employee Announcements',
+    Slug: 'employee-announcements',
+    Display_Order: 9,
+    Description: null,
+    Requires_Image: false,
+    Image_Dimensions: null,
+    Is_Active: true,
+  },
+  {
+    Id: 'section-student-reminders',
+    Newsletter_Type: 'tdr' as const,
+    Name: 'Reminders for your students',
+    Slug: 'reminders-for-your-students',
+    Display_Order: 10,
+    Description: null,
+    Requires_Image: false,
+    Image_Dimensions: null,
+    Is_Active: true,
+  },
+];
+
 const newsletter = {
   Id: 'newsletter-1',
   Newsletter_Type: 'myui' as const,
@@ -64,6 +89,25 @@ const newsletter = {
   Updated_At: '2026-08-01T12:00:00Z',
   Items: [],
   External_Items: [],
+};
+
+const tdrNewsletter = {
+  ...newsletter,
+  Id: 'tdr-newsletter-1',
+  Newsletter_Type: 'tdr' as const,
+  Publish_Date: '2026-08-25',
+  Items: [
+    {
+      Id: 'newsletter-item-1',
+      Newsletter_Id: 'tdr-newsletter-1',
+      Submission_Id: 'submission-1',
+      Section_Id: 'section-employee-announcements',
+      Position: 0,
+      Final_Headline: 'Registration reminder',
+      Final_Body: 'Please remind students to register.',
+      Run_Number: 1,
+    },
+  ],
 };
 
 const academicDateItem = {
@@ -84,16 +128,42 @@ const academicDateItem = {
 beforeEach(() => {
   vi.clearAllMocks();
   newsletterApiMocks.listSections.mockImplementation(async (newsletterType?: string) => (
-    newsletterType === 'myui' ? myUiSections : []
+    newsletterType === 'myui' ? myUiSections : tdrSections
   ));
   newsletterApiMocks.listNewsletters.mockResolvedValue([]);
   newsletterApiMocks.listCalendarEvents.mockResolvedValue([]);
   newsletterApiMocks.listJobPostings.mockResolvedValue([]);
-  newsletterApiMocks.assembleNewsletter.mockResolvedValue(newsletter);
+  newsletterApiMocks.assembleNewsletter.mockImplementation(async (request) => (
+    request.Newsletter_Type === 'tdr' ? tdrNewsletter : newsletter
+  ));
   newsletterApiMocks.addAcademicDate.mockResolvedValue(academicDateItem);
   newsletterApiMocks.getNewsletter.mockResolvedValue({
     ...newsletter,
     External_Items: [academicDateItem],
+  });
+});
+
+describe('BuilderPage staff-only sections', () => {
+  it('shows student reminders after employee announcements and in the move menu', async () => {
+    const user = userEvent.setup();
+    render(<BuilderPage />);
+
+    const publishDateInput = document.querySelector<HTMLInputElement>('input[type="date"]');
+    expect(publishDateInput).not.toBeNull();
+    await user.clear(publishDateInput!);
+    await user.type(publishDateInput!, '2026-08-25');
+    await user.click(screen.getAllByRole('button', { name: 'Assemble Newsletter' })[0]);
+
+    const sectionHeadings = await screen.findAllByRole('heading', { level: 4 });
+    expect(sectionHeadings.map((heading) => heading.textContent)).toEqual([
+      'Employee Announcements',
+      'Reminders for your students',
+    ]);
+
+    const moveMenu = screen.getByTitle('Move to section');
+    expect(
+      within(moveMenu).getByRole('option', { name: 'Reminders for your students' }),
+    ).toHaveValue('section-student-reminders');
   });
 });
 

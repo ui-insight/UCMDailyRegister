@@ -136,6 +136,15 @@ afterEach(() => {
 });
 
 describe('SubmissionForm', () => {
+  it('does not expose staff-only Builder sections as announcement types', async () => {
+    render(<SubmissionForm />);
+
+    await screen.findByRole('option', { name: 'Faculty or Staff Announcement' });
+    expect(
+      screen.queryByRole('option', { name: 'Reminders for your students' }),
+    ).not.toBeInTheDocument();
+  });
+
   it('submits a standard announcement with links and scheduling notes', async () => {
     const user = userEvent.setup();
     render(<SubmissionForm />);
