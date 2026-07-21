@@ -236,6 +236,16 @@ class CalendarEventImportRequest(BaseModel):
     Event_End: datetime | None = None
 
 
+class AcademicDateImportRequest(BaseModel):
+    """A registrar date copied into a My UI newsletter issue."""
+
+    Academic_Date: date
+    Title: str = Field(..., min_length=1, max_length=500)
+    Description: str | None = Field(default=None, max_length=5000)
+
+    model_config = {"str_strip_whitespace": True}
+
+
 class JobPostingCandidateResponse(BaseModel):
     Source_Id: str
     Source_Type: str

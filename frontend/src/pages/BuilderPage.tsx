@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
+  addAcademicDate,
   addJobPosting,
   addCalendarEvent,
   listNewsletters,
@@ -27,7 +28,10 @@ import type {
 import type { NewsletterSection } from '../types/newsletter';
 import type { RecurringMessageIssueCandidate } from '../types/recurringMessage';
 import { EmptyState, Toast, useToast } from '../components/common';
-import { parseISODate, todayISO } from '../utils/date';
+import { parseISODate, todayISO, toISODate } from '../utils/date';
+
+const ACADEMIC_DATES_SOURCE_URL = 'https://www.uidaho.edu/registrar/dates-deadlines';
+const ACADEMIC_DATES_WINDOW_DAYS = 30;
 
 interface BuilderSectionItemBase {
   Id: string;
@@ -72,6 +76,13 @@ type BuilderSectionItem =
   | (BuilderSectionItemBase & {
     Kind: 'recurring_message';
     Source_Id: string;
+    Source_Type: string;
+  })
+  | (BuilderSectionItemBase & {
+    Kind: 'academic_date';
+    Source_Id: string;
+    Source_Url: string | null;
+    Event_Start: string | null;
     Source_Type: string;
   });
 
@@ -169,6 +180,10 @@ export default function BuilderPage() {
   const [calendarError, setCalendarError] = useState<string | null>(null);
   const [jobLoading, setJobLoading] = useState(false);
   const [jobError, setJobError] = useState<string | null>(null);
+  const [academicDate, setAcademicDate] = useState('');
+  const [academicTitle, setAcademicTitle] = useState('');
+  const [academicDescription, setAcademicDescription] = useState('');
+  const [academicSaving, setAcademicSaving] = useState(false);
   const [panelOpen, setPanelOpen] = useState({
     recurringMessages: false,
     calendarEvents: false,
@@ -396,6 +411,31 @@ export default function BuilderPage() {
       showToast('Job posting added');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add job posting');
+    }
+  };
+
+  const handleAddAcademicDate = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!newsletter || !academicDate || !academicTitle.trim()) return;
+
+    setAcademicSaving(true);
+    setError(null);
+    try {
+      await addAcademicDate(newsletter.Id, {
+        Academic_Date: academicDate,
+        Title: academicTitle.trim(),
+        Description: academicDescription.trim() || null,
+      });
+      const nl = await getNewsletter(newsletter.Id);
+      setNewsletter(nl);
+      setAcademicDate('');
+      setAcademicTitle('');
+      setAcademicDescription('');
+      showToast('Academic date added');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add academic date');
+    } finally {
+      setAcademicSaving(false);
     }
   };
 
@@ -647,7 +687,9 @@ export default function BuilderPage() {
         ? 'job_posting'
         : item.Source_Type === 'recurring_message'
           ? 'recurring_message'
-          : 'calendar_event',
+          : item.Source_Type === 'academic_date'
+            ? 'academic_date'
+            : 'calendar_event',
       Source_Url: item.Source_Url,
       Location: item.Location,
       Event_Start: item.Event_Start,
@@ -673,6 +715,13 @@ export default function BuilderPage() {
   );
 
   const sectionNameById = new Map(sections.map((section) => [section.Id, section.Name]));
+  const academicDateMax = newsletter
+    ? (() => {
+        const maxDate = parseISODate(newsletter.Publish_Date);
+        maxDate.setDate(maxDate.getDate() + ACADEMIC_DATES_WINDOW_DAYS);
+        return toISODate(maxDate);
+      })()
+    : '';
 
   const STATUS_COLORS: Record<string, string> = {
     draft: 'bg-status-muted-100 text-status-muted-800',
@@ -709,8 +758,11 @@ export default function BuilderPage() {
       <div className="bg-white rounded-lg shadow p-4 mb-6">
         <div className="flex gap-4 items-end flex-wrap">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Newsletter</label>
+            <label htmlFor="builder-newsletter-type" className="block text-xs text-gray-500 mb-1">
+              Newsletter
+            </label>
             <select
+              id="builder-newsletter-type"
               value={newsletterType}
               onChange={(e) => {
                 setNewsletterType(e.target.value as 'tdr' | 'myui');
@@ -723,8 +775,11 @@ export default function BuilderPage() {
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Publish Date</label>
+            <label htmlFor="builder-publish-date" className="block text-xs text-gray-500 mb-1">
+              Publish Date
+            </label>
             <input
+              id="builder-publish-date"
               type="date"
               value={publishDate}
               onChange={(e) => setPublishDate(e.target.value)}
@@ -1108,6 +1163,8 @@ export default function BuilderPage() {
                 const submissionItems = submissionItemsBySection.get(section.Id) || [];
                 const isOpen = sectionOpen[section.Id] ?? true;
                 const isDropSection = dragState?.overSectionId === section.Id;
+                const isAcademicDatesSection = newsletterType === 'myui'
+                  && section.Slug === 'academic-dates-and-deadlines';
                 return (
                   <div key={section.Id} className="bg-white rounded-lg shadow">
                     <button
@@ -1134,15 +1191,109 @@ export default function BuilderPage() {
                           isDropSection ? 'bg-ui-gold-50/70 ring-2 ring-inset ring-ui-gold-300' : ''
                         }`}
                       >
+                        {isAcademicDatesSection && (
+                          <div className="border-b border-gray-100 bg-ui-clearwater-50/50 p-4">
+                            <div className="flex flex-wrap items-start justify-between gap-3">
+                              <div>
+                                <h5 className="text-sm font-semibold text-gray-900">
+                                  Add from the Registrar calendar
+                                </h5>
+                                <p className="mt-1 max-w-2xl text-xs text-gray-600">
+                                  Copy the date and wording from the official calendar. My UI includes
+                                  deadlines from the publication date through the next 30 days.
+                                </p>
+                              </div>
+                              <a
+                                href={ACADEMIC_DATES_SOURCE_URL}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-xs font-medium text-ui-clearwater-700 hover:text-ui-clearwater-900"
+                              >
+                                Open Registrar calendar ↗
+                              </a>
+                            </div>
+                            <form
+                              className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-6"
+                              onSubmit={handleAddAcademicDate}
+                            >
+                              <div className="md:col-span-2">
+                                <label
+                                  htmlFor="academic-deadline-date"
+                                  className="block text-xs font-medium text-gray-700"
+                                >
+                                  Deadline date
+                                </label>
+                                <input
+                                  id="academic-deadline-date"
+                                  type="date"
+                                  min={newsletter.Publish_Date}
+                                  max={academicDateMax}
+                                  value={academicDate}
+                                  onChange={(event) => setAcademicDate(event.target.value)}
+                                  required
+                                  className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                                />
+                              </div>
+                              <div className="md:col-span-4">
+                                <label
+                                  htmlFor="academic-deadline-title"
+                                  className="block text-xs font-medium text-gray-700"
+                                >
+                                  Academic date or deadline
+                                </label>
+                                <input
+                                  id="academic-deadline-title"
+                                  type="text"
+                                  value={academicTitle}
+                                  onChange={(event) => setAcademicTitle(event.target.value)}
+                                  placeholder="Paste the deadline wording"
+                                  required
+                                  className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                                />
+                              </div>
+                              <div className="md:col-span-4">
+                                <label
+                                  htmlFor="academic-deadline-details"
+                                  className="block text-xs font-medium text-gray-700"
+                                >
+                                  Details (optional)
+                                </label>
+                                <textarea
+                                  id="academic-deadline-details"
+                                  rows={2}
+                                  value={academicDescription}
+                                  onChange={(event) => setAcademicDescription(event.target.value)}
+                                  placeholder="Paste any audience or term details that should appear in My UI"
+                                  className="mt-1 w-full resize-y rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                                />
+                              </div>
+                              <div className="flex items-end md:col-span-2">
+                                <button
+                                  type="submit"
+                                  disabled={academicSaving || !academicDate || !academicTitle.trim()}
+                                  className="w-full rounded-md bg-ui-gold-600 px-3 py-2 text-sm font-medium text-white hover:bg-ui-gold-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                  {academicSaving ? 'Adding...' : 'Add academic date'}
+                                </button>
+                              </div>
+                            </form>
+                          </div>
+                        )}
                         {items.length === 0 ? (
                           <div className="px-4 py-6">
                             {isDropIndicatorVisible(section.Id, 0) && (
                               <div className="mb-3 rounded-full bg-ui-gold-500 h-1.5 w-full" />
                             )}
                             <div className="rounded-md border border-dashed border-gray-200 px-4 py-4 text-center">
-                              <p className="text-xs font-medium text-gray-500">No items in this section</p>
+                              <p className="text-xs font-medium text-gray-500">
+                                {isAcademicDatesSection
+                                  ? 'No academic dates added'
+                                  : 'No items in this section'}
+                              </p>
                               <p className="mt-1 text-xs text-gray-400">
-                                Approved submissions and imports can be moved here before export.
+                                {isAcademicDatesSection
+                                  ? 'Use the form above to add a Registrar deadline, or move an approved submission here.'
+                                  : 'Approved submissions can be moved here before export.'}
                               </p>
                             </div>
                           </div>
@@ -1197,6 +1348,11 @@ export default function BuilderPage() {
                                               Recurring
                                             </span>
                                           )}
+                                          {item.Kind === 'academic_date' && (
+                                            <span className="inline-flex items-center rounded-full bg-ui-clearwater-100 px-2 py-0.5 text-[11px] font-medium text-ui-clearwater-800">
+                                              Academic date
+                                            </span>
+                                          )}
                                         </div>
                                         <p className="text-xs text-gray-600 mt-1 line-clamp-2">
                                           {item.Final_Body.replace(/<[^>]+>/g, '')}
@@ -1220,6 +1376,16 @@ export default function BuilderPage() {
                                         )}
                                         {item.Kind === 'job_posting' && item.Location && (
                                           <p className="text-xs text-gray-400 mt-1">{item.Location}</p>
+                                        )}
+                                        {item.Kind === 'academic_date' && item.Source_Url && (
+                                          <a
+                                            href={item.Source_Url}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="mt-1 inline-block text-xs text-ui-clearwater-700 hover:text-ui-clearwater-900"
+                                          >
+                                            View Registrar source
+                                          </a>
                                         )}
                                       </div>
                                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
