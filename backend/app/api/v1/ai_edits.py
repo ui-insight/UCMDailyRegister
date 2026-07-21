@@ -290,7 +290,8 @@ async def save_editor_final(
 ):
     """Save the editor's final version of a submission.
 
-    This creates an 'editor_final' EditVersion and updates the submission status.
+    This creates an 'editor_final' EditVersion and updates the submission status
+    to either in review or approved in the same transaction.
     The submitted Original_Headline/Original_Body are never modified — the
     edited text lives in the version history, and newsletter assembly prefers
     the 'editor_final' version via _get_best_text.
@@ -331,7 +332,7 @@ async def save_editor_final(
     )
     session.add(version)
 
-    submission.Status = "in_review"
+    submission.Status = "approved" if data.Approve_For_Newsletter else "in_review"
     await session.commit()
     await session.refresh(version)
     return version

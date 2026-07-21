@@ -11,8 +11,7 @@ describe('AIEditControls', () => {
     render(
       <AIEditControls
         onTriggerEdit={onTriggerEdit}
-        onAcceptEdit={vi.fn()}
-        onRejectEdit={vi.fn()}
+        onReviewFinalEdit={vi.fn()}
         loading={false}
         hasAIEdit={false}
         targetNewsletter="both"
@@ -26,16 +25,14 @@ describe('AIEditControls', () => {
     expect(onTriggerEdit).toHaveBeenNthCalledWith(2, 'myui');
   });
 
-  it('shows review actions and confidence after an AI edit exists', async () => {
+  it('routes an AI suggestion through final review without a separate accept action', async () => {
     const user = userEvent.setup();
-    const onAcceptEdit = vi.fn();
-    const onRejectEdit = vi.fn();
+    const onReviewFinalEdit = vi.fn();
 
     render(
       <AIEditControls
         onTriggerEdit={vi.fn()}
-        onAcceptEdit={onAcceptEdit}
-        onRejectEdit={onRejectEdit}
+        onReviewFinalEdit={onReviewFinalEdit}
         loading={false}
         hasAIEdit
         targetNewsletter="tdr"
@@ -44,12 +41,11 @@ describe('AIEditControls', () => {
     );
 
     expect(screen.getByText('84%')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /accept ai edit/i })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /accept ai edit/i }));
-    await user.click(screen.getByRole('button', { name: /edit manually/i }));
+    await user.click(screen.getByRole('button', { name: /continue to final edit/i }));
 
-    expect(onAcceptEdit).toHaveBeenCalledOnce();
-    expect(onRejectEdit).toHaveBeenCalledOnce();
+    expect(onReviewFinalEdit).toHaveBeenCalledOnce();
   });
 
   it('sends targeted editor feedback when revising an AI edit', async () => {
@@ -59,8 +55,7 @@ describe('AIEditControls', () => {
     render(
       <AIEditControls
         onTriggerEdit={onTriggerEdit}
-        onAcceptEdit={vi.fn()}
-        onRejectEdit={vi.fn()}
+        onReviewFinalEdit={vi.fn()}
         loading={false}
         hasAIEdit
         targetNewsletter="tdr"

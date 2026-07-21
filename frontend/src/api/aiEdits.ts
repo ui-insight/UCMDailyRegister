@@ -56,7 +56,12 @@ export async function getEditVersion(
 
 export async function saveEditorFinal(
   submissionId: string,
-  data: { Headline: string; Body: string; Headline_Case?: string },
+  data: {
+    Headline: string;
+    Body: string;
+    Headline_Case?: string;
+    Approve_For_Newsletter?: boolean;
+  },
 ): Promise<EditVersion> {
   return apiFetch<EditVersion>(`/ai-edits/${submissionId}/finalize`, {
     method: 'POST',

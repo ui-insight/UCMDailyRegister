@@ -379,3 +379,48 @@ class TestFinalizePreservesOriginal:
         version_types = [v["Version_Type"] for v in versions_resp.json()]
         assert version_types.count("original") == 1
         assert version_types.count("editor_final") == 2
+
+    async def test_finalize_and_approve_is_atomic_and_preserves_original(
+        self,
+        client: AsyncClient,
+        staff_headers: dict[str, str],
+    ):
+        submission_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(),
+        )
+        assert submission_resp.status_code == 201
+        created = submission_resp.json()
+        submission_id = created["Id"]
+
+        finalize_resp = await client.post(
+            f"/api/v1/ai-edits/{submission_id}/finalize",
+            json={
+                "Headline": "Approved editor headline",
+                "Body": "Approved editor body.",
+                "Approve_For_Newsletter": True,
+            },
+            headers=staff_headers,
+        )
+
+        assert finalize_resp.status_code == 200
+        assert finalize_resp.json()["Version_Type"] == "editor_final"
+
+        detail_resp = await client.get(
+            f"/api/v1/submissions/{submission_id}",
+            headers=staff_headers,
+        )
+        assert detail_resp.status_code == 200
+        detail = detail_resp.json()
+        assert detail["Status"] == "approved"
+        assert detail["Original_Headline"] == created["Original_Headline"]
+        assert detail["Original_Body"] == created["Original_Body"]
+
+        versions_resp = await client.get(
+            f"/api/v1/ai-edits/{submission_id}/versions",
+            headers=staff_headers,
+        )
+        assert [version["Version_Type"] for version in versions_resp.json()] == [
+            "original",
+            "editor_final",
+        ]

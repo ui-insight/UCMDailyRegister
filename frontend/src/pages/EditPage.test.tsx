@@ -251,7 +251,7 @@ describe('EditPage', () => {
     expect(screen.getByText('AI edit complete')).toBeInTheDocument();
   });
 
-  it('accepts the latest AI version as the final edit', async () => {
+  it('reviews and approves the latest AI version through Final Edit', async () => {
     const user = userEvent.setup();
     const aiVersion = makeVersion({
       Headline: 'Accepted AI headline',
@@ -263,19 +263,30 @@ describe('EditPage', () => {
     renderEditPage();
 
     await screen.findByText('Accepted AI headline');
-    await user.click(screen.getByRole('button', { name: /accept ai edit/i }));
+    expect(screen.queryByRole('button', { name: /accept ai edit/i })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /continue to final edit/i }));
+    expect(screen.getByDisplayValue('Accepted AI headline')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Accepted AI body.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /save and approve/i }));
 
     await waitFor(() => {
       expect(saveEditorFinalMock).toHaveBeenCalledWith('submission-1', {
         Headline: 'Accepted AI headline',
         Body: 'Accepted AI body.',
         Headline_Case: 'title_case',
+        Approve_For_Newsletter: true,
       });
     });
-    expect(await screen.findByText('Edit accepted and finalized')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Final version saved and approved for newsletter'),
+    ).toBeInTheDocument();
+    expect(updateSubmissionMock).not.toHaveBeenCalledWith(
+      'submission-1',
+      expect.objectContaining({ Status: 'approved' }),
+    );
   });
 
-  it('saves manual final edits from the editor tab', async () => {
+  it('saves and approves manual final edits with one action', async () => {
     const user = userEvent.setup();
 
     renderEditPage();
@@ -292,16 +303,41 @@ describe('EditPage', () => {
     await user.clear(body);
     await user.type(body, 'Manual final body.');
     await user.tab();
-    await user.click(screen.getByRole('button', { name: /save final version/i }));
+    await user.click(screen.getByRole('button', { name: /save and approve/i }));
 
     await waitFor(() => {
       expect(saveEditorFinalMock).toHaveBeenCalledWith('submission-1', {
         Headline: 'Manual final headline',
         Body: 'Manual final body.',
         Headline_Case: undefined,
+        Approve_For_Newsletter: true,
       });
     });
-    expect(await screen.findByText('Final version saved')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Final version saved and approved for newsletter'),
+    ).toBeInTheDocument();
+  });
+
+  it('keeps the explicit draft action distinct from approval', async () => {
+    const user = userEvent.setup();
+
+    renderEditPage();
+
+    await screen.findByText('Original campus headline');
+    await user.click(screen.getByRole('button', { name: /final edit/i }));
+    await user.click(screen.getByRole('button', { name: /save draft/i }));
+
+    await waitFor(() => {
+      expect(saveEditorFinalMock).toHaveBeenCalledWith('submission-1', {
+        Headline: 'Original campus headline',
+        Body: 'Original body copy for the newsletter.',
+        Headline_Case: undefined,
+        Approve_For_Newsletter: false,
+      });
+    });
+    expect(
+      await screen.findByText('Draft saved. Submission remains in review'),
+    ).toBeInTheDocument();
   });
 
   it('shows load errors and lets staff return to the dashboard', async () => {
