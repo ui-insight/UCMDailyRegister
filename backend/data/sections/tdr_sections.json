@@ -61,5 +61,12 @@
     "display_order": 9,
     "description": "Recurring notices and reminders: tobacco-free, spirit days, sabbatical/tenure, risk control, recycling, etc.",
     "requires_image": false
+  },
+  {
+    "name": "Reminders for your students",
+    "slug": "reminders-for-your-students",
+    "display_order": 10,
+    "description": "Staff-curated reminders for employees to share with students. Items are added or moved here by UCM editors and are not a submitter category.",
+    "requires_image": false
   }
 ]
