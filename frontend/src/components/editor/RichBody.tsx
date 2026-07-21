@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { isSafeLinkDestination } from '../../utils/bodyLinks';
 
 interface RichBodyProps {
   text: string;
@@ -20,7 +21,11 @@ export default function RichBody({ text, className = '' }: RichBodyProps) {
       if (match.index > lastIndex) {
         result.push({ type: 'text', text: text.slice(lastIndex, match.index) });
       }
-      result.push({ type: 'link', text: match[2], href: match[1] });
+      result.push(
+        isSafeLinkDestination(match[1])
+          ? { type: 'link', text: match[2], href: match[1] }
+          : { type: 'text', text: match[2] },
+      );
       lastIndex = match.index + match[0].length;
     }
 
@@ -38,9 +43,9 @@ export default function RichBody({ text, className = '' }: RichBodyProps) {
           <a
             key={i}
             href={part.href}
-            target="_blank"
+            target={part.href?.startsWith('mailto:') ? undefined : '_blank'}
             rel="noopener noreferrer"
-            className="text-blue-600 hover:underline"
+            className="text-ui-clearwater-700 underline decoration-ui-clearwater-300 underline-offset-2 hover:text-ui-clearwater-900"
           >
             {part.text}
           </a>

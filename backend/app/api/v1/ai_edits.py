@@ -14,7 +14,7 @@ from sqlalchemy.orm import selectinload
 from app.config import settings
 from app.api.deps import get_db, require_staff
 from app.db.engine import async_session_factory
-from app.models.submission import Submission
+from app.models.submission import Submission, SubmissionLink
 from app.models.edit_history import EditVersion
 from app.services.ai.factory import get_llm_provider
 from app.services.ai.editor import AIEditor, AIEditError, EditResult
@@ -331,6 +331,22 @@ async def save_editor_final(
         Headline_Case=data.Headline_Case,
     )
     session.add(version)
+
+    if data.Links is not None:
+        await session.execute(
+            sa.delete(SubmissionLink).where(
+                SubmissionLink.Submission_Id == submission_id,
+            )
+        )
+        for index, link_data in enumerate(data.Links):
+            session.add(
+                SubmissionLink(
+                    Submission_Id=submission_id,
+                    Url=link_data.Url,
+                    Anchor_Text=link_data.Anchor_Text,
+                    Display_Order=link_data.Display_Order or index,
+                )
+            )
 
     submission.Status = "approved" if data.Approve_For_Newsletter else "in_review"
     await session.commit()

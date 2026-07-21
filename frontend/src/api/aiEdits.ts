@@ -61,6 +61,11 @@ export async function saveEditorFinal(
     Body: string;
     Headline_Case?: string;
     Approve_For_Newsletter?: boolean;
+    Links?: Array<{
+      Url: string;
+      Anchor_Text?: string;
+      Display_Order?: number;
+    }>;
   },
 ): Promise<EditVersion> {
   return apiFetch<EditVersion>(`/ai-edits/${submissionId}/finalize`, {

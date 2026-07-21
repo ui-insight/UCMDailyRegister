@@ -16,6 +16,7 @@ const newsletterApiMocks = vi.hoisted(() => ({
   removeNewsletterExternalItem: vi.fn(),
   removeNewsletterItem: vi.fn(),
   reorderNewsletterItems: vi.fn(),
+  updateNewsletterItem: vi.fn(),
   updateNewsletterStatus: vi.fn(),
 }));
 
@@ -104,7 +105,7 @@ const tdrNewsletter = {
       Section_Id: 'section-employee-announcements',
       Position: 0,
       Final_Headline: 'Registration reminder',
-      Final_Body: 'Please remind students to register.',
+      Final_Body: 'Please remind students to register. This is the complete approved entry. <a href="https://example.com/register">Review registration details</a>.',
       Run_Number: 1,
     },
   ],
@@ -164,6 +165,54 @@ describe('BuilderPage staff-only sections', () => {
     expect(
       within(moveMenu).getByRole('option', { name: 'Reminders for your students' }),
     ).toHaveValue('section-student-reminders');
+  });
+
+  it('shows the full approved entry and saves manual edits in place', async () => {
+    const user = userEvent.setup();
+    newsletterApiMocks.getNewsletter.mockResolvedValue(tdrNewsletter);
+    newsletterApiMocks.updateNewsletterItem.mockResolvedValue({
+      ...tdrNewsletter.Items[0],
+      Final_Headline: 'Updated registration reminder',
+      Final_Body: 'Updated approved copy. <a href="https://example.com/register">Review registration details</a>.',
+    });
+    render(<BuilderPage />);
+
+    const publishDateInput = document.querySelector<HTMLInputElement>('input[type="date"]');
+    expect(publishDateInput).not.toBeNull();
+    await user.clear(publishDateInput!);
+    await user.type(publishDateInput!, '2026-08-25');
+    await user.click(screen.getAllByRole('button', { name: 'Assemble Newsletter' })[0]);
+
+    expect(await screen.findByText(/This is the complete approved entry/)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Review registration details' })).toHaveAttribute(
+      'href',
+      'https://example.com/register',
+    );
+
+    await user.click(screen.getByRole('button', { name: /edit registration reminder/i }));
+    const headline = screen.getByLabelText('Newsletter headline');
+    const body = screen.getByLabelText('Newsletter body');
+    expect(body).toHaveValue(
+      'Please remind students to register. This is the complete approved entry. Review registration details.',
+    );
+    expect(body).not.toHaveValue(expect.stringContaining('<a'));
+
+    await user.clear(headline);
+    await user.type(headline, 'Updated registration reminder');
+    await user.clear(body);
+    await user.type(body, 'Updated approved copy. Review registration details.');
+    await user.click(screen.getByRole('button', { name: 'Save newsletter text' }));
+
+    await waitFor(() => {
+      expect(newsletterApiMocks.updateNewsletterItem).toHaveBeenCalledWith(
+        'tdr-newsletter-1',
+        'newsletter-item-1',
+        {
+          Final_Headline: 'Updated registration reminder',
+          Final_Body: 'Updated approved copy. <a href="https://example.com/register">Review registration details</a>.',
+        },
+      );
+    });
   });
 });
 

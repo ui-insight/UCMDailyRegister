@@ -38,6 +38,33 @@ class TestSubmissionCRUD:
         assert len(body["Links"]) == 1
         assert body["Links"][0]["Url"] == "https://example.com"
 
+    async def test_create_submission_normalizes_email_link(self, client: AsyncClient):
+        data = make_submission_data(
+            Links=[{"Url": "contact@uidaho.edu", "Anchor_Text": "UCM contact"}]
+        )
+
+        resp = await client.post("/api/v1/submissions/", json=data)
+
+        assert resp.status_code == 201
+        assert resp.json()["Links"][0]["Url"] == "mailto:contact@uidaho.edu"
+
+    @pytest.mark.parametrize(
+        "unsafe_url",
+        ["http://example.com", "javascript:alert(1)", "ftp://example.com/file"],
+    )
+    async def test_create_submission_rejects_unsafe_link_schemes(
+        self,
+        client: AsyncClient,
+        unsafe_url: str,
+    ):
+        data = make_submission_data(
+            Links=[{"Url": unsafe_url, "Anchor_Text": "Unsafe link"}]
+        )
+
+        resp = await client.post("/api/v1/submissions/", json=data)
+
+        assert resp.status_code == 422
+
     async def test_create_submission_with_schedule(self, client: AsyncClient):
         data = make_submission_data(
             Schedule_Requests=[{"Requested_Date": "2026-03-15", "Repeat_Count": 2}]
@@ -316,7 +343,19 @@ class TestSubmissionCRUD:
 @pytest.mark.asyncio
 @freeze_time(FROZEN_TODAY)
 class TestSubmissionLinks:
-    async def test_add_link(self, client: AsyncClient):
+    async def test_add_link(self, client: AsyncClient, staff_headers: dict[str, str]):
+        create_resp = await client.post("/api/v1/submissions/", json=make_submission_data())
+        sub_id = create_resp.json()["Id"]
+
+        resp = await client.post(
+            f"/api/v1/submissions/{sub_id}/links",
+            json={"Url": "https://test.com", "Anchor_Text": "Test"},
+            headers=staff_headers,
+        )
+        assert resp.status_code == 201
+        assert resp.json()["Url"] == "https://test.com"
+
+    async def test_public_cannot_add_link_to_existing_submission(self, client: AsyncClient):
         create_resp = await client.post("/api/v1/submissions/", json=make_submission_data())
         sub_id = create_resp.json()["Id"]
 
@@ -324,8 +363,8 @@ class TestSubmissionLinks:
             f"/api/v1/submissions/{sub_id}/links",
             json={"Url": "https://test.com", "Anchor_Text": "Test"},
         )
-        assert resp.status_code == 201
-        assert resp.json()["Url"] == "https://test.com"
+
+        assert resp.status_code == 403
 
     async def test_delete_link(self, client: AsyncClient, staff_headers: dict[str, str]):
         data = make_submission_data(

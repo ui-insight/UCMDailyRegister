@@ -227,7 +227,10 @@ async def delete_submission(
 
 @router.post("/{submission_id}/links", response_model=LinkResponse, status_code=201)
 async def add_link(
-    submission_id: str, data: LinkCreate, db: AsyncSession = Depends(get_db)
+    submission_id: str,
+    data: LinkCreate,
+    db: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
 ):
     link = await submission_service.add_link(
         db, submission_id, url=data.Url, anchor_text=data.Anchor_Text, display_order=data.Display_Order,

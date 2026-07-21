@@ -1,15 +1,49 @@
+import re
 from datetime import date, datetime
+from urllib.parse import urlsplit
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 # --- Link schemas ---
 
+EMAIL_ADDRESS_PATTERN = re.compile(
+    r"^[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@"
+    r"[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?"
+    r"(?:\.[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?)+$",
+    re.IGNORECASE,
+)
+
 
 class LinkCreate(BaseModel):
-    Url: str
-    Anchor_Text: str | None = None
+    Url: str = Field(..., min_length=1, max_length=2048)
+    Anchor_Text: str | None = Field(None, max_length=500)
     Display_Order: int = 0
+
+    @field_validator("Url", mode="before")
+    @classmethod
+    def validate_and_normalize_url(cls, value: object) -> str:
+        if not isinstance(value, str):
+            raise ValueError("Link destination must be a URL or email address")
+
+        normalized = value.strip()
+        if EMAIL_ADDRESS_PATTERN.fullmatch(normalized):
+            return f"mailto:{normalized}"
+
+        parsed = urlsplit(normalized)
+        if parsed.scheme == "https" and parsed.netloc and not (
+            parsed.username or parsed.password
+        ):
+            return normalized
+        if (
+            parsed.scheme == "mailto"
+            and EMAIL_ADDRESS_PATTERN.fullmatch(parsed.path)
+            and not parsed.query
+            and not parsed.fragment
+        ):
+            return f"mailto:{parsed.path}"
+
+        raise ValueError("Link destination must use https:// or be an email address")
 
 
 class LinkResponse(BaseModel):
@@ -86,7 +120,7 @@ class SubmissionCreate(BaseModel):
     Survey_End_Date: date | None = None
     Show_In_SLC_Calendar: bool = False
     Event_Classification: str | None = Field(None, pattern=r"^(strategic|signature)$")
-    Links: list[LinkCreate] = []
+    Links: list[LinkCreate] = Field(default_factory=list, max_length=3)
     Schedule_Requests: list[ScheduleRequestCreate] = Field(..., min_length=1)
 
 
