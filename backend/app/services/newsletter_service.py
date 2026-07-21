@@ -414,6 +414,11 @@ def get_job_postings_section_slug(newsletter_type: str) -> str:
     return "job-opportunities" if newsletter_type == "tdr" else "help-wanted"
 
 
+def get_academic_dates_section_slug() -> str:
+    """Return the My UI section slug used for manually imported registrar dates."""
+    return "academic-dates-and-deadlines"
+
+
 def _get_best_text(submission: Submission) -> tuple[str, str]:
     """Get the best available headline/body from edit versions."""
     if submission.Edit_Versions:

@@ -631,6 +631,94 @@ class TestCalendarEventEndpoints:
 
 
 @pytest.mark.asyncio
+class TestAcademicDateEndpoints:
+    async def test_add_myui_academic_date_from_registrar_copy(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+        staff_headers: dict[str, str],
+    ):
+        section = NewsletterSection(
+            Newsletter_Type="myui",
+            Name="Academic Dates and Deadlines",
+            Slug="academic-dates-and-deadlines",
+            Display_Order=5,
+            Is_Active=True,
+        )
+        db.add(section)
+        await db.commit()
+
+        create_resp = await client.post(
+            "/api/v1/newsletters",
+            json=make_newsletter_data(
+                Newsletter_Type="myui",
+                Publish_Date="2026-08-24",
+            ),
+            headers=staff_headers,
+        )
+        newsletter_id = create_resp.json()["Id"]
+
+        response = await client.post(
+            f"/api/v1/newsletters/{newsletter_id}/academic-dates",
+            json={
+                "Academic_Date": "2026-09-02",
+                "Title": "Register, add or wait list without permission",
+                "Description": "Full-term deadline.",
+            },
+            headers=staff_headers,
+        )
+
+        assert response.status_code == 201
+        body = response.json()
+        assert body["Section_Id"] == section.Id
+        assert body["Source_Type"] == "academic_date"
+        assert body["Source_Url"] == "https://www.uidaho.edu/registrar/dates-deadlines"
+        assert body["Event_Start"] == "2026-09-02T00:00:00"
+        assert body["Final_Headline"] == (
+            "Wednesday, Sept. 2 — Register, add or wait list without permission"
+        )
+        assert "Full-term deadline." in body["Final_Body"]
+
+    async def test_rejects_academic_date_outside_myui_30_day_window(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+        staff_headers: dict[str, str],
+    ):
+        db.add(
+            NewsletterSection(
+                Newsletter_Type="myui",
+                Name="Academic Dates and Deadlines",
+                Slug="academic-dates-and-deadlines",
+                Display_Order=5,
+                Is_Active=True,
+            )
+        )
+        await db.commit()
+        create_resp = await client.post(
+            "/api/v1/newsletters",
+            json=make_newsletter_data(
+                Newsletter_Type="myui",
+                Publish_Date="2026-08-24",
+            ),
+            headers=staff_headers,
+        )
+
+        response = await client.post(
+            f"/api/v1/newsletters/{create_resp.json()['Id']}/academic-dates",
+            json={
+                "Academic_Date": "2026-09-24",
+                "Title": "Outside the newsletter window",
+                "Description": None,
+            },
+            headers=staff_headers,
+        )
+
+        assert response.status_code == 422
+        assert "30 days" in response.json()["detail"]
+
+
+@pytest.mark.asyncio
 class TestJobPostingEndpoints:
     async def test_list_job_posting_candidates(
         self,

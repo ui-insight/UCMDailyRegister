@@ -167,6 +167,20 @@ export async function addCalendarEvent(
   });
 }
 
+export async function addAcademicDate(
+  newsletterId: string,
+  data: {
+    Academic_Date: string;
+    Title: string;
+    Description?: string | null;
+  },
+): Promise<NewsletterExternalItemResponse> {
+  return apiFetch<NewsletterExternalItemResponse>(`/newsletters/${newsletterId}/academic-dates`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
 export async function listJobPostings(
   newsletterId: string,
 ): Promise<JobPostingCandidate[]> {
