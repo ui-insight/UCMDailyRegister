@@ -6,6 +6,8 @@ the app must survive a redeploy. SEED_OVERWRITE=1 deliberately resets those
 fields to the JSON seed files.
 """
 
+from datetime import time
+
 import pytest
 from sqlalchemy import select
 
@@ -115,3 +117,45 @@ class TestSeed:
             StyleRule, StyleRule.Rule_Set == rule_key[0], StyleRule.Rule_Key == rule_key[1]
         )
         assert rule.Rule_Text == original_text
+
+    async def test_seed_overwrite_resets_full_schedule_config(
+        self, monkeypatch: pytest.MonkeyPatch
+    ):
+        await seed_everything()
+
+        async with TestSession() as session:
+            config = await get_one(
+                ScheduleConfig,
+                ScheduleConfig.Newsletter_Type == "myui",
+                ScheduleConfig.Mode == "summer",
+            )
+            config.Submission_Deadline_Description = "Stale deployed value"
+            config.Deadline_Day_Of_Week = None
+            config.Deadline_Time = time(9, 30)
+            config.Publish_Day_Of_Week = None
+            config.Is_Daily = True
+            config.Active_Start_Month = None
+            config.Active_End_Month = None
+            config.Holiday_Shift_Enabled = True
+            session.add(config)
+            await session.commit()
+
+        monkeypatch.setenv("SEED_OVERWRITE", "1")
+        async with TestSession() as session:
+            await seed.seed_schedule_configs(session)
+
+        config = await get_one(
+            ScheduleConfig,
+            ScheduleConfig.Newsletter_Type == "myui",
+            ScheduleConfig.Mode == "summer",
+        )
+        assert config.Submission_Deadline_Description == (
+            "Submissions due by noon Wednesday for Monday's edition"
+        )
+        assert config.Deadline_Day_Of_Week == 2
+        assert config.Deadline_Time == time(12, 0)
+        assert config.Publish_Day_Of_Week == 0
+        assert config.Is_Daily is False
+        assert config.Active_Start_Month == 6
+        assert config.Active_End_Month == 7
+        assert config.Holiday_Shift_Enabled is False
