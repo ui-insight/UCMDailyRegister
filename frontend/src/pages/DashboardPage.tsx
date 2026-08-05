@@ -10,7 +10,7 @@ import WeekOverview from '../components/dashboard/WeekOverview';
 import DayDetail from '../components/dashboard/DayDetail';
 import { getPrimaryOccurrenceDate } from '../utils/submissionOccurrences';
 import { Button, Card, EmptyState, SegmentedToggle } from '../components/common';
-import { toISODate } from '../utils/date';
+import { parseAPIDateTime, toISODate } from '../utils/date';
 
 const STATUS_COLORS: Record<string, string> = {
   new: 'bg-status-info-100 text-status-info-800',
@@ -287,9 +287,25 @@ export default function DashboardPage() {
       </Card>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded-lg mb-4 flex items-center justify-between">
+        <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded-lg mb-4 flex items-center justify-between gap-4">
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="ml-4 text-red-400 hover:text-red-600">&times;</button>
+          <div className="flex shrink-0 items-center gap-3">
+            <button
+              type="button"
+              onClick={() => void fetchData()}
+              className="rounded-md border border-red-300 bg-white px-3 py-1.5 font-medium text-red-700 hover:bg-red-100"
+            >
+              Retry
+            </button>
+            <button
+              type="button"
+              aria-label="Dismiss error"
+              onClick={() => setError(null)}
+              className="text-red-400 hover:text-red-600"
+            >
+              &times;
+            </button>
+          </div>
         </div>
       )}
 
@@ -377,9 +393,7 @@ export default function DashboardPage() {
                     <span>{sub.Submitter_Name}</span>
                     <span aria-hidden="true" className="text-gray-300">·</span>
                     <span>
-                      {new Date(
-                        sub.Created_At.endsWith('Z') ? sub.Created_At : sub.Created_At + 'Z',
-                      ).toLocaleDateString()}
+                      {parseAPIDateTime(sub.Created_At).toLocaleDateString()}
                     </span>
                     {sub.Schedule_Requests.length > 0 && (
                       <>

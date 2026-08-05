@@ -12,6 +12,7 @@ import type {
   ProductFeedback,
 } from '../types/feedback';
 import { buildGitHubIssueUrl } from '../utils/feedback';
+import { parseAPIDateTime } from '../utils/date';
 import { getSubmitterRole } from '../utils/submitterRole';
 import { Button, Card, EmptyState, Toast, useToast } from '../components/common';
 
@@ -51,7 +52,7 @@ const NOTIFICATION_CLASSES: Record<FeedbackNotificationStatus, string> = {
 };
 
 function formatDate(value: string) {
-  return new Date(value).toLocaleString('en-US', {
+  return parseAPIDateTime(value).toLocaleString('en-US', {
     month: 'short',
     day: 'numeric',
     hour: 'numeric',

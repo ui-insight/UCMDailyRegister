@@ -145,6 +145,21 @@ beforeEach(() => {
 });
 
 describe('BuilderPage staff-only sections', () => {
+  it('shows an actionable retry when builder metadata cannot be reached', async () => {
+    const user = userEvent.setup();
+    newsletterApiMocks.listSections.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+
+    render(<BuilderPage />);
+
+    expect(await screen.findByText(/Builder data could not be loaded.*Failed to fetch/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+
+    await waitFor(() => {
+      expect(newsletterApiMocks.listSections).toHaveBeenCalledTimes(2);
+    });
+    expect(screen.queryByText(/Builder data could not be loaded/i)).not.toBeInTheDocument();
+  });
+
   it('shows student reminders after employee announcements and in the move menu', async () => {
     const user = userEvent.setup();
     render(<BuilderPage />);

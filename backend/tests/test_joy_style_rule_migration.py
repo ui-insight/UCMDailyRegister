@@ -116,6 +116,10 @@ def test_migration_values_match_the_style_rule_seed_files():
         key = (rule["rule_set"], rule["rule_key"])
         assert seeded[key]["category"] == rule["category"]
         assert seeded[key]["rule_text"] == rule["rule_text"]
-        assert seeded[key]["severity"] == rule["severity"]
+        # The August follow-up migration promotes the repeatedly missed event
+        # ordering rule from warning to error. Its dedicated regression test
+        # verifies the latest seed value; all other July values remain exact.
+        if key != ("shared", "event_detail_ordering"):
+            assert seeded[key]["severity"] == rule["severity"]
 
     assert ("myui", "title_case") not in seeded
