@@ -1,6 +1,7 @@
 """AI Editor orchestrator — coordinates style rules, LLM calls, and post-processing."""
 
 import logging
+import re
 from dataclasses import dataclass, field
 
 import sqlalchemy as sa
@@ -23,6 +24,31 @@ from app.utils.text import (
 from app.utils.hyperlinks import parse_submitter_notes
 
 logger = logging.getLogger(__name__)
+
+_HTML_OR_ENTITY_TOKEN = re.compile(
+    r"(<[^>]*>|&(?:#\d+|#x[0-9a-f]+|[a-z][a-z0-9]+);)",
+    re.IGNORECASE,
+)
+
+
+def enforce_no_semicolons_in_prose(body: str) -> tuple[str, bool]:
+    """Replace prose semicolons while preserving HTML tags, URLs and entities."""
+    parts = _HTML_OR_ENTITY_TOKEN.split(body)
+    changed = False
+
+    for index in range(0, len(parts), 2):
+        prose = parts[index]
+        if ";" not in prose:
+            continue
+        changed = True
+        prose = re.sub(
+            r";\s*([a-z])",
+            lambda match: f". {match.group(1).upper()}",
+            prose,
+        )
+        parts[index] = prose.replace(";", ".")
+
+    return "".join(parts), changed
 
 
 class AIEditError(Exception):
@@ -170,10 +196,25 @@ class AIEditor:
 
         edited_headline = ai_result.get("edited_headline", submission.Original_Headline)
         edited_body = ai_result.get("edited_body", submission.Original_Body)
-        changes_made = ai_result.get("changes_made", [])
+        changes_made = list(ai_result.get("changes_made", []) or [])
         ai_flags = ai_result.get("flags", [])
         embedded_links = ai_result.get("embedded_links", [])
         confidence = ai_result.get("confidence", 0.5)
+
+        short_sentence_rule_active = any(
+            rule["rule_key"] == "short_sentences" for rule in style_rules
+        )
+        edited_body, replaced_semicolons = (
+            enforce_no_semicolons_in_prose(edited_body)
+            if short_sentence_rule_active
+            else (edited_body, False)
+        )
+        if replaced_semicolons:
+            cleanup_description = (
+                "Replaced semicolons with periods to enforce the short-sentence rule"
+            )
+            if cleanup_description not in changes_made:
+                changes_made.append(cleanup_description)
 
         if headline_case == "sentence_case":
             edited_headline = to_sentence_case(edited_headline)

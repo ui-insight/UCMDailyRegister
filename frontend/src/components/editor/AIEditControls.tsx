@@ -3,13 +3,14 @@ import { Button } from '../common';
 
 interface AIEditControlsProps {
   onTriggerEdit: (newsletterType: 'tdr' | 'myui', editorInstructions?: string) => void;
-  onReviewFinalEdit: () => void;
+  onReviewFinalEdit: (source: 'original' | 'ai') => void;
   loading: boolean;
   hasAIEdit: boolean;
   // Accepts "none" so SLC-only submissions type-check, though AI editing is never
   // triggered for them — all button branches below gate on 'tdr'/'myui'/'both'.
   targetNewsletter: 'tdr' | 'myui' | 'both' | 'none';
   confidence?: number;
+  reviewSource: 'original' | 'ai' | null;
 }
 
 export default function AIEditControls({
@@ -19,6 +20,7 @@ export default function AIEditControls({
   hasAIEdit,
   targetNewsletter,
   confidence,
+  reviewSource,
 }: AIEditControlsProps) {
   const [editorFeedback, setEditorFeedback] = useState('');
   const confidenceColor =
@@ -32,7 +34,7 @@ export default function AIEditControls({
 
   return (
     <div className="bg-white rounded-lg border p-4">
-      <h3 className="text-sm font-semibold text-gray-900 mb-3">AI Edit Controls</h3>
+      <h3 className="text-sm font-semibold text-gray-900 mb-3">Editing options</h3>
 
       {loading && (
         <div className="mb-3 p-3 bg-ui-gold-50 border border-ui-gold-200 rounded-md">
@@ -69,6 +71,22 @@ export default function AIEditControls({
               </Button>
             )}
           </div>
+          {reviewSource === 'original' && (
+            <div className="border-t border-gray-200 pt-3">
+              <p className="mb-2 text-xs leading-5 text-gray-500">
+                Keep the submitted wording for news releases, feature stories, or other copy
+                that should not be rewritten.
+              </p>
+              <Button
+                onClick={() => onReviewFinalEdit('original')}
+                disabled={loading}
+                variant="secondary"
+                className="w-full"
+              >
+                Continue without AI
+              </Button>
+            </div>
+          )}
         </div>
       )}
 
@@ -84,13 +102,17 @@ export default function AIEditControls({
             </div>
           )}
 
-          <Button
-            onClick={onReviewFinalEdit}
-            variant="secondary"
-            className="w-full"
-          >
-            Continue to Final Edit
-          </Button>
+          {reviewSource && (
+            <Button
+              onClick={() => onReviewFinalEdit(reviewSource)}
+              variant="secondary"
+              className="w-full"
+            >
+              {reviewSource === 'ai'
+                ? 'Use AI Suggestion in Final Edit'
+                : 'Use Original in Final Edit'}
+            </Button>
+          )}
 
           <div className="space-y-2 rounded-md border border-gray-200 bg-gray-50 p-3">
             <label htmlFor="editor-ai-feedback" className="block text-xs font-medium text-gray-600">

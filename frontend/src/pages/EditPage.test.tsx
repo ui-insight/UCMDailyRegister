@@ -264,7 +264,7 @@ describe('EditPage', () => {
 
     await screen.findByText('Accepted AI headline');
     expect(screen.queryByRole('button', { name: /accept ai edit/i })).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /continue to final edit/i }));
+    await user.click(screen.getByRole('button', { name: /use ai suggestion in final edit/i }));
     expect(screen.getByDisplayValue('Accepted AI headline')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Accepted AI body.')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /save and approve/i }));
@@ -284,6 +284,41 @@ describe('EditPage', () => {
       'submission-1',
       expect.objectContaining({ Status: 'approved' }),
     );
+  });
+
+  it('uses the original submission when an editor bypasses an existing AI suggestion', async () => {
+    const user = userEvent.setup();
+    listEditVersionsMock.mockResolvedValue([
+      makeVersion({
+        Headline: 'Unreviewed AI headline',
+        Body: 'Unreviewed AI body.',
+        Headline_Case: 'title_case',
+      }),
+    ]);
+
+    renderEditPage();
+
+    await screen.findByText('Unreviewed AI headline');
+    await user.click(screen.getByRole('button', { name: 'Original' }));
+    await user.click(screen.getByRole('button', { name: /use original in final edit/i }));
+
+    const finalEdit = screen.getByRole('region', { name: 'Final edit' });
+    expect(within(finalEdit).getByText('Starting point: Original submission')).toBeInTheDocument();
+    expect(within(finalEdit).getByDisplayValue('Original campus headline')).toBeInTheDocument();
+    expect(
+      within(finalEdit).getByDisplayValue('Original body copy for the newsletter.'),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /save and approve/i }));
+
+    await waitFor(() => {
+      expect(saveEditorFinalMock).toHaveBeenCalledWith('submission-1', {
+        Headline: 'Original campus headline',
+        Body: 'Original body copy for the newsletter.',
+        Headline_Case: undefined,
+        Approve_For_Newsletter: true,
+      });
+    });
   });
 
   it('saves and approves manual final edits with one action', async () => {
@@ -330,7 +365,7 @@ describe('EditPage', () => {
     renderEditPage();
 
     await screen.findByText('AI working headline');
-    await user.click(screen.getByRole('button', { name: /continue to final edit/i }));
+    await user.click(screen.getByRole('button', { name: /use ai suggestion in final edit/i }));
 
     const original = screen.getByRole('region', { name: 'Original submission' });
     const finalEdit = screen.getByRole('region', { name: 'Final edit' });
@@ -385,7 +420,7 @@ describe('EditPage', () => {
       expect(saveEditorFinalMock).toHaveBeenCalledWith('submission-1', {
         Headline: 'Final event headline',
         Body: 'Reserve a seat. Register now.\n<a href="mailto:events@uidaho.edu">UCM events</a>',
-        Headline_Case: undefined,
+        Headline_Case: 'sentence_case',
         Approve_For_Newsletter: false,
         Links: [
           {
