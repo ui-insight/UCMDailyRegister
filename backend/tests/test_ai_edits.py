@@ -71,6 +71,28 @@ class ProperNounProvider:
         }
 
 
+class SemicolonProvider:
+    model = "test-model"
+    last_system_prompt = ""
+
+    async def complete(self, *args, **kwargs):  # pragma: no cover - unused interface method
+        raise NotImplementedError
+
+    async def complete_json(self, *args, **kwargs):
+        SemicolonProvider.last_system_prompt = kwargs.get("system_prompt", "")
+        return {
+            "edited_headline": "Read the update",
+            "edited_body": (
+                "The first idea is complete; the second idea links to "
+                '<a href="https://example.com/path?a=1;b=2">news &amp; features</a>.'
+            ),
+            "changes_made": [],
+            "flags": [],
+            "embedded_links": [],
+            "confidence": 0.95,
+        }
+
+
 async def wait_for_task(
     client: AsyncClient,
     task_id: str,
@@ -237,6 +259,62 @@ class TestAIEditTasks:
         assert "[MUST] Always write 'Vandal Gear' as two capitalized words" in (
             SuccessfulProvider.last_system_prompt
         )
+
+    async def test_staff_ai_edit_enforces_short_sentences_and_safe_semicolon_cleanup(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+        staff_headers: dict[str, str],
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        SemicolonProvider.last_system_prompt = ""
+        db.add(
+            StyleRule(
+                Rule_Set="shared",
+                Category="voice",
+                Rule_Key="short_sentences",
+                Rule_Text=(
+                    "Use short, complete sentences. Each sentence should communicate "
+                    "one main idea. Do not use semicolons."
+                ),
+                Severity="error",
+            )
+        )
+        await db.commit()
+        monkeypatch.setattr(
+            "app.api.v1.ai_edits.get_llm_provider",
+            lambda settings: SemicolonProvider(),
+        )
+        submission_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(
+                Original_Body=(
+                    "The first idea is complete; the second idea includes more detail."
+                ),
+            ),
+        )
+        assert submission_resp.status_code == 201
+
+        resp = await client.post(
+            f"/api/v1/ai-edits/{submission_resp.json()['Id']}/edit",
+            json={"Newsletter_Type": "tdr"},
+            headers=staff_headers,
+        )
+        assert resp.status_code == 202
+        task = await wait_for_task(client, resp.json()["Task_Id"], staff_headers)
+
+        assert task["Status"] == "succeeded"
+        assert "Each sentence should communicate one main idea" in (
+            SemicolonProvider.last_system_prompt
+        )
+        assert "Do not use semicolons" in SemicolonProvider.last_system_prompt
+        assert task["Result"]["Edited_Body"] == (
+            "The first idea is complete. The second idea links to "
+            '<a href="https://example.com/path?a=1;b=2">news &amp; features</a>.'
+        )
+        assert task["Result"]["Changes_Made"] == [
+            "Replaced semicolons with periods to enforce the short-sentence rule"
+        ]
 
     async def test_ai_edit_preserves_proper_nouns_in_sentence_case_headline(
         self,

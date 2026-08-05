@@ -15,6 +15,7 @@ describe('AIEditControls', () => {
         loading={false}
         hasAIEdit={false}
         targetNewsletter="both"
+        reviewSource="original"
       />,
     );
 
@@ -23,6 +24,26 @@ describe('AIEditControls', () => {
 
     expect(onTriggerEdit).toHaveBeenNthCalledWith(1, 'tdr');
     expect(onTriggerEdit).toHaveBeenNthCalledWith(2, 'myui');
+  });
+
+  it('offers a direct non-AI path before an AI edit exists', async () => {
+    const user = userEvent.setup();
+    const onReviewFinalEdit = vi.fn();
+
+    render(
+      <AIEditControls
+        onTriggerEdit={vi.fn()}
+        onReviewFinalEdit={onReviewFinalEdit}
+        loading={false}
+        hasAIEdit={false}
+        targetNewsletter="tdr"
+        reviewSource="original"
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /continue without ai/i }));
+
+    expect(onReviewFinalEdit).toHaveBeenCalledWith('original');
   });
 
   it('routes an AI suggestion through final review without a separate accept action', async () => {
@@ -37,15 +58,16 @@ describe('AIEditControls', () => {
         hasAIEdit
         targetNewsletter="tdr"
         confidence={0.84}
+        reviewSource="ai"
       />,
     );
 
     expect(screen.getByText('84%')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /accept ai edit/i })).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /continue to final edit/i }));
+    await user.click(screen.getByRole('button', { name: /use ai suggestion in final edit/i }));
 
-    expect(onReviewFinalEdit).toHaveBeenCalledOnce();
+    expect(onReviewFinalEdit).toHaveBeenCalledWith('ai');
   });
 
   it('sends targeted editor feedback when revising an AI edit', async () => {
@@ -59,6 +81,7 @@ describe('AIEditControls', () => {
         loading={false}
         hasAIEdit
         targetNewsletter="tdr"
+        reviewSource="ai"
       />,
     );
 

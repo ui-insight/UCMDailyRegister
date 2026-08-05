@@ -31,6 +31,7 @@ import { Button, SegmentedToggle, Toast, useToast } from '../components/common';
 type Tab = 'original' | 'ai_edit' | 'editor';
 type ViewMode = 'diff' | 'side_by_side';
 type FinalizationAction = 'draft' | 'approve' | null;
+type FinalEditSource = 'original' | 'ai' | 'saved' | null;
 
 const STATUS_COLORS: Record<string, string> = {
   new: 'bg-status-info-100 text-status-info-800',
@@ -54,6 +55,7 @@ export default function EditPage() {
   const [loading, setLoading] = useState(true);
   const [aiLoading, setAiLoading] = useState(false);
   const [finalizationAction, setFinalizationAction] = useState<FinalizationAction>(null);
+  const [finalEditSource, setFinalEditSource] = useState<FinalEditSource>(null);
   const [editorialSaving, setEditorialSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast, showToast, dismissToast } = useToast();
@@ -91,24 +93,28 @@ export default function EditPage() {
             setEditHeadline(editorVersion.Headline);
             setEditBody(editable.body);
             setEditLinks(editable.links);
+            setFinalEditSource('saved');
             setActiveTab('editor');
           } else if (aiVersion) {
             const editable = prepareBodyForEditing(aiVersion.Body, sub.Links);
             setEditHeadline(aiVersion.Headline);
             setEditBody(editable.body);
             setEditLinks(editable.links);
+            setFinalEditSource(null);
             setActiveTab('ai_edit');
           } else {
             const editable = prepareBodyForEditing(sub.Original_Body, sub.Links);
             setEditHeadline(sub.Original_Headline);
             setEditBody(editable.body);
             setEditLinks(editable.links);
+            setFinalEditSource(null);
           }
         } catch {
           const editable = prepareBodyForEditing(sub.Original_Body, sub.Links);
           setEditHeadline(sub.Original_Headline);
           setEditBody(editable.body);
           setEditLinks(editable.links);
+          setFinalEditSource(null);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load submission');
@@ -139,18 +145,21 @@ export default function EditPage() {
           setEditHeadline(editorVersion.Headline);
           setEditBody(editable.body);
           setEditLinks(editable.links);
+          setFinalEditSource('saved');
           setActiveTab('editor');
         } else if (aiVersion) {
           const editable = prepareBodyForEditing(aiVersion.Body, sub.Links);
           setEditHeadline(aiVersion.Headline);
           setEditBody(editable.body);
           setEditLinks(editable.links);
+          setFinalEditSource(null);
           setActiveTab('ai_edit');
         } else {
           const editable = prepareBodyForEditing(sub.Original_Body, sub.Links);
           setEditHeadline(sub.Original_Headline);
           setEditBody(editable.body);
           setEditLinks(editable.links);
+          setFinalEditSource(null);
         }
       } catch {
         // No versions yet — that's fine
@@ -158,6 +167,7 @@ export default function EditPage() {
         setEditHeadline(sub.Original_Headline);
         setEditBody(editable.body);
         setEditLinks(editable.links);
+        setFinalEditSource(null);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load submission');
@@ -192,6 +202,7 @@ export default function EditPage() {
       setEditHeadline(result.Edited_Headline);
       setEditBody(editable.body);
       setEditLinks(editable.links);
+      setFinalEditSource(null);
       setActiveTab('ai_edit');
       // Refresh data
       const sub = await getSubmission(id);
@@ -208,7 +219,27 @@ export default function EditPage() {
     }
   };
 
-  const handleReviewFinalEdit = () => {
+  const handleReviewFinalEdit = (source: 'original' | 'ai') => {
+    if (!submission) return;
+    if (source === 'original') {
+      const editable = prepareBodyForEditing(submission.Original_Body, submission.Links);
+      setEditHeadline(submission.Original_Headline);
+      setEditBody(editable.body);
+      setEditLinks(editable.links);
+    } else {
+      const aiVersion = [...versions].reverse().find((v) => v.Version_Type === 'ai_suggested');
+      const headline = aiVersion?.Headline || aiEditResult?.Edited_Headline;
+      const body = aiVersion?.Body || aiEditResult?.Edited_Body;
+      if (!headline || !body) {
+        setError('No AI suggestion is available for final editing.');
+        return;
+      }
+      const editable = prepareBodyForEditing(body, submission.Links);
+      setEditHeadline(headline);
+      setEditBody(editable.body);
+      setEditLinks(editable.links);
+    }
+    setFinalEditSource(source);
     setActiveTab('editor');
   };
 
@@ -218,11 +249,17 @@ export default function EditPage() {
     setError(null);
     try {
       const aiVersion = [...versions].reverse().find((v) => v.Version_Type === 'ai_suggested');
+      const editorVersion = [...versions].reverse().find((v) => v.Version_Type === 'editor_final');
+      const sourceVersion = finalEditSource === 'ai'
+        ? aiVersion
+        : finalEditSource === 'saved'
+          ? editorVersion
+          : undefined;
       const links = normalizedBodyLinks(editLinks);
       await saveEditorFinal(id, {
         Headline: editHeadline,
         Body: buildLinkedBody(editBody, links),
-        Headline_Case: aiVersion?.Headline_Case || undefined,
+        Headline_Case: sourceVersion?.Headline_Case || undefined,
         Approve_For_Newsletter: approveForNewsletter,
         ...((submission?.Links.length ?? 0) > 0 || links.length > 0
           ? { Links: links }
@@ -412,6 +449,25 @@ export default function EditPage() {
     { id: 'ai_edit', label: 'AI Suggested', available: hasAIEdit },
     { id: 'editor', label: 'Final Edit', available: true },
   ];
+  const finalEditSourceLabel = finalEditSource === 'ai'
+    ? 'AI suggestion'
+    : finalEditSource === 'saved'
+      ? 'Saved final version'
+      : 'Original submission';
+
+  const handleTabChange = (tab: Tab) => {
+    const selected = tabs.find((candidate) => candidate.id === tab);
+    if (!selected?.available) return;
+    if (tab !== 'editor' || activeTab === 'editor') {
+      setActiveTab(tab);
+      return;
+    }
+    if (finalEditSource !== null) {
+      setActiveTab('editor');
+      return;
+    }
+    handleReviewFinalEdit(activeTab === 'ai_edit' ? 'ai' : 'original');
+  };
 
   return (
     <div>
@@ -459,7 +515,7 @@ export default function EditPage() {
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => tab.available && setActiveTab(tab.id)}
+                  onClick={() => handleTabChange(tab.id)}
                   disabled={!tab.available}
                   className={`pb-2 text-sm font-medium border-b-2 transition-colors ${
                     activeTab === tab.id
@@ -600,7 +656,7 @@ export default function EditPage() {
                   <div>
                     <h3 className="text-sm font-semibold text-gray-900">Final edit</h3>
                     <p className="mt-1 text-xs text-gray-500">
-                      Edit the working version while keeping the original in view.
+                      Starting point: {finalEditSourceLabel}
                     </p>
                   </div>
                   <HeadlineEditor
@@ -679,6 +735,7 @@ export default function EditPage() {
             hasAIEdit={hasAIEdit}
             targetNewsletter={submission.Target_Newsletter}
             confidence={confidence}
+            reviewSource={activeTab === 'ai_edit' ? 'ai' : activeTab === 'original' ? 'original' : null}
           />
           <SubmissionMeta
             submission={submission}

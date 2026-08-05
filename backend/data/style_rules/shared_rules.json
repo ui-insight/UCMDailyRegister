@@ -254,8 +254,8 @@
   {
     "category": "voice",
     "rule_key": "short_sentences",
-    "rule_text": "Write short, clear sentences. Avoid run-on sentences and compound-complex structures. Break long sentences into two or more shorter ones for readability. Replace semicolons with periods.",
-    "severity": "warning"
+    "rule_text": "Use short, complete sentences. Each sentence should communicate one main idea. Do not use semicolons. Replace semicolons with periods. Split compound or lengthy sentences into separate sentences. Favor clear, direct wording over complex sentence structures. Keep sentences concise and easy to read.",
+    "severity": "error"
   },
   {
     "category": "formatting",
