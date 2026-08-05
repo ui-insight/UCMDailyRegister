@@ -43,14 +43,24 @@ export async function apiFetch<T>(
   path: string,
   options?: RequestInit,
 ): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...getSubmitterRoleHeaders(),
-      ...options?.headers,
-    },
-    ...options,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...getSubmitterRoleHeaders(),
+        ...options?.headers,
+      },
+      ...options,
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') throw error;
+    throw new Error(
+      'Unable to reach the UCM service. Check your connection and retry. '
+      + 'If the problem continues, report it to the application maintainers.',
+      { cause: error },
+    );
+  }
   if (!res.ok) {
     const error = await res.json().catch(() => ({ detail: res.statusText }));
     throw new Error(formatApiError(error.detail ?? error));

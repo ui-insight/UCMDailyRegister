@@ -1,5 +1,12 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { parseISODate, toISODate, todayISO, addDaysISO, addMonthsISO } from './date';
+import {
+  parseAPIDateTime,
+  parseISODate,
+  toISODate,
+  todayISO,
+  addDaysISO,
+  addMonthsISO,
+} from './date';
 
 afterEach(() => {
   vi.useRealTimers();
@@ -41,5 +48,19 @@ describe('today/offset helpers', () => {
     expect(addDaysISO(1)).toBe('2026-07-18');
     expect(addDaysISO(90)).toBe('2026-10-15');
     expect(addMonthsISO(3)).toBe('2026-10-17');
+  });
+});
+
+describe('parseAPIDateTime', () => {
+  it('treats a timezone-naive server timestamp as UTC', () => {
+    expect(parseAPIDateTime('2026-08-05T16:20:28.935505').toISOString()).toBe(
+      '2026-08-05T16:20:28.935Z',
+    );
+  });
+
+  it('preserves an explicit timezone offset', () => {
+    expect(parseAPIDateTime('2026-08-05T09:20:28.935-07:00').toISOString()).toBe(
+      '2026-08-05T16:20:28.935Z',
+    );
   });
 });

@@ -573,68 +573,98 @@ export default function EditPage() {
             )}
 
             {activeTab === 'editor' && (
-              <div className="space-y-4">
-                <HeadlineEditor
-                  value={editHeadline}
-                  onChange={setEditHeadline}
-                  headlineCase={aiVersion?.Headline_Case || null}
-                />
-                <BodyEditor value={editBody} onChange={setEditBody} />
-                <div className="border-t border-gray-100 pt-4">
-                  <LinkEditor
-                    links={editLinks}
-                    onChange={setEditLinks}
-                    label="Links and CTA text"
-                    description="Link text stays readable in the body while its destination is edited here. Add a secure web URL or an email address."
-                  />
-                </div>
-                {editLinks.some((link) => link.Url.trim()) && (
-                  <section
-                    aria-label="Newsletter body preview"
-                    className="rounded-md border border-gray-200 bg-gray-50 px-4 py-3"
-                  >
-                    <p className="mb-2 text-xs font-medium text-gray-500">Live preview</p>
-                    <RichBody
-                      text={buildLinkedBody(editBody, editLinks)}
-                      className="text-sm leading-6 text-gray-800"
-                    />
-                  </section>
-                )}
-                <div className="flex flex-col gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+                <section
+                  aria-label="Original submission"
+                  className="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4"
+                >
                   <div>
+                    <h3 className="text-sm font-semibold text-gray-900">Original submission</h3>
+                    <p className="mt-1 text-xs text-gray-500">Read-only reference</p>
+                  </div>
+                  <div>
+                    <p className="mb-1 text-xs font-medium text-gray-500">Headline</p>
                     <p className="text-sm font-medium text-gray-900">
-                      {canApproveFinal
-                        ? 'Ready for newsletter assembly?'
-                        : 'Save your work before leaving'}
-                    </p>
-                    <p className="mt-0.5 max-w-[65ch] text-xs text-gray-500">
-                      {canApproveFinal
-                        ? 'Save a draft for continued review, or approve the current text for the newsletter.'
-                        : 'This submission cannot be approved in its current status, but you can keep your edits as a draft.'}
+                      {submission.Original_Headline}
                     </p>
                   </div>
-                  <div className="flex shrink-0 flex-wrap justify-end gap-2">
-                    <Button
-                      onClick={() => void handleFinalize(false)}
-                      disabled={finalizationAction !== null}
-                      variant="secondary"
+                  <div>
+                    <p className="mb-1 text-xs font-medium text-gray-500">Body</p>
+                    <p className="whitespace-pre-wrap text-sm leading-6 text-gray-700">
+                      {submission.Original_Body}
+                    </p>
+                  </div>
+                </section>
+
+                <section aria-label="Final edit" className="min-w-0 space-y-4">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900">Final edit</h3>
+                    <p className="mt-1 text-xs text-gray-500">
+                      Edit the working version while keeping the original in view.
+                    </p>
+                  </div>
+                  <HeadlineEditor
+                    value={editHeadline}
+                    onChange={setEditHeadline}
+                    headlineCase={aiVersion?.Headline_Case || null}
+                  />
+                  <BodyEditor value={editBody} onChange={setEditBody} />
+                  <div className="border-t border-gray-100 pt-4">
+                    <LinkEditor
+                      links={editLinks}
+                      onChange={setEditLinks}
+                      label="Links and CTA text"
+                      description="Link text stays readable in the body while its destination is edited here. Add a secure web URL or an email address."
+                    />
+                  </div>
+                  {editLinks.some((link) => link.Url.trim()) && (
+                    <section
+                      aria-label="Newsletter body preview"
+                      className="rounded-md border border-gray-200 bg-gray-50 px-4 py-3"
                     >
-                      {finalizationAction === 'draft' ? 'Saving draft...' : 'Save Draft'}
-                    </Button>
-                    {canApproveFinal && (
+                      <p className="mb-2 text-xs font-medium text-gray-500">Live preview</p>
+                      <RichBody
+                        text={buildLinkedBody(editBody, editLinks)}
+                        className="text-sm leading-6 text-gray-800"
+                      />
+                    </section>
+                  )}
+                  <div className="flex flex-col gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        {canApproveFinal
+                          ? 'Ready for newsletter assembly?'
+                          : 'Save your work before leaving'}
+                      </p>
+                      <p className="mt-0.5 max-w-[65ch] text-xs text-gray-500">
+                        {canApproveFinal
+                          ? 'Save a draft for continued review, or approve the current text for the newsletter.'
+                          : 'This submission cannot be approved in its current status, but you can keep your edits as a draft.'}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 flex-wrap justify-end gap-2">
                       <Button
-                        onClick={() => void handleFinalize(true)}
+                        onClick={() => void handleFinalize(false)}
                         disabled={finalizationAction !== null}
-                        variant="success"
-                        title="Save this final version and approve it for newsletter assembly"
+                        variant="secondary"
                       >
-                        {finalizationAction === 'approve'
-                          ? 'Saving and approving...'
-                          : 'Save and Approve'}
+                        {finalizationAction === 'draft' ? 'Saving draft...' : 'Save Draft'}
                       </Button>
-                    )}
+                      {canApproveFinal && (
+                        <Button
+                          onClick={() => void handleFinalize(true)}
+                          disabled={finalizationAction !== null}
+                          variant="success"
+                          title="Save this final version and approve it for newsletter assembly"
+                        >
+                          {finalizationAction === 'approve'
+                            ? 'Saving and approving...'
+                            : 'Save and Approve'}
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                </div>
+                </section>
               </div>
             )}
           </div>

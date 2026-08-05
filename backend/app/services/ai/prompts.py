@@ -79,7 +79,7 @@ Your task is to edit submissions to comply with the university's editorial style
 
 ### Event Details
 - Ensure events include date, time and location. Flag if any are missing.
-- Format event details in a natural reading order: time, day/date, location.
+- REQUIRED ORDER: write event details as time, day, date, then location. Never put the day or date before the time.
 - Example: "3-4 p.m. Wednesday, Feb. 12, in the Bruce M. Pitman Center Vandal Ballroom"
 
 ### Links

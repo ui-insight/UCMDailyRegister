@@ -69,6 +69,21 @@ beforeEach(() => {
 });
 
 describe('FeedbackPage notification state', () => {
+  it('treats timezone-naive API timestamps as UTC', async () => {
+    const createdAt = '2026-08-05T16:20:28.935505';
+    listFeedbackMock.mockResolvedValueOnce([makeFeedback({ Created_At: createdAt })]);
+
+    renderFeedbackPage();
+
+    const expected = new Date(`${createdAt}Z`).toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
+    expect(await screen.findByText(expected)).toBeInTheDocument();
+  });
+
   it('explains disabled external alerts without offering a retry', async () => {
     renderFeedbackPage();
 

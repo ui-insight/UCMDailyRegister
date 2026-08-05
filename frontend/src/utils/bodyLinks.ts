@@ -34,16 +34,51 @@ export function prepareBodyForEditing(
   storedLinks: Array<{ Url: string; Anchor_Text: string | null; Display_Order?: number }> = [],
 ): { body: string; links: EditableBodyLink[] } {
   const bodyLinks: EditableBodyLink[] = [];
-  const plainBody = body.replace(ANCHOR_PATTERN, (_match, href: string, anchorText: string) => {
+  const standaloneAnchorLabels = new Set<string>();
+  let plainBody = body.replace(ANCHOR_PATTERN, (
+    match,
+    href: string,
+    anchorText: string,
+    offset: number,
+    source: string,
+  ) => {
     if (isSafeLinkDestination(href)) {
-      bodyLinks.push({
-        Url: normalizeEditableLinkUrl(href),
-        Anchor_Text: anchorText,
-        Display_Order: bodyLinks.length,
-      });
+      const normalizedUrl = normalizeEditableLinkUrl(href);
+      if (!bodyLinks.some((candidate) => candidate.Url === normalizedUrl)) {
+        bodyLinks.push({
+          Url: normalizedUrl,
+          Anchor_Text: anchorText,
+          Display_Order: bodyLinks.length,
+        });
+      }
+
+      const lineStart = source.lastIndexOf('\n', Math.max(0, offset - 1)) + 1;
+      const nextLineBreak = source.indexOf('\n', offset + match.length);
+      const lineEnd = nextLineBreak === -1 ? source.length : nextLineBreak;
+      if (
+        source.slice(lineStart, offset).trim() === ''
+        && source.slice(offset + match.length, lineEnd).trim() === ''
+      ) {
+        standaloneAnchorLabels.add(anchorText.trim().toLocaleLowerCase());
+      }
     }
     return anchorText;
   });
+
+  // Older editor builds appended unmatched anchors on their own line. Remove
+  // only those generated duplicates when the same label already exists in the
+  // prose; retain their link metadata so it can be reattached there.
+  const lowerBody = plainBody.toLocaleLowerCase();
+  plainBody = plainBody
+    .split('\n')
+    .filter((line) => {
+      const label = line.trim().toLocaleLowerCase();
+      if (!standaloneAnchorLabels.has(label)) return true;
+      const first = lowerBody.indexOf(label);
+      return first === lowerBody.lastIndexOf(label);
+    })
+    .join('\n')
+    .trimEnd();
 
   const links = [...bodyLinks];
   for (const link of [...storedLinks].sort(
@@ -52,9 +87,7 @@ export function prepareBodyForEditing(
     const normalizedUrl = normalizeEditableLinkUrl(link.Url);
     const anchorText = link.Anchor_Text?.trim() || '';
     if (!isSafeLinkDestination(normalizedUrl)) continue;
-    if (links.some(
-      (candidate) => candidate.Url === normalizedUrl && candidate.Anchor_Text === anchorText,
-    )) continue;
+    if (links.some((candidate) => candidate.Url === normalizedUrl)) continue;
     links.push({
       Url: normalizedUrl,
       Anchor_Text: anchorText,
@@ -95,18 +128,21 @@ export function buildLinkedBody(body: string, links: EditableBodyLink[]): string
     const label = linkLabel(link);
     if (!label) continue;
 
-    let matchIndex = body.indexOf(label);
+    const searchableBody = body.toLocaleLowerCase();
+    const searchableLabel = label.toLocaleLowerCase();
+    let matchIndex = searchableBody.indexOf(searchableLabel);
     while (
       matchIndex >= 0
       && occupiedRanges.some(
         (range) => matchIndex < range.end && matchIndex + label.length > range.start,
       )
     ) {
-      matchIndex = body.indexOf(label, matchIndex + label.length);
+      matchIndex = searchableBody.indexOf(searchableLabel, matchIndex + label.length);
     }
 
-    const markup = `<a href="${safeAttributeValue(link.Url)}">${label}</a>`;
     if (matchIndex >= 0) {
+      const matchedLabel = body.slice(matchIndex, matchIndex + label.length);
+      const markup = `<a href="${safeAttributeValue(link.Url)}">${matchedLabel}</a>`;
       occupiedRanges.push({ start: matchIndex, end: matchIndex + label.length });
       replacements.push({
         start: matchIndex,
@@ -114,6 +150,7 @@ export function buildLinkedBody(body: string, links: EditableBodyLink[]): string
         markup,
       });
     } else {
+      const markup = `<a href="${safeAttributeValue(link.Url)}">${label}</a>`;
       appendedLinks.push(markup);
     }
   }

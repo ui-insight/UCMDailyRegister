@@ -8,6 +8,7 @@ from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.edit_history import EditVersion
+from app.models.style_rule import StyleRule
 from app.models.submission import Submission
 from tests.conftest import TestSession, make_submission_data
 
@@ -25,12 +26,14 @@ def configure_ai_edit_tasks(monkeypatch: pytest.MonkeyPatch):
 class SuccessfulProvider:
     model = "test-model"
     last_user_prompt = ""
+    last_system_prompt = ""
 
     async def complete(self, *args, **kwargs):  # pragma: no cover - unused interface method
         raise NotImplementedError
 
     async def complete_json(self, *args, **kwargs):
         SuccessfulProvider.last_user_prompt = kwargs.get("user_prompt", "")
+        SuccessfulProvider.last_system_prompt = kwargs.get("system_prompt", "")
         return {
             "edited_headline": "Edited headline",
             "edited_body": "Edited body.",
@@ -172,6 +175,68 @@ class TestAIEditTasks:
         ai_version = versions_resp.json()[-1]
         assert ai_version["Version_Type"] == "ai_suggested"
         assert ai_version["Editor_Instructions"] == "Tighten the first sentence."
+
+    async def test_staff_ai_edit_applies_mandatory_event_and_vandal_gear_rules(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+        staff_headers: dict[str, str],
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        SuccessfulProvider.last_system_prompt = ""
+        db.add_all(
+            [
+                StyleRule(
+                    Rule_Set="shared",
+                    Category="formatting",
+                    Rule_Key="event_detail_ordering",
+                    Rule_Text=(
+                        "Order event details as: time, day, date, location. "
+                        "Do not reorder these elements."
+                    ),
+                    Severity="error",
+                ),
+                StyleRule(
+                    Rule_Set="shared",
+                    Category="terminology",
+                    Rule_Key="vandal_gear_capitalization",
+                    Rule_Text=(
+                        "Always write 'Vandal Gear' as two capitalized words."
+                    ),
+                    Severity="error",
+                ),
+            ]
+        )
+        await db.commit()
+        monkeypatch.setattr(
+            "app.api.v1.ai_edits.get_llm_provider",
+            lambda settings: SuccessfulProvider(),
+        )
+        submission_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(
+                Original_Body=(
+                    "The VandalGear reception is Thursday, Aug. 20 at 5 p.m. "
+                    "in the Seed Potato Germplasm Laboratory."
+                ),
+            ),
+        )
+        assert submission_resp.status_code == 201
+
+        resp = await client.post(
+            f"/api/v1/ai-edits/{submission_resp.json()['Id']}/edit",
+            json={"Newsletter_Type": "tdr"},
+            headers=staff_headers,
+        )
+        assert resp.status_code == 202
+        task = await wait_for_task(client, resp.json()["Task_Id"], staff_headers)
+        assert task["Status"] == "succeeded"
+        assert "[MUST] Order event details as: time, day, date, location" in (
+            SuccessfulProvider.last_system_prompt
+        )
+        assert "[MUST] Always write 'Vandal Gear' as two capitalized words" in (
+            SuccessfulProvider.last_system_prompt
+        )
 
     async def test_ai_edit_preserves_proper_nouns_in_sentence_case_headline(
         self,

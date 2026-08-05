@@ -189,7 +189,13 @@
     "category": "formatting",
     "rule_key": "event_detail_ordering",
     "rule_text": "Order event details as: time, day, date, location. Example: '3-4 p.m. Wednesday, Feb. 12, in the Pitman Center Vandal Ballroom'. Do not reorder or omit these elements. If the event is more than one month away, omit the day of the week.",
-    "severity": "warning"
+    "severity": "error"
+  },
+  {
+    "category": "terminology",
+    "rule_key": "vandal_gear_capitalization",
+    "rule_text": "Always write 'Vandal Gear' as two capitalized words. Replace 'VandalGear', 'Vandal gear' or other variants with 'Vandal Gear'.",
+    "severity": "error"
   },
   {
     "category": "formatting",

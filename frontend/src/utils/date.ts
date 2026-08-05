@@ -38,3 +38,9 @@ export function addMonthsISO(months: number): string {
   d.setMonth(d.getMonth() + months);
   return toISODate(d);
 }
+
+/** Parse an API datetime, treating legacy timezone-naive values as UTC. */
+export function parseAPIDateTime(value: string): Date {
+  const hasTimezone = /(?:Z|[+-]\d{2}:\d{2})$/i.test(value);
+  return new Date(hasTimezone ? value : `${value}Z`);
+}

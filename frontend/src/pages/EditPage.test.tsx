@@ -318,6 +318,28 @@ describe('EditPage', () => {
     ).toBeInTheDocument();
   });
 
+  it('keeps the immutable original beside the editable final version', async () => {
+    const user = userEvent.setup();
+    listEditVersionsMock.mockResolvedValue([
+      makeVersion({
+        Headline: 'AI working headline',
+        Body: 'AI working body.',
+      }),
+    ]);
+
+    renderEditPage();
+
+    await screen.findByText('AI working headline');
+    await user.click(screen.getByRole('button', { name: /continue to final edit/i }));
+
+    const original = screen.getByRole('region', { name: 'Original submission' });
+    const finalEdit = screen.getByRole('region', { name: 'Final edit' });
+    expect(within(original).getByText('Original campus headline')).toBeInTheDocument();
+    expect(within(original).getByText('Original body copy for the newsletter.')).toBeInTheDocument();
+    expect(within(finalEdit).getByDisplayValue('AI working headline')).toBeInTheDocument();
+    expect(within(finalEdit).getByDisplayValue('AI working body.')).toBeInTheDocument();
+  });
+
   it('shows live CTA links while keeping destination fields separately editable', async () => {
     const user = userEvent.setup();
     getSubmissionMock.mockResolvedValue(makeSubmission({

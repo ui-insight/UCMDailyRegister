@@ -206,6 +206,7 @@ export default function BuilderPage() {
   const [sectionOpen, setSectionOpen] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [metadataError, setMetadataError] = useState<string | null>(null);
   const { toast, showToast, dismissToast } = useToast();
   const [dragState, setDragState] = useState<SubmissionDragState | null>(null);
   const [itemEditDraft, setItemEditDraft] = useState<NewsletterItemEditDraft | null>(null);
@@ -213,20 +214,24 @@ export default function BuilderPage() {
   const dragStateRef = useRef<SubmissionDragState | null>(null);
   const newsletterId = newsletter?.Id;
 
-  useEffect(() => {
-    void (async () => {
-      try {
-        const [secs, list] = await Promise.all([
-          listSections(newsletterType),
-          listNewsletters({ newsletter_type: newsletterType }),
-        ]);
-        setSections(secs);
-        setNewsletters(list as NewsletterDetailResponse[]);
-      } catch (err) {
-        console.error('Failed to load builder metadata:', err);
-      }
-    })();
+  const loadBuilderMetadata = useCallback(async () => {
+    setMetadataError(null);
+    try {
+      const [secs, list] = await Promise.all([
+        listSections(newsletterType),
+        listNewsletters({ newsletter_type: newsletterType }),
+      ]);
+      setSections(secs);
+      setNewsletters(list as NewsletterDetailResponse[]);
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : 'Unknown loading error';
+      setMetadataError(`Builder data could not be loaded. ${detail}`);
+    }
   }, [newsletterType]);
+
+  useEffect(() => {
+    void loadBuilderMetadata();
+  }, [loadBuilderMetadata]);
 
   useEffect(() => {
     if (!newsletterId) {
@@ -878,6 +883,19 @@ export default function BuilderPage() {
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded-lg mb-4">
           {error}
+        </div>
+      )}
+
+      {metadataError && (
+        <div className="mb-4 flex items-center justify-between gap-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          <span>{metadataError}</span>
+          <button
+            type="button"
+            onClick={() => void loadBuilderMetadata()}
+            className="shrink-0 rounded-md border border-red-300 bg-white px-3 py-1.5 font-medium text-red-700 hover:bg-red-100"
+          >
+            Retry
+          </button>
         </div>
       )}
 
