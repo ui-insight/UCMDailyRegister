@@ -310,6 +310,56 @@ class TestAIEditTasks:
             SuccessfulProvider.last_system_prompt
         )
 
+    async def test_staff_ai_edit_receives_date_continuation_comma_rule(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+        staff_headers: dict[str, str],
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        SuccessfulProvider.last_system_prompt = ""
+        db.add(
+            StyleRule(
+                Rule_Set="shared",
+                Category="formatting",
+                Rule_Key="ap_style_dates",
+                Rule_Text=(
+                    "Use AP style for dates. When a month-and-day date appears "
+                    "mid-sentence, place a comma after the date if the sentence "
+                    "continues."
+                ),
+                Severity="warning",
+            )
+        )
+        await db.commit()
+        monkeypatch.setattr(
+            "app.api.v1.ai_edits.get_llm_provider",
+            lambda settings: SuccessfulProvider(),
+        )
+        submission_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(
+                Original_Body=(
+                    "The conference will take place on Monday, Oct. 31 and "
+                    "Tuesday, Nov. 1 in the Pitman Center."
+                ),
+            ),
+        )
+        assert submission_resp.status_code == 201
+
+        resp = await client.post(
+            f"/api/v1/ai-edits/{submission_resp.json()['Id']}/edit",
+            json={"Newsletter_Type": "tdr"},
+            headers=staff_headers,
+        )
+        assert resp.status_code == 202
+        task = await wait_for_task(client, resp.json()["Task_Id"], staff_headers)
+        assert task["Status"] == "succeeded"
+        assert (
+            "[SHOULD] Use AP style for dates. When a month-and-day date appears"
+            in SuccessfulProvider.last_system_prompt
+        )
+
     async def test_staff_ai_edit_enforces_short_sentences_and_safe_semicolon_cleanup(
         self,
         client: AsyncClient,
