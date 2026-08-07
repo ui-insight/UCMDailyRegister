@@ -400,7 +400,7 @@ def _get_category_section_map(newsletter_type: str) -> dict[str, str]:
             "faculty_staff": "employee-news",
             "employee_announcement": "employee-announcements",
             "survey": "employee-news",
-            "ucm_feature_story": "employee-news",
+            "ucm_feature_story": "feature-stories",
             "calendar_event": "todays-events",
             "kudos": "kudos",
             "news_release": "news-releases",
