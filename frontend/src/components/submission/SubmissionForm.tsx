@@ -404,6 +404,7 @@ export default function SubmissionForm() {
       setJobLocation('');
       setJobRemoveDate('');
       setLinks([]);
+      setCategory((filteredCategories[0]?.Code ?? 'faculty_staff') as SubmissionCategory);
       setSchedule({
         Requested_Date: '',
         Second_Requested_Date: '',
