@@ -178,6 +178,9 @@ async def update_item(
     item = result.scalar_one_or_none()
     if not item:
         return None
+    new_section_id = kwargs.get("Section_Id")
+    if new_section_id is not None and new_section_id != item.Section_Id:
+        item.Manually_Placed = True
     for key, value in kwargs.items():
         if value is not None:
             setattr(item, key, value)
@@ -260,6 +263,8 @@ async def reorder_items(
             item.Position = pos.get("Position", pos.get("position", item.Position))
             section_id = pos.get("Section_Id") or pos.get("section_id")
             if section_id:
+                if section_id != item.Section_Id:
+                    item.Manually_Placed = True
                 item.Section_Id = section_id
     await db.commit()
 
@@ -315,7 +320,7 @@ async def assemble_newsletter(
     )
     submissions = list(subs_result.scalars().all())
 
-    existing_sub_ids = {item.Submission_Id for item in newsletter.Items}
+    existing_items_by_sub = {item.Submission_Id: item for item in newsletter.Items}
 
     sections_result = await db.execute(
         sa.select(NewsletterSection)
@@ -328,20 +333,19 @@ async def assemble_newsletter(
     occurrence_cache = submission_service.OccurrenceFilterCache()
 
     for sub in submissions:
-        if sub.Id in existing_sub_ids:
-            continue
-        occurrence_dates = await submission_service.get_submission_occurrence_dates(
-            db,
-            sub,
-            publish_date,
-            publish_date,
-            newsletter_type=newsletter_type,
-            occurrence_cache=occurrence_cache,
-        )
-        if publish_date not in occurrence_dates:
-            continue
+        existing_item = existing_items_by_sub.get(sub.Id)
+        if existing_item is None:
+            occurrence_dates = await submission_service.get_submission_occurrence_dates(
+                db,
+                sub,
+                publish_date,
+                publish_date,
+                newsletter_type=newsletter_type,
+                occurrence_cache=occurrence_cache,
+            )
+            if publish_date not in occurrence_dates:
+                continue
 
-        headline, body = _get_best_text(sub)
         section_slug = category_section_map.get(sub.Category)
         section = section_map.get(section_slug) if section_slug else None
         if not section:
@@ -354,6 +358,21 @@ async def assemble_newsletter(
         if not section:
             continue
 
+        if existing_item is not None:
+            # Re-sync auto-placed items to the current category mapping;
+            # placements staff moved by hand are left alone.
+            if not existing_item.Manually_Placed and existing_item.Section_Id != section.Id:
+                existing_item.Section_Id = section.Id
+                existing_item.Position = len(
+                    [
+                        it
+                        for it in newsletter.Items
+                        if it.Section_Id == section.Id and it.Id != existing_item.Id
+                    ]
+                )
+            continue
+
+        headline, body = _get_best_text(sub)
         section_items = [it for it in newsletter.Items if it.Section_Id == section.Id]
         position = len(section_items)
 
@@ -379,7 +398,7 @@ def _get_category_section_map(newsletter_type: str) -> dict[str, str]:
     if newsletter_type == "tdr":
         return {
             "faculty_staff": "employee-news",
-            "employee_announcement": "employee-news",
+            "employee_announcement": "employee-announcements",
             "survey": "employee-news",
             "ucm_feature_story": "employee-news",
             "calendar_event": "todays-events",
