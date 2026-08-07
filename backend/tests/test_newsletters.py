@@ -542,6 +542,7 @@ def test_category_section_maps_target_seeded_sections():
     assert newsletter_service.get_academic_dates_section_slug() in myui_slugs
     tdr_map = newsletter_service._get_category_section_map("tdr")
     assert tdr_map["employee_announcement"] == "employee-announcements"
+    assert tdr_map["ucm_feature_story"] == "feature-stories"
 
 
 class TestCalendarEventParsing:
