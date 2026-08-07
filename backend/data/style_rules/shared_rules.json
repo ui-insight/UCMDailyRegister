@@ -316,5 +316,11 @@
     "rule_key": "preserve_action_deadlines",
     "rule_text": "Preserve every deadline and actionable date from the original submission: registration, application, abstract, proposal, nomination and submission deadlines, event dates and times, application periods, registration requirements and eligibility information. Keep multiple deadlines when they serve different purposes. Never replace a specific deadline with a generic call to action such as 'Learn more and register'. When editing for conciseness, shorten the surrounding prose instead of removing deadlines. Example: 'Registration closes Oct. 23. Abstract submissions are due Oct. 16. Learn more and register.' is correct; dropping either date is not.",
     "severity": "error"
+  },
+  {
+    "category": "headlines",
+    "rule_key": "headline_distinct_from_lead",
+    "rule_text": "The headline must not be the first sentence of the body or a minor rewording of it. Write a headline that summarizes the purpose, opportunity or benefit of the announcement so the headline and body each contribute unique information. Example: for a body opening 'Sign up for the sustainability newsletter.', write the headline 'Receive monthly sustainability updates', not 'Sign up for sustainability newsletter'.",
+    "severity": "warning"
   }
 ]

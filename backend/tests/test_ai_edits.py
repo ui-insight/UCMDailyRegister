@@ -457,6 +457,56 @@ class TestAIEditTasks:
             in SuccessfulProvider.last_system_prompt
         )
 
+    async def test_staff_ai_edit_receives_distinct_headline_rule(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+        staff_headers: dict[str, str],
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        SuccessfulProvider.last_system_prompt = ""
+        db.add(
+            StyleRule(
+                Rule_Set="shared",
+                Category="headlines",
+                Rule_Key="headline_distinct_from_lead",
+                Rule_Text=(
+                    "The headline must not be the first sentence of the body "
+                    "or a minor rewording of it."
+                ),
+                Severity="warning",
+            )
+        )
+        await db.commit()
+        monkeypatch.setattr(
+            "app.api.v1.ai_edits.get_llm_provider",
+            lambda settings: SuccessfulProvider(),
+        )
+        submission_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(
+                Original_Headline="Sign up for sustainability newsletter",
+                Original_Body=(
+                    "Sign up for the sustainability newsletter. A monthly "
+                    "issue starts in September."
+                ),
+            ),
+        )
+        assert submission_resp.status_code == 201
+
+        resp = await client.post(
+            f"/api/v1/ai-edits/{submission_resp.json()['Id']}/edit",
+            json={"Newsletter_Type": "tdr"},
+            headers=staff_headers,
+        )
+        assert resp.status_code == 202
+        task = await wait_for_task(client, resp.json()["Task_Id"], staff_headers)
+        assert task["Status"] == "succeeded"
+        assert (
+            "[SHOULD] The headline must not be the first sentence of the body"
+            in SuccessfulProvider.last_system_prompt
+        )
+
     async def test_staff_ai_edit_enforces_short_sentences_and_safe_semicolon_cleanup(
         self,
         client: AsyncClient,
