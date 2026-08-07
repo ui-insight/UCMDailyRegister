@@ -304,5 +304,11 @@
     "rule_key": "cta_structure",
     "rule_text": "Structure announcements around a clear call to action: open with the action the reader should take, follow with context, dates and incentives, and close with an explicit final call to action such as 'Learn more and register'. Replace vague instructions with explicit actions. Do not introduce audience qualifiers that are not in the original submission. When the submission provides a contact's full name, use it rather than a bare email address.",
     "severity": "warning"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "contact_line_format",
+    "rule_text": "When the original submission provides an email address for a contact person or unit, hyperlink the person's or unit's name with that email address instead of displaying the address as plain text. Keep phone numbers from the original submission. Never repeat the contact's name in place of contact information: write 'contact Paul Rowley' (name linked) or 'contact Paul Rowley at 208-885-1234', never 'contact Paul Rowley at Paul Rowley' or 'contact Paul Rowley at prowley@uidaho.edu'. In a contact line, 'at' must be followed by meaningful information such as a phone number or location. If no email address or phone number is provided, use the name alone.",
+    "severity": "error"
   }
 ]
