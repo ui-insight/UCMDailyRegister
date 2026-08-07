@@ -115,10 +115,13 @@ def test_migration_values_match_the_style_rule_seed_files():
     for rule in migration.STYLE_RULE_UPDATES:
         key = (rule["rule_set"], rule["rule_key"])
         assert seeded[key]["category"] == rule["category"]
-        # August follow-up migrations supersede the recurring event-order and
-        # short-sentence rules. Dedicated regression tests verify their latest
-        # seed values; all other July values remain exact.
-        if key != ("shared", "short_sentences"):
+        # August follow-up migrations supersede the recurring event-order,
+        # short-sentence, and CTA-structure rules. Dedicated regression tests
+        # verify their latest seed values; all other July values remain exact.
+        if key not in {
+            ("shared", "short_sentences"),
+            ("shared", "cta_structure"),
+        }:
             assert seeded[key]["rule_text"] == rule["rule_text"]
         if key not in {
             ("shared", "event_detail_ordering"),
