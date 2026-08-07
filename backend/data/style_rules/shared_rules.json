@@ -284,7 +284,7 @@
   {
     "category": "formatting",
     "rule_key": "preserve_event_title_case",
-    "rule_text": "Do not change event titles. Keep event titles in title case exactly as submitted, even when the surrounding text uses sentence case.",
+    "rule_text": "Do not change event titles. Keep event titles in title case exactly as submitted, even when the surrounding text uses sentence case. This applies everywhere the name appears, including inside sentence-case headlines: official event, program and organization names are proper nouns, and preserving their official capitalization takes precedence over sentence-casing. Example: 'Fraternity and Sorority Life Bid Day' stays fully capitalized inside an otherwise sentence-case headline, never 'fraternity and sorority Bid Day'.",
     "severity": "error"
   },
   {
