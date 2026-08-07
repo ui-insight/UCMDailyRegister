@@ -46,6 +46,7 @@ nav:
   - UI Branding: branding.md
   - API Reference: api-reference.md
   - Deployment: deployment.md
+  - GitHub Enterprise Migration: github-enterprise-migration.md
   - Data Governance: data-governance.md
   - Enterprise AI Framework:
       - Overview: governance/enterprise-ai-framework/index.md
