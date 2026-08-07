@@ -302,7 +302,7 @@
   {
     "category": "voice",
     "rule_key": "cta_structure",
-    "rule_text": "Structure announcements around a clear call to action: open with the action the reader should take, follow with context, dates and incentives, and close with an explicit final call to action such as 'Learn more and register'. Replace vague instructions with explicit actions. Do not introduce audience qualifiers that are not in the original submission. When the submission provides a contact's full name, use it rather than a bare email address.",
+    "rule_text": "Structure announcements around a clear call to action: open with the action the reader should take, follow with context, dates and incentives, and close with an explicit final call to action such as 'Learn more and register'. Replace vague instructions with explicit actions. Do not introduce audience qualifiers that are not in the original submission. When the submission provides a contact's full name, use it rather than a bare email address. Never build a call to action on filler words: no CTA may contain 'here', 'click here', 'learn more here', 'register here', 'apply here' or 'sign up here'. Link the action verb or the object of the action instead: 'Sign up', 'Register for the workshop', 'Apply for the scholarship' — never 'Sign up here'.",
     "severity": "warning"
   },
   {
