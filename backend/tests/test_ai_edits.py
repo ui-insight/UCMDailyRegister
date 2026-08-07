@@ -557,6 +557,73 @@ class TestAIEditTasks:
             in SuccessfulProvider.last_system_prompt
         )
 
+    async def test_staff_ai_edit_receives_event_name_precedence_rules(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+        staff_headers: dict[str, str],
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        SuccessfulProvider.last_system_prompt = ""
+        db.add_all(
+            [
+                StyleRule(
+                    Rule_Set="shared",
+                    Category="formatting",
+                    Rule_Key="preserve_event_title_case",
+                    Rule_Text=(
+                        "Do not change event titles. Preserving their official "
+                        "capitalization takes precedence over sentence-casing."
+                    ),
+                    Severity="error",
+                ),
+                StyleRule(
+                    Rule_Set="tdr",
+                    Category="headlines",
+                    Rule_Key="sentence_case",
+                    Rule_Text=(
+                        "Headlines must be sentence case. Official event, "
+                        "program and organization names also count as proper "
+                        "nouns and keep their official capitalization."
+                    ),
+                    Severity="error",
+                ),
+            ]
+        )
+        await db.commit()
+        monkeypatch.setattr(
+            "app.api.v1.ai_edits.get_llm_provider",
+            lambda settings: SuccessfulProvider(),
+        )
+        submission_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(
+                Original_Headline="Fraternity and Sorority Life Bid Day",
+                Original_Body=(
+                    "Fraternity and Sorority Life Bid Day is Saturday, "
+                    "Aug. 22, on Idaho Avenue."
+                ),
+            ),
+        )
+        assert submission_resp.status_code == 201
+
+        resp = await client.post(
+            f"/api/v1/ai-edits/{submission_resp.json()['Id']}/edit",
+            json={"Newsletter_Type": "tdr"},
+            headers=staff_headers,
+        )
+        assert resp.status_code == 202
+        task = await wait_for_task(client, resp.json()["Task_Id"], staff_headers)
+        assert task["Status"] == "succeeded"
+        assert (
+            "takes precedence over sentence-casing"
+            in SuccessfulProvider.last_system_prompt
+        )
+        assert (
+            "keep their official capitalization"
+            in SuccessfulProvider.last_system_prompt
+        )
+
     async def test_staff_ai_edit_enforces_short_sentences_and_safe_semicolon_cleanup(
         self,
         client: AsyncClient,

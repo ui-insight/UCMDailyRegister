@@ -116,11 +116,15 @@ def test_migration_values_match_the_style_rule_seed_files():
         key = (rule["rule_set"], rule["rule_key"])
         assert seeded[key]["category"] == rule["category"]
         # August follow-up migrations supersede the recurring event-order,
-        # short-sentence, and CTA-structure rules. Dedicated regression tests
-        # verify their latest seed values; all other July values remain exact.
+        # short-sentence, CTA-structure, event-name, and sentence-case rules.
+        # Dedicated regression tests verify their latest seed values; all
+        # other July values remain exact.
         if key not in {
             ("shared", "short_sentences"),
             ("shared", "cta_structure"),
+            ("shared", "preserve_event_title_case"),
+            ("tdr", "sentence_case"),
+            ("myui", "sentence_case"),
         }:
             assert seeded[key]["rule_text"] == rule["rule_text"]
         if key not in {
