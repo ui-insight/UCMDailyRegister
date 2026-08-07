@@ -1,4 +1,4 @@
-# UCM Daily Register — Claude Code Conventions
+# UCM Daily Register — Codex Conventions
 
 ## Project Overview
 
@@ -8,7 +8,7 @@ AI-assisted newsletter production pipeline for the University of Idaho's Univers
 
 - **Backend:** FastAPI + SQLAlchemy 2.0 (async) + SQLite (dev) / PostgreSQL (prod)
 - **Frontend:** React + TypeScript + TailwindCSS + Vite
-- **AI:** Abstracted LLM provider (Claude + OpenAI), switchable via `LLM_PROVIDER` env var
+- **AI:** Abstracted LLM provider (Codex + OpenAI), switchable via `LLM_PROVIDER` env var
 - **Docs:** MkDocs Material → GitHub Pages
 
 ## Quick Start
@@ -103,33 +103,18 @@ Map it to host port <PORT>. Use 10.x.x.x address space.
 
 - **frontend** (nginx) — the only container with a host port mapping (`HOST_PORT`). Serves the React build and proxies `/api/` to the backend.
 - **backend** (uvicorn) — internal only, port 8001 on the Docker network.
-- **database** — external PostgreSQL instance reachable on the shared `insight-db-net` Docker network.
+- **db** (postgres:16) — internal only, port 5432 on the Docker network.
 
 ### Quick deploy
 
 ```bash
 # On the remote server
-HOST_PORT=9280 DATABASE_URL=postgresql+asyncpg://ucm:<password>@insight-db:5432/ucm_newsletter \
-  ANTHROPIC_API_KEY=<key> \
+HOST_PORT=9280 POSTGRES_PASSWORD=<secure> ANTHROPIC_API_KEY=<key> \
   docker compose up -d --build
 ```
 
-Set `HOST_PORT=9290` and point `DATABASE_URL` at `ucm_newsletter_dev` for dev.
+Set `HOST_PORT=9290` for dev.
 
 ## Environment Variables
 
 See `.env.example` for all configuration options.
-
-## Agent skills
-
-### Issue tracker
-
-Issues and PRDs are tracked in GitHub at `ui-insight/UCMDailyRegister`. See `docs/agents/issue-tracker.md`.
-
-### Triage labels
-
-Use `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, and `wontfix`. See `docs/agents/triage-labels.md`.
-
-### Domain docs
-
-This is a single-context repository using root `CONTEXT.md` and `docs/adr/` when present. See `docs/agents/domain.md`.

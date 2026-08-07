@@ -58,3 +58,12 @@ site/
 *.pptx
 # Exception: docs directory may have assets
 !docs/**
+
+# macOS (after !docs/** so it wins there too)
+.DS_Store
+
+# Claude Code local state
+.claude/settings.local.json
+.claude/worktrees/
+.claude/skills/
+.claude/.DS_Store
