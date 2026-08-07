@@ -87,9 +87,17 @@ export async function rescheduleScheduleOccurrence(
   );
 }
 
+export interface AddScheduleRequestData {
+  Requested_Date: string;
+  Second_Requested_Date?: string;
+  Recurrence_Type?: 'once' | 'weekly' | 'monthly_date' | 'monthly_nth_weekday';
+  Recurrence_Interval?: number;
+  Recurrence_End_Date?: string;
+}
+
 export async function addScheduleRequest(
   submissionId: string,
-  data: { Requested_Date: string; Second_Requested_Date?: string },
+  data: AddScheduleRequestData,
 ): Promise<SubmissionScheduleRequest> {
   return apiFetch<SubmissionScheduleRequest>(
     `/submissions/${submissionId}/schedule`,
@@ -98,6 +106,15 @@ export async function addScheduleRequest(
       body: JSON.stringify(data),
     },
   );
+}
+
+export async function deleteScheduleRequest(
+  submissionId: string,
+  scheduleId: string,
+): Promise<void> {
+  await apiFetch(`/submissions/${submissionId}/schedule/${scheduleId}`, {
+    method: 'DELETE',
+  });
 }
 
 export async function uploadImage(submissionId: string, file: File): Promise<Submission> {

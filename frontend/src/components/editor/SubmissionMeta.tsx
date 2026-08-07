@@ -3,6 +3,12 @@ import type { Submission, TargetNewsletter } from '../../types/submission';
 import { getValidDates } from '../../api/schedule';
 import { parseAPIDateTime, parseISODate, addDaysISO } from '../../utils/date';
 
+export interface ScheduleRecurrence {
+  Recurrence_Type: 'weekly' | 'monthly_date' | 'monthly_nth_weekday';
+  Recurrence_Interval: number;
+  Recurrence_End_Date?: string;
+}
+
 interface SubmissionMetaProps {
   submission: Submission;
   onChangeNewsletter?: (target: TargetNewsletter) => void;
@@ -12,7 +18,12 @@ interface SubmissionMetaProps {
     occurrenceDate: string,
     newDate: string,
   ) => Promise<void>;
-  onAddScheduleDate?: (newsletter: string, date: string) => Promise<void>;
+  onAddScheduleDate?: (
+    newsletter: string,
+    date: string,
+    recurrence?: ScheduleRecurrence,
+  ) => Promise<void>;
+  onRemoveScheduleRequest?: (scheduleId: string) => Promise<void>;
   occurrenceActionLoading?: boolean;
 }
 
@@ -47,6 +58,7 @@ export default function SubmissionMeta({
   onSkipOccurrence,
   onRescheduleOccurrence,
   onAddScheduleDate,
+  onRemoveScheduleRequest,
   occurrenceActionLoading = false,
 }: SubmissionMetaProps) {
   const [rescheduleTarget, setRescheduleTarget] = useState<{
@@ -60,6 +72,12 @@ export default function SubmissionMeta({
   const [addDateValue, setAddDateValue] = useState('');
   const [addDateLoading, setAddDateLoading] = useState(false);
   const [addDateError, setAddDateError] = useState('');
+  const [addRecurrenceType, setAddRecurrenceType] = useState<
+    'once' | ScheduleRecurrence['Recurrence_Type']
+  >('once');
+  const [addRecurrenceInterval, setAddRecurrenceInterval] = useState(1);
+  const [addRecurrenceEnd, setAddRecurrenceEnd] = useState('');
+  const [removingScheduleId, setRemovingScheduleId] = useState<string | null>(null);
   const [validDatesSet, setValidDatesSet] = useState<Set<string>>(new Set());
 
   const getMinDate = () => addDaysISO(1);
@@ -91,6 +109,9 @@ export default function SubmissionMeta({
     setShowAddDate(true);
     setAddDateValue('');
     setAddDateError('');
+    setAddRecurrenceType('once');
+    setAddRecurrenceInterval(1);
+    setAddRecurrenceEnd('');
     setAddDateNewsletter(submission.Target_Newsletter === 'both' ? '' : submission.Target_Newsletter);
   };
 
@@ -98,6 +119,9 @@ export default function SubmissionMeta({
     setShowAddDate(false);
     setAddDateValue('');
     setAddDateError('');
+    setAddRecurrenceType('once');
+    setAddRecurrenceInterval(1);
+    setAddRecurrenceEnd('');
     setAddDateNewsletter('');
   };
 
@@ -109,15 +133,43 @@ export default function SubmissionMeta({
       setAddDateError(`Not a valid publication date for ${label}.`);
       return;
     }
+    if (
+      addRecurrenceType !== 'once'
+      && addRecurrenceEnd
+      && addRecurrenceEnd < addDateValue
+    ) {
+      setAddDateError('The recurrence end date cannot be before the first run date.');
+      return;
+    }
     setAddDateLoading(true);
     setAddDateError('');
     try {
-      await onAddScheduleDate(nl, addDateValue);
+      await onAddScheduleDate(
+        nl,
+        addDateValue,
+        addRecurrenceType === 'once'
+          ? undefined
+          : {
+              Recurrence_Type: addRecurrenceType,
+              Recurrence_Interval: addRecurrenceInterval,
+              Recurrence_End_Date: addRecurrenceEnd || undefined,
+            },
+      );
       handleCancelAddDate();
     } catch (err) {
       setAddDateError(err instanceof Error ? err.message : 'Failed to add date');
     } finally {
       setAddDateLoading(false);
+    }
+  };
+
+  const handleRemoveScheduleRequest = async (scheduleId: string) => {
+    if (!onRemoveScheduleRequest) return;
+    setRemovingScheduleId(scheduleId);
+    try {
+      await onRemoveScheduleRequest(scheduleId);
+    } finally {
+      setRemovingScheduleId(null);
     }
   };
 
@@ -215,6 +267,16 @@ export default function SubmissionMeta({
                   )}
                   {req.Repeat_Note && (
                     <span className="font-normal text-gray-500"> ({req.Repeat_Note})</span>
+                  )}
+                  {onRemoveScheduleRequest && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveScheduleRequest(req.Id)}
+                      disabled={removingScheduleId === req.Id}
+                      className="ml-2 text-xs font-normal text-red-600 hover:text-red-700 underline disabled:opacity-50"
+                    >
+                      {removingScheduleId === req.Id ? 'Removing...' : 'Remove'}
+                    </button>
                   )}
                 </div>
                 {req.Recurrence_End_Date && (
@@ -370,6 +432,70 @@ export default function SubmissionMeta({
                 />
                 {addDateValue && validDatesSet.size > 0 && validDatesSet.has(addDateValue) && (
                   <div className="text-[10px] text-green-600">Valid publication date</div>
+                )}
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label
+                      htmlFor="add-date-recurrence-type"
+                      className="block text-[10px] text-gray-500 mb-0.5"
+                    >
+                      Repeats
+                    </label>
+                    <select
+                      id="add-date-recurrence-type"
+                      value={addRecurrenceType}
+                      onChange={(e) => {
+                        const value = e.target.value as typeof addRecurrenceType;
+                        setAddRecurrenceType(value);
+                        setAddRecurrenceInterval(1);
+                        if (value === 'once') setAddRecurrenceEnd('');
+                        setAddDateError('');
+                      }}
+                      className="w-full rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
+                    >
+                      <option value="once">Does not repeat</option>
+                      <option value="weekly">Weekly</option>
+                      <option value="monthly_date">Monthly on this date</option>
+                      <option value="monthly_nth_weekday">Monthly on this weekday pattern</option>
+                    </select>
+                  </div>
+                  {addRecurrenceType !== 'once' && (
+                    <div className="w-16">
+                      <label
+                        htmlFor="add-date-recurrence-interval"
+                        className="block text-[10px] text-gray-500 mb-0.5"
+                      >
+                        {addRecurrenceType === 'weekly' ? 'Every N weeks' : 'Every N months'}
+                      </label>
+                      <input
+                        id="add-date-recurrence-interval"
+                        type="number"
+                        min={1}
+                        max={12}
+                        value={addRecurrenceInterval}
+                        onChange={(e) => setAddRecurrenceInterval(parseInt(e.target.value, 10) || 1)}
+                        className="w-full rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
+                      />
+                    </div>
+                  )}
+                </div>
+                {addRecurrenceType !== 'once' && (
+                  <div>
+                    <label
+                      htmlFor="add-date-recurrence-end"
+                      className="block text-[10px] text-gray-500 mb-0.5"
+                    >
+                      Ends on (leave blank to repeat until removed)
+                    </label>
+                    <input
+                      id="add-date-recurrence-end"
+                      type="date"
+                      value={addRecurrenceEnd}
+                      min={addDateValue || getMinDate()}
+                      onChange={(e) => { setAddRecurrenceEnd(e.target.value); setAddDateError(''); }}
+                      className="w-full rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
+                    />
+                  </div>
                 )}
                 {addDateError && (
                   <div className="text-[10px] text-red-600">{addDateError}</div>

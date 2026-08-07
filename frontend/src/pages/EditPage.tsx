@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   addScheduleRequest,
+  deleteScheduleRequest,
   getSubmission,
   rescheduleScheduleOccurrence,
   skipScheduleOccurrence,
@@ -402,12 +403,31 @@ export default function EditPage() {
     }
   };
 
-  const handleAddScheduleDate = async (newsletter: string, date: string) => {
+  const handleAddScheduleDate = async (
+    newsletter: string,
+    date: string,
+    recurrence?: {
+      Recurrence_Type: 'weekly' | 'monthly_date' | 'monthly_nth_weekday';
+      Recurrence_Interval: number;
+      Recurrence_End_Date?: string;
+    },
+  ) => {
     if (!id) return;
-    await addScheduleRequest(id, { Requested_Date: date });
+    await addScheduleRequest(id, { Requested_Date: date, ...(recurrence ?? {}) });
+    const dateLabel = new Date(`${date}T12:00:00`).toLocaleDateString();
+    const newsletterLabel = newsletter === 'tdr' ? 'Daily Register' : 'My UI';
     showToast(
-      `Added run date ${new Date(`${date}T12:00:00`).toLocaleDateString()} for ${newsletter === 'tdr' ? 'Daily Register' : 'My UI'}`,
+      recurrence
+        ? `Added recurring run date starting ${dateLabel} for ${newsletterLabel}`
+        : `Added run date ${dateLabel} for ${newsletterLabel}`,
     );
+    await loadData();
+  };
+
+  const handleRemoveScheduleRequest = async (scheduleId: string) => {
+    if (!id) return;
+    await deleteScheduleRequest(id, scheduleId);
+    showToast('Removed run date schedule');
     await loadData();
   };
 
@@ -760,6 +780,7 @@ export default function EditPage() {
             onSkipOccurrence={isStaff ? handleSkipOccurrence : undefined}
             onRescheduleOccurrence={isStaff ? handleRescheduleOccurrence : undefined}
             onAddScheduleDate={isStaff ? handleAddScheduleDate : undefined}
+            onRemoveScheduleRequest={isStaff ? handleRemoveScheduleRequest : undefined}
             occurrenceActionLoading={isStaff ? occurrenceActionLoading : false}
           />
 
