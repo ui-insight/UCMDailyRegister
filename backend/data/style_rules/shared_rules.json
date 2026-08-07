@@ -38,7 +38,7 @@
   {
     "category": "formatting",
     "rule_key": "ap_style_dates",
-    "rule_text": "Use AP style for dates: abbreviate months with 6+ letters (Jan., Feb., Aug., Sept., Oct., Nov., Dec.). Spell out March, April, May, June, July. Use numerals for dates (Jan. 5, not January fifth).",
+    "rule_text": "Use AP style for dates: abbreviate months with 6+ letters (Jan., Feb., Aug., Sept., Oct., Nov., Dec.). Spell out March, April, May, June, July. Use numerals for dates (Jan. 5, not January fifth). When a month-and-day date appears mid-sentence, place a comma after the date if the sentence continues: 'The conference runs Monday, Oct. 31, and Tuesday, Nov. 1.' 'The workshop is Wednesday, Sept. 16, in the Pitman Center.' Apply the comma to every date in a range or sequence.",
     "severity": "warning"
   },
   {
