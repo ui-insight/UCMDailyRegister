@@ -187,6 +187,24 @@ describe('SubmissionForm', () => {
     expect(await screen.findByText(/submission received/i)).toBeInTheDocument();
   });
 
+  it('resets the announcement type to the top option after a successful submission', async () => {
+    const user = userEvent.setup();
+    render(<SubmissionForm />);
+
+    await screen.findByRole('option', { name: 'Faculty or Staff Announcement' });
+    await user.selectOptions(screen.getByLabelText('Announcement Type'), 'survey');
+    await user.type(screen.getByLabelText(/survey \/ event end date/i), '2026-05-30');
+    await fillStandardAnnouncement(user);
+    await user.click(screen.getByRole('button', { name: /submit announcement/i }));
+
+    await waitFor(() => {
+      expect(createSubmissionMock).toHaveBeenCalled();
+    });
+    expect(screen.getByLabelText('Announcement Type')).toHaveValue('faculty_staff');
+    // Submitter identity is intentionally retained for convenience.
+    expect(screen.getByLabelText('Your Name')).toHaveValue('Jane Submitter');
+  });
+
   it('submits separate TDR and My UI run dates when both newsletters are selected', async () => {
     const user = userEvent.setup();
     render(<SubmissionForm />);
