@@ -375,6 +375,39 @@ describe('EditPage', () => {
     expect(within(finalEdit).getByDisplayValue('AI working body.')).toBeInTheDocument();
   });
 
+  it('lists submitted links in display order inside the original reference panel', async () => {
+    const user = userEvent.setup();
+    getSubmissionMock.mockResolvedValue(makeSubmission({
+      Links: [
+        {
+          Id: 'link-2',
+          Url: 'https://example.com/details',
+          Anchor_Text: null,
+          Display_Order: 1,
+        },
+        {
+          Id: 'link-1',
+          Url: 'https://example.com/register',
+          Anchor_Text: 'Register now',
+          Display_Order: 0,
+        },
+      ],
+    }));
+    listEditVersionsMock.mockResolvedValue([]);
+
+    renderEditPage();
+
+    await screen.findByText('Original campus headline');
+    await user.click(screen.getByRole('button', { name: 'Final Edit' }));
+
+    const original = screen.getByRole('region', { name: 'Original submission' });
+    expect(within(original).getByText('Submitted links')).toBeInTheDocument();
+    const links = within(original).getAllByRole('listitem');
+    expect(links).toHaveLength(2);
+    expect(links[0]).toHaveTextContent('Register now — https://example.com/register');
+    expect(links[1]).toHaveTextContent('https://example.com/details');
+  });
+
   it('shows live CTA links while keeping destination fields separately editable', async () => {
     const user = userEvent.setup();
     getSubmissionMock.mockResolvedValue(makeSubmission({

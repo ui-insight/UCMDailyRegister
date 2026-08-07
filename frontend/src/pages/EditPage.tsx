@@ -629,10 +629,10 @@ export default function EditPage() {
             )}
 
             {activeTab === 'editor' && (
-              <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+              <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
                 <section
                   aria-label="Original submission"
-                  className="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4"
+                  className="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4 lg:sticky lg:top-6 lg:self-start"
                 >
                   <div>
                     <h3 className="text-sm font-semibold text-gray-900">Original submission</h3>
@@ -650,6 +650,23 @@ export default function EditPage() {
                       {submission.Original_Body}
                     </p>
                   </div>
+                  {submission.Links.length > 0 && (
+                    <div>
+                      <p className="mb-1 text-xs font-medium text-gray-500">Submitted links</p>
+                      <ul className="space-y-1">
+                        {[...submission.Links]
+                          .sort((a, b) => a.Display_Order - b.Display_Order)
+                          .map((link) => (
+                            <li key={link.Id} className="text-sm text-gray-700">
+                              {link.Anchor_Text?.trim() && (
+                                <span className="font-medium">{link.Anchor_Text} — </span>
+                              )}
+                              <span className="break-all text-gray-500">{link.Url}</span>
+                            </li>
+                          ))}
+                      </ul>
+                    </div>
+                  )}
                 </section>
 
                 <section aria-label="Final edit" className="min-w-0 space-y-4">
