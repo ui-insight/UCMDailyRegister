@@ -322,5 +322,11 @@
     "rule_key": "headline_distinct_from_lead",
     "rule_text": "The headline must not be the first sentence of the body or a minor rewording of it. Write a headline that summarizes the purpose, opportunity or benefit of the announcement so the headline and body each contribute unique information. Example: for a body opening 'Sign up for the sustainability newsletter.', write the headline 'Receive monthly sustainability updates', not 'Sign up for sustainability newsletter'.",
     "severity": "warning"
+  },
+  {
+    "category": "content_filtering",
+    "rule_key": "preserve_event_context",
+    "rule_text": "When condensing, distinguish unnecessary repetition from meaningful context. Preserve traditions and ceremonies, participant activities, routes, locations and event logistics, notable event features, and details that help readers visualize or understand the event. Achieve conciseness by tightening wording, not by deleting these details. Example: 'Sororities will open bids at 11:15 a.m. and run home to their chapters down Idaho Avenue.' is correct; shortening it to 'Sororities will open bids at 11:15 a.m.' removes a meaningful part of the event and is not.",
+    "severity": "warning"
   }
 ]
