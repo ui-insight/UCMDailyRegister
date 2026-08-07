@@ -1,0 +1,1611 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="AI-assisted newsletter production for the University of Idaho">
+      
+      
+      
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>AISPEG software-development and UX standards audit - UCM Daily Register</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#aispeg-software-development-and-ux-standards-audit" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="UCM Daily Register" class="md-header__button md-logo" aria-label="UCM Daily Register" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            UCM Daily Register
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              AISPEG software-development and UX standards audit
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/ui-insight/UCMDailyRegister" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ui-insight/UCMDailyRegister
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="UCM Daily Register" class="md-nav__button md-logo" aria-label="UCM Daily Register" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    UCM Daily Register
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ui-insight/UCMDailyRegister" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ui-insight/UCMDailyRegister
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udm-alignment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UDM Alignment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ai-editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../branding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Branding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../github-enterprise-migration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GitHub Enterprise Migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-governance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Governance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enterprise AI Framework
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Enterprise AI Framework
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../governance/enterprise-ai-framework/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../governance/enterprise-ai-framework/approved-stack-evidence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Approved Stack Evidence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../backup-and-recovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backup & Recovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../audit-logging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Audit Logging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="aispeg-software-development-and-ux-standards-audit">AISPEG software-development and UX standards audit<a class="headerlink" href="#aispeg-software-development-and-ux-standards-audit" title="Permanent link">&para;</a></h1>
+<p><strong>Application:</strong> UCM Daily Register<br />
+<strong>Assessment date:</strong> 2026-08-05<br />
+<strong>Assessed revision:</strong> <code>main</code> at <code>4c89bd5</code><br />
+<strong>Standards source:</strong> <a href="https://aispeg-dev.insight.uidaho.edu/standards">AISPEG Software-development and user-experience standards</a> and <a href="https://aispeg-dev.insight.uidaho.edu/standards/foundation">assessment foundation</a><br />
+<strong>Assessor:</strong> Codex, based on repository evidence and local automated checks</p>
+<h2 id="executive-finding">Executive finding<a class="headerlink" href="#executive-finding" title="Permanent link">&para;</a></h2>
+<p>The application is <strong>nonconforming with the current measurable draft</strong> because 24 of the 35 critical gates are Not met. One critical gate is Met, eight are Partially met, and two are institutional requirements outside the application's authority.</p>
+<p>This is not a claim that the application violates approved University policy. The portal labels all 20 standards as working drafts, with 0 approved as of the assessment date. Binding obligations cited by the drafts, especially APM 30.11 and WCAG 2.1 AA, still apply independently.</p>
+<p>The repository has a sound tested application foundation: FastAPI-generated OpenAPI 3.1, server-side authorization checks, PII redaction tests, bounded submission queries, database migrations, health checks, deployment smoke tests, SBOM artifacts, University brand tokens, and a growing shared component library. The principal problem is that the updated standard requires current, reviewable assurance evidence and release gates that the project does not yet have.</p>
+<h2 id="scope-and-method">Scope and method<a class="headerlink" href="#scope-and-method" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Local <code>main</code> was fast-forwarded to <code>origin/main</code>; both resolved to <code>4c89bd5</code> before this report was created.</li>
+<li>Existing untracked user files were preserved and excluded from conformance evidence.</li>
+<li>All 80 atomic requirements published by the portal were assessed from repository contents at the revision above.</li>
+<li>A missing required artifact or control is marked <strong>N (Not met)</strong>. <strong>NA (Not applicable)</strong> is used only for requirements assigned to institutional standards owners rather than an application team, or for an unsupported feature such as alternate themes.</li>
+<li>Live OIT approvals, GitHub branch-protection settings, production database grants, backup logs, monitoring dashboards, and user-research records were not available in the repository. Where the requirement calls for those artifacts, their absence is a finding, not an assumption that they exist elsewhere.</li>
+<li>Based on the foundation's seven assurance dimensions, this application is <strong>at least Level 2 (Standard production)</strong>: it has authenticated staff workflows, protected editorial actions, public/untrusted input and image uploads, and external integrations. This is an assessor inference, not a substitute for the required approved Application Assurance Profile.</li>
+</ul>
+<h2 id="result-summary">Result summary<a class="headerlink" href="#result-summary" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Scope</th>
+<th style="text-align: right;">Met</th>
+<th style="text-align: right;">Partially met</th>
+<th style="text-align: right;">Not met</th>
+<th style="text-align: right;">Not applicable</th>
+<th style="text-align: right;">Total</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Software development (I.1-I.10)</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">17</td>
+<td style="text-align: right;">21</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">40</td>
+</tr>
+<tr>
+<td>User experience (II.1-II.10)</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">15</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">40</td>
+</tr>
+<tr>
+<td><strong>All requirements</strong></td>
+<td style="text-align: right;"><strong>1</strong></td>
+<td style="text-align: right;"><strong>32</strong></td>
+<td style="text-align: right;"><strong>41</strong></td>
+<td style="text-align: right;"><strong>6</strong></td>
+<td style="text-align: right;"><strong>80</strong></td>
+</tr>
+<tr>
+<td><strong>Critical gates only</strong></td>
+<td style="text-align: right;"><strong>1</strong></td>
+<td style="text-align: right;"><strong>8</strong></td>
+<td style="text-align: right;"><strong>24</strong></td>
+<td style="text-align: right;"><strong>2</strong></td>
+<td style="text-align: right;"><strong>35</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Legend: <strong>M</strong> = Met, <strong>P</strong> = Partially met, <strong>N</strong> = Not met, <strong>NA</strong> = Not applicable. A dagger (†) marks a critical gate.</p>
+<h2 id="highest-priority-release-gate-gaps">Highest-priority release-gate gaps<a class="headerlink" href="#highest-priority-release-gate-gaps" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Assurance and security profile:</strong> no Application Assurance Profile, ASVS 5.0 control profile, threat model, or finding-disposition record (<code>I4-R1</code>).</li>
+<li><strong>University identity:</strong> production authorization depends on a shared trusted-header secret rather than Entra ID/OIDC and individual identity; horizontal/vertical access-control coverage is incomplete (<code>I4-R4</code>).</li>
+<li><strong>Secrets:</strong> environment files and variables are documented, but no OIT-approved secrets service or access/rotation evidence exists (<code>I4-R2</code>).</li>
+<li><strong>Security pipeline:</strong> CI does not run dependency, secret, SAST, container, or IaC scanning and does not block releases on findings (<code>I4-R3</code>).</li>
+<li><strong>Known dependency exposure:</strong> current audits report 58 advisories across 14 packages in the local backend environment and 5 findings in the full frontend tree (4 high, 1 moderate). The frontend production-only audit reports 3 findings (2 high, 1 moderate). The backend dependency set is not locked, so these results are not an authoritative production inventory.</li>
+<li><strong>Data governance:</strong> the data inventory uses Public/Internal/Confidential instead of APM 30.11 Low/Moderate/High, has no signed Data Owner/Steward approval, and has no implemented retention/disposal path (<code>I3-R1</code>, <code>I3-R3</code>).</li>
+<li><strong>Build provenance:</strong> production is built interactively with Docker Compose from mutable dependency ranges; there is no approved CI-built immutable artifact, digest, signature, or provenance attestation (<code>I5-R1</code>).</li>
+<li><strong>Ownership and handoff:</strong> no named business/technical/data owners, funded maintenance commitment, complete runbook, or decommission plan is on file (<code>I6-R1</code>, <code>I6-R2</code>).</li>
+<li><strong>Accessibility:</strong> no WCAG-EM report or accessibility gate exists. Static evidence includes white text on Gold 600 at 2.47:1 and white text on Gold 500 at 1.88:1, both below AA for normal text; dialogs also lack complete focus management (<code>II2-R2</code>, <code>II3-R1</code>, <code>II3-R3</code>).</li>
+<li><strong>Forms and feedback:</strong> failed submissions do not provide a programmatically associated error summary, <code>aria-invalid</code>/<code>aria-describedby</code>, or reliably announced success/error state (<code>II2-R3</code>, <code>II6-R2</code>).</li>
+<li><strong>Responsive critical workflows:</strong> the shell uses a fixed 16rem sidebar and non-responsive page padding, and forms contain fixed two-column grids without 320 CSS-pixel/reflow evidence (<code>II4-R4</code>).</li>
+<li><strong>User validation:</strong> no representative-user research plan, critical-task usability report, finding register, or prelaunch retest evidence exists (<code>II8-R1</code>, <code>II8-R3</code>).</li>
+</ol>
+<h2 id="verification-performed">Verification performed<a class="headerlink" href="#verification-performed" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Repository sync</td>
+<td><code>main == origin/main == 4c89bd5</code></td>
+</tr>
+<tr>
+<td>Backend tests</td>
+<td>159 passed</td>
+</tr>
+<tr>
+<td>Backend Ruff</td>
+<td>Passed</td>
+</tr>
+<tr>
+<td>Frontend tests</td>
+<td>57 passed across 14 files</td>
+</tr>
+<tr>
+<td>Frontend ESLint</td>
+<td>Passed with zero warnings</td>
+</tr>
+<tr>
+<td>Frontend TypeScript/Vite build</td>
+<td>Passed</td>
+</tr>
+<tr>
+<td>Generated API contract</td>
+<td>OpenAPI 3.1.0, 52 paths; no security schemes or RFC 9457 problem schema</td>
+</tr>
+<tr>
+<td>Frontend dependency audit</td>
+<td>5 total findings: 4 high, 1 moderate</td>
+</tr>
+<tr>
+<td>Frontend production-only dependency audit</td>
+<td>3 total findings: 2 high, 1 moderate</td>
+</tr>
+<tr>
+<td>Backend dependency audit</td>
+<td>58 advisory records across 14 installed packages; production applicability cannot be established without a lockfile/artifact inventory</td>
+</tr>
+<tr>
+<td>MkDocs strict build</td>
+<td>Not run: MkDocs is not installed in the project environment; documentation CI installs it ad hoc</td>
+</tr>
+</tbody>
+</table>
+<h2 id="requirement-by-requirement-assessment">Requirement-by-requirement assessment<a class="headerlink" href="#requirement-by-requirement-assessment" title="Permanent link">&para;</a></h2>
+<h3 id="i1-system-architecture-integration-standards">I.1 System Architecture &amp; Integration Standards<a class="headerlink" href="#i1-system-architecture-integration-standards" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Status</th>
+<th>Evidence and finding</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>I1-R1†</td>
+<td>P</td>
+<td><code>docs/architecture.md</code> and <code>docs/data-governance.md</code> contain version-controlled architecture/data-flow sketches, but they do not fully name trust boundaries, protocols, accountable owner, or deployed physical topology.</td>
+</tr>
+<tr>
+<td>I1-R2</td>
+<td>P</td>
+<td>Integrations and providers are documented, but there is no governed integration inventory covering authentication, authorization, classification, failure, retry/idempotency, and both owning teams.</td>
+</tr>
+<tr>
+<td>I1-R3†</td>
+<td>P</td>
+<td>Frontend-to-backend access is API-first and no code-level cross-application DB access was found. Active database grants, an explicit prohibition, audit controls, and an exception register are absent.</td>
+</tr>
+<tr>
+<td>I1-R4</td>
+<td>N</td>
+<td>No material-change definition or required architecture impact-review/update workflow exists.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="i2-api-interface-standards">I.2 API &amp; Interface Standards<a class="headerlink" href="#i2-api-interface-standards" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Status</th>
+<th>Evidence and finding</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>I2-R1†</td>
+<td>P</td>
+<td>FastAPI generates OpenAPI 3.1.0 for 52 paths and serves Swagger/ReDoc. The contract is not checked in or validated in CI and has no security schemes, comprehensive error contracts, or representative examples.</td>
+</tr>
+<tr>
+<td>I2-R2</td>
+<td>P</td>
+<td>Routes generally use appropriate methods/status codes and have automated API tests, but there is no RFC 9110 conformance suite for caching, conditional requests, or negotiation.</td>
+</tr>
+<tr>
+<td>I2-R3†</td>
+<td>N</td>
+<td>Errors use FastAPI's <code>{detail: ...}</code> shape; there is no RFC 9457 problem-details schema, stable type URI, safe correlation ID, or redaction test suite.</td>
+</tr>
+<tr>
+<td>I2-R4</td>
+<td>P</td>
+<td>Submission collections use bounded <code>offset</code>/<code>limit</code> and filters. Pagination/rate-limit/deprecation policy and consumer notices are not published, and deterministic ordering is not contractually verified for every collection.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="i3-data-standards-governance">I.3 Data Standards &amp; Governance<a class="headerlink" href="#i3-data-standards-governance" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Status</th>
+<th>Evidence and finding</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>I3-R1†</td>
+<td>N</td>
+<td><code>docs/data-governance.md</code> uses Public/Internal/Confidential, not APM 30.11 Low/Moderate/High, and has no signed Data Owner/Steward classification approval.</td>
+</tr>
+<tr>
+<td>I3-R2</td>
+<td>P</td>
+<td>Models, <code>AllowedValue</code> records, <code>docs/data-model.md</code>, and the Data Governance UI document identifiers and controlled vocabularies. System-of-record declarations and named stewards are incomplete.</td>
+</tr>
+<tr>
+<td>I3-R3†</td>
+<td>N</td>
+<td>Collection purpose and proposed retention are documented, but there is no approved lifecycle schedule, legal-hold behavior, implemented cleanup job, verified disposal evidence, or complete lineage record.</td>
+</tr>
+<tr>
+<td>I3-R4</td>
+<td>P</td>
+<td><code>docs/backup-and-recovery.md</code> defines daily backups, RPO 24h, RTO 4h, and a restore procedure. The repository contains examples rather than deployed backup configuration or a recorded restore test.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="i4-security-compliance-requirements">I.4 Security &amp; Compliance Requirements<a class="headerlink" href="#i4-security-compliance-requirements" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Status</th>
+<th>Evidence and finding</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>I4-R1†</td>
+<td>N</td>
+<td>No Application Assurance Profile, ASVS 5.0 applicability profile/results, or threat model exists. The available evidence indicates Level 2 is the likely minimum.</td>
+</tr>
+<tr>
+<td>I4-R2†</td>
+<td>N</td>
+<td>Secrets are injected through environment variables/files and excluded from Git, but there is no OIT-approved secrets service, inventory, access evidence, encryption evidence for the source secret store, or tested rotation procedure.</td>
+</tr>
+<tr>
+<td>I4-R3†</td>
+<td>N</td>
+<td><code>.github/workflows/ci.yml</code> runs lint/tests/build only. Dependency, secret, SAST, container, and IaC scans and release-blocking dispositions are absent. Current dependency audits have findings.</td>
+</tr>
+<tr>
+<td>I4-R4†</td>
+<td>N</td>
+<td>The backend enforces roles server-side and <code>backend/tests/test_authorization.py</code> tests important denials/PII redaction. It does not use approved University identity, identify individual users, or comprehensively test horizontal and vertical authorization.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="i5-devops-deployment-hosting-standards">I.5 DevOps, Deployment &amp; Hosting Standards<a class="headerlink" href="#i5-devops-deployment-hosting-standards" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Status</th>
+<th>Evidence and finding</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>I5-R1†</td>
+<td>N</td>
+<td>GitHub Actions builds/tests source, but production deployment rebuilds interactively with <code>deploy.sh</code>/Docker Compose. No immutable CI artifact, digest, attestation, signing, or complete dependency lock exists.</td>
+</tr>
+<tr>
+<td>I5-R2†</td>
+<td>P</td>
+<td>Dev/prod use separate Docker project names, subnets, environment files, and databases. Access-control evidence and an enforced prohibition on production data outside production are incomplete.</td>
+</tr>
+<tr>
+<td>I5-R3</td>
+<td>P</td>
+<td>Compose, Dockerfiles, nginx, entrypoint, and deploy script are version-controlled. There is no automated IaC/config validation, approved GitOps reconciliation, or drift detection.</td>
+</tr>
+<tr>
+<td>I5-R4</td>
+<td>P</td>
+<td>Docker readiness checks and post-deploy smoke tests exist. Release version/approver records, automated rollback/forward recovery, and a recovery rehearsal are absent.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="i6-application-lifecycle-handoff-standards">I.6 Application Lifecycle &amp; Handoff Standards<a class="headerlink" href="#i6-application-lifecycle-handoff-standards" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Status</th>
+<th>Evidence and finding</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>I6-R1†</td>
+<td>N</td>
+<td>No named business owner, technical owner, data owner/steward, support contact, or funded maintenance commitment is recorded.</td>
+</tr>
+<tr>
+<td>I6-R2†</td>
+<td>P</td>
+<td>Architecture, deployment, backup, security, data-governance, and SBOM documents provide parts of a handoff package. There is no single current runbook with monitoring ownership, access procedures, known-risk dispositions, and vendor contacts.</td>
+</tr>
+<tr>
+<td>I6-R3</td>
+<td>P</td>
+<td>RPO/RTO, incident steps, and contacts are documented. Service objectives, support hours, severity/escalation commitments, and maintenance windows are incomplete.</td>
+</tr>
+<tr>
+<td>I6-R4</td>
+<td>N</td>
+<td>No owner-approved decommission plan covers notification, export, retention/disposal, integration shutdown, access removal, and archival evidence.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="i7-technical-debt-code-quality-standards">I.7 Technical Debt &amp; Code Quality Standards<a class="headerlink" href="#i7-technical-debt-code-quality-standards" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Status</th>
+<th>Evidence and finding</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>I7-R1</td>
+<td>P</td>
+<td>CI enforces Ruff, pytest, ESLint, TypeScript compilation, and build. It does not run frontend tests, Pyright, secret scanning, dependency scanning, or a formatting gate; branch protection is not evidenced in-repo.</td>
+</tr>
+<tr>
+<td>I7-R2†</td>
+<td>P</td>
+<td>The repository has 159 backend and 57 frontend tests, including authorization and data-integrity cases. Frontend tests are not a CI gate and critical recovery paths lack integration tests.</td>
+</tr>
+<tr>
+<td>I7-R3</td>
+<td>N</td>
+<td>Existing issue references track some standards gaps, but there is no defined, periodically reviewed technical-debt register with risk, owner, disposition, and horizon.</td>
+</tr>
+<tr>
+<td>I7-R4</td>
+<td>P</td>
+<td><code>frontend/src/components/common/</code> provides shared components and services are modular. There is no component inventory or documented deviation/duplication decision process.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="i8-decision-making-governance-model">I.8 Decision-Making &amp; Governance Model<a class="headerlink" href="#i8-decision-making-governance-model" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Status</th>
+<th>Evidence and finding</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>I8-R1†</td>
+<td>NA</td>
+<td>Publishing the institutional standards decision-rights matrix belongs to the University standards owner, not this application repository. The application still needs named local owners under I6-R1.</td>
+</tr>
+<tr>
+<td>I8-R2</td>
+<td>N</td>
+<td>No ADR/decision register records material decisions, options, rationale, approver, affected standards, and review triggers.</td>
+</tr>
+<tr>
+<td>I8-R3†</td>
+<td>N</td>
+<td>Known deviations from the draft paved road exist (identity, secrets, CI/CD, GitOps, observability), but no approved, expiring exception records with compensating controls were found.</td>
+</tr>
+<tr>
+<td>I8-R4</td>
+<td>NA</td>
+<td>Versioning and publishing the institutional standards catalog belongs to its standards owner.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="i9-upgrade-change-management-standards">I.9 Upgrade &amp; Change Management Standards<a class="headerlink" href="#i9-upgrade-change-management-standards" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Status</th>
+<th>Evidence and finding</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>I9-R1†</td>
+<td>N</td>
+<td>Package manifests, an npm lockfile, Dependabot for npm, and SBOM snapshots exist. There is no complete component owner/EOL register, backend lockfile, or monitored support-lifecycle dashboard.</td>
+</tr>
+<tr>
+<td>I9-R2†</td>
+<td>N</td>
+<td><code>SECURITY.md</code> states remediation targets, but CI does not scan/enforce them and current audits report unresolved findings. There is no release-blocking risk-acceptance workflow.</td>
+</tr>
+<tr>
+<td>I9-R3</td>
+<td>N</td>
+<td>APIs are namespaced <code>/api/v1</code>, but no compatibility/deprecation policy, consumer inventory, notice period, or migration/removal template exists.</td>
+</tr>
+<tr>
+<td>I9-R4</td>
+<td>P</td>
+<td>Regression tests, builds, Alembic checks, health checks, and smoke tests cover portions of upgrades. Security, rollback/forward-recovery, and observability verification are not integrated.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="i10-observability-operational-standards">I.10 Observability &amp; Operational Standards<a class="headerlink" href="#i10-observability-operational-standards" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Status</th>
+<th>Evidence and finding</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>I10-R1</td>
+<td>N</td>
+<td><code>docs/audit-logging.md</code> is a plan. No implemented structured logs, OpenTelemetry collector/instrumentation, metrics, or traces were found.</td>
+</tr>
+<tr>
+<td>I10-R2†</td>
+<td>N</td>
+<td>The plan says not to log PII, but there is no telemetry inventory, redaction test, classified retention/access configuration, or verified disposal.</td>
+</tr>
+<tr>
+<td>I10-R3</td>
+<td>N</td>
+<td>No production SLI/SLO definitions or dashboards for availability, latency, errors, and critical business transactions exist.</td>
+</tr>
+<tr>
+<td>I10-R4</td>
+<td>N</td>
+<td>No alert catalog with owner, severity, runbook, route, response expectation, test record, or post-incident feedback loop exists.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ii1-design-system-visual-standards">II.1 Design System &amp; Visual Standards<a class="headerlink" href="#ii1-design-system-visual-standards" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Status</th>
+<th>Evidence and finding</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>II1-R1†</td>
+<td>M</td>
+<td>The app uses an approved U of I logo asset, University brand color scales, Public Sans, and documented voice/brand guidance in <code>docs/branding.md</code> and <code>PRODUCT.md</code>. Accessibility of individual uses remains assessed separately.</td>
+</tr>
+<tr>
+<td>II1-R2</td>
+<td>P</td>
+<td><code>frontend/src/index.css</code> defines version-controlled color, typography, and status tokens. Spacing, elevation, borders, breakpoints, focus, and motion tokens/guidance are incomplete.</td>
+</tr>
+<tr>
+<td>II1-R3</td>
+<td>N</td>
+<td>Tokens/components are local copies rather than an approved versioned institutional design-system dependency or documented synchronization/provenance process.</td>
+</tr>
+<tr>
+<td>II1-R4</td>
+<td>NA</td>
+<td>The application exposes no alternate or dark theme. Any future theme must be reassessed.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ii2-component-interaction-standards">II.2 Component &amp; Interaction Standards<a class="headerlink" href="#ii2-component-interaction-standards" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Status</th>
+<th>Evidence and finding</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>II2-R1</td>
+<td>P</td>
+<td>A shared component directory exists, but many pages use ad hoc controls. No inventory, unmet-need record, accessibility review, or contribution decision is required for custom components.</td>
+</tr>
+<tr>
+<td>II2-R2†</td>
+<td>N</td>
+<td>Some controls have roles/names and focus-visible styles. Shared buttons lack a consistent visible-focus style; dialogs lack complete initial focus, focus trap, Escape, and focus-return behavior; no screen-reader/keyboard report exists.</td>
+</tr>
+<tr>
+<td>II2-R3†</td>
+<td>N</td>
+<td>Forms generally have persistent labels, but failed submissions lack programmatic field associations, <code>aria-invalid</code>, an accessible error summary, and focused/announced context.</td>
+</tr>
+<tr>
+<td>II2-R4</td>
+<td>P</td>
+<td>Shared confirmation dialogs protect style-rule and recurring-message deletion, but other remove/skip operations execute directly and the confirmation component itself has incomplete focus management.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ii3-accessibility">II.3 Accessibility<a class="headerlink" href="#ii3-accessibility" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Status</th>
+<th>Evidence and finding</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>II3-R1†</td>
+<td>N</td>
+<td>No WCAG-EM report exists. Static contrast failures include white on Gold 600 (2.47:1) and white on Gold 500 (1.88:1), and modal/form/reflow concerns prevent a WCAG 2.1 AA claim.</td>
+</tr>
+<tr>
+<td>II3-R2</td>
+<td>N</td>
+<td>No axe/pa11y/Lighthouse accessibility CI or production scan exists, and no keyboard, zoom/reflow, contrast, screen-reader, or cognitive review record was found.</td>
+</tr>
+<tr>
+<td>II3-R3†</td>
+<td>N</td>
+<td>No accessibility severity/release policy, equivalent-path process, executive risk decision, or retest evidence exists.</td>
+</tr>
+<tr>
+<td>II3-R4</td>
+<td>P</td>
+<td>The app provides a general in-app feedback channel, but no accessibility statement, named accessibility owner, acknowledgment commitment, or verified remediation workflow is published.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ii4-usability-workflow-design-standards">II.4 Usability &amp; Workflow Design Standards<a class="headerlink" href="#ii4-usability-workflow-design-standards" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Status</th>
+<th>Evidence and finding</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>II4-R1†</td>
+<td>P</td>
+<td><code>PRODUCT.md</code> identifies three audiences, purposes, and design principles. It lacks research-backed barriers, context-of-use evidence, critical-task inventory, and baseline outcomes.</td>
+</tr>
+<tr>
+<td>II4-R2</td>
+<td>N</td>
+<td>No measurable critical-task success definitions cover completion, errors, effort, abandonment, accessibility, and confidence.</td>
+</tr>
+<tr>
+<td>II4-R3</td>
+<td>P</td>
+<td>Shared navigation, API clients, tokens, and components support consistency, but no cross-module pattern inventory, terminology review, or evidence-based exception process exists.</td>
+</tr>
+<tr>
+<td>II4-R4†</td>
+<td>N</td>
+<td>No responsive/reflow matrix exists. Fixed sidebar/page spacing and fixed two-column form layouts provide contrary evidence for reliable 320 CSS-pixel and 200% zoom support.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ii5-performance-responsiveness-standards">II.5 Performance &amp; Responsiveness Standards<a class="headerlink" href="#ii5-performance-responsiveness-standards" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Status</th>
+<th>Evidence and finding</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>II5-R1</td>
+<td>N</td>
+<td>No real-user Core Web Vitals collection, 28-day mobile/desktop report, or page/template coverage exists.</td>
+</tr>
+<tr>
+<td>II5-R2</td>
+<td>N</td>
+<td>No end-to-end latency/availability objectives or dependency budgets are defined or measured.</td>
+</tr>
+<tr>
+<td>II5-R3</td>
+<td>N</td>
+<td>Helpful network errors exist in the API client, but there is no constrained-network critical-workflow test covering loading, timeout, retry, and reconnection.</td>
+</tr>
+<tr>
+<td>II5-R4</td>
+<td>P</td>
+<td>Submission lists use bounded API queries, but large-result behavior is not consistently documented/tested and no keyboard/assistive-technology performance validation exists.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ii6-error-handling-feedback-standards">II.6 Error Handling &amp; Feedback Standards<a class="headerlink" href="#ii6-error-handling-feedback-standards" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Status</th>
+<th>Evidence and finding</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>II6-R1</td>
+<td>P</td>
+<td>The frontend translates API/network failures into generally actionable language and preserves form values on failure. Messages do not consistently identify the affected item or provide a safe support reference ID.</td>
+</tr>
+<tr>
+<td>II6-R2†</td>
+<td>N</td>
+<td>Validation is not consistently associated with fields and failed submissions do not provide an accessible summary/focus path.</td>
+</tr>
+<tr>
+<td>II6-R3</td>
+<td>P</td>
+<td>Toasts use <code>role="status"</code> and several operations expose loading/success/error text. Announcement, focus, meaningful progress, cancellation, and interrupted-connectivity behavior are not consistent or tested.</td>
+</tr>
+<tr>
+<td>II6-R4†</td>
+<td>N</td>
+<td>Default FastAPI errors normally avoid production stack traces, but no RFC 9457 safe error boundary, correlation ID, protected diagnostic logging, or redaction tests exist.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ii7-content-language-standards">II.7 Content &amp; Language Standards<a class="headerlink" href="#ii7-content-language-standards" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Status</th>
+<th>Evidence and finding</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>II7-R1</td>
+<td>P</td>
+<td><code>PRODUCT.md</code> defines audiences and a clear, helpful newsroom voice; forms use familiar language. No governed content brief/review artifact demonstrates consistent application.</td>
+</tr>
+<tr>
+<td>II7-R2</td>
+<td>P</td>
+<td>Most actions, fields, and headings are descriptive, but no out-of-context link/button and heading-hierarchy audit or usability evidence exists.</td>
+</tr>
+<tr>
+<td>II7-R3</td>
+<td>N</td>
+<td>Controlled database vocabularies exist, but there is no governed cross-system glossary with owner, prohibited ambiguity, and change process.</td>
+</tr>
+<tr>
+<td>II7-R4</td>
+<td>P</td>
+<td>Forms provide point-of-need helper text and do not rely solely on hover. No help-content inventory, keyboard/touch validation, or representative-user test exists.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ii8-user-testing-validation-requirements">II.8 User Testing &amp; Validation Requirements<a class="headerlink" href="#ii8-user-testing-validation-requirements" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Status</th>
+<th>Evidence and finding</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>II8-R1†</td>
+<td>N</td>
+<td>No material-release research plan or representative-participant record, including participants likely to face the greatest barriers, was found.</td>
+</tr>
+<tr>
+<td>II8-R2</td>
+<td>N</td>
+<td>No predeclared usability test tasks, measures, stopping rules, accommodations, observation method, or decision thresholds exist.</td>
+</tr>
+<tr>
+<td>II8-R3†</td>
+<td>N</td>
+<td>No user-finding register links critical findings to owners, launch dispositions, material-change retests, and verification.</td>
+</tr>
+<tr>
+<td>II8-R4</td>
+<td>P</td>
+<td>An in-app feedback channel and staff review UI exist. No declared cadence combines feedback with task analytics, support themes, and accessibility reports or traces decisions to that evidence.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ii9-analytics-ux-telemetry">II.9 Analytics &amp; UX Telemetry<a class="headerlink" href="#ii9-analytics-ux-telemetry" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Status</th>
+<th>Evidence and finding</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>II9-R1†</td>
+<td>P</td>
+<td>Feedback capture documents a product purpose and a privacy-limited context payload. It lacks an approved event/attribute dictionary with owner, APM classification, basis, retention, access group, and prohibited uses.</td>
+</tr>
+<tr>
+<td>II9-R2†</td>
+<td>N</td>
+<td>The payload intentionally excludes submission/editorial content, but free-text feedback and optional contact email can contain sensitive data and there is no redaction/block list or production payload inspection evidence.</td>
+</tr>
+<tr>
+<td>II9-R3</td>
+<td>P</td>
+<td>The feedback dialog tells users what context is included and excluded. A complete privacy notice and applicable consent, access, deletion, and downstream-control behavior are absent.</td>
+</tr>
+<tr>
+<td>II9-R4</td>
+<td>N</td>
+<td>No technically enforced retention, periodic access review, verified deletion, export/destination inventory, or downstream deletion evidence exists for feedback data.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ii10-governance-exception-handling">II.10 Governance &amp; Exception Handling<a class="headerlink" href="#ii10-governance-exception-handling" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Status</th>
+<th>Evidence and finding</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>II10-R1†</td>
+<td>NA</td>
+<td>Naming University-wide owners for brand, design system, content, accessibility, research, and analytics is an institutional governance responsibility. The app should reference the published matrix once available.</td>
+</tr>
+<tr>
+<td>II10-R2</td>
+<td>NA</td>
+<td>Versioning and publishing institutional UX standards/shared components belongs to their authorized owners. Local components remain covered by II1-R2/R3 and II2-R1.</td>
+</tr>
+<tr>
+<td>II10-R3</td>
+<td>NA</td>
+<td>The institutional UX standards change process is outside this application's authority.</td>
+</tr>
+<tr>
+<td>II10-R4†</td>
+<td>N</td>
+<td>The project has known UX/accessibility deviations but no application-level exception register with affected users, equivalent path, compensating measures, approval, and expiry.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="recommended-remediation-sequence">Recommended remediation sequence<a class="headerlink" href="#recommended-remediation-sequence" title="Permanent link">&para;</a></h2>
+<h3 id="1-establish-the-assurance-baseline">1. Establish the assurance baseline<a class="headerlink" href="#1-establish-the-assurance-baseline" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Complete the Application Assurance Profile and obtain the required independent review.</li>
+<li>Produce a Level 2 threat model and ASVS 5.0 applicability/results packet.</li>
+<li>Name business, technical, data, support, accessibility/design, and risk owners.</li>
+<li>Create an evidence index and approved, expiring exceptions for deviations that cannot be fixed before the next release.</li>
+</ul>
+<h3 id="2-close-security-and-supply-chain-gates">2. Close security and supply-chain gates<a class="headerlink" href="#2-close-security-and-supply-chain-gates" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Replace prototype trusted-header identity with Entra ID/OIDC and per-user authorization evidence.</li>
+<li>Integrate the OIT-approved secrets service.</li>
+<li>Add dependency, secret, SAST, container, and IaC scans to pull requests, deployment pipelines, and the required schedule; implement release blocking and finding dispositions.</li>
+<li>Lock backend dependencies, refresh both SBOMs, remediate current audit findings, and build immutable signed/provenanced artifacts in an approved CI service.</li>
+</ul>
+<h3 id="3-align-data-and-operations">3. Align data and operations<a class="headerlink" href="#3-align-data-and-operations" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Reclassify data using APM 30.11 and obtain Data Owner/Steward approval.</li>
+<li>Implement retention/disposal and record a non-production restore test.</li>
+<li>Finish the runbook, service objectives, escalation/alert catalog, rollback rehearsal, and decommission plan.</li>
+<li>Implement structured OpenTelemetry-compatible logging/metrics/traces with redaction, retention, dashboards, and named alert ownership.</li>
+</ul>
+<h3 id="4-close-accessibility-and-ux-gates">4. Close accessibility and UX gates<a class="headerlink" href="#4-close-accessibility-and-ux-gates" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Fix known contrast, focus, dialog, error-summary, announcement, and responsive/reflow defects.</li>
+<li>Add automated accessibility checks plus a manual WCAG-EM evaluation and accessibility statement/feedback workflow.</li>
+<li>Define critical tasks and success measures, then test material releases with representative users and track/retest findings.</li>
+<li>Add Core Web Vitals/critical-transaction measurement and a governed feedback/analytics data plan.</li>
+</ul>
+<h3 id="5-refresh-governance-evidence">5. Refresh governance evidence<a class="headerlink" href="#5-refresh-governance-evidence" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Replace or extend <code>docs/governance/enterprise-ai-framework/evidence.json</code>, which currently represents 15 requirements from the April 2026 draft, with mappings for the 80 current atomic requirements.</li>
+<li>Add CI validation for the evidence index and freshness dates.</li>
+<li>Reassess after the critical-gate remediation is deployed and current production evidence is available.</li>
+</ul>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
