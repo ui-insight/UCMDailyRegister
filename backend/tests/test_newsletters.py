@@ -1,13 +1,16 @@
 """Tests for Newsletter CRUD and assembly endpoints."""
 
+import json
 from datetime import date, datetime
+from pathlib import Path
 
 import pytest
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.newsletter import NewsletterItem
 from app.models.section import NewsletterSection
-from app.services import calendar_event_service, job_posting_service
+from app.services import calendar_event_service, job_posting_service, newsletter_service
 from tests.conftest import make_newsletter_data, make_submission_data
 
 
@@ -420,6 +423,125 @@ class TestNewsletterItems:
         assert len(items) == 1
         assert items[0]["Submission_Id"] == submission_id
         assert items[0]["Section_Id"] == "myui-news-updates"
+
+    async def test_assemble_places_employee_announcement_in_its_section_and_resyncs(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+        staff_headers: dict[str, str],
+    ):
+        db.add_all([
+            NewsletterSection(
+                Id="tdr-employee-news",
+                Newsletter_Type="tdr",
+                Name="Employee News",
+                Slug="employee-news",
+                Display_Order=1,
+                Is_Active=True,
+            ),
+            NewsletterSection(
+                Id="tdr-employee-announcements",
+                Newsletter_Type="tdr",
+                Name="Employee Announcements",
+                Slug="employee-announcements",
+                Display_Order=2,
+                Is_Active=True,
+            ),
+        ])
+        await db.commit()
+
+        submission_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(
+                Category="employee_announcement",
+                Schedule_Requests=[{"Requested_Date": "2026-04-06"}],
+            ),
+            headers=staff_headers,
+        )
+        submission_id = submission_resp.json()["Id"]
+        await client.patch(
+            f"/api/v1/submissions/{submission_id}",
+            json={"Status": "approved"},
+        )
+
+        assemble_resp = await client.post(
+            "/api/v1/newsletters/assemble",
+            json={"Newsletter_Type": "tdr", "Publish_Date": "2026-04-06"},
+            headers=staff_headers,
+        )
+        assert assemble_resp.status_code == 200
+        newsletter_id = assemble_resp.json()["Id"]
+        items = assemble_resp.json()["Items"]
+        assert len(items) == 1
+        assert items[0]["Section_Id"] == "tdr-employee-announcements"
+        item_id = items[0]["Id"]
+
+        # Simulate an item placed by the stale pre-fix mapping: wrong section,
+        # not flagged as manually moved. Re-assembly re-syncs it.
+        item = await db.get(NewsletterItem, item_id)
+        item.Section_Id = "tdr-employee-news"
+        await db.commit()
+
+        reassemble_resp = await client.post(
+            "/api/v1/newsletters/assemble",
+            json={"Newsletter_Type": "tdr", "Publish_Date": "2026-04-06"},
+            headers=staff_headers,
+        )
+        assert reassemble_resp.status_code == 200
+        items = reassemble_resp.json()["Items"]
+        assert len(items) == 1
+        assert items[0]["Section_Id"] == "tdr-employee-announcements"
+
+        # A deliberate staff move (PATCH with a new section) sets the manual
+        # flag and survives re-assembly.
+        move_resp = await client.patch(
+            f"/api/v1/newsletters/{newsletter_id}/items/{item_id}",
+            json={"Section_Id": "tdr-employee-news"},
+            headers=staff_headers,
+        )
+        assert move_resp.status_code == 200
+
+        reassemble_resp = await client.post(
+            "/api/v1/newsletters/assemble",
+            json={"Newsletter_Type": "tdr", "Publish_Date": "2026-04-06"},
+            headers=staff_headers,
+        )
+        assert reassemble_resp.status_code == 200
+        items = reassemble_resp.json()["Items"]
+        assert len(items) == 1
+        assert items[0]["Section_Id"] == "tdr-employee-news"
+
+
+def test_category_section_maps_target_seeded_sections():
+    """Every section slug referenced by the assembly mappings must exist in
+    the seeded sections for that newsletter type, so new sections cannot
+    silently drift out of reach of the category map."""
+    data_dir = Path(__file__).parents[1] / "data" / "sections"
+    for newsletter_type, filename in (
+        ("tdr", "tdr_sections.json"),
+        ("myui", "myui_sections.json"),
+    ):
+        seeded_slugs = {
+            section["slug"]
+            for section in json.loads((data_dir / filename).read_text())
+        }
+        mapped_slugs = set(
+            newsletter_service._get_category_section_map(newsletter_type).values()
+        )
+        mapped_slugs.add(newsletter_service.get_calendar_section_slug(newsletter_type))
+        mapped_slugs.add(newsletter_service.get_job_postings_section_slug(newsletter_type))
+        missing = mapped_slugs - seeded_slugs
+        assert not missing, (
+            f"{newsletter_type} assembly maps to sections that are not seeded: {missing}"
+        )
+
+    myui_slugs = {
+        section["slug"]
+        for section in json.loads((data_dir / "myui_sections.json").read_text())
+    }
+    assert newsletter_service.get_academic_dates_section_slug() in myui_slugs
+    tdr_map = newsletter_service._get_category_section_map("tdr")
+    assert tdr_map["employee_announcement"] == "employee-announcements"
 
 
 class TestCalendarEventParsing:

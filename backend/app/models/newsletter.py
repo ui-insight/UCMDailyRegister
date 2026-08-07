@@ -80,6 +80,9 @@ class NewsletterItem(Base):
     Final_Headline: Mapped[str] = mapped_column(sa.Text, nullable=False)
     Final_Body: Mapped[str] = mapped_column(sa.Text, nullable=False)
     Run_Number: Mapped[int] = mapped_column(sa.Integer, default=1)
+    # Set when staff move the item to a different section; re-assembly then
+    # leaves the placement alone instead of re-syncing it to the category map.
+    Manually_Placed: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=False)
 
     Newsletter_Rel: Mapped["Newsletter"] = relationship(
         back_populates="Items", lazy="selectin"
