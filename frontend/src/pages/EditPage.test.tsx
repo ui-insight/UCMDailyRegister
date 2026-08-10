@@ -375,6 +375,25 @@ describe('EditPage', () => {
     expect(within(finalEdit).getByDisplayValue('AI working body.')).toBeInTheDocument();
   });
 
+  it('contains long unbroken original text inside its final-edit grid column', async () => {
+    const user = userEvent.setup();
+    const longUrl = `https://example.com/register/${'unbroken'.repeat(40)}`;
+    getSubmissionMock.mockResolvedValue(makeSubmission({
+      Original_Body: `Register at ${longUrl}`,
+    }));
+    listEditVersionsMock.mockResolvedValue([]);
+
+    renderEditPage();
+
+    await screen.findByText(/Register at https:\/\/example\.com\/register\//);
+    await user.click(screen.getByRole('button', { name: 'Final Edit' }));
+
+    const original = screen.getByRole('region', { name: 'Original submission' });
+    const originalBody = within(original).getByText(/Register at https:\/\/example\.com\/register\//);
+    expect(original).toHaveClass('min-w-0');
+    expect(originalBody).toHaveClass('break-words');
+  });
+
   it('lists submitted links in display order inside the original reference panel', async () => {
     const user = userEvent.setup();
     getSubmissionMock.mockResolvedValue(makeSubmission({

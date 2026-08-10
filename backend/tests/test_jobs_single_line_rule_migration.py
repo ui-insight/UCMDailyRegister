@@ -12,7 +12,7 @@ MIGRATION_PATH = (
     Path(__file__).parents[1]
     / "alembic"
     / "versions"
-    / "e8b2d4f6a1c9_jobs_single_line_format.py"
+    / "f6b8d0e2a4c1_refine_jobs_location_and_unit_format.py"
 )
 
 
@@ -102,3 +102,17 @@ def test_migration_values_match_style_rule_seeds():
     assert seeded_tdr["job_posting_format"]["rule_text"] == migration.JOB_POSTING_RULE_TEXT
     assert seeded_tdr["job_posting_format"]["severity"] == "error"
     assert seeded_tdr["job_posting_format"]["category"] == "formatting"
+
+
+def test_seeded_job_rule_preserves_official_units_and_omits_moscow():
+    seed_dir = Path(__file__).parents[1] / "data" / "style_rules"
+    seeded_tdr = {
+        rule["rule_key"]: rule
+        for rule in json.loads((seed_dir / "tdr_rules.json").read_text())
+    }
+    rule_text = seeded_tdr["job_posting_format"]["rule_text"]
+
+    assert "official capitalization" in rule_text
+    assert "Institute for Modeling Collaboration and Innovation" in rule_text
+    assert "Omit Moscow" in rule_text
+    assert "Include a location only when it is outside Moscow" in rule_text

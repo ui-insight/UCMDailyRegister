@@ -652,7 +652,7 @@ export default function EditPage() {
               <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
                 <section
                   aria-label="Original submission"
-                  className="space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4 lg:sticky lg:top-6 lg:self-start"
+                  className="min-w-0 space-y-4 rounded-lg border border-gray-200 bg-gray-50 p-4 lg:sticky lg:top-6 lg:self-start"
                 >
                   <div>
                     <h3 className="text-sm font-semibold text-gray-900">Original submission</h3>
@@ -666,7 +666,7 @@ export default function EditPage() {
                   </div>
                   <div>
                     <p className="mb-1 text-xs font-medium text-gray-500">Body</p>
-                    <p className="whitespace-pre-wrap text-sm leading-6 text-gray-700">
+                    <p className="break-words whitespace-pre-wrap text-sm leading-6 text-gray-700">
                       {submission.Original_Body}
                     </p>
                   </div>

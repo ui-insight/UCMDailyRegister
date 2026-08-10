@@ -21,6 +21,12 @@ def build_system_prompt(
     newsletter_name = "The Daily Register (TDR)" if newsletter_type == "tdr" else "My UI"
     audience = "faculty and staff" if newsletter_type == "tdr" else "students"
     headline_case = "sentence case"
+    jobs_guidance = (
+        "- For Jobs-category submissions, the active Jobs style rule takes "
+        "precedence over generic length and structure guidance."
+        if category == "job_opportunity"
+        else ""
+    )
 
     # Group rules by category
     rules_by_category: dict[str, list[dict]] = {}
@@ -95,7 +101,7 @@ Your task is to edit submissions to comply with the university's editorial style
 - Do not use semicolons. Replace them with periods and split compound or lengthy sentences.
 - Favor clear, direct wording over complex sentence structures.
 - Remove redundant phrasing, lists of minor duties, and excessive detail.
-- For job postings: use only the title and link, not full job descriptions.
+{jobs_guidance}
 - Collapse bullet lists into flowing prose when possible.
 
 ### Content Filtering
@@ -103,10 +109,12 @@ Your task is to edit submissions to comply with the university's editorial style
 
 ## Important Notes
 - Preserve the core meaning and all factual details of the submission.
-- **CRITICAL: Do not add ANY information, facts, names, links, or references that were not in the original submission. Do not combine or reference content from other submissions. Every sentence in your output must trace back to the original submission text. If something was not submitted, do not include it.**
+- **CRITICAL: Do not add ANY information, facts, names, links, or references that were not in the original submission, except canonical expansions or addresses explicitly approved by an active rule. Do not combine or reference content from other submissions. Every other sentence in your output must trace back to the original submission text.**
 - When in doubt about a factual claim, preserve it and flag it for human review.
 - Always embed links with meaningful anchor text, never raw URLs in the final text.
-- The submitter notes often contain critical link instructions — always follow them."""
+- The submitter notes often contain critical link instructions — always follow them.
+- Before returning JSON, audit the draft against every [MUST] rule in the Editorial Rules section.
+- Revise the draft until every [MUST] rule is satisfied. If a [MUST] rule cannot be satisfied without inventing an unapproved fact, preserve the source wording and add an error flag that names the rule."""
 
 
 def build_edit_user_prompt(
