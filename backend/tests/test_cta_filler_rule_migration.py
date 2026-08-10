@@ -91,7 +91,7 @@ def test_rule_upserts_are_idempotent_and_preserve_unrelated_rules():
     assert len(rows) == 2
 
 
-def test_migration_values_match_style_rule_seeds():
+def test_august_10_rule_supersedes_the_initial_cta_seed_value():
     migration = load_migration()
     seed_dir = Path(__file__).parents[1] / "data" / "style_rules"
     seeded_shared = {
@@ -99,6 +99,7 @@ def test_migration_values_match_style_rule_seeds():
         for rule in json.loads((seed_dir / "shared_rules.json").read_text())
     }
 
-    assert seeded_shared["cta_structure"]["rule_text"] == migration.CTA_RULE_TEXT
-    assert seeded_shared["cta_structure"]["severity"] == "warning"
+    assert seeded_shared["cta_structure"]["rule_text"] != migration.CTA_RULE_TEXT
+    assert "one clear call to action" in seeded_shared["cta_structure"]["rule_text"]
+    assert seeded_shared["cta_structure"]["severity"] == "error"
     assert seeded_shared["cta_structure"]["category"] == "voice"

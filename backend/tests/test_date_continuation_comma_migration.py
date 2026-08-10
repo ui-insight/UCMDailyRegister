@@ -91,7 +91,7 @@ def test_rule_upserts_are_idempotent_and_preserve_unrelated_rules():
     assert len(rows) == 2
 
 
-def test_migration_values_match_style_rule_seeds():
+def test_august_10_rule_supersedes_the_initial_ap_date_seed_value():
     migration = load_migration()
     seed_dir = Path(__file__).parents[1] / "data" / "style_rules"
     seeded_shared = {
@@ -99,6 +99,9 @@ def test_migration_values_match_style_rule_seeds():
         for rule in json.loads((seed_dir / "shared_rules.json").read_text())
     }
 
-    assert seeded_shared["ap_style_dates"]["rule_text"] == migration.AP_DATES_RULE_TEXT
-    assert seeded_shared["ap_style_dates"]["severity"] == "warning"
+    assert seeded_shared["ap_style_dates"]["rule_text"] != migration.AP_DATES_RULE_TEXT
+    assert "only when used with a specific date" in (
+        seeded_shared["ap_style_dates"]["rule_text"]
+    )
+    assert seeded_shared["ap_style_dates"]["severity"] == "error"
     assert seeded_shared["ap_style_dates"]["category"] == "formatting"
