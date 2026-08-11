@@ -110,7 +110,7 @@
   {
     "category": "headlines",
     "rule_key": "no_event_name_quotes",
-    "rule_text": "Do not put quotation marks around event names in headlines.",
+    "rule_text": "Do not put quotation marks around event names in headlines. Exception: when the headline names a composition such as a film, play or book, quote it per the composition-title rule.",
     "severity": "warning"
   },
   {
@@ -230,7 +230,7 @@
   {
     "category": "content_filtering",
     "rule_key": "no_fabricated_content",
-    "rule_text": "NEVER add information, facts, names, URLs, or references that are not present in the original submission, except approved canonical expansions or addresses supplied by an active style rule. Every other detail in the edited version must be traceable to the submitted text. Do not merge or cross-reference content from other submissions.",
+    "rule_text": "NEVER add information, facts, names, URLs, or references that are not present in the original submission, except approved canonical expansions or addresses supplied by an active style rule, or the standard full name of an acronym when the acronym rule requires a first-reference definition. When you supply an acronym's full name that is not in the submitted text, add a warning flag naming spell_out_acronyms so an editor can verify the expansion. Every remaining detail in the edited version must be traceable to the submitted text. Do not merge or cross-reference content from other submissions.",
     "severity": "error"
   },
   {
@@ -284,7 +284,7 @@
   {
     "category": "formatting",
     "rule_key": "preserve_event_title_case",
-    "rule_text": "Do not change event titles. Keep event titles in title case exactly as submitted, even when the surrounding text uses sentence case. This applies everywhere the name appears, including inside sentence-case headlines: official event, program and organization names are proper nouns, and preserving their official capitalization takes precedence over sentence-casing. Example: 'Fraternity and Sorority Life Bid Day' stays fully capitalized inside an otherwise sentence-case headline, never 'fraternity and sorority Bid Day'.",
+    "rule_text": "Do not change event titles. Keep event titles in title case exactly as submitted, even when the surrounding text uses sentence case. This applies everywhere the name appears, including inside sentence-case headlines: official event, program and organization names are proper nouns, and preserving their official capitalization takes precedence over sentence-casing. Example: 'Fraternity and Sorority Life Bid Day' stays fully capitalized inside an otherwise sentence-case headline, never 'fraternity and sorority Bid Day'. Exception: when an event title is itself a composition title, such as a film, play or lecture title, format it under the composition-title rule instead.",
     "severity": "error"
   },
   {
@@ -344,7 +344,7 @@
   {
     "category": "formatting",
     "rule_key": "composition_title_format",
-    "rule_text": "Apply AP title capitalization to composition titles. Use single quotation marks in headlines and double quotation marks in body text for books, films, plays, poems, albums, songs, operas, programs, lectures, speeches and works of art. Do not quote holy books, reference works, software, apps, game titles or sculptures. Preserve consistent quotation and capitalization throughout the item.",
+    "rule_text": "Apply AP title capitalization to composition titles. Use single quotation marks in headlines and double quotation marks in body text for books, films, plays, poems, albums, songs, operas, programs, lectures, speeches and works of art. Do not quote holy books, reference works, software, apps, game titles or sculptures. Preserve consistent quotation and capitalization throughout the item. When an event is named for a composition — a film screening, play, reading, lecture or similar work — this rule governs the title's quotation marks and capitalization and takes precedence over event-title preservation and the ban on quoting event names in headlines.",
     "severity": "error"
   },
   {

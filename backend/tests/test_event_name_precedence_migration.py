@@ -137,7 +137,13 @@ def test_migration_values_match_style_rule_seeds():
         for rule in json.loads((seed_dir / "tdr_rules.json").read_text())
     }
 
-    assert seeded_shared["preserve_event_title_case"]["rule_text"] == migration.PRESERVE_EVENT_TITLE_RULE_TEXT
+    # The rule-conflict resolution migration supersedes this text with a
+    # composition-title exception; test_editorial_rule_conflicts_migration
+    # verifies the latest seed value.
+    assert seeded_shared["preserve_event_title_case"]["rule_text"] != migration.PRESERVE_EVENT_TITLE_RULE_TEXT
+    assert seeded_shared["preserve_event_title_case"]["rule_text"].startswith(
+        migration.PRESERVE_EVENT_TITLE_RULE_TEXT
+    )
     assert seeded_shared["preserve_event_title_case"]["severity"] == "error"
     assert seeded_shared["preserve_event_title_case"]["category"] == "formatting"
     assert seeded_tdr["sentence_case"]["rule_text"] == migration.TDR_SENTENCE_CASE_RULE_TEXT
