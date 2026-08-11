@@ -47,3 +47,34 @@ def test_prompt_allows_only_rule_approved_canonical_enrichment():
     )
 
     assert "except canonical expansions or addresses explicitly approved by an active rule" in prompt
+
+
+def test_prompt_authorizes_flagged_acronym_expansions():
+    prompt = build_system_prompt(
+        newsletter_type="tdr",
+        category="faculty_staff",
+        style_rules=[],
+    )
+
+    assert "an acronym's full name when the acronym rule requires a first-reference definition" in prompt
+    assert "flag any full name you supply" in prompt
+
+
+def test_length_section_has_no_stray_blank_line_for_non_jobs_categories():
+    prompt = build_system_prompt(
+        newsletter_type="tdr",
+        category="faculty_staff",
+        style_rules=[],
+    )
+
+    assert "excessive detail.\n- Collapse bullet lists" in prompt
+
+
+def test_jobs_guidance_line_is_embedded_cleanly_for_jobs_submissions():
+    prompt = build_system_prompt(
+        newsletter_type="tdr",
+        category="job_opportunity",
+        style_rules=[],
+    )
+
+    assert "precedence over generic length and structure guidance.\n- Collapse bullet lists" in prompt

@@ -22,6 +22,16 @@ from app.utils.text import (
     is_event_category,
 )
 from app.utils.hyperlinks import parse_submitter_notes
+from app.utils.style_checks import (
+    strip_html,
+    detect_unabbreviated_month_dates,
+    detect_abbreviated_months_without_date,
+    detect_nonstandard_meridiems,
+    detect_twelve_oclock_meridiems,
+    detect_platform_names,
+    detect_undefined_acronyms,
+    detect_repeated_cta_phrases,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -144,6 +154,77 @@ class AIEditor:
 
         return flags
 
+    def post_analyze(
+        self,
+        headline: str,
+        body: str,
+        category: str,
+        style_rules: list[dict],
+    ) -> list[dict]:
+        """Run deterministic rule checks on the AI-edited output.
+
+        Prompt injection alone does not guarantee compliance, so the
+        mechanically verifiable rules are re-checked here. Each check runs
+        only while its rule is active, so deactivating a rule in the app
+        also silences its deterministic check. Exact-match checks flag at
+        the rule's severity; heuristic checks always flag as warnings.
+        """
+        active = {rule["rule_key"]: rule for rule in style_rules}
+        flags: list[dict] = []
+        text = strip_html(f"{headline}\n{body}")
+
+        def add(rule_key: str, message: str, *, heuristic: bool = False) -> None:
+            rule = active.get(rule_key)
+            if rule is None:
+                return
+            flag_type = "warning" if heuristic or rule["severity"] != "error" else "error"
+            flags.append({"type": flag_type, "rule_key": rule_key, "message": message})
+
+        for found in detect_unabbreviated_month_dates(text):
+            add("ap_style_dates", f"Month should be abbreviated with a specific date: '{found}'")
+        for found in detect_abbreviated_months_without_date(text):
+            add("ap_style_dates", f"Month without a specific date should be spelled out: '{found}'")
+
+        for found in detect_nonstandard_meridiems(text):
+            add("ap_style_times", f"Time should use lowercase a.m./p.m. with periods: '{found}'")
+        for found in detect_twelve_oclock_meridiems(text):
+            add("ap_style_times", f"Use noon or midnight instead of '{found}'")
+
+        platforms = detect_platform_names(text)
+        if platforms:
+            names = ", ".join(f"'{name}'" for name in sorted(set(platforms)))
+            add(
+                "online_not_platform",
+                f"Platform name(s) {names} found — use 'online' unless the platform is essential",
+                heuristic=True,
+            )
+
+        acronyms = detect_undefined_acronyms(strip_html(body))
+        if acronyms:
+            listed = ", ".join(acronyms[:5])
+            add(
+                "spell_out_acronyms",
+                f"Acronym(s) never defined in the body as Full Name (ACRONYM): {listed}",
+                heuristic=True,
+            )
+
+        repeated = detect_repeated_cta_phrases(text)
+        if repeated:
+            listed = ", ".join(f"'{phrase}'" for phrase in repeated)
+            add(
+                "single_cta",
+                f"Call-to-action phrase(s) repeated: {listed}",
+                heuristic=True,
+            )
+
+        if category == "job_opportunity":
+            if re.search(r"\bMoscow\b", text):
+                add("job_posting_format", "Jobs listing mentions Moscow — omit the default location")
+            if "\n" in body.strip():
+                add("job_posting_format", "Jobs listing spans multiple lines — keep it on one line")
+
+        return flags
+
     async def edit_submission(
         self,
         session: AsyncSession,
@@ -228,7 +309,11 @@ class AIEditor:
             generate_word_diff(submission.Original_Body, edited_body)
         )
 
-        all_flags = pre_flags + ai_flags
+        post_flags = self.post_analyze(
+            edited_headline, edited_body, submission.Category, style_rules
+        )
+
+        all_flags = pre_flags + ai_flags + post_flags
 
         return EditResult(
             edited_headline=edited_headline,

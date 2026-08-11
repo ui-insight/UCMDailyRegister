@@ -23,7 +23,7 @@ def build_system_prompt(
     headline_case = "sentence case"
     jobs_guidance = (
         "- For Jobs-category submissions, the active Jobs style rule takes "
-        "precedence over generic length and structure guidance."
+        "precedence over generic length and structure guidance.\n"
         if category == "job_opportunity"
         else ""
     )
@@ -101,15 +101,14 @@ Your task is to edit submissions to comply with the university's editorial style
 - Do not use semicolons. Replace them with periods and split compound or lengthy sentences.
 - Favor clear, direct wording over complex sentence structures.
 - Remove redundant phrasing, lists of minor duties, and excessive detail.
-{jobs_guidance}
-- Collapse bullet lists into flowing prose when possible.
+{jobs_guidance}- Collapse bullet lists into flowing prose when possible.
 
 ### Content Filtering
 - Flag content that may not be appropriate for this newsletter (thesis defenses, limited audience, non-university affiliated).
 
 ## Important Notes
 - Preserve the core meaning and all factual details of the submission.
-- **CRITICAL: Do not add ANY information, facts, names, links, or references that were not in the original submission, except canonical expansions or addresses explicitly approved by an active rule. Do not combine or reference content from other submissions. Every other sentence in your output must trace back to the original submission text.**
+- **CRITICAL: Do not add ANY information, facts, names, links, or references that were not in the original submission, except canonical expansions or addresses explicitly approved by an active rule, or an acronym's full name when the acronym rule requires a first-reference definition — flag any full name you supply so an editor can verify it. Do not combine or reference content from other submissions. Every remaining sentence in your output must trace back to the original submission text.**
 - When in doubt about a factual claim, preserve it and flag it for human review.
 - Always embed links with meaningful anchor text, never raw URLs in the final text.
 - The submitter notes often contain critical link instructions — always follow them.

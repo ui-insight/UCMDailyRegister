@@ -1026,3 +1026,194 @@ class TestFinalizePreservesOriginal:
             "original",
             "editor_final",
         ]
+
+
+class NoncompliantProvider:
+    """Returns output that violates several active [MUST] rules at once."""
+
+    model = "test-model"
+
+    async def complete(self, *args, **kwargs):  # pragma: no cover - unused interface method
+        raise NotImplementedError
+
+    async def complete_json(self, *args, **kwargs):
+        return {
+            "edited_headline": "NNSA briefing set",
+            "edited_body": (
+                "The NNSA briefing is at 9 AM Wednesday, October 2, via Zoom. "
+                "Register for the briefing. Space is limited, so register soon."
+            ),
+            "changes_made": [],
+            "flags": [],
+            "embedded_links": [],
+            "confidence": 0.9,
+        }
+
+
+class CompliantProvider:
+    """Returns output that satisfies every deterministically checked rule."""
+
+    model = "test-model"
+
+    async def complete(self, *args, **kwargs):  # pragma: no cover - unused interface method
+        raise NotImplementedError
+
+    async def complete_json(self, *args, **kwargs):
+        return {
+            "edited_headline": "NNSA briefing set",
+            "edited_body": (
+                "The National Nuclear Security Administration (NNSA) briefing "
+                "is at 9 a.m. Wednesday, Oct. 2, online. Register for the briefing."
+            ),
+            "changes_made": [],
+            "flags": [],
+            "embedded_links": [],
+            "confidence": 0.9,
+        }
+
+
+class SingleLineJobsProvider:
+    """Returns a Jobs listing that wrongly retains the Moscow location."""
+
+    model = "test-model"
+
+    async def complete(self, *args, **kwargs):  # pragma: no cover - unused interface method
+        raise NotImplementedError
+
+    async def complete_json(self, *args, **kwargs):
+        return {
+            "edited_headline": "Laboratory manager",
+            "edited_body": (
+                "Laboratory manager, Image and Data Acquisition Core, Institute "
+                "for Modeling Collaboration and Innovation, Moscow"
+            ),
+            "changes_made": [],
+            "flags": [],
+            "embedded_links": [],
+            "confidence": 0.9,
+        }
+
+
+CHECKED_RULES = [
+    ("shared", "formatting", "ap_style_dates", "error"),
+    ("shared", "formatting", "ap_style_times", "error"),
+    ("shared", "formatting", "online_not_platform", "error"),
+    ("shared", "formatting", "spell_out_acronyms", "error"),
+    ("shared", "voice", "single_cta", "error"),
+]
+
+
+@pytest.mark.asyncio
+class TestDeterministicPostValidation:
+    """An active rule the model ignores must surface as a flag (issue #300)."""
+
+    async def _run_edit(self, client, db, staff_headers, monkeypatch, provider, **overrides):
+        for rule_set, category, rule_key, severity in CHECKED_RULES:
+            db.add(
+                StyleRule(
+                    Rule_Set=rule_set,
+                    Category=category,
+                    Rule_Key=rule_key,
+                    Rule_Text=f"Managed rule {rule_key}.",
+                    Severity=severity,
+                )
+            )
+        await db.commit()
+        monkeypatch.setattr(
+            "app.api.v1.ai_edits.get_llm_provider",
+            lambda settings: provider,
+        )
+        submission_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(**overrides),
+        )
+        assert submission_resp.status_code == 201
+        submission_id = submission_resp.json()["Id"]
+
+        resp = await client.post(
+            f"/api/v1/ai-edits/{submission_id}/edit",
+            json={"Newsletter_Type": "tdr"},
+            headers=staff_headers,
+        )
+        assert resp.status_code == 202
+        task = await wait_for_task(client, resp.json()["Task_Id"], staff_headers)
+        assert task["Status"] == "succeeded"
+
+        versions_resp = await client.get(
+            f"/api/v1/ai-edits/{submission_id}/versions",
+            headers=staff_headers,
+        )
+        assert versions_resp.status_code == 200
+        ai_version = next(
+            version
+            for version in versions_resp.json()
+            if version["Version_Type"] == "ai_suggested"
+        )
+        return ai_version["Flags"] or []
+
+    async def test_ignored_must_rules_are_flagged_on_the_ai_version(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+        staff_headers: dict[str, str],
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        flags = await self._run_edit(
+            client, db, staff_headers, monkeypatch, NoncompliantProvider()
+        )
+        flagged_rules = {flag["rule_key"] for flag in flags}
+
+        assert "ap_style_dates" in flagged_rules  # October 2
+        assert "ap_style_times" in flagged_rules  # 9 AM
+        assert "online_not_platform" in flagged_rules  # Zoom
+        assert "spell_out_acronyms" in flagged_rules  # undefined NNSA
+        assert "single_cta" in flagged_rules  # register twice
+
+        by_rule = {flag["rule_key"]: flag for flag in flags}
+        assert by_rule["ap_style_dates"]["type"] == "error"
+        assert by_rule["online_not_platform"]["type"] == "warning"
+
+    async def test_compliant_output_produces_no_post_validation_flags(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+        staff_headers: dict[str, str],
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        flags = await self._run_edit(
+            client, db, staff_headers, monkeypatch, CompliantProvider()
+        )
+        checked = {rule_key for _, _, rule_key, _ in CHECKED_RULES}
+
+        assert not [flag for flag in flags if flag["rule_key"] in checked]
+
+    async def test_jobs_listing_that_keeps_moscow_is_flagged(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+        staff_headers: dict[str, str],
+        monkeypatch: pytest.MonkeyPatch,
+    ):
+        db.add(
+            StyleRule(
+                Rule_Set="tdr",
+                Category="formatting",
+                Rule_Key="job_posting_format",
+                Rule_Text="Managed Jobs rule.",
+                Severity="error",
+            )
+        )
+        await db.commit()
+        flags = await self._run_edit(
+            client,
+            db,
+            staff_headers,
+            monkeypatch,
+            SingleLineJobsProvider(),
+            Category="job_opportunity",
+        )
+        jobs_flags = [flag for flag in flags if flag["rule_key"] == "job_posting_format"]
+
+        assert jobs_flags
+        assert jobs_flags[0]["type"] == "error"
+        assert "Moscow" in jobs_flags[0]["message"]

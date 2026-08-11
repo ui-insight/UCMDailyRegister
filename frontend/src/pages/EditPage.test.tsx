@@ -378,7 +378,9 @@ describe('EditPage', () => {
   it('contains long unbroken original text inside its final-edit grid column', async () => {
     const user = userEvent.setup();
     const longUrl = `https://example.com/register/${'unbroken'.repeat(40)}`;
+    const longHeadlineToken = `headline${'token'.repeat(40)}`;
     getSubmissionMock.mockResolvedValue(makeSubmission({
+      Original_Headline: longHeadlineToken,
       Original_Body: `Register at ${longUrl}`,
     }));
     listEditVersionsMock.mockResolvedValue([]);
@@ -390,8 +392,27 @@ describe('EditPage', () => {
 
     const original = screen.getByRole('region', { name: 'Original submission' });
     const originalBody = within(original).getByText(/Register at https:\/\/example\.com\/register\//);
+    const originalHeadline = within(original).getByText(new RegExp(longHeadlineToken.slice(0, 20)));
     expect(original).toHaveClass('min-w-0');
     expect(originalBody).toHaveClass('break-words');
+    expect(originalHeadline).toHaveClass('break-words');
+  });
+
+  it('wraps long unbroken text in the original tab view', async () => {
+    const longUrl = `https://example.com/register/${'unbroken'.repeat(40)}`;
+    const longHeadlineToken = `headline${'token'.repeat(40)}`;
+    getSubmissionMock.mockResolvedValue(makeSubmission({
+      Original_Headline: longHeadlineToken,
+      Original_Body: `Register at ${longUrl}`,
+    }));
+    listEditVersionsMock.mockResolvedValue([]);
+
+    renderEditPage();
+
+    const body = await screen.findByText(/Register at https:\/\/example\.com\/register\//);
+    const headline = screen.getByText(new RegExp(longHeadlineToken.slice(0, 20)));
+    expect(body).toHaveClass('break-words');
+    expect(headline).toHaveClass('break-words');
   });
 
   it('lists submitted links in display order inside the original reference panel', async () => {

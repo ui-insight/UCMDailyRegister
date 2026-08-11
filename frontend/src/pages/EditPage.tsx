@@ -559,7 +559,7 @@ export default function EditPage() {
                   <label className="block text-xs font-medium text-gray-500 mb-1">
                     Original Headline
                   </label>
-                  <p className="text-sm font-medium text-gray-900 bg-gray-50 p-3 rounded">
+                  <p className="break-words text-sm font-medium text-gray-900 bg-gray-50 p-3 rounded">
                     {submission.Original_Headline}
                   </p>
                 </div>
@@ -567,7 +567,7 @@ export default function EditPage() {
                   <label className="block text-xs font-medium text-gray-500 mb-1">
                     Original Body
                   </label>
-                  <p className="text-sm text-gray-700 bg-gray-50 p-3 rounded whitespace-pre-wrap">
+                  <p className="break-words text-sm text-gray-700 bg-gray-50 p-3 rounded whitespace-pre-wrap">
                     {submission.Original_Body}
                   </p>
                 </div>
@@ -660,7 +660,7 @@ export default function EditPage() {
                   </div>
                   <div>
                     <p className="mb-1 text-xs font-medium text-gray-500">Headline</p>
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="break-words text-sm font-medium text-gray-900">
                       {submission.Original_Headline}
                     </p>
                   </div>
