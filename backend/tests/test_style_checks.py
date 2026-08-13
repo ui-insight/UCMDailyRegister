@@ -1,5 +1,7 @@
 """Unit tests for the deterministic post-edit style detectors."""
 
+from datetime import date
+
 from app.utils.style_checks import (
     strip_html,
     detect_unabbreviated_month_dates,
@@ -9,6 +11,11 @@ from app.utils.style_checks import (
     detect_platform_names,
     detect_undefined_acronyms,
     detect_repeated_cta_phrases,
+    detect_missing_source_contacts,
+    detect_new_contact_channels,
+    detect_new_contact_names,
+    detect_changed_official_names,
+    detect_weekday_date_mismatches,
 )
 
 
@@ -91,3 +98,69 @@ def test_strip_html_removes_tags_but_keeps_anchor_text():
     assert "href" not in stripped
     assert "the briefing" in stripped
     assert detect_nonstandard_meridiems(stripped) == []
+
+
+class TestSourceFidelity:
+    def test_flags_removed_source_contact_and_new_contact_name(self):
+        source = "Email dance@uidaho.edu for alternate audition options."
+        edited = (
+            "Contact Melanie Meenan at melanie@example.com or 208-555-0199 "
+            "for alternate audition options."
+        )
+
+        assert detect_missing_source_contacts(source, edited) == ["dance@uidaho.edu"]
+        assert detect_new_contact_channels(source, edited) == [
+            "melanie@example.com",
+            "208-555-0199",
+        ]
+        assert detect_new_contact_names(source, edited) == ["Melanie Meenan"]
+
+    def test_accepts_source_email_preserved_in_mailto_link(self):
+        source = "Email dance@uidaho.edu for alternate audition options."
+        edited = (
+            'Contact the <a href="mailto:dance@uidaho.edu">dance program</a> '
+            "for alternate audition options."
+        )
+
+        assert detect_missing_source_contacts(source, edited) == []
+        assert detect_new_contact_channels(source, edited) == []
+        assert detect_new_contact_names(source, edited) == []
+
+    def test_flags_changed_official_and_branded_names(self):
+        source = "Audition for UIdaho Dance Ensemble and manage details in VandalStar."
+        edited = "Audition for U of I Dance Ensemble and manage details in Vandal Star."
+
+        assert detect_changed_official_names(source, edited) == [
+            "UIdaho Dance Ensemble",
+            "VandalStar",
+        ]
+
+    def test_accepts_exact_official_and_branded_names(self):
+        text = "Audition for UIdaho Dance Ensemble and manage details in VandalStar."
+
+        assert detect_changed_official_names(text, text) == []
+
+
+class TestWeekdayDateConsistency:
+    def test_flags_weekday_that_disagrees_with_explicit_date(self):
+        assert detect_weekday_date_mismatches(
+            "Auditions are Thursday, Aug. 25, 2026.",
+            reference_date=date(2026, 8, 13),
+        ) == ["Thursday, Aug. 25, 2026"]
+
+    def test_accepts_correct_weekday_for_explicit_date(self):
+        assert detect_weekday_date_mismatches(
+            "Auditions are Tuesday, Aug. 25, 2026.",
+            reference_date=date(2026, 8, 13),
+        ) == []
+
+    def test_resolves_year_boundary_for_dates_without_year(self):
+        assert detect_weekday_date_mismatches(
+            "Orientation is Thursday, Jan. 1.",
+            reference_date=date(2026, 12, 20),
+        ) == ["Thursday, Jan. 1"]
+
+        assert detect_weekday_date_mismatches(
+            "Orientation is Friday, Jan. 1.",
+            reference_date=date(2027, 1, 1),
+        ) == []

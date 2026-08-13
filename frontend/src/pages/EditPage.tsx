@@ -231,12 +231,13 @@ export default function EditPage() {
       const aiVersion = [...versions].reverse().find((v) => v.Version_Type === 'ai_suggested');
       const headline = aiVersion?.Headline || aiEditResult?.Edited_Headline;
       const body = aiVersion?.Body || aiEditResult?.Edited_Body;
-      if (!headline || !body) {
+      const headlineRequired = submission.Category !== 'job_opportunity';
+      if (!body || (headlineRequired && !headline)) {
         setError('No AI suggestion is available for final editing.');
         return;
       }
       const editable = prepareBodyForEditing(body, submission.Links);
-      setEditHeadline(headline);
+      setEditHeadline(headline || '');
       setEditBody(editable.body);
       setEditLinks(editable.links);
     }
@@ -258,7 +259,7 @@ export default function EditPage() {
           : undefined;
       const links = normalizedBodyLinks(editLinks);
       await saveEditorFinal(id, {
-        Headline: editHeadline,
+        Headline: submission?.Category === 'job_opportunity' ? '' : editHeadline,
         Body: buildLinkedBody(editBody, links),
         Headline_Case: sourceVersion?.Headline_Case || undefined,
         Approve_For_Newsletter: approveForNewsletter,
@@ -463,6 +464,7 @@ export default function EditPage() {
   const canApproveFinal = ['new', 'ai_edited', 'in_review', 'approved'].includes(
     submission.Status,
   );
+  const isJobSubmission = submission.Category === 'job_opportunity';
 
   const tabs: { id: Tab; label: string; available: boolean }[] = [
     { id: 'original', label: 'Original', available: true },
@@ -696,11 +698,20 @@ export default function EditPage() {
                       Starting point: {finalEditSourceLabel}
                     </p>
                   </div>
-                  <HeadlineEditor
-                    value={editHeadline}
-                    onChange={setEditHeadline}
-                    headlineCase={aiVersion?.Headline_Case || null}
-                  />
+                  {isJobSubmission ? (
+                    <div className="rounded-md border border-ui-gold-200 bg-ui-gold-50 px-3 py-2">
+                      <p className="text-xs font-medium text-ui-gold-800">Jobs listing</p>
+                      <p className="mt-0.5 text-xs text-ui-gold-700">
+                        Jobs run as one linked line without a separate headline.
+                      </p>
+                    </div>
+                  ) : (
+                    <HeadlineEditor
+                      value={editHeadline}
+                      onChange={setEditHeadline}
+                      headlineCase={aiVersion?.Headline_Case || null}
+                    />
+                  )}
                   <BodyEditor value={editBody} onChange={setEditBody} />
                   <div className="border-t border-gray-100 pt-4">
                     <LinkEditor

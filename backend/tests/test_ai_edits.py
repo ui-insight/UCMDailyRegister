@@ -844,6 +844,47 @@ class TestAIEditTasks:
 
 @pytest.mark.asyncio
 class TestFinalizePreservesOriginal:
+    async def test_finalize_allows_body_only_jobs_but_not_body_only_news(
+        self,
+        client: AsyncClient,
+        staff_headers: dict[str, str],
+    ):
+        job_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(Category="job_opportunity"),
+        )
+        job_id = job_resp.json()["Id"]
+
+        finalize_job = await client.post(
+            f"/api/v1/ai-edits/{job_id}/finalize",
+            json={
+                "Headline": "This headline must not be published",
+                "Body": "Administrative specialist III, College of Engineering",
+                "Approve_For_Newsletter": True,
+            },
+            headers=staff_headers,
+        )
+
+        assert finalize_job.status_code == 200
+        assert finalize_job.json()["Headline"] == ""
+        job_detail = await client.get(
+            f"/api/v1/submissions/{job_id}",
+            headers=staff_headers,
+        )
+        assert job_detail.json()["Status"] == "approved"
+
+        news_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(Category="faculty_staff"),
+        )
+        finalize_news = await client.post(
+            f"/api/v1/ai-edits/{news_resp.json()['Id']}/finalize",
+            json={"Headline": "", "Body": "Body-only news item."},
+            headers=staff_headers,
+        )
+
+        assert finalize_news.status_code == 422
+
     async def test_finalize_replaces_links_with_validated_editor_links(
         self,
         client: AsyncClient,
@@ -1063,7 +1104,7 @@ class CompliantProvider:
             "edited_headline": "NNSA briefing set",
             "edited_body": (
                 "The National Nuclear Security Administration (NNSA) briefing "
-                "is at 9 a.m. Wednesday, Oct. 2, online. Register for the briefing."
+                "is at 9 a.m. Friday, Oct. 2, 2026, online. Register for the briefing."
             ),
             "changes_made": [],
             "flags": [],
@@ -1086,6 +1127,52 @@ class SingleLineJobsProvider:
             "edited_body": (
                 "Laboratory manager, Image and Data Acquisition Core, Institute "
                 "for Modeling Collaboration and Innovation, Moscow"
+            ),
+            "changes_made": [],
+            "flags": [],
+            "embedded_links": [],
+            "confidence": 0.9,
+        }
+
+
+class SourceFidelityRegressionProvider:
+    """Reproduces Joy's contact, branded-name and weekday regressions."""
+
+    model = "test-model"
+
+    async def complete(self, *args, **kwargs):  # pragma: no cover - unused interface method
+        raise NotImplementedError
+
+    async def complete_json(self, *args, **kwargs):
+        return {
+            "edited_headline": "Join U of I Dance Ensemble auditions",
+            "edited_body": (
+                "Contact Melanie Meenan at melanie@example.com or 208-555-0199 "
+                "about auditions at 3 p.m. "
+                "Thursday, Aug. 25, 2026."
+            ),
+            "changes_made": [],
+            "flags": [],
+            "embedded_links": [],
+            "confidence": 0.9,
+        }
+
+
+class SourceFidelityCompliantProvider:
+    """Preserves source contacts/names and uses the correct weekday."""
+
+    model = "test-model"
+
+    async def complete(self, *args, **kwargs):  # pragma: no cover - unused interface method
+        raise NotImplementedError
+
+    async def complete_json(self, *args, **kwargs):
+        return {
+            "edited_headline": "Join UIdaho Dance Ensemble auditions",
+            "edited_body": (
+                "The UIdaho Dance Ensemble holds auditions at 3 p.m. "
+                "Tuesday, Aug. 25, 2026. Contact the "
+                '<a href="mailto:dance@uidaho.edu">dance program</a>.'
             ),
             "changes_made": [],
             "flags": [],
@@ -1215,5 +1302,72 @@ class TestDeterministicPostValidation:
         jobs_flags = [flag for flag in flags if flag["rule_key"] == "job_posting_format"]
 
         assert jobs_flags
-        assert jobs_flags[0]["type"] == "error"
-        assert "Moscow" in jobs_flags[0]["message"]
+        assert all(flag["type"] == "error" for flag in jobs_flags)
+        assert any("headline" in flag["message"] for flag in jobs_flags)
+        assert any("Moscow" in flag["message"] for flag in jobs_flags)
+
+    @pytest.mark.parametrize(
+        "provider,expected",
+        [
+            (
+                SourceFidelityRegressionProvider(),
+                {
+                    "no_fabricated_content",
+                    "preserve_purpose_contact_titles",
+                    "preserve_event_title_case",
+                    "ap_style_dates",
+                },
+            ),
+            (SourceFidelityCompliantProvider(), set()),
+        ],
+    )
+    async def test_source_fidelity_and_calendar_validation(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+        staff_headers: dict[str, str],
+        monkeypatch: pytest.MonkeyPatch,
+        provider,
+        expected: set[str],
+    ):
+        for category, rule_key in (
+            ("content_filtering", "no_fabricated_content"),
+            ("formatting", "preserve_purpose_contact_titles"),
+            ("formatting", "preserve_event_title_case"),
+        ):
+            db.add(
+                StyleRule(
+                    Rule_Set="shared",
+                    Category=category,
+                    Rule_Key=rule_key,
+                    Rule_Text=f"Managed rule {rule_key}.",
+                    Severity="error",
+                )
+            )
+        await db.commit()
+
+        flags = await self._run_edit(
+            client,
+            db,
+            staff_headers,
+            monkeypatch,
+            provider,
+            Original_Headline="UIdaho Dance Ensemble auditions",
+            Original_Body=(
+                "UIdaho Dance Ensemble auditions are at 3 p.m. Aug. 25, 2026. "
+                "Email dance@uidaho.edu for alternate audition options."
+            ),
+        )
+        relevant = {
+            flag["rule_key"]
+            for flag in flags
+            if flag["rule_key"]
+            in {
+                "no_fabricated_content",
+                "preserve_purpose_contact_titles",
+                "preserve_event_title_case",
+                "ap_style_dates",
+            }
+        }
+
+        assert relevant == expected

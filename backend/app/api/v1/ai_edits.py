@@ -303,6 +303,11 @@ async def save_editor_final(
     submission = result.scalar_one_or_none()
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
+    if submission.Category != "job_opportunity" and not data.Headline.strip():
+        raise HTTPException(
+            status_code=422,
+            detail="Headline is required for non-Jobs submissions",
+        )
 
     # Snapshot the original into the version history if no AI edit did so yet,
     # so the timeline is complete even for purely manual edits
@@ -326,7 +331,7 @@ async def save_editor_final(
     version = EditVersion(
         Submission_Id=submission_id,
         Version_Type="editor_final",
-        Headline=data.Headline,
+        Headline="" if submission.Category == "job_opportunity" else data.Headline.strip(),
         Body=data.Body,
         Headline_Case=data.Headline_Case,
     )

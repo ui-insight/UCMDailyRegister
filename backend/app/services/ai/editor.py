@@ -3,6 +3,7 @@
 import logging
 import re
 from dataclasses import dataclass, field
+from datetime import date
 
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -31,6 +32,11 @@ from app.utils.style_checks import (
     detect_platform_names,
     detect_undefined_acronyms,
     detect_repeated_cta_phrases,
+    detect_missing_source_contacts,
+    detect_new_contact_channels,
+    detect_new_contact_names,
+    detect_changed_official_names,
+    detect_weekday_date_mismatches,
 )
 
 logger = logging.getLogger(__name__)
@@ -160,6 +166,10 @@ class AIEditor:
         body: str,
         category: str,
         style_rules: list[dict],
+        *,
+        source_text: str = "",
+        source_comparison_output: str = "",
+        reference_date: date | None = None,
     ) -> list[dict]:
         """Run deterministic rule checks on the AI-edited output.
 
@@ -184,6 +194,8 @@ class AIEditor:
             add("ap_style_dates", f"Month should be abbreviated with a specific date: '{found}'")
         for found in detect_abbreviated_months_without_date(text):
             add("ap_style_dates", f"Month without a specific date should be spelled out: '{found}'")
+        for found in detect_weekday_date_mismatches(text, reference_date=reference_date):
+            add("ap_style_dates", f"Weekday does not match the calendar date: '{found}'")
 
         for found in detect_nonstandard_meridiems(text):
             add("ap_style_times", f"Time should use lowercase a.m./p.m. with periods: '{found}'")
@@ -218,10 +230,57 @@ class AIEditor:
             )
 
         if category == "job_opportunity":
+            if headline.strip():
+                add("job_posting_format", "Jobs listing includes a headline — keep it body-only")
             if re.search(r"\bMoscow\b", text):
                 add("job_posting_format", "Jobs listing mentions Moscow — omit the default location")
             if "\n" in body.strip():
                 add("job_posting_format", "Jobs listing spans multiple lines — keep it on one line")
+
+        if source_text:
+            comparison_output = source_comparison_output or f"{headline}\n{body}"
+            missing_contacts = detect_missing_source_contacts(
+                source_text,
+                comparison_output,
+            )
+            if missing_contacts:
+                listed = ", ".join(f"'{contact}'" for contact in missing_contacts[:5])
+                add(
+                    "preserve_purpose_contact_titles",
+                    f"Source contact information missing from AI edit: {listed}",
+                )
+
+            new_contact_channels = detect_new_contact_channels(
+                source_text,
+                comparison_output,
+            )
+            if new_contact_channels:
+                listed = ", ".join(
+                    f"'{contact}'" for contact in new_contact_channels[:5]
+                )
+                add(
+                    "no_fabricated_content",
+                    f"Contact information not found in submitted content: {listed}",
+                )
+
+            new_contact_names = detect_new_contact_names(source_text, comparison_output)
+            if new_contact_names:
+                listed = ", ".join(f"'{name}'" for name in new_contact_names[:5])
+                add(
+                    "no_fabricated_content",
+                    f"Contact name(s) not found in submitted content: {listed}",
+                )
+
+            changed_names = detect_changed_official_names(
+                source_text,
+                comparison_output,
+            )
+            if changed_names:
+                listed = ", ".join(f"'{name}'" for name in changed_names[:5])
+                add(
+                    "preserve_event_title_case",
+                    f"Official or branded source name(s) changed or removed: {listed}",
+                )
 
         return flags
 
@@ -309,8 +368,26 @@ class AIEditor:
             generate_word_diff(submission.Original_Body, edited_body)
         )
 
+        source_parts = [
+            submission.Original_Headline,
+            submission.Original_Body,
+            submission.Submitter_Notes or "",
+        ]
+        for link in submission.Links:
+            source_parts.extend([link.Url, link.Anchor_Text or ""])
+        comparison_output_parts = [edited_headline, edited_body]
+        for link in embedded_links:
+            comparison_output_parts.extend(
+                [str(link.get("url", "")), str(link.get("anchor_text", ""))]
+            )
         post_flags = self.post_analyze(
-            edited_headline, edited_body, submission.Category, style_rules
+            edited_headline,
+            edited_body,
+            submission.Category,
+            style_rules,
+            source_text="\n".join(source_parts),
+            source_comparison_output="\n".join(comparison_output_parts),
+            reference_date=date.today(),
         )
 
         all_flags = pre_flags + ai_flags + post_flags

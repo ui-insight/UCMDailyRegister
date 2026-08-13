@@ -17,6 +17,7 @@ should be surfaced as warnings, never errors.
 """
 
 import re
+from datetime import date, timedelta
 
 _HTML_TAG = re.compile(r"<[^>]*>")
 
@@ -41,6 +42,46 @@ _KNOWN_ACRONYMS = {
 }
 
 _CTA_PHRASES = ("register", "sign up", "rsvp", "apply", "learn more")
+
+_EMAIL = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
+_PHONE = re.compile(
+    r"(?<!\d)(?:\+?1[-.\s]?)?(?:\(?\d{3}\)?[-.\s])\d{3}[-.\s]\d{4}(?!\d)"
+)
+_CONTACT_NAME = re.compile(
+    r"\b(?i:contact|email|call|reach)\s+(?:the\s+)?"
+    r"([A-Z][A-Za-z'’.-]+(?:\s+[A-Z][A-Za-z'’.-]+){1,3})\b",
+)
+_ORGANIZATION_SUFFIXES = {
+    "Center", "Centre", "Clinic", "College", "Department", "Division", "Ensemble",
+    "Entertainment", "Foundation", "Institute", "Office", "Program",
+    "School", "Services", "Team", "Unit", "University",
+}
+_OFFICIAL_NAME = re.compile(
+    r"\b[A-Z][A-Za-z'’.-]*"
+    r"(?:\s+(?:(?:and|of|for|the)\s+|&\s+)?[A-Z][A-Za-z'’.-]*){1,6}\b"
+)
+_BRANDED_TOKEN = re.compile(r"\b[A-Z][a-z]+[A-Z][A-Za-z]*\b")
+_WEEKDAY_DATE = re.compile(
+    r"\b(?P<weekday>Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)"
+    r",?\s+(?P<month>Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|"
+    r"June?|July?|Aug(?:ust)?|Sept?(?:ember)?|Oct(?:ober)?|Nov(?:ember)?|"
+    r"Dec(?:ember)?)\.?\s+(?P<day>\d{1,2})(?:,\s*(?P<year>\d{4}))?\b",
+    re.IGNORECASE,
+)
+_MONTH_NUMBERS = {
+    "jan": 1, "january": 1,
+    "feb": 2, "february": 2,
+    "mar": 3, "march": 3,
+    "apr": 4, "april": 4,
+    "may": 5,
+    "jun": 6, "june": 6,
+    "jul": 7, "july": 7,
+    "aug": 8, "august": 8,
+    "sep": 9, "sept": 9, "september": 9,
+    "oct": 10, "october": 10,
+    "nov": 11, "november": 11,
+    "dec": 12, "december": 12,
+}
 
 
 def strip_html(text: str) -> str:
@@ -102,3 +143,143 @@ def detect_repeated_cta_phrases(text: str) -> list[str]:
         for phrase in _CTA_PHRASES
         if len(re.findall(rf"\b{phrase}\b", lowered)) >= 2
     ]
+
+
+def _contact_channels(text: str) -> dict[str, str]:
+    """Return normalized contact channels while preserving report-friendly text."""
+    channels = {match.group().lower(): match.group() for match in _EMAIL.finditer(text)}
+    for match in _PHONE.finditer(text):
+        digits = re.sub(r"\D", "", match.group())
+        channels[digits[-10:]] = match.group()
+    return channels
+
+
+def detect_missing_source_contacts(source_text: str, edited_text: str) -> list[str]:
+    """Find source emails or phone numbers removed from the edited copy.
+
+    Raw HTML is intentionally retained so an address preserved only in a
+    ``mailto:`` destination still counts as present.
+    """
+    source = _contact_channels(source_text)
+    edited = _contact_channels(edited_text)
+    return [display for key, display in source.items() if key not in edited]
+
+
+def detect_new_contact_channels(source_text: str, edited_text: str) -> list[str]:
+    """Find emails or phone numbers introduced by the edited copy."""
+    source = _contact_channels(source_text)
+    edited = _contact_channels(edited_text)
+    return [display for key, display in edited.items() if key not in source]
+
+
+def detect_new_contact_names(source_text: str, edited_text: str) -> list[str]:
+    """Find likely person names introduced by contact instructions.
+
+    This is deliberately narrow: it only examines two-or-more-word title-case
+    spans after contact verbs and ignores common organization suffixes. The
+    narrow seam catches the production regression without treating ordinary
+    rewritten prose as a new identity.
+    """
+    source_lower = strip_html(source_text).lower()
+    findings: list[str] = []
+    for match in _CONTACT_NAME.finditer(strip_html(edited_text)):
+        candidate = match.group(1).strip()
+        if candidate.lower() in source_lower:
+            continue
+        if any(word in _ORGANIZATION_SUFFIXES for word in candidate.split()):
+            continue
+        if candidate not in findings:
+            findings.append(candidate)
+    return findings
+
+
+def _official_name_candidates(source_text: str) -> list[str]:
+    text = strip_html(source_text)
+    candidates: list[tuple[int, str]] = []
+
+    for match in _OFFICIAL_NAME.finditer(text):
+        candidate = match.group().strip()
+        candidate = re.sub(
+            r"^(?:Attend|Join|Register|Apply|Audition|Email|Contact|Learn|Visit)"
+            r"\s+(?:(?:for|at|with|the)\s+)?",
+            "",
+            candidate,
+        )
+        words = candidate.split()
+        if words and words[0] == "The":
+            candidate = " ".join(words[1:])
+            words = words[1:]
+        if candidate.startswith("University of Idaho"):
+            # The managed U of I abbreviation rule intentionally rewrites this phrase.
+            continue
+        has_branded_token = any(_BRANDED_TOKEN.fullmatch(word) for word in words)
+        has_org_marker = any(word.strip(".,") in _ORGANIZATION_SUFFIXES for word in words)
+        has_vandal_brand = any(word.startswith("Vandal") for word in words)
+        if has_branded_token or has_org_marker or has_vandal_brand:
+            marker_positions = [
+                index
+                for index, word in enumerate(words)
+                if word.strip(".,") in _ORGANIZATION_SUFFIXES
+            ]
+            if marker_positions:
+                candidate = " ".join(words[: marker_positions[-1] + 1])
+            elif has_branded_token or has_vandal_brand:
+                candidate = " ".join(words[:2])
+            candidates.append((match.start(), candidate))
+
+    for match in _BRANDED_TOKEN.finditer(text):
+        if not any(match.group() in candidate for _, candidate in candidates):
+            candidates.append((match.start(), match.group()))
+
+    ordered: list[str] = []
+    for _, candidate in sorted(candidates):
+        if candidate not in ordered:
+            ordered.append(candidate)
+    return ordered
+
+
+def detect_changed_official_names(source_text: str, edited_text: str) -> list[str]:
+    """Find protected official/branded source spans no longer present exactly."""
+    edited = strip_html(edited_text)
+    return [
+        candidate
+        for candidate in _official_name_candidates(source_text)
+        if candidate not in edited
+    ]
+
+
+def detect_weekday_date_mismatches(
+    text: str,
+    *,
+    reference_date: date | None = None,
+) -> list[str]:
+    """Find weekday/month/day combinations that disagree with the calendar.
+
+    Dates without a year use the reference year unless that date is more than
+    60 days in the past, in which case the next calendar year is assumed. This
+    mirrors the newsletter's upcoming-event and year-boundary behavior.
+    """
+    reference = reference_date or date.today()
+    findings: list[str] = []
+    for match in _WEEKDAY_DATE.finditer(strip_html(text)):
+        month_key = match.group("month").lower().rstrip(".")
+        month = _MONTH_NUMBERS.get(month_key)
+        if month is None:
+            continue
+        day = int(match.group("day"))
+        explicit_year = match.group("year")
+        year = int(explicit_year) if explicit_year else reference.year
+        try:
+            event_date = date(year, month, day)
+        except ValueError:
+            findings.append(match.group().rstrip("."))
+            continue
+        if not explicit_year and event_date < reference - timedelta(days=60):
+            try:
+                event_date = date(year + 1, month, day)
+            except ValueError:
+                findings.append(match.group().rstrip("."))
+                continue
+        if event_date.strftime("%A").lower() != match.group("weekday").lower():
+            findings.append(match.group().rstrip("."))
+    return findings
