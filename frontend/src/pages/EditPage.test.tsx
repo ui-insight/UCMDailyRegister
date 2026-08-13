@@ -286,6 +286,70 @@ describe('EditPage', () => {
     );
   });
 
+  it('reviews, edits and approves a body-only Jobs AI version', async () => {
+    const user = userEvent.setup();
+    getSubmissionMock.mockResolvedValue(makeSubmission({
+      Category: 'job_opportunity',
+      Status: 'ai_edited',
+    }));
+    listEditVersionsMock.mockResolvedValue([
+      makeVersion({
+        Headline: '',
+        Body: 'Administrative specialist III, College of Engineering',
+      }),
+    ]);
+
+    renderEditPage();
+
+    await screen.findByText('Administrative specialist III, College of Engineering');
+    await user.click(screen.getByRole('button', { name: /use ai suggestion in final edit/i }));
+
+    const finalEdit = screen.getByRole('region', { name: 'Final edit' });
+    expect(within(finalEdit).queryByPlaceholderText('Enter headline...')).not.toBeInTheDocument();
+    expect(screen.queryByText('No AI suggestion is available for final editing.')).not.toBeInTheDocument();
+
+    const body = within(finalEdit).getByPlaceholderText('Enter body text...');
+    await user.clear(body);
+    await user.type(body, 'Administrative specialist III, College of Engineering, Boise');
+    await user.tab();
+    await user.click(within(finalEdit).getByRole('button', { name: /save and approve/i }));
+
+    await waitFor(() => {
+      expect(saveEditorFinalMock).toHaveBeenCalledWith('submission-1', {
+        Headline: '',
+        Body: 'Administrative specialist III, College of Engineering, Boise',
+        Headline_Case: 'sentence_case',
+        Approve_For_Newsletter: true,
+      });
+    });
+  });
+
+  it('opens a newly generated body-only Jobs suggestion before versions reload', async () => {
+    const user = userEvent.setup();
+    getSubmissionMock.mockResolvedValue(makeSubmission({
+      Category: 'job_opportunity',
+      Status: 'ai_edited',
+    }));
+    listEditVersionsMock.mockResolvedValue([]);
+    triggerAIEditMock.mockResolvedValue(makeAIResponse({
+      Edited_Headline: '',
+      Edited_Body: 'Academic advisor, College of Business and Economics',
+    }));
+
+    renderEditPage();
+
+    await screen.findByText('Original campus headline');
+    await user.click(screen.getByRole('button', { name: /tdr/i }));
+    await screen.findByText('Academic advisor, College of Business and Economics');
+    await user.click(screen.getByRole('button', { name: /use ai suggestion in final edit/i }));
+
+    const finalEdit = screen.getByRole('region', { name: 'Final edit' });
+    expect(within(finalEdit).getByPlaceholderText('Enter body text...')).toHaveValue(
+      'Academic advisor, College of Business and Economics',
+    );
+    expect(screen.queryByText('No AI suggestion is available for final editing.')).not.toBeInTheDocument();
+  });
+
   it('uses the original submission when an editor bypasses an existing AI suggestion', async () => {
     const user = userEvent.setup();
     listEditVersionsMock.mockResolvedValue([

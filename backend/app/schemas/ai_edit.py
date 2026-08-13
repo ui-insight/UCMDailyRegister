@@ -86,7 +86,9 @@ class EditVersionResponse(BaseModel):
 class EditorFinalCreate(BaseModel):
     """Request to save the editor's final version."""
 
-    Headline: str = Field(..., min_length=1)
+    # Jobs are deliberately body-only listings. The endpoint validates a
+    # non-empty headline for every other submission category.
+    Headline: str = Field(...)
     Body: str = Field(..., min_length=1)
     Headline_Case: str | None = Field(None, pattern=r"^(sentence_case|title_case)$")
     Approve_For_Newsletter: bool = False
