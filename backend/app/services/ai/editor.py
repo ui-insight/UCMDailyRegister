@@ -36,6 +36,7 @@ from app.utils.style_checks import (
     detect_new_contact_channels,
     detect_new_contact_names,
     detect_changed_official_names,
+    detect_missing_near_term_weekdays,
     detect_weekday_date_mismatches,
 )
 
@@ -196,6 +197,14 @@ class AIEditor:
             add("ap_style_dates", f"Month without a specific date should be spelled out: '{found}'")
         for found in detect_weekday_date_mismatches(text, reference_date=reference_date):
             add("ap_style_dates", f"Weekday does not match the calendar date: '{found}'")
+        for found in detect_missing_near_term_weekdays(
+            text,
+            reference_date=reference_date,
+        ):
+            add(
+                "day_of_week_with_dates",
+                f"Near-term date is missing its weekday: '{found}'",
+            )
 
         for found in detect_nonstandard_meridiems(text):
             add("ap_style_times", f"Time should use lowercase a.m./p.m. with periods: '{found}'")

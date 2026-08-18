@@ -13,6 +13,15 @@ export function normalizeEditableLinkUrl(value: string): string {
   return trimmed;
 }
 
+function canonicalLinkDestination(value: string): string {
+  const normalized = normalizeEditableLinkUrl(value);
+  try {
+    return new URL(normalized).href;
+  } catch {
+    return normalized;
+  }
+}
+
 export function isSafeLinkDestination(value: string): boolean {
   const normalized = normalizeEditableLinkUrl(value);
   try {
@@ -44,7 +53,10 @@ export function prepareBodyForEditing(
   ) => {
     if (isSafeLinkDestination(href)) {
       const normalizedUrl = normalizeEditableLinkUrl(href);
-      if (!bodyLinks.some((candidate) => candidate.Url === normalizedUrl)) {
+      const canonicalUrl = canonicalLinkDestination(normalizedUrl);
+      if (!bodyLinks.some(
+        (candidate) => canonicalLinkDestination(candidate.Url) === canonicalUrl,
+      )) {
         bodyLinks.push({
           Url: normalizedUrl,
           Anchor_Text: anchorText,
@@ -85,9 +97,12 @@ export function prepareBodyForEditing(
     (left, right) => (left.Display_Order ?? 0) - (right.Display_Order ?? 0),
   )) {
     const normalizedUrl = normalizeEditableLinkUrl(link.Url);
+    const canonicalUrl = canonicalLinkDestination(normalizedUrl);
     const anchorText = link.Anchor_Text?.trim() || '';
     if (!isSafeLinkDestination(normalizedUrl)) continue;
-    if (links.some((candidate) => candidate.Url === normalizedUrl)) continue;
+    if (links.some(
+      (candidate) => canonicalLinkDestination(candidate.Url) === canonicalUrl,
+    )) continue;
     links.push({
       Url: normalizedUrl,
       Anchor_Text: anchorText,
@@ -112,13 +127,20 @@ function safeAttributeValue(value: string): string {
 }
 
 export function buildLinkedBody(body: string, links: EditableBodyLink[]): string {
+  const seenDestinations = new Set<string>();
   const validLinks = links
     .map((link, index) => ({
       ...link,
       Url: normalizeEditableLinkUrl(link.Url),
       Display_Order: index,
     }))
-    .filter((link) => link.Url && isSafeLinkDestination(link.Url));
+    .filter((link) => {
+      if (!link.Url || !isSafeLinkDestination(link.Url)) return false;
+      const canonicalUrl = canonicalLinkDestination(link.Url);
+      if (seenDestinations.has(canonicalUrl)) return false;
+      seenDestinations.add(canonicalUrl);
+      return true;
+    });
 
   const occupiedRanges: Array<{ start: number; end: number }> = [];
   const replacements: Array<{ start: number; end: number; markup: string }> = [];
@@ -164,11 +186,18 @@ export function buildLinkedBody(body: string, links: EditableBodyLink[]): string
 }
 
 export function normalizedBodyLinks(links: EditableBodyLink[]): EditableBodyLink[] {
+  const seenDestinations = new Set<string>();
   return links
     .map((link, index) => ({
       Url: normalizeEditableLinkUrl(link.Url),
       Anchor_Text: link.Anchor_Text.trim(),
       Display_Order: index,
     }))
-    .filter((link) => link.Url && isSafeLinkDestination(link.Url));
+    .filter((link) => {
+      if (!link.Url || !isSafeLinkDestination(link.Url)) return false;
+      const canonicalUrl = canonicalLinkDestination(link.Url);
+      if (seenDestinations.has(canonicalUrl)) return false;
+      seenDestinations.add(canonicalUrl);
+      return true;
+    });
 }

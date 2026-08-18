@@ -68,6 +68,16 @@ _WEEKDAY_DATE = re.compile(
     r"Dec(?:ember)?)\.?\s+(?P<day>\d{1,2})(?:,\s*(?P<year>\d{4}))?\b",
     re.IGNORECASE,
 )
+_MONTH_DAY = re.compile(
+    r"\b(?P<month>Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|"
+    r"June?|July?|Aug(?:ust)?|Sept?(?:ember)?|Oct(?:ober)?|Nov(?:ember)?|"
+    r"Dec(?:ember)?)\.?\s+(?P<day>\d{1,2})(?:,\s*(?P<year>\d{4}))?\b",
+    re.IGNORECASE,
+)
+_WEEKDAY_PREFIX = re.compile(
+    r"\b(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\s*$",
+    re.IGNORECASE,
+)
 _MONTH_NUMBERS = {
     "jan": 1, "january": 1,
     "feb": 2, "february": 2,
@@ -282,4 +292,48 @@ def detect_weekday_date_mismatches(
                 continue
         if event_date.strftime("%A").lower() != match.group("weekday").lower():
             findings.append(match.group().rstrip("."))
+    return findings
+
+
+def detect_missing_near_term_weekdays(
+    text: str,
+    *,
+    reference_date: date | None = None,
+) -> list[str]:
+    """Find dates in the next 30 days that are not paired with a weekday.
+
+    The check is intentionally context-agnostic: deadlines, enrollment dates,
+    drawings and promotional dates follow the same near-term rule as events.
+    Dates without a year use the same year-boundary resolution as the weekday
+    consistency check.
+    """
+    reference = reference_date or date.today()
+    findings: list[str] = []
+    plain_text = strip_html(text)
+
+    for match in _MONTH_DAY.finditer(plain_text):
+        if _WEEKDAY_PREFIX.search(plain_text[:match.start()]):
+            continue
+
+        month_key = match.group("month").lower().rstrip(".")
+        month = _MONTH_NUMBERS.get(month_key)
+        if month is None:
+            continue
+        day = int(match.group("day"))
+        explicit_year = match.group("year")
+        year = int(explicit_year) if explicit_year else reference.year
+        try:
+            candidate_date = date(year, month, day)
+        except ValueError:
+            continue
+        if not explicit_year and candidate_date < reference - timedelta(days=60):
+            try:
+                candidate_date = date(year + 1, month, day)
+            except ValueError:
+                continue
+
+        days_ahead = (candidate_date - reference).days
+        if 0 <= days_ahead <= 30:
+            findings.append(match.group().rstrip("."))
+
     return findings
