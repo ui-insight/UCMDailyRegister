@@ -6,8 +6,10 @@ feedback (issues #299 and #300) showed the model violating rules that were
 active in the prompt at the time. The detectors here cover the subset of those
 rules that can be verified mechanically — AP month abbreviation, a.m./p.m.
 formatting, platform names, undefined acronyms, repeated calls to action and
-the Jobs single-line contract — so a violation surfaces as a flag on the AI
-version regardless of whether the model honored the prompt.
+the Jobs single-line contract, plus high-confidence source contacts,
+organizations, titles, information paths and anchored requirements — so a
+violation surfaces as a flag on the AI version regardless of whether the model
+honored the prompt.
 
 Each detector is a pure function over edited text and returns the offending
 fragments. Mapping findings to flags (and gating on whether the corresponding
@@ -51,6 +53,41 @@ _CONTACT_NAME = re.compile(
     r"\b(?i:contact|email|call|reach)\s+(?:the\s+)?"
     r"([A-Z][A-Za-z'’.-]+(?:\s+[A-Z][A-Za-z'’.-]+){1,3})\b",
 )
+_PROTECTED_ORGANIZATION_NAME = (
+    r"[A-Z][A-Za-z0-9&'’.-]*"
+    r"(?:\s+(?:(?:and|of|for|the|in)\s+)?[A-Z][A-Za-z0-9&'’.-]*){1,12}"
+)
+_SPONSORING_ORGANIZATION = re.compile(
+    rf"\b(?P<name>{_PROTECTED_ORGANIZATION_NAME})(?:['’]s)?\s+"
+    r"(?:offers?|provides?|administers?|sponsors?|presents?|hosts?|manages?|oversees?)\b"
+)
+_DESIGNATION_ORGANIZATION = re.compile(
+    rf"\b(?:an?|the)\s+(?P<name>{_PROTECTED_ORGANIZATION_NAME})\s+"
+    r"(?=(?:STARS\b|[^.!?]{0,30}\b(?:award|ranking|rating|certification|"
+    r"accreditation|recognition|designation)\b))"
+)
+_RECOGNITION_FROM_ORGANIZATION = re.compile(
+    r"\b(?:award|ranking|rating|certification|accreditation|recognition|designation)\b"
+    rf"[^.!?]{{0,80}}\b(?:from|by|through)\s+(?P<name>{_PROTECTED_ORGANIZATION_NAME})"
+)
+_PARENTHETICAL_CONTACT_TITLE = re.compile(
+    r"\b(?P<name>[A-Z][A-Za-z'’.-]+"
+    r"(?:\s+[A-Z][A-Za-z'’.-]+){1,3})\s*"
+    r"\((?P<title>[A-Za-z][A-Za-z'’&/.-]*"
+    r"(?:\s+[A-Za-z'’&/.-]+){0,8})\)"
+)
+_INFORMATION_OPTION = re.compile(
+    r"\b(?:learn\s+more|more\s+information|additional\s+information|"
+    r"(?:get|request|find)\s+(?:more|additional)\s+information|"
+    r"(?:get|view|see|find)\s+(?:the\s+)?details?|questions?)\b",
+    re.IGNORECASE,
+)
+_REQUIREMENT_MARKER = re.compile(
+    r"\b(?:must|required(?:\s+to)?|requires?|eligible|eligibility|certified|"
+    r"certification|licensed|may\s+only|cannot|prohibited)\b",
+    re.IGNORECASE,
+)
+_REQUIREMENT_ANCHOR = re.compile(r"\b[A-Z]{2,}\b|\b\d+(?:\.\d+)?\+?")
 _ORGANIZATION_SUFFIXES = {
     "Center", "Centre", "Clinic", "College", "Department", "Division", "Ensemble",
     "Entertainment", "Foundation", "Institute", "Office", "Program",
@@ -203,8 +240,134 @@ def detect_new_contact_names(source_text: str, edited_text: str) -> list[str]:
     return findings
 
 
+def _normalized_visible_text(text: str) -> str:
+    """Collapse visible text for case-insensitive source-fidelity comparisons."""
+    return re.sub(r"\s+", " ", strip_html(text)).strip().casefold()
+
+
+def detect_missing_protected_organizations(
+    source_text: str,
+    edited_body: str,
+) -> list[str]:
+    """Find source sponsors or awarding bodies omitted from the edited body.
+
+    Each candidate must be tied to an organizational role verb or to
+    award/designation context. This keeps the detector narrower than a generic
+    proper-name comparison while covering the sponsor and accreditor losses
+    reported in issue #312.
+    """
+    source = strip_html(source_text)
+    edited = _normalized_visible_text(edited_body)
+    candidates: list[str] = []
+
+    for pattern in (
+        _SPONSORING_ORGANIZATION,
+        _DESIGNATION_ORGANIZATION,
+        _RECOGNITION_FROM_ORGANIZATION,
+    ):
+        for match in pattern.finditer(source):
+            candidate = re.sub(r"\s+", " ", match.group("name")).strip(" ,.;:")
+            if candidate.casefold().startswith("university of idaho"):
+                # The managed campus-name rule intentionally permits "U of I."
+                continue
+            if candidate not in candidates:
+                candidates.append(candidate)
+
+    return [candidate for candidate in candidates if candidate.casefold() not in edited]
+
+
+def detect_missing_contact_titles(source_text: str, edited_text: str) -> list[str]:
+    """Find parenthetical source contact titles missing after the contact name."""
+    source = strip_html(source_text)
+    edited = re.sub(r"\s+", " ", strip_html(edited_text)).strip()
+    findings: list[str] = []
+
+    for match in _PARENTHETICAL_CONTACT_TITLE.finditer(source):
+        nearby_before = source[max(0, match.start() - 80):match.start()]
+        nearby_after = source[match.end():match.end() + 160]
+        name_with_cue = match.group("name")
+        is_contact_context = bool(
+            re.search(r"\b(?:contact|email|call|reach)\b", nearby_before, re.IGNORECASE)
+            or re.match(r"(?:Contact|Email|Call|Reach)\b", name_with_cue)
+            or _EMAIL.search(nearby_after)
+            or _PHONE.search(nearby_after)
+        )
+        if not is_contact_context:
+            continue
+        name = re.sub(
+            r"^(?:Contact|Email|Call|Reach)\s+",
+            "",
+            name_with_cue,
+        ).strip()
+        title = match.group("title").strip()
+        if title.isupper() and len(title) <= 10:
+            # Parenthetical acronyms are definitions, not contact titles.
+            continue
+        name_pattern = r"\s+".join(re.escape(word) for word in name.split())
+        title_pattern = r"\s+".join(re.escape(word) for word in title.split())
+        if re.search(
+            rf"\b{name_pattern}\b[^.!?]{{0,120}}\b{title_pattern}\b",
+            edited,
+            re.IGNORECASE,
+        ):
+            continue
+        display = f"{name}, {title.lower()}"
+        if display not in findings:
+            findings.append(display)
+
+    return findings
+
+
+def detect_missing_information_options(source_text: str, edited_text: str) -> list[str]:
+    """Find an explicit information-seeking option removed from edited copy."""
+    source_matches = [
+        re.sub(r"\s+", " ", match.group()).strip()
+        for match in _INFORMATION_OPTION.finditer(strip_html(source_text))
+    ]
+    if not source_matches or _INFORMATION_OPTION.search(strip_html(edited_text)):
+        return []
+    return list(dict.fromkeys(source_matches))
+
+
+def detect_missing_anchored_requirements(
+    source_text: str,
+    edited_text: str,
+) -> list[str]:
+    """Find mandatory source clauses whose objective anchors disappeared.
+
+    Only clauses with stable anchors such as an age, GPA or certification
+    acronym are checked. Requirements without those anchors remain prompt-only
+    protections instead of relying on a noisy semantic guess.
+    """
+    edited = strip_html(edited_text)
+    edited_anchors = {
+        anchor.rstrip("+").casefold()
+        for anchor in _REQUIREMENT_ANCHOR.findall(edited)
+    }
+    edited_has_requirement = bool(_REQUIREMENT_MARKER.search(edited))
+    findings: list[str] = []
+
+    for sentence in re.split(r"(?<=[.!?])\s+|\n+", strip_html(source_text)):
+        sentence = sentence.strip()
+        if not sentence or not _REQUIREMENT_MARKER.search(sentence):
+            continue
+        anchors = {
+            anchor.rstrip("+").casefold()
+            for anchor in _REQUIREMENT_ANCHOR.findall(sentence)
+        }
+        if not anchors:
+            continue
+        if not edited_has_requirement or not anchors.issubset(edited_anchors):
+            findings.append(sentence)
+
+    return findings
+
+
 def _official_name_candidates(source_text: str) -> list[str]:
-    text = strip_html(source_text)
+    # Source components are newline-delimited. Treat those boundaries as
+    # sentence breaks so a headline-ending phrase cannot merge with a
+    # body-opening phrase into a fabricated official name.
+    text = re.sub(r"[\r\n]+", " | ", strip_html(source_text))
     candidates: list[tuple[int, str]] = []
 
     for match in _OFFICIAL_NAME.finditer(text):

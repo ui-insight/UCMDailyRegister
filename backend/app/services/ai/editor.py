@@ -36,7 +36,11 @@ from app.utils.style_checks import (
     detect_new_contact_channels,
     detect_new_contact_names,
     detect_changed_official_names,
+    detect_missing_anchored_requirements,
+    detect_missing_contact_titles,
+    detect_missing_information_options,
     detect_missing_near_term_weekdays,
+    detect_missing_protected_organizations,
     detect_weekday_date_mismatches,
 )
 
@@ -169,6 +173,7 @@ class AIEditor:
         style_rules: list[dict],
         *,
         source_text: str = "",
+        source_body: str = "",
         source_comparison_output: str = "",
         reference_date: date | None = None,
     ) -> list[dict]:
@@ -248,6 +253,7 @@ class AIEditor:
 
         if source_text:
             comparison_output = source_comparison_output or f"{headline}\n{body}"
+            body_source = source_body or source_text
             missing_contacts = detect_missing_source_contacts(
                 source_text,
                 comparison_output,
@@ -289,6 +295,35 @@ class AIEditor:
                 add(
                     "preserve_event_title_case",
                     f"Official or branded source name(s) changed or removed: {listed}",
+                )
+
+            for organization in detect_missing_protected_organizations(
+                body_source,
+                body,
+            ):
+                add(
+                    "preserve_organizational_context",
+                    f"Source organization missing from AI-edited body: '{organization}'",
+                )
+
+            missing_titles = detect_missing_contact_titles(body_source, body)
+            if missing_titles:
+                listed = ", ".join(f"'{title}'" for title in missing_titles[:5])
+                add(
+                    "preserve_purpose_contact_titles",
+                    f"Source contact title(s) missing from AI edit: {listed}",
+                )
+
+            for option in detect_missing_information_options(body_source, body):
+                add(
+                    "preserve_information_options",
+                    f"Source information-seeking option missing from AI edit: '{option}'",
+                )
+
+            for requirement in detect_missing_anchored_requirements(body_source, body):
+                add(
+                    "preserve_action_deadlines",
+                    f"Source requirement missing from AI edit: '{requirement}'",
                 )
 
         return flags
@@ -395,6 +430,7 @@ class AIEditor:
             submission.Category,
             style_rules,
             source_text="\n".join(source_parts),
+            source_body=submission.Original_Body,
             source_comparison_output="\n".join(comparison_output_parts),
             reference_date=date.today(),
         )

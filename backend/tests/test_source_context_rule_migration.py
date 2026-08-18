@@ -1,4 +1,4 @@
-"""Regression coverage for the add preserve event context rule migration."""
+"""Regression coverage for Joy's source-context fidelity rule migration."""
 
 import importlib.util
 import json
@@ -12,12 +12,12 @@ MIGRATION_PATH = (
     Path(__file__).parents[1]
     / "alembic"
     / "versions"
-    / "c7d9a1b3e5f8_add_preserve_event_context_rule.py"
+    / "f3d5b7c9e1a2_preserve_source_context.py"
 )
 
 
 def load_migration() -> ModuleType:
-    spec = importlib.util.spec_from_file_location("preserve_event_context_rule", MIGRATION_PATH)
+    spec = importlib.util.spec_from_file_location("preserve_source_context", MIGRATION_PATH)
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
@@ -52,11 +52,11 @@ def test_rule_upserts_are_idempotent_and_preserve_unrelated_rules():
                 {
                     "Id": "stale",
                     "Rule_Set": "shared",
-                    "Category": "voice",
+                    "Category": "content_filtering",
                     "Rule_Key": "preserve_event_context",
-                    "Rule_Text": "Old wording.",
+                    "Rule_Text": "Events only.",
                     "Is_Active": False,
-                    "Severity": "info",
+                    "Severity": "warning",
                 },
                 {
                     "Id": "custom",
@@ -70,38 +70,28 @@ def test_rule_upserts_are_idempotent_and_preserve_unrelated_rules():
             ],
         )
 
-        for _ in range(2):
-            migration._upsert_rule(
-                connection,
-                rule_set="shared",
-                rule_key="preserve_event_context",
-                category="content_filtering",
-                rule_text=migration.PRESERVE_EVENT_CONTEXT_RULE_TEXT,
-                severity="warning",
-            )
-
+        migration._upsert_rules(connection)
+        migration._upsert_rules(connection)
         rows = connection.execute(sa.select(rules)).mappings().all()
 
     by_key = {row["Rule_Key"]: row for row in rows}
-    assert by_key["preserve_event_context"]["Rule_Text"] == migration.PRESERVE_EVENT_CONTEXT_RULE_TEXT
-    assert by_key["preserve_event_context"]["Category"] == "content_filtering"
-    assert by_key["preserve_event_context"]["Severity"] == "warning"
-    assert by_key["preserve_event_context"]["Is_Active"] is True
+    assert len(rows) == len(migration.RULES) + 1
     assert by_key["staff_custom"]["Rule_Text"] == "Keep this staff rule."
-    assert len(rows) == 2
+    for category, rule_key, rule_text, severity in migration.RULES:
+        updated = by_key[rule_key]
+        assert updated["Category"] == category
+        assert updated["Rule_Text"] == rule_text
+        assert updated["Severity"] == severity
+        assert updated["Is_Active"] is True
 
 
-def test_migration_values_match_style_rule_seeds():
+def test_migration_matches_seeded_rules():
     migration = load_migration()
-    seed_dir = Path(__file__).parents[1] / "data" / "style_rules"
-    seeded_shared = {
-        rule["rule_key"]: rule
-        for rule in json.loads((seed_dir / "shared_rules.json").read_text())
-    }
+    seed_path = Path(__file__).parents[1] / "data" / "style_rules" / "shared_rules.json"
+    seeded = {rule["rule_key"]: rule for rule in json.loads(seed_path.read_text())}
 
-    # The source-context migration supersedes this original wording and makes
-    # participant responsibilities a mandatory preservation contract.
-    assert seeded_shared["preserve_event_context"]["rule_text"] != migration.PRESERVE_EVENT_CONTEXT_RULE_TEXT
-    assert "participant responsibilities" in seeded_shared["preserve_event_context"]["rule_text"]
-    assert seeded_shared["preserve_event_context"]["severity"] == "error"
-    assert seeded_shared["preserve_event_context"]["category"] == "content_filtering"
+    for category, rule_key, rule_text, severity in migration.RULES:
+        rule = seeded[rule_key]
+        assert rule["category"] == category
+        assert rule["rule_text"] == rule_text
+        assert rule["severity"] == severity
