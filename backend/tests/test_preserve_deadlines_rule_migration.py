@@ -99,6 +99,9 @@ def test_migration_values_match_style_rule_seeds():
         for rule in json.loads((seed_dir / "shared_rules.json").read_text())
     }
 
-    assert seeded_shared["preserve_action_deadlines"]["rule_text"] == migration.PRESERVE_DEADLINES_RULE_TEXT
+    # The source-context migration extends this original deadline wording to
+    # mandatory eligibility, regulatory and certification requirements.
+    assert seeded_shared["preserve_action_deadlines"]["rule_text"] != migration.PRESERVE_DEADLINES_RULE_TEXT
+    assert "mandatory requirement" in seeded_shared["preserve_action_deadlines"]["rule_text"]
     assert seeded_shared["preserve_action_deadlines"]["severity"] == "error"
     assert seeded_shared["preserve_action_deadlines"]["category"] == "content_filtering"

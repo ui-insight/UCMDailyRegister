@@ -1286,6 +1286,152 @@ class TestDeterministicPostValidation:
             }
         ]
 
+    async def test_missing_accreditor_from_reported_edit_is_flagged(self):
+        flags = AIEditor(SuccessfulProvider()).post_analyze(
+            "Explore campus sustainability resources",
+            (
+                "Visit the Office of Sustainability's Inside U of I homepage to "
+                "explore sustainable solutions at the U of I. Discover the "
+                "initiatives that make the institution a STARS Gold-rated university."
+            ),
+            "faculty_staff",
+            [
+                {
+                    "category": "content_filtering",
+                    "rule_key": "preserve_organizational_context",
+                    "rule_text": "Managed organizational-context rule.",
+                    "severity": "error",
+                }
+            ],
+            source_text=(
+                "Learn More About Sustainability on Campus\n"
+                "Visit the Office of Sustainability's Inside U of I homepage and "
+                "explore sustainable solutions at the University of Idaho. Discover "
+                "the initiatives that make our institution an Association for "
+                "Advancement in Sustainability in Higher Education STARS Gold rated "
+                "university in sustainability excellence."
+            ),
+            source_body=(
+                "Visit the Office of Sustainability's Inside U of I homepage and "
+                "explore sustainable solutions at the University of Idaho. Discover "
+                "the initiatives that make our institution an Association for "
+                "Advancement in Sustainability in Higher Education STARS Gold rated "
+                "university in sustainability excellence."
+            ),
+        )
+
+        assert flags == [
+            {
+                "type": "error",
+                "rule_key": "preserve_organizational_context",
+                "message": (
+                    "Source organization missing from AI-edited body: "
+                    "'Association for Advancement in Sustainability in Higher Education'"
+                ),
+            }
+        ]
+
+    async def test_reported_edit_flags_sponsor_and_contact_titles_only(self):
+        flags = AIEditor(SuccessfulProvider()).post_analyze(
+            "Earn money for nonprofit with Idaho Eats",
+            (
+                "Nonprofit organizations can earn money for their cause by volunteering "
+                "at concessions during sporting events and concerts on campus. Volunteers "
+                "receive a donation equal to a percentage of net sales, which varies by "
+                "event type and attendance. Opportunities are available throughout the "
+                "school year and offer flexibility. Orientation and training are provided. "
+                "In Idaho, cashiers serving alcohol must be 21 or older and TIPS certified. "
+                "To sign up, contact <a href=\"mailto:dconklin@uidaho.edu\">Danny "
+                "Conklin</a> or <a href=\"mailto:pwenzel@uidaho.edu\">Perry Wenzel</a> "
+                "with the number of group members over 21 and a representative's contact "
+                "information."
+            ),
+            "faculty_staff",
+            [
+                {
+                    "category": "content_filtering",
+                    "rule_key": "preserve_organizational_context",
+                    "rule_text": "Managed organizational-context rule.",
+                    "severity": "error",
+                },
+                {
+                    "category": "formatting",
+                    "rule_key": "preserve_purpose_contact_titles",
+                    "rule_text": "Managed contact-title rule.",
+                    "severity": "error",
+                },
+                {
+                    "category": "content_filtering",
+                    "rule_key": "preserve_action_deadlines",
+                    "rule_text": "Managed requirement rule.",
+                    "severity": "error",
+                },
+            ],
+            source_text=(
+                "Non-Profit Organization Opportunity with Idaho Eats\n"
+                "Idaho Eats offers an opportunity for non-profit organizations to earn "
+                "money for their cause through volunteer events on campus. Volunteers "
+                "assist in concessions operations during sporting events and concerts for "
+                "a donation equal to a percentage of net sales. Orientation and training "
+                "will be provided. In Idaho, all cashiers serving alcohol must be 21+ and "
+                "TIPS certified. Contact Danny Conklin (Concessions Manager) at "
+                "dconklin@uidaho.edu or Perry Wenzel (Director of Retail Dining) at "
+                "pwenzel@uidaho.edu."
+            ),
+            source_body=(
+                "Idaho Eats offers an opportunity for non-profit organizations to earn "
+                "money for their cause through volunteer events on campus. Volunteers "
+                "assist in concessions operations during sporting events and concerts for "
+                "a donation equal to a percentage of net sales. Orientation and training "
+                "will be provided. In Idaho, all cashiers serving alcohol must be 21+ and "
+                "TIPS certified. Contact Danny Conklin (Concessions Manager) at "
+                "dconklin@uidaho.edu or Perry Wenzel (Director of Retail Dining) at "
+                "pwenzel@uidaho.edu."
+            ),
+        )
+
+        assert {flag["rule_key"] for flag in flags} == {
+            "preserve_organizational_context",
+            "preserve_purpose_contact_titles",
+        }
+        assert [
+            flag["message"]
+            for flag in flags
+            if flag["rule_key"] == "preserve_organizational_context"
+        ] == ["Source organization missing from AI-edited body: 'Idaho Eats'"]
+        assert any("Danny Conklin, concessions manager" in flag["message"] for flag in flags)
+        assert any("Perry Wenzel, director of retail dining" in flag["message"] for flag in flags)
+
+    async def test_removed_information_option_and_requirement_are_flagged(self):
+        flags = AIEditor(SuccessfulProvider()).post_analyze(
+            "Apply for the program",
+            "Sign up by emailing the program office.",
+            "faculty_staff",
+            [
+                {
+                    "category": "content_filtering",
+                    "rule_key": "preserve_information_options",
+                    "rule_text": "Managed information-option rule.",
+                    "severity": "error",
+                },
+                {
+                    "category": "content_filtering",
+                    "rule_key": "preserve_action_deadlines",
+                    "rule_text": "Managed requirement rule.",
+                    "severity": "error",
+                },
+            ],
+            source_text=(
+                "Sign up or learn more by emailing the program office. "
+                "Applicants must have a 3.0 GPA."
+            ),
+        )
+
+        assert {flag["rule_key"] for flag in flags} == {
+            "preserve_information_options",
+            "preserve_action_deadlines",
+        }
+
     async def test_compliant_output_produces_no_post_validation_flags(
         self,
         client: AsyncClient,

@@ -314,7 +314,19 @@
   {
     "category": "content_filtering",
     "rule_key": "preserve_action_deadlines",
-    "rule_text": "Preserve every deadline and actionable date from the original submission: registration, application, abstract, proposal, nomination and submission deadlines, event dates and times, application periods, registration requirements and eligibility information. Keep multiple deadlines when they serve different purposes. Never replace a specific deadline with a generic call to action such as 'Learn more and register'. When editing for conciseness, shorten the surrounding prose instead of removing deadlines. Example: 'Registration closes Oct. 23. Abstract submissions are due Oct. 16. Learn more and register.' is correct; dropping either date is not.",
+    "rule_text": "Preserve every deadline, actionable date and mandatory requirement from the original submission: registration, application, abstract, proposal, nomination and submission deadlines; event dates and times; application periods; eligibility, age and enrollment conditions; regulatory requirements; and required licenses or certifications. Keep mandatory language mandatory and never shorten a requirement until it appears optional or less important. Keep multiple deadlines when they serve different purposes. Never replace a specific deadline with a generic call to action such as 'Learn more and register'. When editing for conciseness, shorten the surrounding prose instead of removing deadlines or requirements. Example: 'Registration closes Oct. 23. Abstract submissions are due Oct. 16. Applicants must be TIPS certified. Learn more and register.' is correct; dropping any deadline or requirement is not.",
+    "severity": "error"
+  },
+  {
+    "category": "content_filtering",
+    "rule_key": "preserve_organizational_context",
+    "rule_text": "Preserve the specific organization that grants, administers or oversees an award, ranking, rating, certification, accreditation, recognition or designation. Also preserve the university program, office, department or initiative that offers, sponsors or administers an opportunity, service, event, grant, program or activity. When that entity is central to understanding the opportunity, name it early in the body; retaining it only in the headline is not sufficient. Shorten surrounding wording, not the identity or role of the awarding or sponsoring entity. Example: keep 'Association for Advancement in Sustainability in Higher Education STARS Gold-rated university,' not only 'STARS Gold-rated university,' and keep 'raise funds through Idaho Eats,' not only 'raise funds.'",
+    "severity": "error"
+  },
+  {
+    "category": "content_filtering",
+    "rule_key": "preserve_information_options",
+    "rule_text": "Preserve every distinct action and information-seeking option offered by the source. If readers may sign up or learn more, retain both options; do not narrow a general invitation to contact or reach out into registration-only language unless registration is the source's sole purpose. A request for more information is not a duplicate call to action and takes precedence over the single-CTA rule. Shorten surrounding wording instead of deleting the information path.",
     "severity": "error"
   },
   {
@@ -326,8 +338,8 @@
   {
     "category": "content_filtering",
     "rule_key": "preserve_event_context",
-    "rule_text": "When condensing, distinguish unnecessary repetition from meaningful context. Preserve traditions and ceremonies, participant activities, routes, locations and event logistics, notable event features, and details that help readers visualize or understand the event. Achieve conciseness by tightening wording, not by deleting these details. Example: 'Sororities will open bids at 11:15 a.m. and run home to their chapters down Idaho Avenue.' is correct; shortening it to 'Sororities will open bids at 11:15 a.m.' removes a meaningful part of the event and is not.",
-    "severity": "warning"
+    "rule_text": "When condensing, distinguish unnecessary repetition from meaningful context. Preserve participant responsibilities and operational details explaining what volunteers, attendees or other participants will actually do. Also preserve traditions and ceremonies, participant activities, routes, locations and event logistics, notable event features, and details that help readers visualize or understand the event or opportunity. Achieve conciseness by tightening wording, not by deleting these details. Example: 'Sororities will open bids at 11:15 a.m. and run home to their chapters down Idaho Avenue.' is correct; shortening it to 'Sororities will open bids at 11:15 a.m.' removes meaningful participant activity and is not.",
+    "severity": "error"
   },
   {
     "category": "voice",
@@ -362,7 +374,7 @@
   {
     "category": "content_filtering",
     "rule_key": "preserve_purpose_contact_titles",
-    "rule_text": "Preserve the purpose, value and context that explain why an event, service or opportunity is offered. Preserve contact information and official contact titles. Capitalize a title immediately before a person's name; lowercase a title after a name or when it stands alone. Shorten wording, not meaning.",
+    "rule_text": "Preserve the purpose, value and context that explain why an event, service or opportunity is offered. Preserve contact information and every official contact title supplied by the source; never remove a title solely for brevity. Capitalize a title immediately before a person's name. Prefer placing it after the name in AP-style lowercase, such as 'Danny Conklin, concessions manager,' and keep each title associated with the correct person. Shorten wording, not meaning or credentials.",
     "severity": "error"
   }
 ]

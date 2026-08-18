@@ -87,9 +87,13 @@ def test_migration_is_idempotent_and_matches_shared_seed():
 
     seeded = seeded_rules()
     assert len(rows) == len(migration.STYLE_RULE_UPDATES)
-    # The rule-conflict resolution migration supersedes these two texts;
-    # test_editorial_rule_conflicts_migration verifies their latest seed values.
-    superseded = {"no_fabricated_content", "composition_title_format"}
+    # Later focused migrations supersede these original texts; their own
+    # migration tests verify the latest seed values.
+    superseded = {
+        "no_fabricated_content",
+        "composition_title_format",
+        "preserve_purpose_contact_titles",
+    }
     for row in rows:
         seed = seeded[row["Rule_Key"]]
         if row["Rule_Key"] in superseded:
