@@ -1432,6 +1432,106 @@ class TestDeterministicPostValidation:
             "preserve_action_deadlines",
         }
 
+    async def test_reported_promotional_edit_flags_weak_lead_and_cta_problems(self):
+        source_body = (
+            "Last week to get your commuter parking permit reimbursed in full through "
+            "IdahoEats. Enroll in a qualifying meal plan by August 22 to enter the random "
+            "drawing for one faculty or staff winner. Enroll here before the window "
+            "closes. Terms and conditions apply, see landing page for full details."
+        )
+        edited_body = (
+            "The last week to have a commuter parking permit reimbursed in full through "
+            "IdahoEats is this week. Employees who enroll in a qualifying meal plan by "
+            "Aug. 22 will be entered in a random drawing for one faculty or staff winner. "
+            "<a href='https://example.com/promotion'>Enroll now</a>. Terms and conditions "
+            "apply. See the landing page for full details."
+        )
+        flags = AIEditor(SuccessfulProvider()).post_analyze(
+            "Buy early and park for free",
+            edited_body,
+            "faculty_staff",
+            [
+                {
+                    "category": "voice",
+                    "rule_key": "promotional_action_benefit_lead",
+                    "rule_text": "Managed promotional-lead rule.",
+                    "severity": "error",
+                },
+                {
+                    "category": "voice",
+                    "rule_key": "cta_structure",
+                    "rule_text": "Managed CTA structure rule.",
+                    "severity": "error",
+                },
+                {
+                    "category": "voice",
+                    "rule_key": "single_cta",
+                    "rule_text": "Managed single-CTA rule.",
+                    "severity": "error",
+                },
+            ],
+            source_text=source_body,
+            source_body=source_body,
+        )
+
+        assert {flag["rule_key"] for flag in flags} == {
+            "promotional_action_benefit_lead",
+            "cta_structure",
+            "single_cta",
+        }
+        assert any("landing page" in flag["message"] for flag in flags)
+        assert any("'enroll'" in flag["message"] for flag in flags)
+
+    async def test_reported_research_edit_flags_generic_lead_and_indirect_contact(self):
+        source_body = (
+            "Researchers at the Margaret Ritchie School of Family and Consumer Sciences "
+            "are currently seeking lactating women interested in donating milk for a "
+            "research project at the University of Idaho. Participants must be between "
+            "the ages of 18 and 50 and currently breastfeeding or pumping for an infant "
+            "at least 2 weeks old. Each participant is requested to donate up to 10 oz of "
+            "milk and will receive a $25 gift card for every 2 oz donated. If you are "
+            "interested, please contact Betsy Church at betsychurch@uidaho.edu for more "
+            "information."
+        )
+        edited_body = (
+            "Researchers are recruiting participants for a study on human milk composition "
+            "at the Margaret Ritchie School of Family and Consumer Sciences, U of I. "
+            "Participants must be 18 to 50 years old and currently breastfeeding or pumping "
+            "for an infant at least two weeks old. Each donor may provide up to 10 oz of "
+            "milk and will receive a $25 gift card for every 2 oz donated. Interested "
+            "participants should contact <a href='mailto:betsychurch@uidaho.edu'>Betsy "
+            "Church</a> for more information."
+        )
+        flags = AIEditor(SuccessfulProvider()).post_analyze(
+            "Participate in human milk composition study",
+            edited_body,
+            "faculty_staff",
+            [
+                {
+                    "category": "content_filtering",
+                    "rule_key": "preserve_audience_scope",
+                    "rule_text": "Managed audience rule.",
+                    "severity": "error",
+                },
+                {
+                    "category": "voice",
+                    "rule_key": "cta_structure",
+                    "rule_text": "Managed CTA structure rule.",
+                    "severity": "error",
+                },
+            ],
+            source_text=source_body,
+            source_body=source_body,
+        )
+
+        assert {flag["rule_key"] for flag in flags} == {
+            "preserve_audience_scope",
+            "cta_structure",
+        }
+        assert any("breastfeeding/lactating women" in flag["message"] for flag in flags)
+        assert any("ages 18-50" in flag["message"] for flag in flags)
+        assert any("Interested participants should contact" in flag["message"] for flag in flags)
+
     async def test_compliant_output_produces_no_post_validation_flags(
         self,
         client: AsyncClient,

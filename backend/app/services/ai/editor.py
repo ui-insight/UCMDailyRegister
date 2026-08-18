@@ -32,6 +32,9 @@ from app.utils.style_checks import (
     detect_platform_names,
     detect_undefined_acronyms,
     detect_repeated_cta_phrases,
+    detect_redundant_promotional_leads,
+    detect_generic_destination_references,
+    detect_indirect_contact_language,
     detect_missing_source_contacts,
     detect_new_contact_channels,
     detect_new_contact_names,
@@ -41,6 +44,7 @@ from app.utils.style_checks import (
     detect_missing_information_options,
     detect_missing_near_term_weekdays,
     detect_missing_protected_organizations,
+    detect_missing_specific_audience_lead,
     detect_weekday_date_mismatches,
 )
 
@@ -243,6 +247,24 @@ class AIEditor:
                 heuristic=True,
             )
 
+        for lead in detect_redundant_promotional_leads(body):
+            add(
+                "promotional_action_benefit_lead",
+                f"Promotional lead is passive or redundant: '{lead}'",
+            )
+
+        for reference in detect_generic_destination_references(body):
+            add(
+                "cta_structure",
+                f"Replace generic destination reference with descriptive linked text: '{reference}'",
+            )
+
+        for phrase in detect_indirect_contact_language(body):
+            add(
+                "cta_structure",
+                f"Use direct information-first contact language instead of '{phrase}'",
+            )
+
         if category == "job_opportunity":
             if headline.strip():
                 add("job_posting_format", "Jobs listing includes a headline — keep it body-only")
@@ -324,6 +346,19 @@ class AIEditor:
                 add(
                     "preserve_action_deadlines",
                     f"Source requirement missing from AI edit: '{requirement}'",
+                )
+
+            missing_audience_context = detect_missing_specific_audience_lead(
+                body_source,
+                body,
+            )
+            if missing_audience_context:
+                listed = ", ".join(
+                    f"'{detail}'" for detail in missing_audience_context[:5]
+                )
+                add(
+                    "preserve_audience_scope",
+                    f"Specific source audience context missing from first sentence: {listed}",
                 )
 
         return flags

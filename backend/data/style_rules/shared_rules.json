@@ -260,8 +260,8 @@
   {
     "category": "formatting",
     "rule_key": "research_study_format",
-    "rule_text": "Research participant recruitment announcements should begin with 'Researchers are recruiting participants for a study...' followed by a brief description of the study topic and compensation details.",
-    "severity": "info"
+    "rule_text": "Research recruitment announcements must begin with the most specific accurate audience description supplied by the source, followed by the study topic. Never default to generic words such as 'participants,' 'individuals' or 'people' when the source identifies breastfeeding or lactating women, donors, volunteers, faculty members, first-year students, alumni or another precise group. Include important eligibility qualifiers, such as an age range, in the first sentence whenever concise. Example: 'Researchers are seeking breastfeeding women ages 18-50 for a study on human milk composition,' not 'Researchers are recruiting participants for a study.' Follow with compensation and participation details.",
+    "severity": "error"
   },
   {
     "category": "headlines",
@@ -302,7 +302,13 @@
   {
     "category": "voice",
     "rule_key": "cta_structure",
-    "rule_text": "Structure announcements around one clear call to action and supporting context. Replace vague instructions with an explicit action, but do not repeat that action elsewhere in the item. Edit user-supplied linked text when needed for clarity, concision and editorial style; linked text is not immutable. Do not introduce audience qualifiers that are not in the original submission. When the submission provides a contact's full name, use it rather than a bare email address. Never build a call to action on filler words such as 'here' or 'click here'. Link the action verb or object: 'Sign up', 'Register for the workshop' or 'Apply for the scholarship'.",
+    "rule_text": "Structure announcements around one clear call to action and supporting context. Replace vague instructions with an explicit action, but do not repeat that action elsewhere in the item. Use direct information-first contact language such as 'For more information, contact Betsy Church,' never 'Interested participants should contact Betsy Church.' Edit user-supplied linked text when needed for clarity, concision and editorial style; linked text is not immutable. Replace generic unlinked references such as 'landing page,' 'webpage,' 'here' or 'click here' with descriptive linked text that names the action or destination. Do not introduce audience qualifiers that are not in the original submission. When the submission provides a contact's full name, use it rather than a bare email address. Link the action verb or object: 'Sign up', 'Register for the workshop', 'Apply for the scholarship' or 'Review the promotion details'.",
+    "severity": "error"
+  },
+  {
+    "category": "voice",
+    "rule_key": "promotional_action_benefit_lead",
+    "rule_text": "Promotional announcements must lead with the action readers should take and the benefit they can receive. Put important qualifying details early when they define the offer. Avoid passive, circular or redundant introductions such as 'The last week to have a permit reimbursed is this week.' Prefer 'This is the final week to enroll in a qualifying meal plan for a chance to have a commuter parking permit reimbursed in full.' Remove audience references that do not affect eligibility. Consolidate repeated actions into one descriptive linked call to action and shorten supporting wording rather than repeating the offer.",
     "severity": "error"
   },
   {
@@ -350,7 +356,7 @@
   {
     "category": "content_filtering",
     "rule_key": "preserve_audience_scope",
-    "rule_text": "Do not narrow the intended audience. Preserve broad audience meaning such as 'all are welcome,' 'everyone is invited' or 'the public is welcome.' For concise event invitations, replace that wording with a direct invitation such as 'Attend the workshop,' never with a narrower group such as employees, students, faculty, staff or campus community unless the original explicitly limits attendance.",
+    "rule_text": "Do not narrow, broaden or genericize the intended audience. Preserve broad audience meaning such as 'all are welcome,' 'everyone is invited' or 'the public is welcome.' Also preserve the most specific accurate source description, such as donors, breastfeeding or lactating women, volunteers, faculty members, first-year students or alumni, instead of replacing it with 'participants,' 'individuals' or 'people.' For recruitment announcements, include the specific group in the first sentence whenever possible and surface important eligibility qualifiers early enough that the offer is not misleading. For concise event invitations, replace broad wording with a direct invitation such as 'Attend the workshop,' never with a narrower group unless the original explicitly limits attendance.",
     "severity": "error"
   },
   {
