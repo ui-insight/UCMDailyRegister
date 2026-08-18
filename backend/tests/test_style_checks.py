@@ -11,10 +11,14 @@ from app.utils.style_checks import (
     detect_platform_names,
     detect_undefined_acronyms,
     detect_repeated_cta_phrases,
+    detect_redundant_promotional_leads,
+    detect_generic_destination_references,
+    detect_indirect_contact_language,
     detect_missing_anchored_requirements,
     detect_missing_contact_titles,
     detect_missing_information_options,
     detect_missing_protected_organizations,
+    detect_missing_specific_audience_lead,
     detect_missing_source_contacts,
     detect_new_contact_channels,
     detect_new_contact_names,
@@ -95,6 +99,43 @@ class TestRepeatedCta:
 
     def test_accepts_single_cta(self):
         assert detect_repeated_cta_phrases("Sign up for the training.") == []
+
+    def test_flags_repeated_enrollment_cta(self):
+        text = "Employees who enroll qualify. Enroll now."
+
+        assert detect_repeated_cta_phrases(text) == ["enroll"]
+
+
+class TestActionAndContactLanguage:
+    def test_flags_redundant_passive_promotional_lead(self):
+        lead = "The last week to have a parking permit reimbursed is this week."
+
+        assert detect_redundant_promotional_leads(lead) == [lead]
+
+    def test_accepts_action_and_benefit_promotional_lead(self):
+        assert detect_redundant_promotional_leads(
+            "Enroll this week for a chance to have your parking permit reimbursed."
+        ) == []
+
+    def test_flags_generic_unlinked_destination_reference(self):
+        assert detect_generic_destination_references(
+            "Enroll now. See the landing page for details."
+        ) == ["landing page"]
+
+    def test_accepts_descriptive_linked_destination(self):
+        assert detect_generic_destination_references(
+            'Review the <a href="https://example.com">promotion page</a> and enroll.'
+        ) == []
+
+    def test_flags_indirect_audience_prefixed_contact_language(self):
+        assert detect_indirect_contact_language(
+            "Interested participants should contact Betsy Church."
+        ) == ["Interested participants should contact"]
+
+    def test_accepts_direct_information_first_contact_language(self):
+        assert detect_indirect_contact_language(
+            "For more information, contact Betsy Church."
+        ) == []
 
 
 def test_strip_html_removes_tags_but_keeps_anchor_text():
@@ -236,6 +277,36 @@ class TestSourceFidelity:
             "Cashiers serving alcohol must be 21+ and TIPS certified.",
             "Cashiers serving alcohol are required to be 21 or older and TIPS certified.",
         ) == []
+
+    def test_flags_specific_recruitment_group_and_age_range_missing_from_lead(self):
+        source = (
+            "Researchers are seeking lactating women for a study. Participants must be "
+            "between the ages of 18 and 50."
+        )
+        edited = (
+            "Researchers are recruiting participants for a study. Participants must be "
+            "18 to 50 years old."
+        )
+
+        assert detect_missing_specific_audience_lead(source, edited) == [
+            "breastfeeding/lactating women",
+            "ages 18-50",
+        ]
+
+    def test_accepts_specific_recruitment_group_and_age_range_in_lead(self):
+        source = (
+            "Researchers are seeking lactating women for a study. Participants must be "
+            "between the ages of 18 and 50."
+        )
+        edited = "Researchers are seeking breastfeeding women ages 18-50 for a study."
+
+        assert detect_missing_specific_audience_lead(source, edited) == []
+
+    def test_ignores_incidental_participant_group_without_recruitment_context(self):
+        source = "Volunteers assist participants during the event."
+        edited = "Event staff assist participants."
+
+        assert detect_missing_specific_audience_lead(source, edited) == []
 
 
 class TestWeekdayDateConsistency:

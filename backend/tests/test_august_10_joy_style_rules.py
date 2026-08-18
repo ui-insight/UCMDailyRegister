@@ -37,7 +37,7 @@ def test_august_10_rules_are_seeded_as_mandatory_contracts():
         "ap_style_times": "lowercase a.m. and p.m. with periods",
         "single_cta": "Each call to action must appear only once",
         "online_not_platform": "Use the word 'online' instead of platform names",
-        "preserve_audience_scope": "Do not narrow the intended audience",
+        "preserve_audience_scope": "Do not narrow, broaden or genericize",
         "composition_title_format": "single quotation marks in headlines",
         "building_room_order": "building name first",
         "approved_off_campus_addresses": "Kenworthy Performing Arts Centre, 508 S. Main St.",
@@ -90,8 +90,10 @@ def test_migration_is_idempotent_and_matches_shared_seed():
     # Later focused migrations supersede these original texts; their own
     # migration tests verify the latest seed values.
     superseded = {
+        "cta_structure",
         "no_fabricated_content",
         "composition_title_format",
+        "preserve_audience_scope",
         "preserve_purpose_contact_titles",
     }
     for row in rows:

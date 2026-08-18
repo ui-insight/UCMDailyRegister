@@ -7,9 +7,9 @@ active in the prompt at the time. The detectors here cover the subset of those
 rules that can be verified mechanically — AP month abbreviation, a.m./p.m.
 formatting, platform names, undefined acronyms, repeated calls to action and
 the Jobs single-line contract, plus high-confidence source contacts,
-organizations, titles, information paths and anchored requirements — so a
-violation surfaces as a flag on the AI version regardless of whether the model
-honored the prompt.
+organizations, titles, audience qualifiers, information paths, promotional
+leads and anchored requirements — so a violation surfaces as a flag on the AI
+version regardless of whether the model honored the prompt.
 
 Each detector is a pure function over edited text and returns the offending
 fragments. Mapping findings to flags (and gating on whether the corresponding
@@ -43,7 +43,55 @@ _KNOWN_ACRONYMS = {
     "TV", "AV", "GED", "ADA", "FYI", "AM", "PM",
 }
 
-_CTA_PHRASES = ("register", "sign up", "rsvp", "apply", "learn more")
+_CTA_PHRASES = ("register", "sign up", "enroll", "rsvp", "apply", "learn more")
+
+_ANCHOR_ELEMENT = re.compile(r"<a\b[^>]*>.*?</a>", re.IGNORECASE | re.DOTALL)
+_GENERIC_DESTINATION_REFERENCE = re.compile(
+    r"\b(?:landing\s+page|this\s+page|web\s*page)\b",
+    re.IGNORECASE,
+)
+_INDIRECT_CONTACT_LANGUAGE = re.compile(
+    r"\b(?:interested\s+)?(?:participants?|individuals?|people|applicants?)\s+"
+    r"should\s+contact\b",
+    re.IGNORECASE,
+)
+_REDUNDANT_PROMOTIONAL_LEAD = re.compile(
+    r"^\s*The\s+last\s+week\s+to\b[^.!?]*\bis\s+this\s+week\b",
+    re.IGNORECASE,
+)
+_RECRUITMENT_CONTEXT = re.compile(
+    r"\b(?:seeking|recruiting|recruit|inviting|invites?|looking\s+for|open\s+to|"
+    r"eligible|opportunity\s+for|needed|wanted)\b",
+    re.IGNORECASE,
+)
+_SPECIFIC_AUDIENCE_GROUPS = (
+    (
+        "breastfeeding/lactating women",
+        re.compile(r"\b(?:breastfeeding|lactating)\s+women\b", re.IGNORECASE),
+    ),
+    ("donors", re.compile(r"\bdonors?\b", re.IGNORECASE)),
+    ("volunteers", re.compile(r"\bvolunteers?\b", re.IGNORECASE)),
+    ("faculty members", re.compile(r"\bfaculty\s+members?\b", re.IGNORECASE)),
+    (
+        "first-year students",
+        re.compile(r"\bfirst[\s-]+year\s+students?\b", re.IGNORECASE),
+    ),
+    ("alumni", re.compile(r"\balumni\b", re.IGNORECASE)),
+)
+_AGE_RANGE_PATTERNS = (
+    re.compile(
+        r"\bbetween\s+(?:the\s+)?ages?\s+of\s+(\d{1,3})\s+and\s+(\d{1,3})\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\bages?\s+(\d{1,3})\s*(?:-|–|—|to)\s*(\d{1,3})\b",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"\b(\d{1,3})\s*(?:-|–|—|to)\s*(\d{1,3})\s+years?\s+old\b",
+        re.IGNORECASE,
+    ),
+)
 
 _EMAIL = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
 _PHONE = re.compile(
@@ -190,6 +238,76 @@ def detect_repeated_cta_phrases(text: str) -> list[str]:
         for phrase in _CTA_PHRASES
         if len(re.findall(rf"\b{phrase}\b", lowered)) >= 2
     ]
+
+
+def _first_sentence(text: str) -> str:
+    """Return the first visible sentence from edited copy."""
+    visible = re.sub(r"\s+", " ", strip_html(text)).strip()
+    return re.split(r"(?<=[.!?])\s+", visible, maxsplit=1)[0]
+
+
+def detect_redundant_promotional_leads(text: str) -> list[str]:
+    """Find narrow, high-confidence passive or circular promotional leads."""
+    first_sentence = _first_sentence(text)
+    if _REDUNDANT_PROMOTIONAL_LEAD.search(first_sentence):
+        return [first_sentence]
+    return []
+
+
+def detect_generic_destination_references(text: str) -> list[str]:
+    """Find generic page references that are not themselves descriptive links."""
+    without_links = _ANCHOR_ELEMENT.sub(" ", text)
+    return [match.group() for match in _GENERIC_DESTINATION_REFERENCE.finditer(without_links)]
+
+
+def detect_indirect_contact_language(text: str) -> list[str]:
+    """Find wordy audience-prefixed contact constructions."""
+    return [match.group() for match in _INDIRECT_CONTACT_LANGUAGE.finditer(strip_html(text))]
+
+
+def detect_missing_specific_audience_lead(
+    source_body: str,
+    edited_body: str,
+) -> list[str]:
+    """Find source-specific recruitment audience details missing from the lead.
+
+    A group is protected only when it appears in a source sentence with a
+    recruitment or eligibility cue. This prevents incidental references to
+    volunteers or alumni later in an announcement from being misclassified as
+    the target audience.
+    """
+    source = strip_html(source_body)
+    source_sentences = re.split(r"(?<=[.!?])\s+|\n+", source)
+    edited_lead = _first_sentence(edited_body)
+    protected_groups: list[tuple[str, re.Pattern[str]]] = []
+
+    for display, pattern in _SPECIFIC_AUDIENCE_GROUPS:
+        if any(
+            pattern.search(sentence) and _RECRUITMENT_CONTEXT.search(sentence)
+            for sentence in source_sentences
+        ):
+            protected_groups.append((display, pattern))
+
+    findings = [
+        display
+        for display, pattern in protected_groups
+        if not pattern.search(edited_lead)
+    ]
+
+    if protected_groups:
+        for pattern in _AGE_RANGE_PATTERNS:
+            match = pattern.search(source)
+            if match is None:
+                continue
+            lower_age, upper_age = match.groups()
+            if not (
+                re.search(rf"\b{re.escape(lower_age)}\b", edited_lead)
+                and re.search(rf"\b{re.escape(upper_age)}\b", edited_lead)
+            ):
+                findings.append(f"ages {lower_age}-{upper_age}")
+            break
+
+    return findings
 
 
 def _contact_channels(text: str) -> dict[str, str]:
