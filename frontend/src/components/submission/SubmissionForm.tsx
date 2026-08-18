@@ -24,6 +24,15 @@ const NEWSLETTER_CATEGORY_CODES: Record<TargetNewsletter, Set<string>> = {
   none: new Set<string>(),
 };
 
+const STUDENT_NEWSLETTER_GUIDANCE = 'Student newsletter submissions generally run once, during the week the event or opportunity occurs. Submissions may run twice when advance notice is needed, such as for registration, RSVP deadlines, ticket sales, reservations, applications or other time-sensitive deadlines. Staff will review and determine final publication dates.';
+
+const PUBLIC_TDR_ONLY_CATEGORY_CODES = new Set([
+  'employee_announcement',
+  'in_memoriam',
+  'job_opportunity',
+  'kudos',
+]);
+
 interface LinkEntry {
   Url: string;
   Anchor_Text: string;
@@ -126,6 +135,8 @@ export default function SubmissionForm() {
   const [submitterEmail, setSubmitterEmail] = useState('');
   const [notes, setNotes] = useState('');
   const [surveyEndDate, setSurveyEndDate] = useState('');
+  const [alsoPublishInStudentNewsletter, setAlsoPublishInStudentNewsletter] = useState(false);
+  const [preferredStudentDates, setPreferredStudentDates] = useState<string[]>(['']);
   const getMinDate = (): string => addDaysISO(1);
 
   // Job Opportunity fields
@@ -155,7 +166,16 @@ export default function SubmissionForm() {
   const [error, setError] = useState<string | null>(null);
   const successRef = useRef<HTMLDivElement>(null);
   const isJobOpportunity = category === 'job_opportunity';
-  const effectiveTargetNewsletter: TargetNewsletter = isJobOpportunity ? 'tdr' : targetNewsletter;
+  const isPublicFacultyStaffFlow = !isStaff && category === 'faculty_staff';
+  const effectiveTargetNewsletter: TargetNewsletter = isJobOpportunity
+    ? 'tdr'
+    : isPublicFacultyStaffFlow
+      ? alsoPublishInStudentNewsletter ? 'both' : 'tdr'
+      : targetNewsletter;
+  const scheduleTargetNewsletter: TargetNewsletter = isPublicFacultyStaffFlow
+    && alsoPublishInStudentNewsletter
+      ? 'tdr'
+      : effectiveTargetNewsletter;
 
   useEffect(() => {
     let cancelled = false;
@@ -211,14 +231,17 @@ export default function SubmissionForm() {
         const from = todayISO();
         const to = addMonthsISO(3);
         if (effectiveTargetNewsletter === 'both') {
-          const data = await getValidDates(from, to);
+          const [tdrData, myUIData] = await Promise.all([
+            getValidDates(from, to, 'tdr'),
+            getValidDates(from, to, 'myui'),
+          ]);
           setValidDates(new Set(
-            data.dates
+            tdrData.dates
               .filter((d) => d.newsletters.includes('tdr'))
               .map((d) => d.date),
           ));
           setSecondaryValidDates(new Set(
-            data.dates
+            myUIData.dates
               .filter((d) => d.newsletters.includes('myui'))
               .map((d) => d.date),
           ));
@@ -237,33 +260,43 @@ export default function SubmissionForm() {
     fetchDates();
   }, [effectiveTargetNewsletter]);
 
-  // Filter categories by newsletter target; staff-visibility categories
-  // (already gated by backend) always pass through.
-  // When "Both Newsletters" is selected, relabel "Faculty/Staff" as
-  // "News and Updates" so the dropdown matches the My UI section name.
+  // Public submitters choose an announcement type first. Newsletter targeting
+  // follows from that choice, except surveys, which retain the audience picker.
+  // Staff retain the existing target-first workflow and category filtering.
   const filteredCategories = categories
     .filter(
       (cat) =>
-        cat.Visibility_Role === 'staff' ||
-        NEWSLETTER_CATEGORY_CODES[effectiveTargetNewsletter]?.has(cat.Code),
+        isStaff
+          ? cat.Visibility_Role === 'staff'
+            || NEWSLETTER_CATEGORY_CODES[effectiveTargetNewsletter]?.has(cat.Code)
+          : cat.Visibility_Role === 'public',
     )
     .map((cat) =>
-      effectiveTargetNewsletter === 'both' && cat.Code === 'faculty_staff'
-        ? { ...cat, Label: 'News and Updates' }
-        : cat,
+      cat.Code === 'faculty_staff'
+        ? {
+            ...cat,
+            Label: isStaff
+              ? effectiveTargetNewsletter === 'both' ? 'News and Updates' : cat.Label
+              : 'Faculty/Staff and Student',
+          }
+        : cat
     );
+
+  const resetDatesForTarget = (nextTarget: TargetNewsletter) => {
+    setSchedule((current) => ({
+      ...current,
+      Requested_Date: '',
+      Second_Requested_Date: '',
+      Repeat_Count: nextTarget === 'both' ? 2 : 1,
+    }));
+  };
 
   // Clear date and reset category when newsletter target changes
   const handleTargetChange = (target: TargetNewsletter) => {
     const nextTarget = isJobOpportunity ? 'tdr' : target;
     setTargetNewsletter(nextTarget);
     // validDates will be re-fetched via useEffect; clear dates and adjust repeat count
-    setSchedule({
-      ...schedule,
-      Requested_Date: '',
-      Second_Requested_Date: '',
-      Repeat_Count: nextTarget === 'both' ? 2 : schedule.Repeat_Count,
-    });
+    resetDatesForTarget(nextTarget);
     // Reset category if current selection isn't valid for the new newsletter
     // (staff categories are always valid so they won't trigger a reset)
     const allowed = NEWSLETTER_CATEGORY_CODES[nextTarget];
@@ -275,6 +308,34 @@ export default function SubmissionForm() {
     }
   };
 
+  const handleCategoryChange = (nextCategory: SubmissionCategory) => {
+    setCategory(nextCategory);
+    if (isStaff) {
+      return;
+    }
+
+    setAlsoPublishInStudentNewsletter(false);
+    setPreferredStudentDates(['']);
+
+    let nextTarget = targetNewsletter;
+    if (nextCategory === 'faculty_staff' || PUBLIC_TDR_ONLY_CATEGORY_CODES.has(nextCategory)) {
+      nextTarget = 'tdr';
+    } else if (nextCategory === 'student') {
+      nextTarget = 'myui';
+    }
+
+    if (nextTarget !== targetNewsletter) {
+      setTargetNewsletter(nextTarget);
+      resetDatesForTarget(nextTarget);
+    }
+  };
+
+  const handleStudentNewsletterChange = (checked: boolean) => {
+    setAlsoPublishInStudentNewsletter(checked);
+    setPreferredStudentDates(['']);
+    setTargetNewsletter(checked ? 'both' : 'tdr');
+  };
+
   const hasDateError = (): boolean => {
     if (!schedule.Requested_Date) return false;
     if (validDates.size > 0) {
@@ -283,13 +344,13 @@ export default function SubmissionForm() {
     // Fallback client-side check
     const d = parseISODate(schedule.Requested_Date);
     const day = d.getDay();
-    if (effectiveTargetNewsletter === 'myui' || effectiveTargetNewsletter === 'both') return day !== 1;
-    if (effectiveTargetNewsletter === 'tdr') return day === 0 || day === 6;
+    if (scheduleTargetNewsletter === 'myui') return day !== 1;
+    if (scheduleTargetNewsletter === 'tdr' || scheduleTargetNewsletter === 'both') return day === 0 || day === 6;
     return false;
   };
 
   const getSecondDateError = (): string | null => {
-    if (effectiveTargetNewsletter === 'both') {
+    if (scheduleTargetNewsletter === 'both') {
       if (!schedule.Second_Requested_Date) {
         return 'Please select a valid My UI run date.';
       }
@@ -312,11 +373,24 @@ export default function SubmissionForm() {
 
     const d = parseISODate(schedule.Second_Requested_Date);
     const day = d.getDay();
-    if (effectiveTargetNewsletter === 'myui' && day !== 1) {
+    if (scheduleTargetNewsletter === 'myui' && day !== 1) {
       return 'Please select a valid second run date for the chosen newsletter.';
     }
-    if (effectiveTargetNewsletter === 'tdr' && (day === 0 || day === 6)) {
+    if (scheduleTargetNewsletter === 'tdr' && (day === 0 || day === 6)) {
       return 'Please select a valid second run date for the chosen newsletter.';
+    }
+    return null;
+  };
+
+  const getStudentDateError = (studentDate: string): string | null => {
+    if (!studentDate) {
+      return 'Please select a preferred Student newsletter publication date.';
+    }
+    if (secondaryValidDates.size > 0 && !secondaryValidDates.has(studentDate)) {
+      return 'Please select a valid Student newsletter publication date.';
+    }
+    if (parseISODate(studentDate).getDay() !== 1) {
+      return 'Please select a valid Student newsletter publication date.';
     }
     return null;
   };
@@ -338,6 +412,19 @@ export default function SubmissionForm() {
     if (secondDateError) {
       setError(secondDateError);
       return;
+    }
+    if (alsoPublishInStudentNewsletter) {
+      const studentDateError = preferredStudentDates
+        .map(getStudentDateError)
+        .find((dateError) => dateError !== null);
+      if (studentDateError) {
+        setError(studentDateError);
+        return;
+      }
+      if (new Set(preferredStudentDates).size !== preferredStudentDates.length) {
+        setError('Please choose different Student newsletter publication dates.');
+        return;
+      }
     }
     if (hasRecurrenceEndError()) {
       setError('Please choose a recurrence end date on or after the first run date.');
@@ -364,6 +451,38 @@ export default function SubmissionForm() {
         ? (jobUrl.trim() ? [{ Url: jobUrl, Anchor_Text: jobAnchorText || undefined }] : [])
         : links.filter((l) => l.Url.trim()).map((l) => ({ Url: l.Url, Anchor_Text: l.Anchor_Text || undefined }));
 
+      const baseScheduleRequest = {
+        Repeat_Note: schedule.Repeat_Note || undefined,
+        Is_Flexible: schedule.Is_Flexible || undefined,
+        Flexible_Deadline: schedule.Flexible_Deadline || undefined,
+        Recurrence_Type: isStaff ? schedule.Recurrence_Type : 'once' as const,
+        Recurrence_Interval: isStaff ? schedule.Recurrence_Interval : 1,
+        Recurrence_End_Date: isStaff ? schedule.Recurrence_End_Date || undefined : undefined,
+      };
+      const tdrDates = [
+        schedule.Requested_Date,
+        ...(schedule.Repeat_Count >= 2 && schedule.Second_Requested_Date
+          ? [schedule.Second_Requested_Date]
+          : []),
+      ];
+      const combinedScheduleCount = Math.max(tdrDates.length, preferredStudentDates.length);
+      const scheduleRequests: NonNullable<SubmissionCreate['Schedule_Requests']> =
+        isPublicFacultyStaffFlow && alsoPublishInStudentNewsletter
+          ? Array.from({ length: combinedScheduleCount }, (_, index) => ({
+              ...baseScheduleRequest,
+              Requested_Date: tdrDates[index] ?? tdrDates[0],
+              Second_Requested_Date: preferredStudentDates[index] || undefined,
+              Repeat_Count: 1,
+            }))
+          : [
+              {
+                ...baseScheduleRequest,
+                Requested_Date: schedule.Requested_Date,
+                Second_Requested_Date: schedule.Second_Requested_Date || undefined,
+                Repeat_Count: schedule.Repeat_Count,
+              },
+            ];
+
       const data: SubmissionCreate = {
         Category: category,
         Target_Newsletter: effectiveTargetNewsletter,
@@ -374,19 +493,7 @@ export default function SubmissionForm() {
         Submitter_Notes: notes || undefined,
         Survey_End_Date: category === 'survey' && surveyEndDate ? surveyEndDate : undefined,
         Links: effectiveLinks,
-        Schedule_Requests: [
-          {
-            Requested_Date: schedule.Requested_Date,
-            Second_Requested_Date: schedule.Second_Requested_Date || undefined,
-            Repeat_Count: schedule.Repeat_Count,
-            Repeat_Note: schedule.Repeat_Note || undefined,
-            Is_Flexible: schedule.Is_Flexible || undefined,
-            Flexible_Deadline: schedule.Flexible_Deadline || undefined,
-            Recurrence_Type: isStaff ? schedule.Recurrence_Type : 'once',
-            Recurrence_Interval: isStaff ? schedule.Recurrence_Interval : 1,
-            Recurrence_End_Date: isStaff ? schedule.Recurrence_End_Date || undefined : undefined,
-          },
-        ],
+        Schedule_Requests: scheduleRequests,
       };
 
       await createSubmission(data);
@@ -404,6 +511,9 @@ export default function SubmissionForm() {
       setJobLocation('');
       setJobRemoveDate('');
       setLinks([]);
+      setAlsoPublishInStudentNewsletter(false);
+      setPreferredStudentDates(['']);
+      setTargetNewsletter('tdr');
       setCategory((filteredCategories[0]?.Code ?? 'faculty_staff') as SubmissionCategory);
       setSchedule({
         Requested_Date: '',
@@ -450,17 +560,51 @@ export default function SubmissionForm() {
             Job postings run in The Daily Register only.
           </p>
         )}
-        <NewsletterTargetSelect
-          value={effectiveTargetNewsletter}
-          onChange={handleTargetChange}
-          disabledTargets={isJobOpportunity ? ['myui', 'both'] : undefined}
-        />
+        {isStaff && (
+          <NewsletterTargetSelect
+            value={effectiveTargetNewsletter}
+            onChange={handleTargetChange}
+            disabledTargets={isJobOpportunity ? ['myui', 'both'] : undefined}
+          />
+        )}
         <CategorySelect
           categories={filteredCategories}
           isLoading={categoriesLoading}
           value={category}
-          onChange={setCategory}
+          onChange={handleCategoryChange}
+          helperText={isStaff
+            ? 'Options vary by target newsletter.'
+            : 'Select the announcement type that best matches your content.'}
         />
+        {!isStaff && category === 'survey' && (
+          <NewsletterTargetSelect
+            value={effectiveTargetNewsletter}
+            onChange={handleTargetChange}
+            disabledTargets={isJobOpportunity ? ['myui', 'both'] : undefined}
+          />
+        )}
+        {isPublicFacultyStaffFlow && (
+          <div className="rounded-md border border-gray-200 bg-gray-50 px-4 py-3">
+            <label
+              htmlFor="submission-also-student-newsletter"
+              className="flex items-start gap-3 text-sm font-medium text-gray-800"
+            >
+              <input
+                id="submission-also-student-newsletter"
+                type="checkbox"
+                checked={alsoPublishInStudentNewsletter}
+                onChange={(event) => handleStudentNewsletterChange(event.target.checked)}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-ui-gold-600 focus:ring-ui-gold-500"
+              />
+              <span>Also publish in Student newsletter</span>
+            </label>
+            {alsoPublishInStudentNewsletter && (
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-600">
+                {STUDENT_NEWSLETTER_GUIDANCE}
+              </p>
+            )}
+          </div>
+        )}
         {category === 'survey' && (
           <div>
             <label htmlFor="submission-survey-end-date" className="block text-sm font-medium text-gray-700 mb-1">
@@ -630,11 +774,87 @@ export default function SubmissionForm() {
         <SchedulePrefs
           schedule={schedule}
           onChange={setSchedule}
-          targetNewsletter={effectiveTargetNewsletter}
+          targetNewsletter={scheduleTargetNewsletter}
           validDates={validDates.size > 0 ? validDates : undefined}
           secondaryValidDates={secondaryValidDates.size > 0 ? secondaryValidDates : undefined}
           showRecurrenceControls={isStaff}
+          heading={isPublicFacultyStaffFlow && alsoPublishInStudentNewsletter
+            ? 'Daily Register publication preferences'
+            : undefined}
+          preferredDateLabel={isPublicFacultyStaffFlow && alsoPublishInStudentNewsletter
+            ? 'Preferred Daily Register publication date'
+            : undefined}
+          secondDateLabel={isPublicFacultyStaffFlow && alsoPublishInStudentNewsletter
+            ? 'Second Daily Register publication date'
+            : undefined}
         />
+        {isPublicFacultyStaffFlow && alsoPublishInStudentNewsletter && (
+          <fieldset className="space-y-3 rounded-md border border-gray-200 px-4 py-4">
+            <legend className="px-1 text-sm font-medium text-gray-700">
+              Preferred Student newsletter publication dates
+            </legend>
+            {preferredStudentDates.map((studentDate, index) => {
+              const studentDateError = studentDate ? getStudentDateError(studentDate) : null;
+              return (
+                <div key={index} className="flex flex-col gap-2 sm:flex-row sm:items-start">
+                  <div className="w-full max-w-xs">
+                    <label
+                      htmlFor={`submission-student-date-${index}`}
+                      className="block text-xs text-gray-500 mb-1"
+                    >
+                      {index === 0
+                        ? 'Preferred Student newsletter publication date'
+                        : `Additional preferred Student date ${index + 1}`}
+                    </label>
+                    <input
+                      id={`submission-student-date-${index}`}
+                      type="date"
+                      value={studentDate}
+                      onChange={(event) => setPreferredStudentDates((current) => (
+                        current.map((dateValue, dateIndex) => (
+                          dateIndex === index ? event.target.value : dateValue
+                        ))
+                      ))}
+                      required
+                      min={getMinDate()}
+                      aria-invalid={studentDateError ? true : undefined}
+                      className={`w-full rounded-md border px-3 py-2 text-sm focus:ring-1 ${
+                        studentDateError
+                          ? 'border-red-400 focus:border-red-500 focus:ring-red-500'
+                          : 'border-gray-300 focus:border-ui-gold-500 focus:ring-ui-gold-500'
+                      }`}
+                    />
+                    {studentDateError && (
+                      <p className="mt-1 text-xs text-red-600">{studentDateError}</p>
+                    )}
+                    <p className="mt-1 text-xs text-gray-400">
+                      Select a valid Student newsletter publication date.
+                    </p>
+                  </div>
+                  {preferredStudentDates.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => setPreferredStudentDates((current) => (
+                        current.filter((_, dateIndex) => dateIndex !== index)
+                      ))}
+                      className="mt-0 text-sm text-red-700 hover:text-red-800 sm:mt-6"
+                      aria-label={`Remove preferred Student date ${index + 1}`}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+            <button
+              type="button"
+              onClick={() => setPreferredStudentDates((current) => [...current, ''])}
+              className="text-sm font-medium text-ui-clearwater-700 hover:text-ui-clearwater-800"
+            >
+              + Add another Student newsletter date
+            </button>
+          </fieldset>
+        )}
         <div>
           <label htmlFor="submission-editor-notes" className="block text-sm font-medium text-gray-700 mb-1">
             Additional Notes for Editors

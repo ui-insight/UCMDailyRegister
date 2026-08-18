@@ -35,6 +35,62 @@ async def test_create_submission_persists_second_requested_date(db):
 
 
 @pytest.mark.asyncio
+async def test_both_submission_uses_newsletter_specific_date_fields(db):
+    submission = await submission_service.create_submission(
+        db,
+        SubmissionCreate(
+            Category="faculty_staff",
+            Target_Newsletter="both",
+            Original_Headline="Two-newsletter announcement",
+            Original_Body="Body text for both newsletters.",
+            Submitter_Name="Test User",
+            Submitter_Email="test@uidaho.edu",
+            Links=[],
+            Schedule_Requests=[
+                {
+                    "Requested_Date": "2026-04-06",
+                    "Second_Requested_Date": "2026-04-13",
+                },
+                {
+                    "Requested_Date": "2026-04-06",
+                    "Second_Requested_Date": "2026-04-20",
+                },
+            ],
+        ),
+    )
+
+    tdr_dates = await submission_service.get_submission_occurrence_dates(
+        db,
+        submission,
+        date(2026, 4, 1),
+        date(2026, 4, 30),
+        newsletter_type="tdr",
+    )
+    student_dates = await submission_service.get_submission_occurrence_dates(
+        db,
+        submission,
+        date(2026, 4, 1),
+        date(2026, 4, 30),
+        newsletter_type="myui",
+    )
+    combined_dates = await submission_service.get_submission_occurrence_dates(
+        db,
+        submission,
+        date(2026, 4, 1),
+        date(2026, 4, 30),
+        newsletter_type="both",
+    )
+
+    assert tdr_dates == [date(2026, 4, 6)]
+    assert student_dates == [date(2026, 4, 13), date(2026, 4, 20)]
+    assert combined_dates == [
+        date(2026, 4, 6),
+        date(2026, 4, 13),
+        date(2026, 4, 20),
+    ]
+
+
+@pytest.mark.asyncio
 async def test_date_range_listing_caches_publication_dates_per_request(
     db,
     monkeypatch: pytest.MonkeyPatch,

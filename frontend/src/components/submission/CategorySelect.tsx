@@ -6,6 +6,7 @@ interface Props {
   isLoading?: boolean;
   value: SubmissionCategory;
   onChange: (value: SubmissionCategory) => void;
+  helperText?: string;
 }
 
 export default function CategorySelect({
@@ -13,6 +14,7 @@ export default function CategorySelect({
   isLoading = false,
   value,
   onChange,
+  helperText = 'Options vary by target newsletter.',
 }: Props) {
   return (
     <div>
@@ -38,7 +40,7 @@ export default function CategorySelect({
       <p className="mt-1 text-xs text-gray-400">
         {isLoading
           ? 'Loading available announcement types...'
-          : 'Options vary by target newsletter.'}
+          : helperText}
       </p>
     </div>
   );

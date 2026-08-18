@@ -402,10 +402,12 @@ async def get_submission_occurrence_dates(
     candidate_dates: set[date] = set()
     for schedule_request in submission.Schedule_Requests:
         candidate_dates.update(
-            recurrence_service.expand_schedule_request(
+            _expand_schedule_request_for_newsletter(
+                submission,
                 schedule_request,
                 from_date,
                 to_date,
+                newsletter_type,
             )
         )
 
@@ -435,10 +437,12 @@ async def hydrate_submission_occurrences(
     """Attach occurrence previews to a submission and each schedule request."""
     all_occurrences: list[date] = []
     for schedule_request in submission.Schedule_Requests:
-        occurrences = recurrence_service.expand_schedule_request(
+        occurrences = _expand_schedule_request_for_newsletter(
+            submission,
             schedule_request,
             from_date,
             to_date,
+            newsletter_type,
         )
         valid_occurrences = await get_submission_occurrence_dates_for_request(
             db,
@@ -464,6 +468,46 @@ async def hydrate_submission_occurrences(
         occurrence.isoformat() for occurrence in unique_occurrences
     ]
     return submission
+
+
+def _expand_schedule_request_for_newsletter(
+    submission: Submission,
+    schedule_request: SubmissionScheduleRequest,
+    from_date: date,
+    to_date: date,
+    newsletter_type: str | None,
+) -> list[date]:
+    """Expand the newsletter-specific date field for a ``both`` submission."""
+    if (
+        submission.Target_Newsletter != "both"
+        or newsletter_type not in {"tdr", "myui"}
+    ):
+        return recurrence_service.expand_schedule_request(
+            schedule_request,
+            from_date,
+            to_date,
+        )
+
+    if newsletter_type == "myui":
+        student_date = schedule_request.Second_Requested_Date
+        if student_date is None or not from_date <= student_date <= to_date:
+            return []
+        if student_date.isoformat() in (schedule_request.Excluded_Dates or []):
+            return []
+        return [student_date]
+
+    if newsletter_type == "tdr" and schedule_request.Requested_Date is not None:
+        return recurrence_service.expand_recurrence(
+            anchor=schedule_request.Requested_Date,
+            recurrence_type=schedule_request.Recurrence_Type or "once",
+            interval=max(schedule_request.Recurrence_Interval or 1, 1),
+            from_date=from_date,
+            to_date=to_date,
+            until=schedule_request.Recurrence_End_Date,
+            excluded_dates=schedule_request.Excluded_Dates or [],
+        )
+
+    return []
 
 
 async def get_submission_occurrence_dates_for_request(

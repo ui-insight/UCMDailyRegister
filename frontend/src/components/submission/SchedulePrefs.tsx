@@ -20,6 +20,9 @@ interface Props {
   validDates?: Set<string>;
   secondaryValidDates?: Set<string>;
   showRecurrenceControls?: boolean;
+  heading?: string;
+  preferredDateLabel?: string;
+  secondDateLabel?: string;
 }
 
 function validateDate(
@@ -71,6 +74,9 @@ export default function SchedulePrefs({
   validDates,
   secondaryValidDates,
   showRecurrenceControls = false,
+  heading = 'Scheduling Preferences',
+  preferredDateLabel = 'Preferred run date',
+  secondDateLabel = 'Second run date',
 }: Props) {
   const update = (field: keyof ScheduleEntry, value: string | number | boolean) => {
     onChange({ ...schedule, [field]: value });
@@ -98,7 +104,7 @@ export default function SchedulePrefs({
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-2">
-        Scheduling Preferences
+        {heading}
       </label>
 
       {isBoth ? (
@@ -169,7 +175,7 @@ export default function SchedulePrefs({
                 htmlFor="submission-preferred-run-date"
                 className="block text-xs text-gray-500 mb-1"
               >
-                Preferred run date
+                {preferredDateLabel}
               </label>
               <input
                 id="submission-preferred-run-date"
@@ -219,7 +225,7 @@ export default function SchedulePrefs({
                 htmlFor="submission-second-run-date"
                 className="block text-xs text-gray-500 mb-1"
               >
-                Second run date
+                {secondDateLabel}
               </label>
               <input
                 id="submission-second-run-date"

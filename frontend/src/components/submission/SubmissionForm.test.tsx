@@ -37,7 +37,7 @@ const allowedCategories: AllowedValue[] = [
     Id: 'faculty_staff',
     Value_Group: 'Submission_Category',
     Code: 'faculty_staff',
-    Label: 'Faculty or Staff Announcement',
+    Label: 'Faculty/Staff',
     Display_Order: 1,
     Is_Active: true,
     Visibility_Role: 'public',
@@ -139,17 +139,19 @@ describe('SubmissionForm', () => {
   it('does not expose staff-only Builder sections as announcement types', async () => {
     render(<SubmissionForm />);
 
-    await screen.findByRole('option', { name: 'Faculty or Staff Announcement' });
+    await screen.findByRole('option', { name: 'Faculty/Staff and Student' });
     expect(
       screen.queryByRole('option', { name: 'Reminders for your students' }),
     ).not.toBeInTheDocument();
   });
 
-  it('submits a standard announcement with links and scheduling notes', async () => {
+  it('keeps a Faculty/Staff submission Daily Register-only when the Student checkbox is unchecked', async () => {
     const user = userEvent.setup();
     render(<SubmissionForm />);
 
-    await screen.findByRole('option', { name: 'Faculty or Staff Announcement' });
+    await screen.findByRole('option', { name: 'Faculty/Staff and Student' });
+    expect(screen.getByRole('checkbox', { name: 'Also publish in Student newsletter' })).not.toBeChecked();
+    expect(screen.queryByLabelText('Preferred Student newsletter publication date')).not.toBeInTheDocument();
     await fillStandardAnnouncement(user);
     await user.click(screen.getByRole('button', { name: /submit announcement/i }));
 
@@ -191,7 +193,7 @@ describe('SubmissionForm', () => {
     const user = userEvent.setup();
     render(<SubmissionForm />);
 
-    await screen.findByRole('option', { name: 'Faculty or Staff Announcement' });
+    await screen.findByRole('option', { name: 'Faculty/Staff and Student' });
     await user.selectOptions(screen.getByLabelText('Announcement Type'), 'survey');
     await user.type(screen.getByLabelText(/survey \/ event end date/i), '2026-05-30');
     await fillStandardAnnouncement(user);
@@ -205,16 +207,27 @@ describe('SubmissionForm', () => {
     expect(screen.getByLabelText('Your Name')).toHaveValue('Jane Submitter');
   });
 
-  it('submits separate TDR and My UI run dates when both newsletters are selected', async () => {
+  it('targets both newsletters and requests a Student date when the checkbox is checked', async () => {
     const user = userEvent.setup();
     render(<SubmissionForm />);
 
-    await screen.findByRole('option', { name: 'Faculty or Staff Announcement' });
-    await user.click(screen.getByRole('button', { name: /both newsletters/i }));
+    await screen.findByRole('option', { name: 'Faculty/Staff and Student' });
+    await user.click(screen.getByRole('checkbox', { name: 'Also publish in Student newsletter' }));
+    expect(screen.getByLabelText('Preferred Student newsletter publication date')).toHaveValue('');
+    await waitFor(() => {
+      expect(getValidDatesMock).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+        'myui',
+      );
+    });
+    expect(screen.getByText(
+      'Student newsletter submissions generally run once, during the week the event or opportunity occurs. Submissions may run twice when advance notice is needed, such as for registration, RSVP deadlines, ticket sales, reservations, applications or other time-sensitive deadlines. Staff will review and determine final publication dates.',
+    )).toBeInTheDocument();
     await user.type(screen.getByLabelText('Headline'), 'Campus forum');
     await user.type(screen.getByLabelText('Body Text'), 'Join us for a campus-wide forum.');
-    await user.type(screen.getByLabelText(/daily register run date/i), '2026-05-05');
-    await user.type(screen.getByLabelText(/my ui run date/i), '2026-05-04');
+    await user.type(screen.getByLabelText('Preferred Daily Register publication date'), '2026-05-05');
+    await user.type(screen.getByLabelText('Preferred Student newsletter publication date'), '2026-05-04');
     await user.type(screen.getByLabelText('Your Name'), 'Jane Submitter');
     await user.type(screen.getByLabelText('Email Address'), 'jane@example.edu');
     await user.click(screen.getByRole('button', { name: /submit announcement/i }));
@@ -227,7 +240,91 @@ describe('SubmissionForm', () => {
             expect.objectContaining({
               Requested_Date: '2026-05-05',
               Second_Requested_Date: '2026-05-04',
-              Repeat_Count: 2,
+              Repeat_Count: 1,
+            }),
+          ],
+        }),
+      );
+    });
+  });
+
+  it('targets My UI when the public submitter chooses Student Announcement', async () => {
+    const user = userEvent.setup();
+    render(<SubmissionForm />);
+
+    await screen.findByRole('option', { name: 'Student Announcement' });
+    await user.selectOptions(screen.getByLabelText('Announcement Type'), 'student');
+    await user.type(screen.getByLabelText('Headline'), 'Student forum');
+    await user.type(screen.getByLabelText('Body Text'), 'Join the student forum.');
+    await user.type(screen.getByLabelText('Preferred run date'), '2026-05-04');
+    await user.type(screen.getByLabelText('Your Name'), 'Jane Submitter');
+    await user.type(screen.getByLabelText('Email Address'), 'jane@example.edu');
+    await user.click(screen.getByRole('button', { name: /submit announcement/i }));
+
+    await waitFor(() => {
+      expect(createSubmissionMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          Category: 'student',
+          Target_Newsletter: 'myui',
+        }),
+      );
+    });
+  });
+
+  it('blocks submission when a preferred Student newsletter date is invalid', async () => {
+    const user = userEvent.setup();
+    render(<SubmissionForm />);
+
+    await screen.findByRole('option', { name: 'Faculty/Staff and Student' });
+    await user.click(screen.getByRole('checkbox', { name: 'Also publish in Student newsletter' }));
+    await user.type(screen.getByLabelText('Headline'), 'Campus forum');
+    await user.type(screen.getByLabelText('Body Text'), 'Join us for a campus-wide forum.');
+    await user.type(screen.getByLabelText('Preferred Daily Register publication date'), '2026-05-05');
+    await user.type(screen.getByLabelText('Preferred Student newsletter publication date'), '2026-05-05');
+    await user.type(screen.getByLabelText('Your Name'), 'Jane Submitter');
+    await user.type(screen.getByLabelText('Email Address'), 'jane@example.edu');
+    await user.click(screen.getByRole('button', { name: /submit announcement/i }));
+
+    expect(await screen.findAllByText('Please select a valid Student newsletter publication date.')).toHaveLength(2);
+    expect(createSubmissionMock).not.toHaveBeenCalled();
+  });
+
+  it('submits multiple preferred Student newsletter dates through the existing both contract', async () => {
+    getValidDatesMock.mockResolvedValue({
+      dates: [
+        { date: '2026-05-04', newsletters: ['myui'] },
+        { date: '2026-05-05', newsletters: ['tdr'] },
+        { date: '2026-05-11', newsletters: ['myui'] },
+      ],
+      blackout_dates: [],
+    });
+    const user = userEvent.setup();
+    render(<SubmissionForm />);
+
+    await screen.findByRole('option', { name: 'Faculty/Staff and Student' });
+    await user.click(screen.getByRole('checkbox', { name: 'Also publish in Student newsletter' }));
+    await user.type(screen.getByLabelText('Headline'), 'Campus forum');
+    await user.type(screen.getByLabelText('Body Text'), 'Join us for a campus-wide forum.');
+    await user.type(screen.getByLabelText('Preferred Daily Register publication date'), '2026-05-05');
+    await user.type(screen.getByLabelText('Preferred Student newsletter publication date'), '2026-05-04');
+    await user.click(screen.getByRole('button', { name: '+ Add another Student newsletter date' }));
+    await user.type(screen.getByLabelText('Additional preferred Student date 2'), '2026-05-11');
+    await user.type(screen.getByLabelText('Your Name'), 'Jane Submitter');
+    await user.type(screen.getByLabelText('Email Address'), 'jane@example.edu');
+    await user.click(screen.getByRole('button', { name: /submit announcement/i }));
+
+    await waitFor(() => {
+      expect(createSubmissionMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          Target_Newsletter: 'both',
+          Schedule_Requests: [
+            expect.objectContaining({
+              Requested_Date: '2026-05-05',
+              Second_Requested_Date: '2026-05-04',
+            }),
+            expect.objectContaining({
+              Requested_Date: '2026-05-05',
+              Second_Requested_Date: '2026-05-11',
             }),
           ],
         }),
@@ -239,7 +336,7 @@ describe('SubmissionForm', () => {
     const user = userEvent.setup();
     render(<SubmissionForm />);
 
-    await screen.findByRole('option', { name: 'Faculty or Staff Announcement' });
+    await screen.findByRole('option', { name: 'Faculty/Staff and Student' });
     await user.type(screen.getByLabelText('Headline'), 'Campus forum');
     await user.type(screen.getByLabelText('Body Text'), 'Join us for a campus-wide forum.');
     await user.type(screen.getByLabelText('Preferred run date'), '2026-05-03');
@@ -257,7 +354,7 @@ describe('SubmissionForm', () => {
 
     await screen.findByRole('option', { name: 'Job Opportunity' });
     await user.selectOptions(screen.getByLabelText('Announcement Type'), 'job_opportunity');
-    expect(screen.getByRole('button', { name: /my ui/i })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: /my ui/i })).not.toBeInTheDocument();
 
     await user.type(screen.getByLabelText('Job Posting URL'), 'https://uidaho.peopleadmin.com/postings/123');
     await user.type(screen.getByLabelText('Position Title'), 'Program Coordinator');

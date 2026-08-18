@@ -6,6 +6,7 @@ import pytest
 from freezegun import freeze_time
 from httpx import AsyncClient
 
+from app.db import seed
 from tests.conftest import make_submission_data
 
 
@@ -93,6 +94,25 @@ class TestSubmissionCRUD:
         schedule = resp.json()["Schedule_Requests"][0]
         assert schedule["Repeat_Count"] == 2
         assert schedule["Second_Requested_Date"] == "2026-03-16"
+
+    async def test_create_both_submission_rejects_invalid_student_date(
+        self, client: AsyncClient, db
+    ):
+        await seed.seed_schedule_configs(db)
+        data = make_submission_data(
+            Target_Newsletter="both",
+            Schedule_Requests=[
+                {
+                    "Requested_Date": "2026-03-13",
+                    "Second_Requested_Date": "2026-03-17",
+                }
+            ],
+        )
+
+        resp = await client.post("/api/v1/submissions/", json=data)
+
+        assert resp.status_code == 422
+        assert "MYUI publishes on Mondays only" in resp.json()["detail"]
 
     async def test_create_submission_persists_survey_end_date(self, client: AsyncClient):
         data = make_submission_data(
