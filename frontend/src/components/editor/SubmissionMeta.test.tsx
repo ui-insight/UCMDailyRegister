@@ -129,6 +129,52 @@ describe('SubmissionMeta schedule management', () => {
     });
   });
 
+  it('adds an indefinite recurring run date when a first run date is selected', async () => {
+    const user = userEvent.setup();
+    const onAddScheduleDate = vi.fn().mockResolvedValue(undefined);
+    render(
+      <SubmissionMeta
+        submission={makeSubmission()}
+        onAddScheduleDate={onAddScheduleDate}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /add run date/i }));
+    const dateInput = await screen.findByDisplayValue('');
+    await user.type(dateInput, '2026-05-06');
+    await user.selectOptions(screen.getByLabelText('Repeats'), 'weekly');
+    fireEvent.change(screen.getByLabelText(/every n weeks/i), {
+      target: { value: '6' },
+    });
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(onAddScheduleDate).toHaveBeenCalledWith('tdr', '2026-05-06', {
+        Recurrence_Type: 'weekly',
+        Recurrence_Interval: 6,
+        Recurrence_End_Date: undefined,
+      });
+    });
+  });
+
+  it('explains that a recurring schedule needs a first run date', async () => {
+    const user = userEvent.setup();
+    render(
+      <SubmissionMeta
+        submission={makeSubmission()}
+        onAddScheduleDate={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /add run date/i }));
+    await user.selectOptions(screen.getByLabelText('Repeats'), 'weekly');
+
+    expect(
+      screen.getByText('Select a first run date to enable Save.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  });
+
   it('rejects a recurrence end date before the first run date', async () => {
     const user = userEvent.setup();
     const onAddScheduleDate = vi.fn().mockResolvedValue(undefined);

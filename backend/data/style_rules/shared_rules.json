@@ -164,8 +164,8 @@
   {
     "category": "formatting",
     "rule_key": "day_of_week_with_dates",
-    "rule_text": "Pair the day of the week with dates for events within the coming month. Events beyond 30 days out do not need a day of the week, only a date.",
-    "severity": "warning"
+    "rule_text": "Pair the correct day of the week with every date that falls within the next 30 days, based on the applicable calendar year. This applies to event dates, deadlines, registration deadlines, application deadlines, enrollment deadlines, submission deadlines, drawing dates, promotional dates and every other date reference. Scan the entire submission before finalizing so non-event dates are not overlooked. Dates beyond 30 days do not need a day of the week.",
+    "severity": "error"
   },
   {
     "category": "formatting",

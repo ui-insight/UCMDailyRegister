@@ -1,6 +1,7 @@
 """Tests for AI edit task handling and failure behavior."""
 
 import asyncio
+from datetime import date
 
 import pytest
 import sqlalchemy as sa
@@ -10,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.edit_history import EditVersion
 from app.models.style_rule import StyleRule
 from app.models.submission import Submission
+from app.services.ai.editor import AIEditor
 from tests.conftest import TestSession, make_submission_data
 
 
@@ -1259,6 +1261,30 @@ class TestDeterministicPostValidation:
         by_rule = {flag["rule_key"]: flag for flag in flags}
         assert by_rule["ap_style_dates"]["type"] == "error"
         assert by_rule["online_not_platform"]["type"] == "warning"
+
+    async def test_missing_weekday_on_near_term_deadline_is_flagged(self):
+        flags = AIEditor(SuccessfulProvider()).post_analyze(
+            "Enroll for a meal plan",
+            "Enroll by Aug. 22 for a chance to win.",
+            "faculty_staff",
+            [
+                {
+                    "category": "formatting",
+                    "rule_key": "day_of_week_with_dates",
+                    "rule_text": "Managed near-term weekday rule.",
+                    "severity": "error",
+                }
+            ],
+            reference_date=date(2026, 8, 17),
+        )
+
+        assert flags == [
+            {
+                "type": "error",
+                "rule_key": "day_of_week_with_dates",
+                "message": "Near-term date is missing its weekday: 'Aug. 22'",
+            }
+        ]
 
     async def test_compliant_output_produces_no_post_validation_flags(
         self,

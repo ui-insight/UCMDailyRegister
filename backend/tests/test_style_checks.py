@@ -15,6 +15,7 @@ from app.utils.style_checks import (
     detect_new_contact_channels,
     detect_new_contact_names,
     detect_changed_official_names,
+    detect_missing_near_term_weekdays,
     detect_weekday_date_mismatches,
 )
 
@@ -142,6 +143,33 @@ class TestSourceFidelity:
 
 
 class TestWeekdayDateConsistency:
+    def test_flags_near_term_dates_without_weekdays_in_any_context(self):
+        assert detect_missing_near_term_weekdays(
+            (
+                "Enroll by Aug. 22. Registration closes Sept. 10. "
+                "Applications are due Aug. 28. The drawing is Aug. 30."
+            ),
+            reference_date=date(2026, 8, 17),
+        ) == ["Aug. 22", "Sept. 10", "Aug. 28", "Aug. 30"]
+
+    def test_accepts_near_term_dates_with_correct_weekdays(self):
+        assert detect_missing_near_term_weekdays(
+            "Enroll by Saturday, Aug. 22. Applications are due Friday, Aug. 28.",
+            reference_date=date(2026, 8, 17),
+        ) == []
+
+    def test_ignores_dates_beyond_the_next_thirty_days(self):
+        assert detect_missing_near_term_weekdays(
+            "Registration closes Sept. 16. Applications are due Sept. 17.",
+            reference_date=date(2026, 8, 17),
+        ) == ["Sept. 16"]
+
+    def test_resolves_near_term_dates_across_year_boundary(self):
+        assert detect_missing_near_term_weekdays(
+            "Apply by Jan. 5.",
+            reference_date=date(2026, 12, 20),
+        ) == ["Jan. 5"]
+
     def test_flags_weekday_that_disagrees_with_explicit_date(self):
         assert detect_weekday_date_mismatches(
             "Auditions are Thursday, Aug. 25, 2026.",

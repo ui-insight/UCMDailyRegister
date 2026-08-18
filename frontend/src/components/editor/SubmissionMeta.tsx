@@ -422,14 +422,31 @@ export default function SubmissionMeta({
             )}
             {(submission.Target_Newsletter !== 'both' || addDateNewsletter) && (
               <>
-                <input
-                  type="date"
-                  value={addDateValue}
-                  min={getMinDate()}
-                  max={getMaxDate()}
-                  onChange={(e) => { setAddDateValue(e.target.value); setAddDateError(''); }}
-                  className="w-full rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
-                />
+                <div>
+                  <label
+                    htmlFor="add-date-value"
+                    className="block text-[10px] text-gray-500 mb-0.5"
+                  >
+                    {addRecurrenceType === 'once' ? 'Run date' : 'First run date'}
+                  </label>
+                  <input
+                    id="add-date-value"
+                    type="date"
+                    value={addDateValue}
+                    min={getMinDate()}
+                    max={getMaxDate()}
+                    aria-describedby={!addDateValue ? 'add-date-required-help' : undefined}
+                    onChange={(e) => { setAddDateValue(e.target.value); setAddDateError(''); }}
+                    className="w-full rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
+                  />
+                  {!addDateValue && (
+                    <div id="add-date-required-help" className="mt-1 text-[10px] text-amber-700">
+                      {addRecurrenceType === 'once'
+                        ? 'Select a run date to enable Save.'
+                        : 'Select a first run date to enable Save.'}
+                    </div>
+                  )}
+                </div>
                 {addDateValue && validDatesSet.size > 0 && validDatesSet.has(addDateValue) && (
                   <div className="text-[10px] text-green-600">Valid publication date</div>
                 )}

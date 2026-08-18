@@ -51,4 +51,30 @@ describe('body link editing', () => {
     expect(editable.links).toHaveLength(1);
     expect(editable.links[0].Anchor_Text).toBe('event details');
   });
+
+  it('deduplicates equivalent destinations when one URL contains encoded spaces', () => {
+    const editable = prepareBodyForEditing(
+      'Additional details are available on the '
+        + '<a href="https://example.com/Inside%20UI/details">committee page</a>.',
+      [
+        {
+          Url: 'https://example.com/Inside UI/details',
+          Anchor_Text: 'University Curriculum Committee Inside U of I page',
+          Display_Order: 0,
+        },
+      ],
+    );
+
+    expect(editable.links).toEqual([
+      {
+        Url: 'https://example.com/Inside%20UI/details',
+        Anchor_Text: 'committee page',
+        Display_Order: 0,
+      },
+    ]);
+    expect(buildLinkedBody(editable.body, editable.links)).toBe(
+      'Additional details are available on the '
+        + '<a href="https://example.com/Inside%20UI/details">committee page</a>.',
+    );
+  });
 });
