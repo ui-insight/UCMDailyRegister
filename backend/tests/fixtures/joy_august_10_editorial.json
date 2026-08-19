@@ -1,0 +1,64 @@
+[
+  {
+    "id": "e51952c7-ae0f-48ab-ba97-88ec18fc401a",
+    "name": "nnsa_fellowship",
+    "category": "faculty_staff",
+    "source_headline": "NNSA Graduate Fellowship Info Session",
+    "source_body": "The Nuclear Engineering and Industrial Management department invites graduate students and interested faculty and staff to attend an information session about the prestigious National Nuclear Security Administration Graduate Fellowship Program. The session will be held on Wednesday, September 2 at 11am (PT). The fellowship offers real world experience and specialized training for the next generation of national security leaders. The deadline to apply for the fellowships which begin in June 2027, is October 2, 2026. To register for the session and receive the Zoom link, go to https://pnnl.zoomgov.com/webinar/register/WN_4vED_kG5TvCYcQhqsE20RQ",
+    "edited_headline": "Register for NNSA Graduate Fellowship Info Session",
+    "edited_body": "Register for the NNSA Graduate Fellowship Info Session at 11 a.m. Wednesday, Sept. 2, online. The Nuclear Engineering and Industrial Management department invites graduate students, faculty and staff to learn about the National Nuclear Security Administration Graduate Fellowship Program. The fellowship provides real-world experience and specialized training for the next generation of national security leaders. Applications open for fellowships beginning June 2027 and must be submitted by October 2. To register and receive the Zoom link, <a href=\"https://example.com/register\">Register</a>.",
+    "compliant_headline": "Learn about the NNSA graduate fellowship",
+    "compliant_body": "The Nuclear Engineering and Industrial Management department invites graduate students, faculty and staff to learn about the National Nuclear Security Administration (NNSA) Graduate Fellowship Program at 11 a.m. Wednesday, Sept. 2, online. The fellowship provides real-world experience and specialized training for the next generation of national security leaders. Applications for fellowships beginning June 2027 must be submitted by Oct. 2. <a href=\"https://example.com/register\">Register for the information session</a>.",
+    "expected_rule_keys": [
+      "ap_style_dates",
+      "online_not_platform",
+      "spell_out_acronyms",
+      "single_cta"
+    ]
+  },
+  {
+    "id": "6634446a-b615-49a5-b3f3-9a7f94d386a1",
+    "name": "echoes_in_black",
+    "category": "faculty_staff",
+    "source_headline": "Join the Opening Reception for Jung Min's Echoes in Black Exhibit",
+    "source_body": "All are welcome to attend the opening reception for Las Vegas-based Korean artist Jung Min's exhibit \"Echoes in Black,\" from 4-6 PM, on Wednesday, August 26, in Reflections Gallery, ISUB. The exhibit is a part of the Habib Institute for Asian Studies' AsiaPOP! Dark symposium. Refreshments will be served and an artist's talk begins about 5 PM.",
+    "edited_headline": "Attend opening reception for Jung Min's Echoes in Black exhibit",
+    "edited_body": "Employees are invited to attend the opening reception for Jung Min's Echoes in Black exhibit. The reception runs 4-6 p.m. Wednesday, Aug. 26, in Reflections Gallery, ISUB. The exhibit is part of the Habib Institute for Asian Studies' AsiaPOP! Dark symposium. Refreshments will be served. An artist talk begins at 5 p.m.",
+    "compliant_headline": "Attend opening reception for Jung Min's 'Echoes in Black' exhibit",
+    "compliant_body": "Attend the opening reception for Jung Min's \"Echoes in Black\" exhibit. The reception runs 4-6 p.m. Wednesday, Aug. 26, in the ISUB Reflections Gallery. The exhibit is part of the Habib Institute for Asian Studies' AsiaPOP! Dark symposium. Refreshments will be served. An artist talk begins at 5 p.m.",
+    "expected_rule_keys": [
+      "preserve_audience_scope",
+      "composition_title_format",
+      "building_room_order"
+    ]
+  },
+  {
+    "id": "4b2ebe88-9aa1-45fe-bc41-002921b07016",
+    "name": "tumbbad_screening",
+    "category": "student",
+    "source_headline": "Attend a free screening of the Indian folk horror Tumbbad",
+    "source_body": "Come, if you dare, to see the hit folk horror Tumbbad (Barve and Gandhi, 2018) when it shows for free at the Kenworthy Performing Arts Centre at 7 PM on Tuesday, August 25, as a part of the AsiaPOP! Dark symposium. When Vinayak Rao learns how to extract treasure buried deep in a temple to a cursed god, he thinks he is destined for a life of ease. Will his greed and the curse destroy his family in the process? Atmospheric throughout and punctuated with strikingly horrific images, Tumbbad premiered to much acclaim at the Venice International Film Festival. In Hindi with English subtitles.",
+    "edited_headline": "Watch free screening of Tumbbad",
+    "edited_body": "Watch the free screening of the Indian folk horror Tumbbad at 7 p.m. Tuesday, Aug. 25, in the Kenworthy Performing Arts Centre as part of the AsiaPOP! Dark symposium. The film follows Vinayak Rao as he learns to extract treasure from a cursed god's temple and faces the consequences of his greed. The movie, which premiered at the Venice International Film Festival, is presented in Hindi with English subtitles.",
+    "compliant_headline": "Watch free screening of 'Tumbbad'",
+    "compliant_body": "Watch the free screening of the Indian folk horror film \"Tumbbad\" at 7 p.m. Tuesday, Aug. 25, in the Kenworthy Performing Arts Centre, 508 S. Main St., as part of the AsiaPOP! Dark symposium. The film follows Vinayak Rao as he learns to extract treasure from a cursed god's temple and faces the consequences of his greed. The movie, which premiered to acclaim at the Venice International Film Festival, is presented in Hindi with English subtitles.",
+    "expected_rule_keys": [
+      "composition_title_format",
+      "approved_off_campus_addresses"
+    ]
+  },
+  {
+    "id": "ca96b8fd-a934-4e5d-8b30-b8af0caf17f0",
+    "name": "education_abroad_classroom_visit",
+    "category": "faculty_staff",
+    "source_headline": "Request a Classroom Visit from Education Abroad",
+    "source_body": "The International Programs Office is offering classroom visits ahead of the Education Abroad Fair on Sept. 9 to promote the event and study abroad opportunities in general. Faculty are encouraged to schedule class time for a representative to come and share information with students. To schedule a time, email Laurel Meyer, Education Abroad Advisor & Outreach/Marketing Coordinator. Email: laurelm@uidaho.edu",
+    "edited_headline": "Request a classroom visit from Education Abroad",
+    "edited_body": "Faculty can request a classroom visit from the International Programs Office to promote the Education Abroad Fair on Sept. 9. The visit allows a representative to share study-abroad information with students. To schedule, email <a href='mailto:laurelm@uidaho.edu'>Laurel Meyer</a>.",
+    "compliant_headline": "Request a classroom visit from Education Abroad",
+    "compliant_body": "The International Programs Office offers classroom visits ahead of the Education Abroad Fair on Wednesday, Sept. 9, to promote the event and study-abroad opportunities. Faculty can schedule class time for a representative to share information with students. To schedule, email <a href='mailto:laurelm@uidaho.edu'>Laurel Meyer</a>, education abroad advisor & outreach/marketing coordinator.",
+    "expected_rule_keys": [
+      "preserve_purpose_contact_titles"
+    ]
+  }
+]

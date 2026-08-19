@@ -216,3 +216,39 @@ Notes on the response:
 """
 
     return prompt
+
+
+def build_compliance_repair_prompt(
+    original_user_prompt: str,
+    edited_headline: str,
+    edited_body: str,
+    findings: list[dict],
+) -> str:
+    """Build one constrained repair request from deterministic rule findings."""
+    finding_lines = "\n".join(
+        f"- [{finding['rule_key']}] {finding['message']}"
+        for finding in findings
+    )
+    return f"""{original_user_prompt}
+
+## Deterministic compliance findings
+
+Your first draft was checked against active mandatory style rules and needs one
+repair pass.
+
+**Draft headline:** {edited_headline}
+
+**Draft body:**
+{edited_body}
+
+Correct every finding below while preserving all source facts, links, audience,
+purpose, contact information and official titles. Do not add facts except the
+canonical expansions or addresses explicitly authorized by an active rule.
+
+{finding_lines}
+
+Return the complete corrected JSON object in the required response format. Do
+not discuss the findings outside the JSON. If a finding cannot be corrected
+without inventing a fact, preserve the source wording and return a flag naming
+that rule.
+"""
