@@ -59,7 +59,7 @@ class LinkResponse(BaseModel):
 
 
 class ScheduleRequestCreate(BaseModel):
-    Requested_Date: date
+    Requested_Date: date | None = None
     Second_Requested_Date: date | None = None
     Repeat_Count: int = Field(1, ge=1, le=2)
     Repeat_Note: str | None = None
@@ -75,8 +75,22 @@ class ScheduleRequestCreate(BaseModel):
 
     @model_validator(mode="after")
     def validate_recurrence_range(self) -> "ScheduleRequestCreate":
-        if self.Recurrence_End_Date and self.Recurrence_End_Date < self.Requested_Date:
-            raise ValueError("Recurrence_End_Date cannot be before Requested_Date")
+        requested_dates = [
+            requested_date
+            for requested_date in (self.Requested_Date, self.Second_Requested_Date)
+            if requested_date is not None
+        ]
+        if not requested_dates:
+            raise ValueError("At least one requested publication date is required")
+        recurrence_anchor = self.Requested_Date or self.Second_Requested_Date
+        if (
+            self.Recurrence_End_Date
+            and recurrence_anchor
+            and self.Recurrence_End_Date < recurrence_anchor
+        ):
+            raise ValueError(
+                "Recurrence_End_Date cannot be before the recurrence start date"
+            )
         return self
 
 
@@ -122,6 +136,15 @@ class SubmissionCreate(BaseModel):
     Event_Classification: str | None = Field(None, pattern=r"^(strategic|signature)$")
     Links: list[LinkCreate] = Field(default_factory=list, max_length=3)
     Schedule_Requests: list[ScheduleRequestCreate] = Field(..., min_length=1)
+
+    @model_validator(mode="after")
+    def require_primary_dates_on_submission(self) -> "SubmissionCreate":
+        if any(
+            schedule_request.Requested_Date is None
+            for schedule_request in self.Schedule_Requests
+        ):
+            raise ValueError("Requested_Date is required when creating a submission")
+        return self
 
 
 class SubmissionUpdate(BaseModel):

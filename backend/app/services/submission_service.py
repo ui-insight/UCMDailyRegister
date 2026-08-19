@@ -171,7 +171,10 @@ async def list_submissions(
                     effective_to,
                 ),
                 sa.and_(
-                    SubmissionScheduleRequest.Requested_Date <= effective_to,
+                    sa.or_(
+                        SubmissionScheduleRequest.Requested_Date <= effective_to,
+                        SubmissionScheduleRequest.Second_Requested_Date <= effective_to,
+                    ),
                     SubmissionScheduleRequest.Recurrence_Type != "once",
                     sa.or_(
                         SubmissionScheduleRequest.Recurrence_End_Date.is_(None),
@@ -488,17 +491,14 @@ def _expand_schedule_request_for_newsletter(
             to_date,
         )
 
-    if newsletter_type == "myui":
-        student_date = schedule_request.Second_Requested_Date
-        if student_date is None or not from_date <= student_date <= to_date:
-            return []
-        if student_date.isoformat() in (schedule_request.Excluded_Dates or []):
-            return []
-        return [student_date]
-
-    if newsletter_type == "tdr" and schedule_request.Requested_Date is not None:
+    anchor = (
+        schedule_request.Second_Requested_Date
+        if newsletter_type == "myui"
+        else schedule_request.Requested_Date
+    )
+    if anchor is not None:
         return recurrence_service.expand_recurrence(
-            anchor=schedule_request.Requested_Date,
+            anchor=anchor,
             recurrence_type=schedule_request.Recurrence_Type or "once",
             interval=max(schedule_request.Recurrence_Interval or 1, 1),
             from_date=from_date,
