@@ -18,6 +18,10 @@ from app.utils.style_checks import (
     detect_missing_contact_titles,
     detect_missing_information_options,
     detect_missing_protected_organizations,
+    detect_missing_broad_audience,
+    detect_unformatted_composition_titles,
+    detect_noncanonical_campus_locations,
+    detect_missing_approved_venue_addresses,
     detect_missing_specific_audience_lead,
     detect_missing_source_contacts,
     detect_new_contact_channels,
@@ -249,6 +253,29 @@ class TestSourceFidelity:
 
         assert detect_missing_contact_titles(source, edited) == []
 
+    def test_flags_removed_comma_style_contact_title(self):
+        source = (
+            "To schedule, email Laurel Meyer, Education Abroad Advisor & "
+            "Outreach/Marketing Coordinator. Email: laurelm@uidaho.edu"
+        )
+        edited = "To schedule, email Laurel Meyer at laurelm@uidaho.edu."
+
+        assert detect_missing_contact_titles(source, edited) == [
+            "Laurel Meyer, education abroad advisor & outreach/marketing coordinator"
+        ]
+
+    def test_accepts_comma_style_contact_title_preserved_after_name(self):
+        source = (
+            "Email Laurel Meyer, Education Abroad Advisor & Outreach/Marketing "
+            "Coordinator, at laurelm@uidaho.edu."
+        )
+        edited = (
+            "Email Laurel Meyer, education abroad advisor & outreach/marketing "
+            "coordinator, at laurelm@uidaho.edu."
+        )
+
+        assert detect_missing_contact_titles(source, edited) == []
+
     def test_does_not_treat_parenthetical_name_or_acronym_as_contact_title(self):
         source = "The University of Idaho (U of I) hosts the event."
 
@@ -307,6 +334,65 @@ class TestSourceFidelity:
         edited = "Event staff assist participants."
 
         assert detect_missing_specific_audience_lead(source, edited) == []
+
+    def test_flags_broad_invitation_narrowed_to_employees(self):
+        source = "All are welcome to attend the gallery reception."
+        edited = "Employees are invited to attend the gallery reception."
+
+        assert detect_missing_broad_audience(source, edited) == ["all are welcome"]
+
+    def test_accepts_direct_invitation_for_broad_audience(self):
+        source = "All are welcome to attend the gallery reception."
+        edited = "Attend the gallery reception from 4-6 p.m. Wednesday."
+
+        assert detect_missing_broad_audience(source, edited) == []
+
+
+class TestCompositionAndLocations:
+    def test_flags_unquoted_composition_title_in_headline_and_body(self):
+        source = 'Attend a screening of the film "Tumbbad."'
+
+        assert detect_unformatted_composition_titles(
+            source,
+            "Watch a screening of Tumbbad",
+            "Watch the film Tumbbad at 7 p.m.",
+        ) == ["Tumbbad"]
+
+    def test_accepts_ap_quotes_for_composition_title(self):
+        source = 'Attend a screening of the film "Tumbbad."'
+
+        assert detect_unformatted_composition_titles(
+            source,
+            "Watch a screening of 'Tumbbad'",
+            'Watch the film "Tumbbad" at 7 p.m.',
+        ) == []
+
+    def test_flags_room_before_known_campus_building(self):
+        assert detect_noncanonical_campus_locations(
+            "The reception is in Reflections Gallery, ISUB."
+        ) == ["ISUB Reflections Gallery"]
+
+    def test_accepts_canonical_building_before_room(self):
+        assert detect_noncanonical_campus_locations(
+            "The reception is in the ISUB Reflections Gallery."
+        ) == []
+
+    def test_flags_missing_approved_off_campus_address(self):
+        source = "The film is at the Kenworthy Performing Arts Centre."
+        edited = "Watch the film at the Kenworthy Performing Arts Centre."
+
+        assert detect_missing_approved_venue_addresses(source, edited) == [
+            "Kenworthy Performing Arts Centre, 508 S. Main St."
+        ]
+
+    def test_accepts_approved_off_campus_address(self):
+        source = "The film is at the Kenworthy Performing Arts Centre."
+        edited = (
+            "Watch the film at the Kenworthy Performing Arts Centre, "
+            "508 S. Main St."
+        )
+
+        assert detect_missing_approved_venue_addresses(source, edited) == []
 
 
 class TestWeekdayDateConsistency:

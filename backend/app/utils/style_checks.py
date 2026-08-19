@@ -7,9 +7,10 @@ active in the prompt at the time. The detectors here cover the subset of those
 rules that can be verified mechanically — AP month abbreviation, a.m./p.m.
 formatting, platform names, undefined acronyms, repeated calls to action and
 the Jobs single-line contract, plus high-confidence source contacts,
-organizations, titles, audience qualifiers, information paths, promotional
-leads and anchored requirements — so a violation surfaces as a flag on the AI
-version regardless of whether the model honored the prompt.
+organizations, titles, audience qualifiers, composition titles, canonical
+locations, information paths, promotional leads and anchored requirements —
+so a violation surfaces as a flag on the AI version regardless of whether the
+model honored the prompt.
 
 Each detector is a pure function over edited text and returns the offending
 fragments. Mapping findings to flags (and gating on whether the corresponding
@@ -40,7 +41,7 @@ _ROMAN_NUMERAL = re.compile(r"^[IVXLCDM]+$")
 # Acronyms AP or campus usage treats as standing on their own.
 _KNOWN_ACRONYMS = {
     "AP", "US", "USA", "TDR", "RSVP", "GPA", "ID", "PDF", "FAQ", "HR", "IT",
-    "TV", "AV", "GED", "ADA", "FYI", "AM", "PM",
+    "TV", "AV", "GED", "ADA", "FYI", "AM", "PM", "ISUB", "IRIC",
 }
 
 _CTA_PHRASES = ("register", "sign up", "enroll", "rsvp", "apply", "learn more")
@@ -124,6 +125,52 @@ _PARENTHETICAL_CONTACT_TITLE = re.compile(
     r"\((?P<title>[A-Za-z][A-Za-z'’&/.-]*"
     r"(?:\s+[A-Za-z'’&/.-]+){0,8})\)"
 )
+_COMMA_CONTACT_TITLE = re.compile(
+    r"\b(?P<name>[A-Z][A-Za-z'’.-]+"
+    r"(?:\s+[A-Z][A-Za-z'’.-]+){1,3})\s*,\s*"
+    r"(?P<title>[A-Z][A-Za-z'’/-]*"
+    r"(?:\s+(?:&|[A-Z][A-Za-z'’&/-]*)){1,10})"
+)
+_BROAD_AUDIENCE_PHRASES = (
+    ("all are welcome", re.compile(r"\ball\s+are\s+welcome\b", re.IGNORECASE)),
+    (
+        "everyone is invited",
+        re.compile(r"\beveryone\s+is\s+invited\b", re.IGNORECASE),
+    ),
+    (
+        "the public is welcome",
+        re.compile(r"\bthe\s+public\s+is\s+welcome\b", re.IGNORECASE),
+    ),
+)
+_DIRECT_INVITATION_LEAD = re.compile(
+    r"^(?:Attend|Join|Visit|Watch|Come|Participate|Register|Explore|Learn)\b",
+    re.IGNORECASE,
+)
+_COMPOSITION_CUE = re.compile(
+    r"\b(?:book|exhibit|exhibition|film|horror|lecture|movie|opera|play|poem|"
+    r"reading|screening|song|speech|work\s+of\s+art)\b",
+    re.IGNORECASE,
+)
+_QUOTED_TEXT = re.compile(r"[\"“](?P<title>[^\"”]{2,100})[\"”]")
+_TITLE_CASE_SPAN = re.compile(
+    r"\b[A-Z][A-Za-z0-9'’.-]*(?:\s+(?:in|of|the|and|&)?\s*"
+    r"[A-Z][A-Za-z0-9'’.-]*){0,5}\b"
+)
+_CANONICAL_CAMPUS_LOCATIONS = (
+    "ISUB Reflections Gallery",
+    "Bruce M. Pitman Center International Ballroom",
+    "IRIC 352",
+)
+_APPROVED_VENUE_ADDRESSES = {
+    "Kenworthy Performing Arts Centre": "508 S. Main St.",
+    "1912 Center": "412 E. Third St.",
+    "One World Cafe": "840 W. Seventh St.",
+    "Hunga Dunga Brewing Co.": "333 N. Jackson St.",
+    "Moscow Public Library": "110 S. Jefferson St.",
+    "Palouse-Clearwater Environmental Institute": "1040 Rodeo Drive",
+    "Best Western Plus University Inn": "1516 W. Pullman Road",
+    "East City Park": "900 E. Third St.",
+}
 _INFORMATION_OPTION = re.compile(
     r"\b(?:learn\s+more|more\s+information|additional\s+information|"
     r"(?:get|request|find)\s+(?:more|additional)\s+information|"
@@ -310,6 +357,108 @@ def detect_missing_specific_audience_lead(
     return findings
 
 
+def detect_missing_broad_audience(source_body: str, edited_body: str) -> list[str]:
+    """Find a broad invitation narrowed or removed from the edited lead.
+
+    A direct imperative such as ``Attend the reception`` preserves open access
+    without repeating ``all are welcome``. Audience-prefixed rewrites such as
+    ``Employees are invited`` do not.
+    """
+    source = strip_html(source_body)
+    edited_lead = _first_sentence(edited_body)
+    findings: list[str] = []
+
+    for display, pattern in _BROAD_AUDIENCE_PHRASES:
+        if not pattern.search(source):
+            continue
+        if pattern.search(edited_lead) or _DIRECT_INVITATION_LEAD.search(edited_lead):
+            continue
+        findings.append(display)
+
+    return findings
+
+
+def _composition_titles(source_text: str) -> list[str]:
+    """Extract high-confidence composition titles from source copy."""
+    source = strip_html(source_text)
+    titles: list[str] = []
+
+    for match in _QUOTED_TEXT.finditer(source):
+        context = source[max(0, match.start() - 100):match.end() + 100]
+        if not _COMPOSITION_CUE.search(context):
+            continue
+        title = match.group("title").strip().rstrip(",.;:!?")
+        if title and title not in titles:
+            titles.append(title)
+
+    for match in _TITLE_CASE_SPAN.finditer(source):
+        title = match.group().strip()
+        if title in titles or len(title) < 3:
+            continue
+        context = source[max(0, match.start() - 45):match.start()]
+        if not _COMPOSITION_CUE.search(context):
+            continue
+        if len(re.findall(rf"\b{re.escape(title)}\b", source)) < 2:
+            continue
+        titles.append(title)
+
+    return titles
+
+
+def detect_unformatted_composition_titles(
+    source_text: str,
+    edited_headline: str,
+    edited_body: str,
+) -> list[str]:
+    """Find source composition titles lacking AP quotation treatment."""
+    findings: list[str] = []
+    for title in _composition_titles(source_text):
+        escaped = re.escape(title)
+        headline_quoted = re.search(
+            rf"(?:'{escaped}'|‘{escaped}’)",
+            edited_headline,
+            re.IGNORECASE,
+        )
+        body_quoted = re.search(
+            rf'(?:"{escaped}"|“{escaped}”)',
+            strip_html(edited_body),
+            re.IGNORECASE,
+        )
+        if not headline_quoted or not body_quoted:
+            findings.append(title)
+    return findings
+
+
+def detect_noncanonical_campus_locations(edited_text: str) -> list[str]:
+    """Find known campus locations whose building/room order is not canonical."""
+    visible = re.sub(r"[^a-z0-9]+", " ", strip_html(edited_text).casefold()).strip()
+    findings: list[str] = []
+    for canonical in _CANONICAL_CAMPUS_LOCATIONS:
+        normalized = re.sub(r"[^a-z0-9]+", " ", canonical.casefold()).strip()
+        tokens = normalized.split()
+        if all(re.search(rf"\b{re.escape(token)}\b", visible) for token in tokens):
+            if normalized not in visible:
+                findings.append(canonical)
+    return findings
+
+
+def detect_missing_approved_venue_addresses(
+    source_text: str,
+    edited_text: str,
+) -> list[str]:
+    """Find approved venues whose canonical address is absent from the edit."""
+    source = strip_html(source_text)
+    edited = strip_html(edited_text)
+    findings: list[str] = []
+    for venue, address in _APPROVED_VENUE_ADDRESSES.items():
+        if venue not in source and venue not in edited:
+            continue
+        canonical = f"{venue}, {address}"
+        if canonical not in edited:
+            findings.append(canonical)
+    return findings
+
+
 def _contact_channels(text: str) -> dict[str, str]:
     """Return normalized contact channels while preserving report-friendly text."""
     channels = {match.group().lower(): match.group() for match in _EMAIL.finditer(text)}
@@ -395,12 +544,16 @@ def detect_missing_protected_organizations(
 
 
 def detect_missing_contact_titles(source_text: str, edited_text: str) -> list[str]:
-    """Find parenthetical source contact titles missing after the contact name."""
+    """Find parenthetical or comma-style source contact titles missing in edits."""
     source = strip_html(source_text)
     edited = re.sub(r"\s+", " ", strip_html(edited_text)).strip()
     findings: list[str] = []
 
-    for match in _PARENTHETICAL_CONTACT_TITLE.finditer(source):
+    matches = [
+        *_PARENTHETICAL_CONTACT_TITLE.finditer(source),
+        *_COMMA_CONTACT_TITLE.finditer(source),
+    ]
+    for match in matches:
         nearby_before = source[max(0, match.start() - 80):match.start()]
         nearby_after = source[match.end():match.end() + 160]
         name_with_cue = match.group("name")

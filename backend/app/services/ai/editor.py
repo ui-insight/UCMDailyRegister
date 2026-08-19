@@ -12,7 +12,11 @@ from app.models.style_rule import StyleRule
 from app.models.submission import Submission
 from app.models.edit_history import EditVersion
 from app.services.ai.provider import LLMProvider
-from app.services.ai.prompts import build_system_prompt, build_edit_user_prompt
+from app.services.ai.prompts import (
+    build_compliance_repair_prompt,
+    build_edit_user_prompt,
+    build_system_prompt,
+)
 from app.services.ai.diff_generator import generate_word_diff, diff_to_dict
 from app.utils.text import (
     to_sentence_case,
@@ -45,6 +49,10 @@ from app.utils.style_checks import (
     detect_missing_near_term_weekdays,
     detect_missing_protected_organizations,
     detect_missing_specific_audience_lead,
+    detect_missing_broad_audience,
+    detect_unformatted_composition_titles,
+    detect_noncanonical_campus_locations,
+    detect_missing_approved_venue_addresses,
     detect_weekday_date_mismatches,
 )
 
@@ -361,6 +369,37 @@ class AIEditor:
                     f"Specific source audience context missing from first sentence: {listed}",
                 )
 
+            for broad_audience in detect_missing_broad_audience(body_source, body):
+                add(
+                    "preserve_audience_scope",
+                    f"Broad source invitation was narrowed or removed: '{broad_audience}'",
+                )
+
+            for title in detect_unformatted_composition_titles(
+                source_text,
+                headline,
+                body,
+            ):
+                add(
+                    "composition_title_format",
+                    f"Composition title needs AP quotation formatting: '{title}'",
+                )
+
+            for location in detect_noncanonical_campus_locations(body):
+                add(
+                    "building_room_order",
+                    f"Use canonical building-before-room location: '{location}'",
+                )
+
+            for venue in detect_missing_approved_venue_addresses(
+                source_text,
+                body,
+            ):
+                add(
+                    "approved_off_campus_addresses",
+                    f"Approved venue is missing its canonical address: '{venue}'",
+                )
+
         return flags
 
     async def edit_submission(
@@ -440,13 +479,6 @@ class AIEditor:
         else:
             edited_headline = to_title_case(edited_headline)
 
-        headline_diff = diff_to_dict(
-            generate_word_diff(submission.Original_Headline, edited_headline)
-        )
-        body_diff = diff_to_dict(
-            generate_word_diff(submission.Original_Body, edited_body)
-        )
-
         source_parts = [
             submission.Original_Headline,
             submission.Original_Body,
@@ -468,6 +500,93 @@ class AIEditor:
             source_body=submission.Original_Body,
             source_comparison_output="\n".join(comparison_output_parts),
             reference_date=date.today(),
+        )
+
+        mandatory_rule_keys = {
+            rule["rule_key"]
+            for rule in style_rules
+            if rule["severity"] == "error"
+        }
+        repair_findings = [
+            flag for flag in post_flags if flag["rule_key"] in mandatory_rule_keys
+        ]
+        if repair_findings:
+            repair_prompt = build_compliance_repair_prompt(
+                user_prompt,
+                edited_headline,
+                edited_body,
+                repair_findings,
+            )
+            try:
+                repair_result = await self.llm.complete_json(
+                    system_prompt=system_prompt,
+                    user_prompt=repair_prompt,
+                    temperature=0.0,
+                    max_tokens=3000,
+                )
+            except Exception as error:
+                logger.warning(
+                    "Compliance repair failed for submission %s: %s",
+                    submission.Id,
+                    error,
+                )
+            else:
+                edited_headline = repair_result.get(
+                    "edited_headline",
+                    edited_headline,
+                )
+                edited_body = repair_result.get("edited_body", edited_body)
+                for change in repair_result.get("changes_made", []) or []:
+                    if change not in changes_made:
+                        changes_made.append(change)
+                repair_description = (
+                    "Revised draft after deterministic style-rule validation"
+                )
+                if repair_description not in changes_made:
+                    changes_made.append(repair_description)
+                ai_flags = repair_result.get("flags", [])
+                embedded_links = repair_result.get("embedded_links", [])
+                confidence = repair_result.get("confidence", confidence)
+
+                edited_body, replaced_semicolons = (
+                    enforce_no_semicolons_in_prose(edited_body)
+                    if short_sentence_rule_active
+                    else (edited_body, False)
+                )
+                if replaced_semicolons:
+                    cleanup_description = (
+                        "Replaced semicolons with periods to enforce the "
+                        "short-sentence rule"
+                    )
+                    if cleanup_description not in changes_made:
+                        changes_made.append(cleanup_description)
+
+                if headline_case == "sentence_case":
+                    edited_headline = to_sentence_case(edited_headline)
+                else:
+                    edited_headline = to_title_case(edited_headline)
+
+                comparison_output_parts = [edited_headline, edited_body]
+                for link in embedded_links:
+                    comparison_output_parts.extend(
+                        [str(link.get("url", "")), str(link.get("anchor_text", ""))]
+                    )
+                post_flags = self.post_analyze(
+                    edited_headline,
+                    edited_body,
+                    submission.Category,
+                    style_rules,
+                    source_text="\n".join(source_parts),
+                    source_body=submission.Original_Body,
+                    source_comparison_output="\n".join(comparison_output_parts),
+                    reference_date=date.today(),
+                )
+
+        headline_diff = diff_to_dict(
+            generate_word_diff(submission.Original_Headline, edited_headline)
+        )
+        body_diff = diff_to_dict(
+            generate_word_diff(submission.Original_Body, edited_body)
         )
 
         all_flags = pre_flags + ai_flags + post_flags

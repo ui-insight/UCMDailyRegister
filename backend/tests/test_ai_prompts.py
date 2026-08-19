@@ -1,6 +1,6 @@
 """Focused tests for deterministic AI system-prompt contracts."""
 
-from app.services.ai.prompts import build_system_prompt
+from app.services.ai.prompts import build_compliance_repair_prompt, build_system_prompt
 
 
 def test_system_prompt_requires_a_final_rule_compliance_audit():
@@ -78,3 +78,24 @@ def test_jobs_guidance_line_is_embedded_cleanly_for_jobs_submissions():
     )
 
     assert "precedence over generic length and structure guidance.\n- Collapse bullet lists" in prompt
+
+
+def test_compliance_repair_prompt_includes_draft_and_deterministic_findings():
+    prompt = build_compliance_repair_prompt(
+        "Original editing request",
+        "Attend Tumbbad",
+        "Watch Tumbbad at the Kenworthy.",
+        [
+            {
+                "rule_key": "composition_title_format",
+                "message": "Composition title needs AP quotation formatting: 'Tumbbad'",
+            }
+        ],
+    )
+
+    assert "Original editing request" in prompt
+    assert "Deterministic compliance findings" in prompt
+    assert "**Draft headline:** Attend Tumbbad" in prompt
+    assert "[composition_title_format]" in prompt
+    assert "needs one" in prompt
+    assert "repair pass" in prompt
