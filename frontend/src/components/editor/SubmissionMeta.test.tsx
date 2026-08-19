@@ -98,6 +98,83 @@ describe('SubmissionMeta schedule management', () => {
     });
   });
 
+  it('adds a valid My UI date to a both-newsletters submission', async () => {
+    const user = userEvent.setup();
+    const onAddScheduleDate = vi.fn().mockResolvedValue(undefined);
+    getValidDatesMock.mockResolvedValue({
+      dates: [{ date: '2026-05-04', newsletters: ['myui'] }],
+      blackout_dates: [],
+    });
+    render(
+      <SubmissionMeta
+        submission={makeSubmission({ Target_Newsletter: 'both' })}
+        onAddScheduleDate={onAddScheduleDate}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /add run date/i }));
+    await user.click(screen.getByRole('radio', { name: 'My UI' }));
+    await waitFor(() => {
+      expect(getValidDatesMock).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
+        'myui',
+      );
+    });
+    await user.type(screen.getByLabelText('Run date'), '2026-05-04');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(onAddScheduleDate).toHaveBeenCalledWith('myui', '2026-05-04', undefined);
+    });
+  });
+
+  it('rejects a My UI date that is not in the valid-date service response', async () => {
+    const user = userEvent.setup();
+    const onAddScheduleDate = vi.fn().mockResolvedValue(undefined);
+    getValidDatesMock.mockResolvedValue({
+      dates: [{ date: '2026-05-04', newsletters: ['myui'] }],
+      blackout_dates: [],
+    });
+    render(
+      <SubmissionMeta
+        submission={makeSubmission({ Target_Newsletter: 'both' })}
+        onAddScheduleDate={onAddScheduleDate}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /add run date/i }));
+    await user.click(screen.getByRole('radio', { name: 'My UI' }));
+    await user.type(screen.getByLabelText('Run date'), '2026-05-05');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    expect(
+      await screen.findByText('Not a valid publication date for My UI (Mondays only).'),
+    ).toBeInTheDocument();
+    expect(onAddScheduleDate).not.toHaveBeenCalled();
+  });
+
+  it('labels separate Daily Register and My UI dates', () => {
+    render(
+      <SubmissionMeta
+        submission={makeSubmission({
+          Target_Newsletter: 'both',
+          Schedule_Requests: [
+            makeScheduleRequest({
+              Requested_Date: '2026-05-05',
+              Second_Requested_Date: '2026-05-04',
+            }),
+          ],
+        })}
+      />,
+    );
+
+    expect(screen.getByText('Daily Register:')).toBeInTheDocument();
+    expect(screen.getByText('My UI:')).toBeInTheDocument();
+    expect(screen.getByText(/Mon, May 4, 2026/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Tue, May 5, 2026/)).not.toHaveLength(0);
+  });
+
   it('adds a recurring run date with interval and end date', async () => {
     const user = userEvent.setup();
     const onAddScheduleDate = vi.fn().mockResolvedValue(undefined);

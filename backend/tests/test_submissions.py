@@ -114,6 +114,19 @@ class TestSubmissionCRUD:
         assert resp.status_code == 422
         assert "MYUI publishes on Mondays only" in resp.json()["detail"]
 
+    async def test_create_submission_still_requires_primary_requested_date(
+        self, client: AsyncClient
+    ):
+        data = make_submission_data(
+            Target_Newsletter="both",
+            Schedule_Requests=[{"Second_Requested_Date": "2026-03-16"}],
+        )
+
+        resp = await client.post("/api/v1/submissions/", json=data)
+
+        assert resp.status_code == 422
+        assert "Requested_Date is required" in resp.text
+
     async def test_create_submission_persists_survey_end_date(self, client: AsyncClient):
         data = make_submission_data(
             Category="survey",
@@ -441,6 +454,129 @@ class TestSubmissionSchedule:
         )
         assert resp.status_code == 201
         assert resp.json()["Repeat_Count"] == 2
+
+    async def test_add_myui_schedule_request_to_both_submission(
+        self,
+        client: AsyncClient,
+        db,
+        staff_headers: dict[str, str],
+    ):
+        await seed.seed_schedule_configs(db)
+        create_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(
+                Target_Newsletter="both",
+                Schedule_Requests=[{"Requested_Date": "2026-04-01"}],
+            ),
+        )
+        sub_id = create_resp.json()["Id"]
+
+        resp = await client.post(
+            f"/api/v1/submissions/{sub_id}/schedule",
+            headers=staff_headers,
+            json={
+                "Requested_Date": None,
+                "Second_Requested_Date": "2026-04-06",
+            },
+        )
+
+        assert resp.status_code == 201
+        assert resp.json()["Requested_Date"] is None
+        assert resp.json()["Second_Requested_Date"] == "2026-04-06"
+        assert resp.json()["Occurrence_Dates"] == ["2026-04-06"]
+
+    async def test_add_myui_schedule_request_rejects_non_monday(
+        self,
+        client: AsyncClient,
+        db,
+        staff_headers: dict[str, str],
+    ):
+        await seed.seed_schedule_configs(db)
+        create_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(
+                Target_Newsletter="both",
+                Schedule_Requests=[{"Requested_Date": "2026-04-01"}],
+            ),
+        )
+        sub_id = create_resp.json()["Id"]
+
+        resp = await client.post(
+            f"/api/v1/submissions/{sub_id}/schedule",
+            headers=staff_headers,
+            json={
+                "Requested_Date": None,
+                "Second_Requested_Date": "2026-04-07",
+            },
+        )
+
+        assert resp.status_code == 422
+        assert "MYUI publishes on Mondays only" in resp.json()["detail"]
+
+    async def test_add_recurring_myui_schedule_request_uses_secondary_anchor(
+        self,
+        client: AsyncClient,
+        db,
+        staff_headers: dict[str, str],
+    ):
+        await seed.seed_schedule_configs(db)
+        create_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(
+                Target_Newsletter="both",
+                Schedule_Requests=[{"Requested_Date": "2026-04-01"}],
+            ),
+        )
+        sub_id = create_resp.json()["Id"]
+
+        resp = await client.post(
+            f"/api/v1/submissions/{sub_id}/schedule",
+            headers=staff_headers,
+            json={
+                "Requested_Date": None,
+                "Second_Requested_Date": "2026-04-06",
+                "Recurrence_Type": "weekly",
+                "Recurrence_Interval": 1,
+                "Recurrence_End_Date": "2026-04-20",
+            },
+        )
+
+        assert resp.status_code == 201
+        assert resp.json()["Occurrence_Dates"] == [
+            "2026-04-06",
+            "2026-04-13",
+            "2026-04-20",
+        ]
+
+    async def test_single_newsletter_second_date_remains_a_one_time_run(
+        self,
+        client: AsyncClient,
+        staff_headers: dict[str, str],
+    ):
+        resp = await client.post(
+            "/api/v1/submissions/",
+            headers=staff_headers,
+            json=make_submission_data(
+                Schedule_Requests=[
+                    {
+                        "Requested_Date": "2026-04-06",
+                        "Second_Requested_Date": "2026-04-08",
+                        "Repeat_Count": 2,
+                        "Recurrence_Type": "weekly",
+                        "Recurrence_Interval": 1,
+                        "Recurrence_End_Date": "2026-04-20",
+                    }
+                ],
+            ),
+        )
+
+        assert resp.status_code == 201
+        assert resp.json()["Occurrence_Dates"] == [
+            "2026-04-06",
+            "2026-04-08",
+            "2026-04-13",
+            "2026-04-20",
+        ]
 
     async def test_public_submitter_cannot_add_recurring_schedule_request(
         self, client: AsyncClient

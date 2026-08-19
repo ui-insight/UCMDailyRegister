@@ -27,6 +27,7 @@ import {
   normalizedBodyLinks,
   prepareBodyForEditing,
 } from '../utils/bodyLinks';
+import { buildEditorScheduleRequest } from '../utils/editorSchedule';
 import { Button, SegmentedToggle, Toast, useToast } from '../components/common';
 
 type Tab = 'original' | 'ai_edit' | 'editor';
@@ -405,7 +406,7 @@ export default function EditPage() {
   };
 
   const handleAddScheduleDate = async (
-    newsletter: string,
+    newsletter: 'tdr' | 'myui',
     date: string,
     recurrence?: {
       Recurrence_Type: 'weekly' | 'monthly_date' | 'monthly_nth_weekday';
@@ -413,8 +414,16 @@ export default function EditPage() {
       Recurrence_End_Date?: string;
     },
   ) => {
-    if (!id) return;
-    await addScheduleRequest(id, { Requested_Date: date, ...(recurrence ?? {}) });
+    if (!id || !submission) return;
+    await addScheduleRequest(
+      id,
+      buildEditorScheduleRequest(
+        submission.Target_Newsletter,
+        newsletter,
+        date,
+        recurrence,
+      ),
+    );
     const dateLabel = new Date(`${date}T12:00:00`).toLocaleDateString();
     const newsletterLabel = newsletter === 'tdr' ? 'Daily Register' : 'My UI';
     showToast(

@@ -19,7 +19,7 @@ interface SubmissionMetaProps {
     newDate: string,
   ) => Promise<void>;
   onAddScheduleDate?: (
-    newsletter: string,
+    newsletter: 'tdr' | 'myui',
     date: string,
     recurrence?: ScheduleRecurrence,
   ) => Promise<void>;
@@ -52,6 +52,15 @@ const RECURRENCE_LABELS: Record<string, string> = {
   monthly_nth_weekday: 'Monthly (nth weekday)',
 };
 
+function formatPublicationDate(value: string): string {
+  return parseISODate(value).toLocaleDateString(undefined, {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
 export default function SubmissionMeta({
   submission,
   onChangeNewsletter,
@@ -68,7 +77,7 @@ export default function SubmissionMeta({
   const [replacementDate, setReplacementDate] = useState('');
 
   const [showAddDate, setShowAddDate] = useState(false);
-  const [addDateNewsletter, setAddDateNewsletter] = useState('');
+  const [addDateNewsletter, setAddDateNewsletter] = useState<'tdr' | 'myui' | ''>('');
   const [addDateValue, setAddDateValue] = useState('');
   const [addDateLoading, setAddDateLoading] = useState(false);
   const [addDateError, setAddDateError] = useState('');
@@ -84,9 +93,12 @@ export default function SubmissionMeta({
 
   const getMaxDate = () => addDaysISO(90);
 
-  const resolveNewsletter = useCallback(() => {
+  const resolveNewsletter = useCallback((): 'tdr' | 'myui' | '' => {
     if (submission.Target_Newsletter === 'both') return addDateNewsletter;
-    return submission.Target_Newsletter;
+    if (submission.Target_Newsletter === 'tdr' || submission.Target_Newsletter === 'myui') {
+      return submission.Target_Newsletter;
+    }
+    return '';
   }, [submission.Target_Newsletter, addDateNewsletter]);
 
   useEffect(() => {
@@ -112,7 +124,11 @@ export default function SubmissionMeta({
     setAddRecurrenceType('once');
     setAddRecurrenceInterval(1);
     setAddRecurrenceEnd('');
-    setAddDateNewsletter(submission.Target_Newsletter === 'both' ? '' : submission.Target_Newsletter);
+    setAddDateNewsletter(
+      submission.Target_Newsletter === 'tdr' || submission.Target_Newsletter === 'myui'
+        ? submission.Target_Newsletter
+        : '',
+    );
   };
 
   const handleCancelAddDate = () => {
@@ -240,18 +256,33 @@ export default function SubmissionMeta({
         )}
         {submission.Schedule_Requests.length > 0 && (
           <div>
-            <dt className="text-xs text-gray-500">Requested Run Date</dt>
+            <dt className="text-xs text-gray-500">
+              Requested Run Date{submission.Target_Newsletter === 'both' ? 's' : ''}
+            </dt>
             {submission.Schedule_Requests.map((req) => (
               <dd key={req.Id} className="mt-1 text-gray-900 font-medium">
                 <div>
-                  {req.Requested_Date
-                    ? parseISODate(req.Requested_Date).toLocaleDateString(undefined, {
-                        weekday: 'short',
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      })
-                    : 'No specific date'}
+                  {submission.Target_Newsletter === 'both' ? (
+                    <div className="space-y-0.5">
+                      {req.Requested_Date && (
+                        <div>
+                          <span className="font-normal text-gray-500">Daily Register: </span>
+                          {formatPublicationDate(req.Requested_Date)}
+                        </div>
+                      )}
+                      {req.Second_Requested_Date && (
+                        <div>
+                          <span className="font-normal text-gray-500">My UI: </span>
+                          {formatPublicationDate(req.Second_Requested_Date)}
+                        </div>
+                      )}
+                      {!req.Requested_Date && !req.Second_Requested_Date && 'No specific date'}
+                    </div>
+                  ) : req.Requested_Date ? (
+                    formatPublicationDate(req.Requested_Date)
+                  ) : (
+                    'No specific date'
+                  )}
                   {req.Repeat_Count > 1 && (
                     <span className="font-normal text-gray-500"> &middot; Run {req.Repeat_Count}x</span>
                   )}
@@ -380,7 +411,7 @@ export default function SubmissionMeta({
             ))}
           </div>
         )}
-        {onAddScheduleDate && !showAddDate && (
+        {onAddScheduleDate && submission.Target_Newsletter !== 'none' && !showAddDate && (
           <div>
             <button
               type="button"

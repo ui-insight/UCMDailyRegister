@@ -112,7 +112,12 @@ async def _validate_schedule_request(
             )
             if error:
                 raise HTTPException(status_code=422, detail=error)
-    elif schedule_request.Requested_Date:
+    elif not schedule_request.Requested_Date:
+        raise HTTPException(
+            status_code=422,
+            detail="Requested_Date is required for this newsletter.",
+        )
+    else:
         error = await schedule_service.validate_requested_date(
             db, schedule_request.Requested_Date, target_newsletter
         )
