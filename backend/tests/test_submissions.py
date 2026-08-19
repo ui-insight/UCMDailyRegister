@@ -76,6 +76,125 @@ class TestSubmissionCRUD:
         assert len(body["Schedule_Requests"]) == 1
         assert body["Schedule_Requests"][0]["Repeat_Count"] == 2
 
+    async def test_public_job_submission_runs_on_publication_days_for_two_weeks(
+        self,
+        client: AsyncClient,
+        db,
+    ):
+        await seed.seed_schedule_configs(db)
+        data = make_submission_data(
+            Category="job_opportunity",
+            Target_Newsletter="tdr",
+            Schedule_Requests=[{"Requested_Date": "2026-04-06"}],
+        )
+
+        response = await client.post("/api/v1/submissions/", json=data)
+
+        assert response.status_code == 201
+        schedule = response.json()["Schedule_Requests"][0]
+        assert schedule["Repeat_Count"] == 1
+        assert schedule["Recurrence_Type"] == "date_range"
+        assert schedule["Recurrence_End_Date"] == "2026-04-19"
+        assert schedule["Occurrence_Dates"] == [
+            "2026-04-06",
+            "2026-04-07",
+            "2026-04-08",
+            "2026-04-09",
+            "2026-04-10",
+            "2026-04-13",
+            "2026-04-14",
+            "2026-04-15",
+            "2026-04-16",
+            "2026-04-17",
+        ]
+
+    async def test_public_job_submission_can_end_before_two_weeks(
+        self,
+        client: AsyncClient,
+        db,
+    ):
+        await seed.seed_schedule_configs(db)
+        data = make_submission_data(
+            Category="job_opportunity",
+            Target_Newsletter="tdr",
+            Schedule_Requests=[
+                {
+                    "Requested_Date": "2026-04-06",
+                    "Recurrence_End_Date": "2026-04-10",
+                }
+            ],
+        )
+
+        response = await client.post("/api/v1/submissions/", json=data)
+
+        assert response.status_code == 201
+        schedule = response.json()["Schedule_Requests"][0]
+        assert schedule["Recurrence_Type"] == "date_range"
+        assert schedule["Recurrence_End_Date"] == "2026-04-10"
+        assert schedule["Occurrence_Dates"] == [
+            "2026-04-06",
+            "2026-04-07",
+            "2026-04-08",
+            "2026-04-09",
+            "2026-04-10",
+        ]
+
+    async def test_job_submission_rejects_student_newsletter_target(
+        self,
+        client: AsyncClient,
+    ):
+        data = make_submission_data(
+            Category="job_opportunity",
+            Target_Newsletter="myui",
+            Schedule_Requests=[{"Requested_Date": "2026-04-06"}],
+        )
+
+        response = await client.post("/api/v1/submissions/", json=data)
+
+        assert response.status_code == 422
+        assert "Daily Register" in response.json()["detail"]
+
+    async def test_job_submission_rejects_multiple_listing_windows(
+        self,
+        client: AsyncClient,
+    ):
+        data = make_submission_data(
+            Category="job_opportunity",
+            Target_Newsletter="tdr",
+            Schedule_Requests=[
+                {"Requested_Date": "2026-04-06"},
+                {"Requested_Date": "2026-04-13"},
+            ],
+        )
+
+        response = await client.post("/api/v1/submissions/", json=data)
+
+        assert response.status_code == 422
+        assert "exactly one preferred start date" in response.json()["detail"]
+
+    async def test_job_submission_rejects_an_added_listing_window(
+        self,
+        client: AsyncClient,
+        staff_headers: dict[str, str],
+    ):
+        create_response = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(
+                Category="job_opportunity",
+                Target_Newsletter="tdr",
+                Schedule_Requests=[{"Requested_Date": "2026-04-06"}],
+            ),
+        )
+
+        response = await client.post(
+            f"/api/v1/submissions/{create_response.json()['Id']}/schedule",
+            headers=staff_headers,
+            json={"Requested_Date": "2026-04-13"},
+        )
+
+        assert response.status_code == 422
+        assert "one listing window" in response.json()["detail"]
+
     async def test_create_submission_with_second_requested_date(
         self, client: AsyncClient
     ):

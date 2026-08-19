@@ -355,6 +355,8 @@ describe('SubmissionForm', () => {
     await screen.findByRole('option', { name: 'Job Opportunity' });
     await user.selectOptions(screen.getByLabelText('Announcement Type'), 'job_opportunity');
     expect(screen.queryByRole('button', { name: /my ui/i })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('How many times to run')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Repeat on a cadence')).not.toBeInTheDocument();
 
     await user.type(screen.getByLabelText('Job Posting URL'), 'https://uidaho.peopleadmin.com/postings/123');
     await user.type(screen.getByLabelText('Position Title'), 'Program Coordinator');
@@ -377,6 +379,46 @@ describe('SubmissionForm', () => {
               Url: 'https://uidaho.peopleadmin.com/postings/123',
               Anchor_Text: 'Program Coordinator, Student Affairs, Moscow',
             },
+          ],
+          Schedule_Requests: [
+            expect.objectContaining({
+              Repeat_Count: 1,
+              Recurrence_Type: 'date_range',
+              Recurrence_Interval: 1,
+              Recurrence_End_Date: '2026-05-18',
+            }),
+          ],
+        }),
+      );
+    });
+  });
+
+  it('uses an earlier job removal date as the two-week schedule end', async () => {
+    const user = userEvent.setup();
+    render(<SubmissionForm />);
+
+    await screen.findByRole('option', { name: 'Job Opportunity' });
+    await user.selectOptions(screen.getByLabelText('Announcement Type'), 'job_opportunity');
+    await user.type(screen.getByLabelText('Job Posting URL'), 'https://uidaho.peopleadmin.com/postings/124');
+    await user.type(screen.getByLabelText('Position Title'), 'Program Coordinator');
+    await user.type(screen.getByLabelText('Department'), 'Student Affairs');
+    await user.type(screen.getByLabelText('Preferred run date'), '2026-05-05');
+    await user.type(screen.getByLabelText('Remove listing early? (optional)'), '2026-05-12');
+    await user.type(screen.getByLabelText('Your Name'), 'Jane Submitter');
+    await user.type(screen.getByLabelText('Email Address'), 'jane@example.edu');
+    await user.click(screen.getByRole('button', { name: /submit announcement/i }));
+
+    await waitFor(() => {
+      expect(createSubmissionMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          Original_Body: 'Department: Student Affairs. Apply using the linked posting.',
+          Schedule_Requests: [
+            expect.objectContaining({
+              Repeat_Count: 1,
+              Recurrence_Type: 'date_range',
+              Recurrence_Interval: 1,
+              Recurrence_End_Date: '2026-05-12',
+            }),
           ],
         }),
       );

@@ -5,6 +5,7 @@ import {
   toISODate,
   todayISO,
   addDaysISO,
+  addDaysToISODate,
   addMonthsISO,
 } from './date';
 
@@ -48,6 +49,11 @@ describe('today/offset helpers', () => {
     expect(addDaysISO(1)).toBe('2026-07-18');
     expect(addDaysISO(90)).toBe('2026-10-15');
     expect(addMonthsISO(3)).toBe('2026-10-17');
+  });
+
+  it('adds days to an explicit date-only value', () => {
+    expect(addDaysToISODate('2026-05-05', 13)).toBe('2026-05-18');
+    expect(addDaysToISODate('2026-12-25', 13)).toBe('2027-01-07');
   });
 });
 

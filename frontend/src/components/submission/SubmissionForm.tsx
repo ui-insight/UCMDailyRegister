@@ -5,7 +5,13 @@ import type { AllowedValue } from '../../types/allowedValue';
 import { createSubmission } from '../../api/submissions';
 import { getValidDates } from '../../api/schedule';
 import { getSubmitterRole } from '../../utils/submitterRole';
-import { parseISODate, todayISO, addDaysISO, addMonthsISO } from '../../utils/date';
+import {
+  addDaysISO,
+  addDaysToISODate,
+  addMonthsISO,
+  parseISODate,
+  todayISO,
+} from '../../utils/date';
 import CategorySelect from './CategorySelect';
 import NewsletterTargetSelect from './NewsletterTargetSelect';
 import LinkEditor from './LinkEditor';
@@ -45,7 +51,7 @@ interface ScheduleEntry {
   Repeat_Note: string;
   Is_Flexible: boolean;
   Flexible_Deadline: string;
-  Recurrence_Type: 'once' | 'weekly' | 'monthly_date' | 'monthly_nth_weekday';
+  Recurrence_Type: 'once' | 'weekly' | 'monthly_date' | 'monthly_nth_weekday' | 'date_range';
   Recurrence_Interval: number;
   Recurrence_End_Date: string;
 }
@@ -443,7 +449,6 @@ export default function SubmissionForm() {
         jobDepartment ? `Department: ${jobDepartment}.` : null,
         jobLocation ? `Location: ${jobLocation}.` : null,
         'Apply using the linked posting.',
-        jobRemoveDate ? `Remove listing after ${jobRemoveDate}.` : null,
       ].filter(Boolean);
       const effectiveHeadline = isJob ? jobTitle : headline;
       const effectiveBody = isJob ? jobBodyParts.join(' ') : body;
@@ -467,7 +472,21 @@ export default function SubmissionForm() {
       ];
       const combinedScheduleCount = Math.max(tdrDates.length, preferredStudentDates.length);
       const scheduleRequests: NonNullable<SubmissionCreate['Schedule_Requests']> =
-        isPublicFacultyStaffFlow && alsoPublishInStudentNewsletter
+        isJob
+          ? [{
+              ...baseScheduleRequest,
+              Requested_Date: schedule.Requested_Date,
+              Second_Requested_Date: undefined,
+              Repeat_Count: 1,
+              Recurrence_Type: 'date_range',
+              Recurrence_Interval: 1,
+              Recurrence_End_Date: jobRemoveDate || (
+                schedule.Requested_Date
+                  ? addDaysToISODate(schedule.Requested_Date, 13)
+                  : undefined
+              ),
+            }]
+          : isPublicFacultyStaffFlow && alsoPublishInStudentNewsletter
           ? Array.from({ length: combinedScheduleCount }, (_, index) => ({
               ...baseScheduleRequest,
               Requested_Date: tdrDates[index] ?? tdrDates[0],
@@ -634,7 +653,7 @@ export default function SubmissionForm() {
           /* --- Simplified Job Opportunity form --- */
           <div className="space-y-4">
             <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
-              Job listings run in The Daily Register for two weeks. Provide the PeopleAdmin URL and position details below.
+              Job listings run in The Daily Register for two weeks. Provide the official U of I posting URL and position details below.
             </p>
             <div>
               <label htmlFor="submission-job-url" className="block text-sm font-medium text-gray-700 mb-1">
@@ -650,7 +669,7 @@ export default function SubmissionForm() {
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
               />
               <p className="text-xs text-gray-400 mt-1">
-                Provide the specific PeopleAdmin posting link.
+                Provide the specific official job posting link.
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -709,6 +728,9 @@ export default function SubmissionForm() {
                 value={jobRemoveDate}
                 onChange={(e) => setJobRemoveDate(e.target.value)}
                 min={schedule.Requested_Date || getMinDate()}
+                max={schedule.Requested_Date
+                  ? addDaysToISODate(schedule.Requested_Date, 13)
+                  : undefined}
                 className="w-full max-w-xs rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
               />
               <p className="text-xs text-gray-400 mt-1">
@@ -777,7 +799,8 @@ export default function SubmissionForm() {
           targetNewsletter={scheduleTargetNewsletter}
           validDates={validDates.size > 0 ? validDates : undefined}
           secondaryValidDates={secondaryValidDates.size > 0 ? secondaryValidDates : undefined}
-          showRecurrenceControls={isStaff}
+          showRecurrenceControls={isStaff && !isJobOpportunity}
+          showRepeatCount={!isJobOpportunity}
           heading={isPublicFacultyStaffFlow && alsoPublishInStudentNewsletter
             ? 'Daily Register publication preferences'
             : undefined}

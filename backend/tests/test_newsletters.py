@@ -5,11 +5,13 @@ from datetime import date, datetime
 from pathlib import Path
 
 import pytest
+import sqlalchemy as sa
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.newsletter import NewsletterItem
 from app.models.section import NewsletterSection
+from app.models.submission import Submission
 from app.services import calendar_event_service, job_posting_service, newsletter_service
 from tests.conftest import make_newsletter_data, make_submission_data
 
@@ -373,6 +375,62 @@ class TestNewsletterItems:
         assert len(items) == 1
         assert items[0]["Submission_Id"] == recurring_id
 
+    async def test_assemble_places_newest_job_first_in_dedicated_section(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+        staff_headers: dict[str, str],
+    ):
+        db.add(
+            NewsletterSection(
+                Newsletter_Type="tdr",
+                Name="Job Opportunities",
+                Slug="job-opportunities",
+                Display_Order=11,
+                Is_Active=True,
+            )
+        )
+        await db.commit()
+
+        job_ids: list[str] = []
+        for title in ("Older job", "Newer job"):
+            response = await client.post(
+                "/api/v1/submissions/",
+                json=make_submission_data(
+                    Category="job_opportunity",
+                    Original_Headline=title,
+                    Schedule_Requests=[{"Requested_Date": "2026-08-24"}],
+                ),
+            )
+            assert response.status_code == 201
+            job_ids.append(response.json()["Id"])
+            await client.patch(
+                f"/api/v1/submissions/{job_ids[-1]}",
+                json={"Status": "approved"},
+            )
+
+        await db.execute(
+            sa.update(Submission)
+            .where(Submission.Id == job_ids[0])
+            .values(Created_At=datetime(2026, 8, 1, 9, 0))
+        )
+        await db.execute(
+            sa.update(Submission)
+            .where(Submission.Id == job_ids[1])
+            .values(Created_At=datetime(2026, 8, 2, 9, 0))
+        )
+        await db.commit()
+
+        response = await client.post(
+            "/api/v1/newsletters/assemble",
+            json={"Newsletter_Type": "tdr", "Publish_Date": "2026-08-24"},
+            headers=staff_headers,
+        )
+
+        assert response.status_code == 200
+        jobs = sorted(response.json()["Items"], key=lambda item: item["Position"])
+        assert [item["Submission_Id"] for item in jobs] == [job_ids[1], job_ids[0]]
+
     async def test_assemble_myui_survey_uses_news_and_updates_section(
         self,
         client: AsyncClient,
@@ -543,6 +601,10 @@ def test_category_section_maps_target_seeded_sections():
     tdr_map = newsletter_service._get_category_section_map("tdr")
     assert tdr_map["employee_announcement"] == "employee-announcements"
     assert tdr_map["ucm_feature_story"] == "feature-stories"
+    tdr_sections = json.loads((data_dir / "tdr_sections.json").read_text())
+    assert max(tdr_sections, key=lambda section: section["display_order"])["slug"] == (
+        "job-opportunities"
+    )
 
 
 class TestCalendarEventParsing:
@@ -660,6 +722,46 @@ class TestJobPostingParsing:
         assert posting.location == "Moscow"
         assert posting.closing_date == "04/05/2026"
         assert posting.url == "https://uidaho.peopleadmin.com/postings/50999"
+
+    def test_build_job_listing_is_one_linked_line_without_moscow(self):
+        posting = job_posting_service.JobPosting(
+            source_id="https://example.com/postings/1",
+            source_type="job_posting",
+            url="https://example.com/postings/1",
+            title="Business Specialist III",
+            department="College of Natural Resources Admin",
+            posting_number="SP005197P",
+            location="Moscow",
+            closing_date="04/05/2026",
+            summary="This summary must not appear in the newsletter.",
+        )
+
+        assert job_posting_service.build_job_headline(posting) == ""
+        assert job_posting_service.build_job_body(posting) == (
+            '<a href="https://example.com/postings/1">Business specialist III, '
+            "College of Natural Resources Admin</a>"
+        )
+        assert job_posting_service.format_job_location(posting.location) is None
+
+    def test_build_job_listing_preserves_non_moscow_and_expands_imci(self):
+        posting = job_posting_service.JobPosting(
+            source_id="https://example.com/postings/2",
+            source_type="job_posting",
+            url="https://example.com/postings/2",
+            title="LABORATORY MANAGER II",
+            department="Image and Data Acquisition Core, IMCI",
+            posting_number="SP005198P",
+            location="Moscow, Off Campus Location - Boise",
+            closing_date=None,
+            summary="This summary must not appear in the newsletter.",
+        )
+
+        assert job_posting_service.build_job_body(posting) == (
+            '<a href="https://example.com/postings/2">Laboratory manager II, '
+            "Image and Data Acquisition Core, Institute for Modeling Collaboration "
+            "and Innovation, Boise</a>"
+        )
+        assert job_posting_service.format_job_location(posting.location) == "Boise"
 
 
 @pytest.mark.asyncio
@@ -926,7 +1028,12 @@ class TestJobPostingEndpoints:
         assert resp.status_code == 201
         body = resp.json()
         assert body["Source_Type"] == "job_posting"
-        assert "Business Specialist III" in body["Final_Headline"]
+        assert body["Final_Headline"] == ""
+        assert body["Final_Body"] == (
+            '<a href="https://example.com/postings/1">Business specialist III, '
+            "College of Natural Resources Admin</a>"
+        )
+        assert body["Location"] is None
 
         detail_resp = await client.get(f"/api/v1/newsletters/{nl_id}")
         assert detail_resp.status_code == 200

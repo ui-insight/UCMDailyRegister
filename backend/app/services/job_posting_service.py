@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from html import unescape
+from html import escape, unescape
 import re
 from typing import Iterable
 from urllib.parse import urljoin
@@ -33,6 +33,20 @@ _DESCRIPTION_RE = re.compile(
 _PAGE_RE = re.compile(r"/postings/search\?page=(?P<page>\d+)")
 _TAG_RE = re.compile(r"<[^>]+>")
 _WHITESPACE_RE = re.compile(r"\s+")
+_ROMAN_NUMERAL_RE = re.compile(r"^[IVXLCDM]+$")
+_OFF_CAMPUS_PREFIX_RE = re.compile(
+    r"^Off Campus Location\s*-\s*",
+    re.IGNORECASE,
+)
+_JOB_TITLE_PROPER_WORDS = {
+    "boise": "Boise",
+    "idaho": "Idaho",
+    "moscow": "Moscow",
+    "uidaho": "UIdaho",
+}
+_OFFICIAL_UNIT_EXPANSIONS = {
+    "IMCI": "Institute for Modeling Collaboration and Innovation",
+}
 
 
 @dataclass(slots=True)
@@ -138,28 +152,73 @@ def parse_peopleadmin_search_results(html_text: str, source_url: str) -> list[Jo
 
 
 def build_job_headline(posting: JobPosting) -> str:
-    """Build the one-line headline used in the builder and export."""
-    parts = [posting.title]
-    if posting.department:
-        parts.append(posting.department)
-    if posting.location:
-        parts.append(posting.location)
-    return ", ".join(part for part in parts if part)
+    """Jobs are deliberately body-only and do not have newsletter headlines."""
+    return ""
 
 
 def build_job_body(posting: JobPosting) -> str:
-    """Build the body text for an imported job posting."""
-    details = []
-    if posting.posting_number:
-        details.append(f"Posting number: {posting.posting_number}.")
-    if posting.closing_date:
-        details.append(f"Closing date: {posting.closing_date}.")
+    """Build the complete one-line linked listing used in Builder and export."""
+    listing = build_job_listing_text(posting)
+    return f'<a href="{escape(posting.url, quote=True)}">{escape(listing)}</a>'
 
-    parts = [posting.summary.strip()]
-    if details:
-        parts.append(" ".join(details))
-    parts.append(f'<a href="{posting.url}">View job posting</a>.')
-    return " ".join(part for part in parts if part).strip()
+
+def build_job_listing_text(posting: JobPosting) -> str:
+    """Return title, official unit and any non-Moscow location as one line."""
+    parts = [format_job_title(posting.title)]
+    if posting.department:
+        department = posting.department
+        for abbreviation, expansion in _OFFICIAL_UNIT_EXPANSIONS.items():
+            department = re.sub(
+                rf"\b{re.escape(abbreviation)}\b",
+                expansion,
+                department,
+            )
+        parts.append(department)
+    location = format_job_location(posting.location)
+    if location:
+        parts.append(location)
+    return ", ".join(part for part in parts if part)
+
+
+def format_job_title(title: str) -> str:
+    """Apply conservative sentence case while retaining acronyms and levels."""
+    formatted_words: list[str] = []
+    for word in _WHITESPACE_RE.split(title.strip()):
+        core = word.strip("()[],.;:")
+        prefix_length = word.find(core) if core else 0
+        prefix = word[:prefix_length]
+        suffix = word[prefix_length + len(core):]
+        proper = _JOB_TITLE_PROPER_WORDS.get(core.casefold())
+        if proper:
+            formatted_core = proper
+        elif _ROMAN_NUMERAL_RE.fullmatch(core) or (
+            core.isupper() and 1 < len(core) <= 5
+        ):
+            formatted_core = core
+        else:
+            formatted_core = core.lower()
+        formatted_words.append(f"{prefix}{formatted_core}{suffix}")
+
+    formatted = " ".join(formatted_words)
+    first_letter = re.search(r"[A-Za-z]", formatted)
+    if first_letter:
+        index = first_letter.start()
+        formatted = formatted[:index] + formatted[index].upper() + formatted[index + 1:]
+    return formatted
+
+
+def format_job_location(location: str | None) -> str | None:
+    """Omit Moscow and normalize PeopleAdmin's off-campus location prefix."""
+    if not location:
+        return None
+    locations: list[str] = []
+    for part in location.split(","):
+        normalized = _OFF_CAMPUS_PREFIX_RE.sub("", part.strip()).strip()
+        if not normalized or normalized.casefold() == "moscow":
+            continue
+        if normalized not in locations:
+            locations.append(normalized)
+    return ", ".join(locations) or None
 
 
 def _get_page_count(html_text: str) -> int:

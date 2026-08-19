@@ -404,7 +404,7 @@ async def add_job_posting(
         source_url=posting.url,
         event_start=None,
         event_end=None,
-        location=posting.location,
+        location=job_posting_service.format_job_location(posting.location),
         final_headline=job_posting_service.build_job_headline(posting),
         final_body=job_posting_service.build_job_body(posting),
     )

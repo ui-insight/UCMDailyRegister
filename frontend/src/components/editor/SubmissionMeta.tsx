@@ -50,6 +50,7 @@ const RECURRENCE_LABELS: Record<string, string> = {
   weekly: 'Weekly',
   monthly_date: 'Monthly',
   monthly_nth_weekday: 'Monthly (nth weekday)',
+  date_range: 'Two-week listing window',
 };
 
 function formatPublicationDate(value: string): string {

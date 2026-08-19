@@ -43,7 +43,7 @@ export interface SubmissionScheduleRequest {
   Repeat_Note: string | null;
   Is_Flexible: boolean;
   Flexible_Deadline: string | null;
-  Recurrence_Type: 'once' | 'weekly' | 'monthly_date' | 'monthly_nth_weekday';
+  Recurrence_Type: 'once' | 'weekly' | 'monthly_date' | 'monthly_nth_weekday' | 'date_range';
   Recurrence_Interval: number;
   Recurrence_End_Date: string | null;
   Excluded_Dates: string[];
@@ -93,7 +93,7 @@ export interface SubmissionCreate {
     Repeat_Note?: string;
     Is_Flexible?: boolean;
     Flexible_Deadline?: string;
-    Recurrence_Type?: 'once' | 'weekly' | 'monthly_date' | 'monthly_nth_weekday';
+    Recurrence_Type?: 'once' | 'weekly' | 'monthly_date' | 'monthly_nth_weekday' | 'date_range';
     Recurrence_Interval?: number;
     Recurrence_End_Date?: string;
     Excluded_Dates?: string[];
