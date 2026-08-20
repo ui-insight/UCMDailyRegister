@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { buildLinkedBody, prepareBodyForEditing } from './bodyLinks';
+import {
+  buildLinkedBody,
+  prepareBodyForEditing,
+  synchronizeBodyWithLinkLabel,
+  synchronizeLinksWithBodyChange,
+} from './bodyLinks';
 
 describe('body link editing', () => {
   it('repairs the duplicated anchor pattern from Joy\'s dev submission', () => {
@@ -76,5 +81,44 @@ describe('body link editing', () => {
       'Additional details are available on the '
         + '<a href="https://example.com/Inside%20UI/details">committee page</a>.',
     );
+  });
+
+  it('places unmatched stored CTA text into the editable body exactly once', () => {
+    const editable = prepareBodyForEditing(
+      'Explore the university sustainability initiatives.',
+      [
+        {
+          Url: 'https://example.com/stars',
+          Anchor_Text: 'Review the STARS Gold rating',
+          Display_Order: 0,
+        },
+      ],
+    );
+
+    expect(editable.body).toBe(
+      'Explore the university sustainability initiatives.\nReview the STARS Gold rating',
+    );
+    expect(buildLinkedBody(editable.body, editable.links)).toBe(
+      'Explore the university sustainability initiatives.\n'
+        + '<a href="https://example.com/stars">Review the STARS Gold rating</a>',
+    );
+  });
+
+  it('replaces link text in place when its link field is edited', () => {
+    expect(synchronizeBodyWithLinkLabel(
+      'Reserve a seat. Register now.',
+      'Register now',
+      'UCM events',
+    )).toBe('Reserve a seat. UCM events.');
+  });
+
+  it('updates link metadata when its exact body segment is edited', () => {
+    expect(synchronizeLinksWithBodyChange(
+      'Reserve a seat. Register now.',
+      'Reserve a seat. Sign up today.',
+      [{ Url: 'https://example.com/register', Anchor_Text: 'Register now' }],
+    )).toEqual([
+      { Url: 'https://example.com/register', Anchor_Text: 'Sign up today' },
+    ]);
   });
 });

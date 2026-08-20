@@ -63,6 +63,22 @@ def test_canonical_addresses_are_an_explicit_no_fabrication_exception():
     assert "approved canonical expansions or addresses" in rule["rule_text"]
 
 
+def test_ampersand_rule_covers_official_names_with_only_qa_exempt():
+    rule = seeded_rules()["ampersand_to_and"]
+
+    assert "official names" in rule["rule_text"]
+    assert "except Q&A" in rule["rule_text"]
+    assert rule["severity"] == "error"
+
+
+def test_relative_date_rule_preserves_the_specific_calendar_date():
+    rule = seeded_rules()["today_tomorrow"]
+
+    assert "retain both" in rule["rule_text"]
+    assert "Never replace or remove the calendar date" in rule["rule_text"]
+    assert rule["severity"] == "error"
+
+
 def test_migration_is_idempotent_and_matches_shared_seed():
     migration = load_migration()
     metadata = sa.MetaData()
@@ -90,11 +106,14 @@ def test_migration_is_idempotent_and_matches_shared_seed():
     # Later focused migrations supersede these original texts; their own
     # migration tests verify the latest seed values.
     superseded = {
+        "ap_style_times",
+        "ampersand_to_and",
         "cta_structure",
         "no_fabricated_content",
         "composition_title_format",
         "preserve_audience_scope",
         "preserve_purpose_contact_titles",
+        "today_tomorrow",
     }
     for row in rows:
         seed = seeded[row["Rule_Key"]]

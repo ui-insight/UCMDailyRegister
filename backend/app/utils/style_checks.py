@@ -33,6 +33,16 @@ _ABBREV_WITHOUT_DATE = re.compile(rf"\b(?:{_MONTH_ABBREV})\.(?!\s*\d)")
 
 _BAD_MERIDIEM = re.compile(r"\b\d{1,2}(?::\d{2})?\s*(?:AM|PM|A\.M\.|P\.M\.|am\b|pm\b)")
 _TWELVE_MERIDIEM = re.compile(r"\b12(?::00)?\s*(?:a\.m\.|p\.m\.)", re.IGNORECASE)
+_TIME_WITH_PERIOD = re.compile(
+    r"\b\d{1,2}(?::\d{2})?\s*(?P<period>a\.m\.|p\.m\.)",
+    re.IGNORECASE,
+)
+_CROSS_PERIOD_HYPHEN_RANGE = re.compile(
+    r"\b(?P<start>\d{1,2}(?::\d{2})?\s*(?P<start_period>a\.m\.|p\.m\.))"
+    r"\s*[-–—]\s*"
+    r"(?P<end>\d{1,2}(?::\d{2})?\s*(?P<end_period>a\.m\.|p\.m\.))",
+    re.IGNORECASE,
+)
 
 _PLATFORM_NAMES = re.compile(r"\b(?:Zoom|Webex|Microsoft Teams|Google Meet|Skype)\b")
 
@@ -142,6 +152,17 @@ _BROAD_AUDIENCE_PHRASES = (
         re.compile(r"\bthe\s+public\s+is\s+welcome\b", re.IGNORECASE),
     ),
 )
+_AUDIENCE_GROUPS = (
+    ("employees", re.compile(r"\bemployees?\b", re.IGNORECASE)),
+    ("faculty", re.compile(r"\bfaculty\b", re.IGNORECASE)),
+    ("staff", re.compile(r"\bstaff\b", re.IGNORECASE)),
+    ("students", re.compile(r"\bstudents?\b", re.IGNORECASE)),
+    (
+        "campus community",
+        re.compile(r"\bcampus\s+community\b", re.IGNORECASE),
+    ),
+    ("public", re.compile(r"\b(?:the\s+)?public\b", re.IGNORECASE)),
+)
 _DIRECT_INVITATION_LEAD = re.compile(
     r"^(?:Attend|Join|Visit|Watch|Come|Participate|Register|Explore|Learn)\b",
     re.IGNORECASE,
@@ -206,6 +227,10 @@ _MONTH_DAY = re.compile(
     r"Dec(?:ember)?)\.?\s+(?P<day>\d{1,2})(?:,\s*(?P<year>\d{4}))?\b",
     re.IGNORECASE,
 )
+_RELATIVE_DATE_REFERENCE = re.compile(
+    r"\b(?:today|tomorrow|this\s+(?:week|month)|next\s+(?:week|month))\b",
+    re.IGNORECASE,
+)
 _WEEKDAY_PREFIX = re.compile(
     r"\b(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\s*$",
     re.IGNORECASE,
@@ -249,6 +274,38 @@ def detect_nonstandard_meridiems(text: str) -> list[str]:
 def detect_twelve_oclock_meridiems(text: str) -> list[str]:
     """Find '12 p.m.'/'12 a.m.', which AP replaces with noon and midnight."""
     return _TWELVE_MERIDIEM.findall(text)
+
+
+def detect_cross_period_hyphen_ranges(text: str) -> list[str]:
+    """Find hyphenated time ranges whose endpoints use different periods."""
+    findings: list[str] = []
+    for match in _CROSS_PERIOD_HYPHEN_RANGE.finditer(strip_html(text)):
+        if match.group("start_period").casefold() == match.group("end_period").casefold():
+            continue
+        findings.append(match.group())
+    return findings
+
+
+def detect_event_detail_order_violations(text: str) -> list[str]:
+    """Find event sentences that place a calendar date before the first time."""
+    findings: list[str] = []
+    for sentence in re.split(r"(?<=[!?])\s+|(?<=\.)\s+(?=[A-Z])", strip_html(text)):
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+        date_match = _MONTH_DAY.search(sentence)
+        time_match = _TIME_WITH_PERIOD.search(sentence)
+        if date_match and time_match and date_match.start() < time_match.start():
+            findings.append(sentence)
+    return findings
+
+
+def detect_disallowed_ampersands(text: str) -> list[str]:
+    """Find literal ampersands outside the sole editorial exception, Q&A."""
+    visible = strip_html(text)
+    visible = re.sub(r"\bQ\s*&\s*A\b", "", visible, flags=re.IGNORECASE)
+    visible = re.sub(r"&(?:#\d+|#x[0-9a-f]+|[a-z][a-z0-9]+);", "", visible, flags=re.IGNORECASE)
+    return [match.group() for match in re.finditer(r"&", visible)]
 
 
 def detect_platform_names(text: str) -> list[str]:
@@ -376,6 +433,20 @@ def detect_missing_broad_audience(source_body: str, edited_body: str) -> list[st
         findings.append(display)
 
     return findings
+
+
+def detect_introduced_audience_groups(
+    source_body: str,
+    edited_body: str,
+) -> list[str]:
+    """Find explicit audience groups introduced only by the edited copy."""
+    source = strip_html(source_body)
+    edited = strip_html(edited_body)
+    return [
+        display
+        for display, pattern in _AUDIENCE_GROUPS
+        if pattern.search(edited) and not pattern.search(source)
+    ]
 
 
 def _composition_titles(source_text: str) -> list[str]:
@@ -685,11 +756,56 @@ def _official_name_candidates(source_text: str) -> list[str]:
 def detect_changed_official_names(source_text: str, edited_text: str) -> list[str]:
     """Find protected official/branded source spans no longer present exactly."""
     edited = strip_html(edited_text)
-    return [
-        candidate
-        for candidate in _official_name_candidates(source_text)
-        if candidate not in edited
-    ]
+    findings: list[str] = []
+    for candidate in _official_name_candidates(source_text):
+        allowed_variants = {candidate}
+        if "&" in candidate:
+            allowed_variants.add(re.sub(r"\s*&\s*", " and ", candidate))
+        if not any(variant in edited for variant in allowed_variants):
+            findings.append(candidate)
+    return findings
+
+
+def detect_missing_relative_date_components(
+    source_text: str,
+    edited_text: str,
+) -> list[str]:
+    """Find source relative-date + calendar-date pairs not retained together."""
+    edited = strip_html(edited_text)
+    edited_relative = {
+        match.group().casefold()
+        for match in _RELATIVE_DATE_REFERENCE.finditer(edited)
+    }
+    edited_dates = {
+        (_MONTH_NUMBERS[match.group("month").lower().rstrip(".")], int(match.group("day")))
+        for match in _MONTH_DAY.finditer(edited)
+        if match.group("month").lower().rstrip(".") in _MONTH_NUMBERS
+    }
+    findings: list[str] = []
+
+    for sentence in re.split(
+        r"\n+|(?<=[!?])\s+|(?<=\.)\s+(?=[A-Z])",
+        strip_html(source_text),
+    ):
+        relatives = list(_RELATIVE_DATE_REFERENCE.finditer(sentence))
+        dates = list(_MONTH_DAY.finditer(sentence))
+        if not relatives or not dates:
+            continue
+        for relative in relatives:
+            for date_match in dates:
+                month = _MONTH_NUMBERS.get(date_match.group("month").lower().rstrip("."))
+                if month is None:
+                    continue
+                date_key = (month, int(date_match.group("day")))
+                if (
+                    relative.group().casefold() not in edited_relative
+                    or date_key not in edited_dates
+                ):
+                    finding = f"{relative.group()}, {date_match.group().rstrip('.')}"
+                    if finding not in findings:
+                        findings.append(finding)
+
+    return findings
 
 
 def detect_weekday_date_mismatches(

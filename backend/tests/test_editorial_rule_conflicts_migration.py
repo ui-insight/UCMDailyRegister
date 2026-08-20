@@ -93,7 +93,11 @@ def test_migration_matches_shared_seed_values():
 
     for rule in migration.STYLE_RULE_UPDATES:
         seed = seeded[rule["rule_key"]]
-        assert rule["rule_text"] == seed["rule_text"]
+        if rule["rule_key"] == "preserve_event_title_case":
+            # The Aug. 20 clarification adds the mandatory ampersand exception.
+            assert rule["rule_text"] != seed["rule_text"]
+        else:
+            assert rule["rule_text"] == seed["rule_text"]
         assert rule["category"] == seed["category"]
         assert rule["severity"] == seed["severity"]
 

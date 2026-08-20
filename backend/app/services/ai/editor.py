@@ -33,6 +33,9 @@ from app.utils.style_checks import (
     detect_abbreviated_months_without_date,
     detect_nonstandard_meridiems,
     detect_twelve_oclock_meridiems,
+    detect_cross_period_hyphen_ranges,
+    detect_event_detail_order_violations,
+    detect_disallowed_ampersands,
     detect_platform_names,
     detect_undefined_acronyms,
     detect_repeated_cta_phrases,
@@ -50,10 +53,12 @@ from app.utils.style_checks import (
     detect_missing_protected_organizations,
     detect_missing_specific_audience_lead,
     detect_missing_broad_audience,
+    detect_introduced_audience_groups,
     detect_unformatted_composition_titles,
     detect_noncanonical_campus_locations,
     detect_missing_approved_venue_addresses,
     detect_weekday_date_mismatches,
+    detect_missing_relative_date_components,
 )
 
 logger = logging.getLogger(__name__)
@@ -227,6 +232,24 @@ class AIEditor:
             add("ap_style_times", f"Time should use lowercase a.m./p.m. with periods: '{found}'")
         for found in detect_twelve_oclock_meridiems(text):
             add("ap_style_times", f"Use noon or midnight instead of '{found}'")
+        for found in detect_cross_period_hyphen_ranges(text):
+            add(
+                "ap_style_times",
+                f"Use 'to' for a time range that crosses a.m./p.m.: '{found}'",
+            )
+
+        for sentence in detect_event_detail_order_violations(body):
+            add(
+                "event_detail_ordering",
+                f"Event details must put the time before the day and date: '{sentence}'",
+            )
+
+        ampersands = detect_disallowed_ampersands(text)
+        if ampersands:
+            add(
+                "ampersand_to_and",
+                "Replace '&' with 'and'; Q&A is the only exception",
+            )
 
         platforms = detect_platform_names(text)
         if platforms:
@@ -373,6 +396,22 @@ class AIEditor:
                 add(
                     "preserve_audience_scope",
                     f"Broad source invitation was narrowed or removed: '{broad_audience}'",
+                )
+
+            for audience in detect_introduced_audience_groups(source_text, body):
+                add(
+                    "preserve_audience_scope",
+                    f"AI edit introduced an audience not stated in the source: '{audience}'",
+                )
+
+            for date_reference in detect_missing_relative_date_components(
+                body_source,
+                body,
+            ):
+                add(
+                    "today_tomorrow",
+                    "Retain both the relative date and its explicit calendar date: "
+                    f"'{date_reference}'",
                 )
 
             for title in detect_unformatted_composition_titles(

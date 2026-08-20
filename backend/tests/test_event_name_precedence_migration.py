@@ -137,12 +137,14 @@ def test_migration_values_match_style_rule_seeds():
         for rule in json.loads((seed_dir / "tdr_rules.json").read_text())
     }
 
-    # The rule-conflict resolution migration supersedes this text with a
-    # composition-title exception; test_editorial_rule_conflicts_migration
-    # verifies the latest seed value.
+    # Later rule-conflict and Aug. 20 migrations add the composition-title and
+    # ampersand exceptions; their focused tests verify exact seed parity.
     assert seeded_shared["preserve_event_title_case"]["rule_text"] != migration.PRESERVE_EVENT_TITLE_RULE_TEXT
-    assert seeded_shared["preserve_event_title_case"]["rule_text"].startswith(
-        migration.PRESERVE_EVENT_TITLE_RULE_TEXT
+    assert "preserving their official capitalization takes precedence" in (
+        seeded_shared["preserve_event_title_case"]["rule_text"]
+    )
+    assert "ampersand rule is the sole wording exception" in (
+        seeded_shared["preserve_event_title_case"]["rule_text"]
     )
     assert seeded_shared["preserve_event_title_case"]["severity"] == "error"
     assert seeded_shared["preserve_event_title_case"]["category"] == "formatting"

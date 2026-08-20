@@ -556,13 +556,61 @@ describe('EditPage', () => {
     await waitFor(() => {
       expect(saveEditorFinalMock).toHaveBeenCalledWith('submission-1', {
         Headline: 'Final event headline',
-        Body: 'Reserve a seat. Register now.\n<a href="mailto:events@uidaho.edu">UCM events</a>',
+        Body: 'Reserve a seat. <a href="mailto:events@uidaho.edu">UCM events</a>.',
         Headline_Case: 'sentence_case',
         Approve_For_Newsletter: false,
         Links: [
           {
             Url: 'mailto:events@uidaho.edu',
             Anchor_Text: 'UCM events',
+            Display_Order: 0,
+          },
+        ],
+      });
+    });
+  });
+
+  it('keeps link metadata synchronized when CTA text is edited in the body', async () => {
+    const user = userEvent.setup();
+    getSubmissionMock.mockResolvedValue(makeSubmission({
+      Links: [
+        {
+          Id: 'link-1',
+          Url: 'https://example.com/register',
+          Anchor_Text: 'Register now',
+          Display_Order: 0,
+        },
+      ],
+    }));
+    listEditVersionsMock.mockResolvedValue([
+      makeVersion({
+        Version_Type: 'editor_final',
+        Headline: 'Final event headline',
+        Body: 'Reserve a seat. <a href="https://example.com/register">Register now</a>.',
+      }),
+    ]);
+
+    renderEditPage();
+
+    const body = await screen.findByPlaceholderText('Enter body text...');
+    await user.clear(body);
+    await user.type(body, 'Reserve a seat. Sign up today.');
+    await user.tab();
+    await user.click(screen.getByRole('button', { name: /save draft/i }));
+
+    await waitFor(() => {
+      expect(saveEditorFinalMock).toHaveBeenCalledWith('submission-1', {
+        Headline: 'Final event headline',
+        Body: (
+          'Reserve a seat. '
+          + '<a href="https://example.com/register">Sign up today</a>.'
+        ),
+        Headline_Case: 'sentence_case',
+        Approve_For_Newsletter: false,
+        Links: [
+          {
+            Url: 'https://example.com/register',
+            Anchor_Text: 'Sign up today',
             Display_Order: 0,
           },
         ],
