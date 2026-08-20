@@ -618,6 +618,72 @@ describe('EditPage', () => {
     });
   });
 
+  it('updates the live link preview while body text is being typed', async () => {
+    const user = userEvent.setup();
+    getSubmissionMock.mockResolvedValue(makeSubmission({
+      Links: [
+        {
+          Id: 'link-1',
+          Url: 'https://example.com/register',
+          Anchor_Text: 'Register now',
+          Display_Order: 0,
+        },
+      ],
+    }));
+    listEditVersionsMock.mockResolvedValue([
+      makeVersion({
+        Version_Type: 'editor_final',
+        Body: 'Reserve a seat. <a href="https://example.com/register">Register now</a>.',
+      }),
+    ]);
+
+    renderEditPage();
+
+    const preview = await screen.findByRole('region', { name: 'Newsletter body preview' });
+    const body = screen.getByPlaceholderText('Enter body text...');
+    await user.type(body, ' Updated');
+
+    expect(preview).toHaveTextContent('Reserve a seat. Register now. Updated');
+  });
+
+  it('does not preserve a removed CTA as hidden link metadata', async () => {
+    const user = userEvent.setup();
+    getSubmissionMock.mockResolvedValue(makeSubmission({
+      Links: [
+        {
+          Id: 'link-1',
+          Url: 'https://example.com/register',
+          Anchor_Text: 'Register now',
+          Display_Order: 0,
+        },
+      ],
+    }));
+    listEditVersionsMock.mockResolvedValue([
+      makeVersion({
+        Version_Type: 'editor_final',
+        Headline: 'Final event headline',
+        Body: 'Reserve a seat. <a href="https://example.com/register">Register now</a>.',
+      }),
+    ]);
+
+    renderEditPage();
+
+    const body = await screen.findByPlaceholderText('Enter body text...');
+    await user.clear(body);
+    await user.type(body, 'Reserve a seat.');
+    await user.click(screen.getByRole('button', { name: /save draft/i }));
+
+    await waitFor(() => {
+      expect(saveEditorFinalMock).toHaveBeenCalledWith('submission-1', {
+        Headline: 'Final event headline',
+        Body: 'Reserve a seat.',
+        Headline_Case: 'sentence_case',
+        Approve_For_Newsletter: false,
+        Links: [],
+      });
+    });
+  });
+
   it('keeps the explicit draft action distinct from approval', async () => {
     const user = userEvent.setup();
 
