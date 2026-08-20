@@ -1,5 +1,5 @@
 import os
-from datetime import date
+from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, File, Header, HTTPException, Query, UploadFile
 from fastapi.responses import FileResponse
@@ -28,6 +28,8 @@ from app.services.image_service import (
 )
 
 router = APIRouter(prefix="/submissions", tags=["submissions"])
+
+JOB_LISTING_RUN_DAYS = 14
 
 
 def _to_submission_response(
@@ -64,13 +66,49 @@ def _to_submission_list_response(
 def _ensure_staff_only_recurrence(
     submission_role: SubmitterRole,
     schedule_request: ScheduleRequestCreate,
+    category: str,
 ) -> None:
     is_recurring = schedule_request.Recurrence_Type != "once"
-    if is_recurring and submission_role != "staff":
+    is_public_job_window = (
+        category == "job_opportunity"
+        and schedule_request.Recurrence_Type == "date_range"
+    )
+    if is_recurring and submission_role != "staff" and not is_public_job_window:
         raise HTTPException(
             status_code=403,
             detail="Recurring scheduling is available to staff editors only.",
         )
+
+
+def _apply_job_schedule_policy(
+    category: str,
+    target_newsletter: str,
+    schedule_request: ScheduleRequestCreate,
+) -> None:
+    """Normalize every Jobs request to one listing window of at most two weeks."""
+    if category != "job_opportunity":
+        return
+    if target_newsletter != "tdr":
+        raise HTTPException(
+            status_code=422,
+            detail="Job opportunities are published in The Daily Register only.",
+        )
+
+    schedule_request.Second_Requested_Date = None
+    schedule_request.Repeat_Count = 1
+    schedule_request.Recurrence_Type = "date_range"
+    schedule_request.Recurrence_Interval = 1
+    if schedule_request.Requested_Date is None:
+        return
+
+    last_policy_date = schedule_request.Requested_Date + timedelta(
+        days=JOB_LISTING_RUN_DAYS - 1
+    )
+    if (
+        schedule_request.Recurrence_End_Date is None
+        or schedule_request.Recurrence_End_Date > last_policy_date
+    ):
+        schedule_request.Recurrence_End_Date = last_policy_date
 
 
 def _ensure_staff_only_editorial_fields(
@@ -138,8 +176,14 @@ async def create_submission(
             status_code=422,
             detail="Announcement type is not available for this submitter role.",
         )
+    if data.Category == "job_opportunity" and len(data.Schedule_Requests) != 1:
+        raise HTTPException(
+            status_code=422,
+            detail="Job opportunities require exactly one preferred start date.",
+        )
     for sched in data.Schedule_Requests:
-        _ensure_staff_only_recurrence(submission_role, sched)
+        _apply_job_schedule_policy(data.Category, data.Target_Newsletter, sched)
+        _ensure_staff_only_recurrence(submission_role, sched, data.Category)
         await _validate_schedule_request(db, data.Target_Newsletter, sched)
     submission = await submission_service.create_submission(db, data)
     return _to_submission_response(submission, submission_role)
@@ -270,8 +314,21 @@ async def add_schedule_request(
     submission = await submission_service.get_submission(db, submission_id)
     if not submission:
         raise HTTPException(status_code=404, detail="Submission not found")
+    if submission.Category == "job_opportunity" and submission.Schedule_Requests:
+        raise HTTPException(
+            status_code=422,
+            detail=(
+                "Job opportunities have one listing window. Update the existing "
+                "schedule instead of adding another."
+            ),
+        )
 
-    _ensure_staff_only_recurrence(submission_role, data)
+    _apply_job_schedule_policy(
+        submission.Category,
+        submission.Target_Newsletter,
+        data,
+    )
+    _ensure_staff_only_recurrence(submission_role, data, submission.Category)
     await _validate_schedule_request(db, submission.Target_Newsletter, data)
 
     sched = await submission_service.add_schedule_request(

@@ -8,7 +8,7 @@ interface ScheduleEntry {
   Repeat_Note: string;
   Is_Flexible: boolean;
   Flexible_Deadline: string;
-  Recurrence_Type: 'once' | 'weekly' | 'monthly_date' | 'monthly_nth_weekday';
+  Recurrence_Type: 'once' | 'weekly' | 'monthly_date' | 'monthly_nth_weekday' | 'date_range';
   Recurrence_Interval: number;
   Recurrence_End_Date: string;
 }
@@ -20,6 +20,7 @@ interface Props {
   validDates?: Set<string>;
   secondaryValidDates?: Set<string>;
   showRecurrenceControls?: boolean;
+  showRepeatCount?: boolean;
   heading?: string;
   preferredDateLabel?: string;
   secondDateLabel?: string;
@@ -74,6 +75,7 @@ export default function SchedulePrefs({
   validDates,
   secondaryValidDates,
   showRecurrenceControls = false,
+  showRepeatCount = true,
   heading = 'Scheduling Preferences',
   preferredDateLabel = 'Preferred run date',
   secondDateLabel = 'Second run date',
@@ -201,7 +203,7 @@ export default function SchedulePrefs({
                     : 'Mon–Fri only'}
               </p>
             </div>
-            <div>
+            {showRepeatCount && <div>
               <label
                 htmlFor="submission-repeat-count"
                 className="block text-xs text-gray-500 mb-1"
@@ -217,9 +219,9 @@ export default function SchedulePrefs({
                 <option value={1}>Once</option>
                 <option value={2}>Twice (has RSVP/registration)</option>
               </select>
-            </div>
+            </div>}
           </div>
-          {schedule.Repeat_Count >= 2 && (
+          {showRepeatCount && schedule.Repeat_Count >= 2 && (
             <div className="mt-3">
               <label
                 htmlFor="submission-second-run-date"

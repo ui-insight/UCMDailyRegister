@@ -1405,9 +1405,11 @@ export default function BuilderPage() {
                                     <div className="flex items-start justify-between">
                                       <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2">
-                                          <p className="text-sm font-medium text-gray-900">
-                                            {item.Final_Headline}
-                                          </p>
+                                          {item.Final_Headline && (
+                                            <p className="text-sm font-medium text-gray-900">
+                                              {item.Final_Headline}
+                                            </p>
+                                          )}
                                           {item.Kind === 'calendar_event' && (
                                             <span className="inline-flex items-center rounded-full bg-ui-clearwater-100 px-2 py-0.5 text-[11px] font-medium text-ui-clearwater-800">
                                               Calendar

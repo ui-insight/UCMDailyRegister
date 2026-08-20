@@ -66,11 +66,12 @@ def export_newsletter_docx(
             headline = item["Final_Headline"]
             body = item["Final_Body"]
 
-            # Headline as bold paragraph
-            h_para = doc.add_paragraph()
-            h_run = h_para.add_run(headline)
-            h_run.bold = True
-            h_run.font.size = Pt(11)
+            if headline:
+                # Jobs are body-only linked lines; other items retain a bold headline.
+                h_para = doc.add_paragraph()
+                h_run = h_para.add_run(headline)
+                h_run.bold = True
+                h_run.font.size = Pt(11)
 
             # Body — parse HTML anchor tags into hyperlinks
             _add_body_with_links(doc, body)

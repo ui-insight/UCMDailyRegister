@@ -51,8 +51,8 @@
   {
     "name": "Job Opportunities",
     "slug": "job-opportunities",
-    "display_order": 8,
-    "description": "Jobs posted for two weeks from PeopleAdmin. Can repost after two-week removal. Newest at top. Must be listed with HR.",
+    "display_order": 11,
+    "description": "Jobs posted for two weeks from the official U of I jobs source. Can repost after two-week removal. Newest at top. Must be listed with HR.",
     "requires_image": false
   },
   {

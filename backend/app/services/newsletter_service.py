@@ -374,7 +374,17 @@ async def assemble_newsletter(
 
         headline, body = _get_best_text(sub)
         section_items = [it for it in newsletter.Items if it.Section_Id == section.Id]
-        position = len(section_items)
+        if sub.Category == "job_opportunity":
+            # Jobs are ordered newest-first. The query walks oldest-first so each
+            # newly encountered job is prepended ahead of existing job listings.
+            for item in section_items:
+                item.Position += 1
+            for item in newsletter.External_Items:
+                if item.Section_Id == section.Id:
+                    item.Position += 1
+            position = 0
+        else:
+            position = len(section_items)
 
         item = NewsletterItem(
             Newsletter_Id=newsletter.Id,

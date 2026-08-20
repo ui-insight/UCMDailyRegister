@@ -90,7 +90,7 @@ export async function rescheduleScheduleOccurrence(
 export interface AddScheduleRequestData {
   Requested_Date?: string | null;
   Second_Requested_Date?: string | null;
-  Recurrence_Type?: 'once' | 'weekly' | 'monthly_date' | 'monthly_nth_weekday';
+  Recurrence_Type?: 'once' | 'weekly' | 'monthly_date' | 'monthly_nth_weekday' | 'date_range';
   Recurrence_Interval?: number;
   Recurrence_End_Date?: string;
 }

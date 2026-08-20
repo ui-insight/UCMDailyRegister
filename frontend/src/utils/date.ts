@@ -32,6 +32,13 @@ export function addDaysISO(days: number): string {
   return toISODate(d);
 }
 
+/** Add days to a date-only value without crossing UTC/local date boundaries. */
+export function addDaysToISODate(dateStr: string, days: number): string {
+  const date = parseISODate(dateStr);
+  date.setDate(date.getDate() + days);
+  return toISODate(date);
+}
+
 /** The local date `months` months from today as YYYY-MM-DD. */
 export function addMonthsISO(months: number): string {
   const d = new Date();
