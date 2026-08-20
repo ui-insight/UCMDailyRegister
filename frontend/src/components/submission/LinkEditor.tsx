@@ -6,6 +6,7 @@ export interface LinkEntry {
 interface Props {
   links: LinkEntry[];
   onChange: (links: LinkEntry[]) => void;
+  onAnchorCommit?: (index: number, previousValue: string, nextValue: string) => void;
   label?: string;
   description?: string;
 }
@@ -23,6 +24,7 @@ function ensureSlots(links: LinkEntry[]): LinkEntry[] {
 export default function LinkEditor({
   links,
   onChange,
+  onAnchorCommit,
   label = 'Links to Embed',
   description = `Add up to ${MAX_LINKS} web URLs or email addresses to embed in your announcement.`,
 }: Props) {
@@ -122,7 +124,15 @@ export default function LinkEditor({
                     type="text"
                     placeholder={emailMode ? "e.g., Jane Smith" : "e.g., Learn more"}
                     value={link.Anchor_Text}
+                    onFocus={(e) => {
+                      e.currentTarget.dataset.initialValue = e.currentTarget.value;
+                    }}
                     onChange={(e) => updateLink(index, 'Anchor_Text', e.target.value)}
+                    onBlur={(e) => onAnchorCommit?.(
+                      index,
+                      e.currentTarget.dataset.initialValue ?? '',
+                      e.currentTarget.value,
+                    )}
                     autoComplete="off"
                     className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
                   />

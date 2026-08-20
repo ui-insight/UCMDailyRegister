@@ -105,7 +105,13 @@ def test_migration_values_match_shared_style_rule_seed():
     seed_path = Path(__file__).parents[1] / "data" / "style_rules" / "shared_rules.json"
     seeded = {rule["rule_key"]: rule for rule in json.loads(seed_path.read_text())}
 
-    assert seeded["event_detail_ordering"]["rule_text"] == migration.EVENT_RULE_TEXT
+    # The Aug. 20 clarification supersedes this wording and makes the
+    # time-first constraint explicit. Its focused migration test verifies
+    # exact seed parity.
+    assert seeded["event_detail_ordering"]["rule_text"] != migration.EVENT_RULE_TEXT
+    assert "Never place the day or date before the time" in (
+        seeded["event_detail_ordering"]["rule_text"]
+    )
     assert seeded["event_detail_ordering"]["severity"] == "error"
     assert seeded["vandal_gear_capitalization"]["rule_text"] == (
         migration.VANDAL_GEAR_RULE_TEXT

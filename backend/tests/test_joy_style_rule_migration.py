@@ -115,12 +115,16 @@ def test_migration_values_match_the_style_rule_seed_files():
     for rule in migration.STYLE_RULE_UPDATES:
         key = (rule["rule_set"], rule["rule_key"])
         assert seeded[key]["category"] == rule["category"]
-        # August follow-up migrations supersede the recurring event-order,
-        # acronym, short-sentence, CTA-structure, event-name, and sentence-case rules.
+        # August follow-up migrations supersede the time, event-order,
+        # ampersand, acronym, short-sentence, CTA-structure, event-name, and
+        # sentence-case rules.
         # Dedicated regression tests verify their latest seed values; all
         # other July values remain exact.
         if key not in {
             ("shared", "short_sentences"),
+            ("shared", "ap_style_times"),
+            ("shared", "event_detail_ordering"),
+            ("shared", "ampersand_to_and"),
             ("shared", "spell_out_acronyms"),
             ("shared", "cta_structure"),
             ("shared", "preserve_event_title_case"),
@@ -131,6 +135,7 @@ def test_migration_values_match_the_style_rule_seed_files():
         if key not in {
             ("shared", "event_detail_ordering"),
             ("shared", "ap_style_times"),
+            ("shared", "ampersand_to_and"),
             ("shared", "spell_out_acronyms"),
             ("shared", "short_sentences"),
             ("shared", "cta_structure"),

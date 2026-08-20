@@ -8,6 +8,9 @@ from app.utils.style_checks import (
     detect_abbreviated_months_without_date,
     detect_nonstandard_meridiems,
     detect_twelve_oclock_meridiems,
+    detect_cross_period_hyphen_ranges,
+    detect_event_detail_order_violations,
+    detect_disallowed_ampersands,
     detect_platform_names,
     detect_undefined_acronyms,
     detect_repeated_cta_phrases,
@@ -19,6 +22,7 @@ from app.utils.style_checks import (
     detect_missing_information_options,
     detect_missing_protected_organizations,
     detect_missing_broad_audience,
+    detect_introduced_audience_groups,
     detect_unformatted_composition_titles,
     detect_noncanonical_campus_locations,
     detect_missing_approved_venue_addresses,
@@ -27,6 +31,7 @@ from app.utils.style_checks import (
     detect_new_contact_channels,
     detect_new_contact_names,
     detect_changed_official_names,
+    detect_missing_relative_date_components,
     detect_missing_near_term_weekdays,
     detect_weekday_date_mismatches,
 )
@@ -67,6 +72,33 @@ class TestMeridiems:
 
     def test_accepts_noon(self):
         assert detect_twelve_oclock_meridiems("Lunch begins at noon.") == []
+
+    def test_flags_hyphenated_range_that_crosses_periods(self):
+        assert detect_cross_period_hyphen_ranges("Open 11 a.m.-2 p.m.") == [
+            "11 a.m.-2 p.m."
+        ]
+
+    def test_accepts_hyphenated_range_within_one_period(self):
+        assert detect_cross_period_hyphen_ranges("Open 1-2 p.m.") == []
+
+
+class TestEventDetailsAndAmpersands:
+    def test_flags_date_before_time(self):
+        sentence = "The workshop is Wednesday, Aug. 26, at 2 p.m. in IRIC 352."
+        assert detect_event_detail_order_violations(sentence) == [sentence]
+
+    def test_accepts_time_before_date(self):
+        assert detect_event_detail_order_violations(
+            "The workshop is at 2 p.m. Wednesday, Aug. 26, in IRIC 352."
+        ) == []
+
+    def test_flags_ampersand_in_official_name_but_allows_qa(self):
+        assert detect_disallowed_ampersands(
+            "The Research & Faculty Development Q&A starts soon."
+        ) == ["&"]
+
+    def test_ignores_html_entities(self):
+        assert detect_disallowed_ampersands("Research &amp; scholarship") == []
 
 
 class TestPlatformNames:
@@ -189,6 +221,12 @@ class TestSourceFidelity:
         text = "Audition for UIdaho Dance Ensemble and manage details in VandalStar."
 
         assert detect_changed_official_names(text, text) == []
+
+    def test_accepts_ampersand_replaced_with_and_in_official_name(self):
+        source = "The Research & Faculty Development Office hosts a workshop."
+        edited = "The Research and Faculty Development Office hosts a workshop."
+
+        assert detect_changed_official_names(source, edited) == []
 
     def test_official_names_do_not_merge_across_headline_body_boundary(self):
         source = (
@@ -346,6 +384,36 @@ class TestSourceFidelity:
         edited = "Attend the gallery reception from 4-6 p.m. Wednesday."
 
         assert detect_missing_broad_audience(source, edited) == []
+
+    def test_flags_audience_group_introduced_by_edit(self):
+        assert detect_introduced_audience_groups(
+            "Attend the workshop online.",
+            "Employees can attend the workshop online.",
+        ) == ["employees"]
+
+    def test_accepts_audience_group_present_in_source(self):
+        assert detect_introduced_audience_groups(
+            "Employees can attend the workshop online.",
+            "The workshop is open to employees online.",
+        ) == []
+
+    def test_flags_relative_date_or_calendar_date_removed(self):
+        source = "Apply today, Aug. 20, for the fellowship."
+
+        assert detect_missing_relative_date_components(
+            source,
+            "Apply today for the fellowship.",
+        ) == ["today, Aug. 20"]
+        assert detect_missing_relative_date_components(
+            source,
+            "Apply Aug. 20 for the fellowship.",
+        ) == ["today, Aug. 20"]
+
+    def test_accepts_relative_and_calendar_date_preserved(self):
+        assert detect_missing_relative_date_components(
+            "Apply today, Aug. 20, for the fellowship.",
+            "Apply today, Aug. 20, for the fellowship.",
+        ) == []
 
 
 class TestCompositionAndLocations:

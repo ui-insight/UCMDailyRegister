@@ -1532,6 +1532,99 @@ class TestDeterministicPostValidation:
         assert any("ages 18-50" in flag["message"] for flag in flags)
         assert any("Interested participants should contact" in flag["message"] for flag in flags)
 
+    async def test_channel_derived_employee_audience_is_flagged(self):
+        source_body = (
+            "Looking for a job on campus or in Moscow? U of I departments and local "
+            "businesses will recruit freshman through graduate students."
+        )
+        flags = AIEditor(SuccessfulProvider()).post_analyze(
+            "Attend the job fair",
+            "Employees seeking on-campus or Moscow employment can attend the job fair.",
+            "faculty_staff",
+            [
+                {
+                    "category": "content_filtering",
+                    "rule_key": "preserve_audience_scope",
+                    "rule_text": "Managed audience rule.",
+                    "severity": "error",
+                }
+            ],
+            source_text=source_body,
+            source_body=source_body,
+        )
+
+        assert {flag["rule_key"] for flag in flags} == {"preserve_audience_scope"}
+        assert "employees" in flags[0]["message"].lower()
+
+    async def test_disallowed_ampersand_is_flagged(self):
+        flags = AIEditor(SuccessfulProvider()).post_analyze(
+            "Attend the Campus & Community Job Fair",
+            "Attend the Campus & Community Job Fair.",
+            "faculty_staff",
+            [
+                {
+                    "category": "formatting",
+                    "rule_key": "ampersand_to_and",
+                    "rule_text": "Managed ampersand rule.",
+                    "severity": "error",
+                }
+            ],
+        )
+
+        assert {flag["rule_key"] for flag in flags} == {"ampersand_to_and"}
+
+    async def test_event_order_and_cross_period_hyphen_are_flagged(self):
+        flags = AIEditor(SuccessfulProvider()).post_analyze(
+            "Attend the job fair",
+            (
+                "Attend the fair on Thursday, Aug. 27, from 11 a.m.-2 p.m. "
+                "in the ISUB Summit Conference Center."
+            ),
+            "faculty_staff",
+            [
+                {
+                    "category": "formatting",
+                    "rule_key": "event_detail_ordering",
+                    "rule_text": "Managed event order rule.",
+                    "severity": "error",
+                },
+                {
+                    "category": "formatting",
+                    "rule_key": "ap_style_times",
+                    "rule_text": "Managed time rule.",
+                    "severity": "error",
+                },
+            ],
+        )
+
+        assert {flag["rule_key"] for flag in flags} == {
+            "event_detail_ordering",
+            "ap_style_times",
+        }
+
+    async def test_relative_word_cannot_replace_source_calendar_date(self):
+        source_body = (
+            "Regular business hours of 8 a.m. to 5 p.m. resume today, Aug. 24."
+        )
+        flags = AIEditor(SuccessfulProvider()).post_analyze(
+            "Regular hours resume today",
+            "Regular business hours of 8 a.m. to 5 p.m. resume today.",
+            "faculty_staff",
+            [
+                {
+                    "category": "formatting",
+                    "rule_key": "today_tomorrow",
+                    "rule_text": "Managed relative-date rule.",
+                    "severity": "error",
+                }
+            ],
+            source_text=source_body,
+            source_body=source_body,
+        )
+
+        assert {flag["rule_key"] for flag in flags} == {"today_tomorrow"}
+        assert "Aug. 24" in flags[0]["message"]
+
     async def test_compliant_output_produces_no_post_validation_flags(
         self,
         client: AsyncClient,

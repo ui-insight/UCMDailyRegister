@@ -54,6 +54,11 @@ Your task is to edit submissions to comply with the university's editorial style
 ## Headline Style: {headline_case}
 ## Submission Category: {category}
 
+The newsletter audience above is distribution context only, not submitted
+content. Never add or narrow an audience based on the selected newsletter.
+If an item may run in both newsletters, keep its audience neutral unless the
+source explicitly names a group.
+
 ## Editorial Rules
 {rules_text}
 
@@ -79,13 +84,13 @@ Your task is to edit submissions to comply with the university's editorial style
 - Abbreviate months with six or more letters when used with a specific date: Jan., Feb., Aug., Sept., Oct., Nov., Dec. Do NOT abbreviate March, April, May, June, July.
 - Format: "Monday, Feb. 3" not "Monday, February 3, 2025". Omit the year for events within 12 months of the publication date, even if the event is in the next calendar year. Include the year only for events more than 12 months out.
 - Times: lowercase "a.m." and "p.m." with periods. Use "noon" and "midnight" instead of "12 p.m." and "12 a.m.".
-- Same-period time ranges use a hyphen: "3-4 p.m." not "3 to 4 p.m." Use "from" with "to" only when crossing a.m./p.m.: "from 9 a.m. to 3 p.m."
+- Same-period time ranges use a hyphen: "3-4 p.m." not "3 to 4 p.m." Ranges that cross a.m./p.m. use "to": "9 a.m. to 3 p.m." Use "from" only when the sentence grammar requires a from/to construction.
 - Spell out numbers one through nine; use numerals for 10 and above. Exception: always use numerals with a.m./p.m.
 - Use "more than" instead of "over" for numerical comparisons.
 
 ### Event Details
 - Ensure events include date, time and location. Flag if any are missing.
-- REQUIRED ORDER: write event details as time, day, date, then location. Never put the day or date before the time.
+- REQUIRED ORDER: start the event-detail construction with the time, then write the day, date and location. Never put the day or date before the time.
 - Example: "3-4 p.m. Wednesday, Feb. 12, in the Bruce M. Pitman Center Vandal Ballroom"
 
 ### Links

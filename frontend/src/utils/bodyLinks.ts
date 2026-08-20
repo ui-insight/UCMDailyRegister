@@ -110,7 +110,59 @@ export function prepareBodyForEditing(
     });
   }
 
+  // Keep the body and link fields as one editable representation. A stored
+  // link label that is absent from the body would otherwise be appended only
+  // during serialization, making duplicate CTA text invisible until save.
+  for (const link of links) {
+    const label = link.Anchor_Text.trim();
+    if (!label || plainBody.toLocaleLowerCase().includes(label.toLocaleLowerCase())) {
+      continue;
+    }
+    plainBody = [plainBody.trimEnd(), label].filter(Boolean).join('\n');
+  }
+
   return { body: plainBody, links: links.slice(0, 3) };
+}
+
+export function synchronizeBodyWithLinkLabel(
+  body: string,
+  previousLabel: string,
+  nextLabel: string,
+): string {
+  const previous = previousLabel.trim();
+  const next = nextLabel.trim().replace(/[<>]/g, '');
+  if (!previous || !next || previous === next) return body;
+
+  const matchIndex = body.toLocaleLowerCase().indexOf(previous.toLocaleLowerCase());
+  if (matchIndex < 0) {
+    if (body.toLocaleLowerCase().includes(next.toLocaleLowerCase())) return body;
+    return [body.trimEnd(), next].filter(Boolean).join('\n');
+  }
+
+  return `${body.slice(0, matchIndex)}${next}${body.slice(matchIndex + previous.length)}`;
+}
+
+export function synchronizeLinksWithBodyChange(
+  previousBody: string,
+  nextBody: string,
+  links: EditableBodyLink[],
+): EditableBodyLink[] {
+  return links.map((link) => {
+    const label = link.Anchor_Text.trim();
+    if (!label) return link;
+
+    const labelIndex = previousBody.toLocaleLowerCase().indexOf(label.toLocaleLowerCase());
+    if (labelIndex < 0) return link;
+
+    const before = previousBody.slice(0, labelIndex);
+    const after = previousBody.slice(labelIndex + label.length);
+    if (!nextBody.startsWith(before) || !nextBody.endsWith(after)) return link;
+
+    const replacementEnd = nextBody.length - after.length;
+    const replacement = nextBody.slice(before.length, replacementEnd).trim().replace(/[<>]/g, '');
+    if (!replacement || replacement === label) return link;
+    return { ...link, Anchor_Text: replacement };
+  });
 }
 
 function linkLabel(link: EditableBodyLink): string {

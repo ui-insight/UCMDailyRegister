@@ -95,5 +95,9 @@ def test_migration_matches_seeded_rules():
     for category, rule_key, rule_text, severity in migration.RULES:
         rule = seeded[rule_key]
         assert rule["category"] == category
-        assert rule["rule_text"] == rule_text
+        if rule_key == "preserve_audience_scope":
+            # The Aug. 20 clarification adds the channel-metadata prohibition.
+            assert rule["rule_text"] != rule_text
+        else:
+            assert rule["rule_text"] == rule_text
         assert rule["severity"] == severity

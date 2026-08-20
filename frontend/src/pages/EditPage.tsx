@@ -26,6 +26,8 @@ import {
   buildLinkedBody,
   normalizedBodyLinks,
   prepareBodyForEditing,
+  synchronizeBodyWithLinkLabel,
+  synchronizeLinksWithBodyChange,
 } from '../utils/bodyLinks';
 import { buildEditorScheduleRequest } from '../utils/editorSchedule';
 import { Button, SegmentedToggle, Toast, useToast } from '../components/common';
@@ -244,6 +246,23 @@ export default function EditPage() {
     }
     setFinalEditSource(source);
     setActiveTab('editor');
+  };
+
+  const handleEditBodyChange = (nextBody: string) => {
+    setEditLinks((links) => synchronizeLinksWithBodyChange(editBody, nextBody, links));
+    setEditBody(nextBody);
+  };
+
+  const handleLinkAnchorCommit = (
+    _index: number,
+    previousValue: string,
+    nextValue: string,
+  ) => {
+    setEditBody((body) => synchronizeBodyWithLinkLabel(
+      body,
+      previousValue,
+      nextValue,
+    ));
   };
 
   const handleFinalize = async (approveForNewsletter: boolean) => {
@@ -721,11 +740,12 @@ export default function EditPage() {
                       headlineCase={aiVersion?.Headline_Case || null}
                     />
                   )}
-                  <BodyEditor value={editBody} onChange={setEditBody} />
+                  <BodyEditor value={editBody} onChange={handleEditBodyChange} />
                   <div className="border-t border-gray-100 pt-4">
                     <LinkEditor
                       links={editLinks}
                       onChange={setEditLinks}
+                      onAnchorCommit={handleLinkAnchorCommit}
                       label="Links and CTA text"
                       description="Link text stays readable in the body while its destination is edited here. Add a secure web URL or an email address."
                     />
