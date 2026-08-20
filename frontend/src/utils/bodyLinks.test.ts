@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildLinkedBody,
+  normalizedBodyLinks,
   prepareBodyForEditing,
   synchronizeBodyWithLinkLabel,
   synchronizeLinksWithBodyChange,
@@ -83,7 +84,7 @@ describe('body link editing', () => {
     );
   });
 
-  it('places unmatched stored CTA text into the editable body exactly once', () => {
+  it('does not inject unmatched stored CTA text into the editable body', () => {
     const editable = prepareBodyForEditing(
       'Explore the university sustainability initiatives.',
       [
@@ -95,13 +96,76 @@ describe('body link editing', () => {
       ],
     );
 
-    expect(editable.body).toBe(
-      'Explore the university sustainability initiatives.\nReview the STARS Gold rating',
-    );
+    expect(editable.body).toBe('Explore the university sustainability initiatives.');
     expect(buildLinkedBody(editable.body, editable.links)).toBe(
-      'Explore the university sustainability initiatives.\n'
-        + '<a href="https://example.com/stars">Review the STARS Gold rating</a>',
+      'Explore the university sustainability initiatives.',
     );
+  });
+
+  it('removes a legacy standalone anchor even when its label differs from the prose', () => {
+    const editable = prepareBodyForEditing(
+      'Discover why U of I is an AASHE STARS Gold-rated university.\n'
+        + '<a href="https://example.com/stars">'
+        + 'Association for the Advancement of Sustainability STARS Gold rated university'
+        + '</a>',
+      [
+        {
+          Url: 'https://example.com/stars',
+          Anchor_Text: (
+            'Association for the Advancement of Sustainability '
+            + 'STARS Gold rated university'
+          ),
+          Display_Order: 0,
+        },
+      ],
+    );
+
+    expect(editable.body).toBe(
+      'Discover why U of I is an AASHE STARS Gold-rated university.',
+    );
+  });
+
+  it('uses the stored destination when a CTA keeps its text but its URL changes', () => {
+    const editable = prepareBodyForEditing(
+      'Visit the <a href="https://old.example.com">Inside U of I homepage</a>.',
+      [
+        {
+          Url: 'https://new.example.com',
+          Anchor_Text: 'Inside U of I homepage',
+          Display_Order: 0,
+        },
+      ],
+    );
+
+    expect(editable.links).toEqual([
+      {
+        Url: 'https://new.example.com',
+        Anchor_Text: 'Inside U of I homepage',
+        Display_Order: 0,
+      },
+    ]);
+  });
+
+  it('does not resurrect a CTA that an editor removed from the body', () => {
+    expect(buildLinkedBody(
+      'Reserve a seat.',
+      [{ Url: 'https://example.com/register', Anchor_Text: 'Register now' }],
+    )).toBe('Reserve a seat.');
+  });
+
+  it('drops hidden link metadata when its anchor is absent from the body', () => {
+    expect(normalizedBodyLinks(
+      [{ Url: 'https://example.com/register', Anchor_Text: 'Register now' }],
+      'Reserve a seat.',
+    )).toEqual([]);
+  });
+
+  it('places a newly named link visibly into the body before serialization', () => {
+    expect(synchronizeBodyWithLinkLabel(
+      'Reserve a seat.',
+      '',
+      'Register now',
+    )).toBe('Reserve a seat.\nRegister now');
   });
 
   it('replaces link text in place when its link field is edited', () => {

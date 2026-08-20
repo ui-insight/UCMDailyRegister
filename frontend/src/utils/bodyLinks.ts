@@ -77,20 +77,34 @@ export function prepareBodyForEditing(
     return anchorText;
   });
 
-  // Older editor builds appended unmatched anchors on their own line. Remove
-  // only those generated duplicates when the same label already exists in the
-  // prose; retain their link metadata so it can be reattached there.
-  const lowerBody = plainBody.toLocaleLowerCase();
-  plainBody = plainBody
-    .split('\n')
-    .filter((line) => {
-      const label = line.trim().toLocaleLowerCase();
-      if (!standaloneAnchorLabels.has(label)) return true;
-      const first = lowerBody.indexOf(label);
-      return first === lowerBody.lastIndexOf(label);
-    })
-    .join('\n')
-    .trimEnd();
+  // Older editor builds silently appended unmatched anchors at the end of the
+  // body. Remove that trailing generated block when real prose precedes it.
+  // The link metadata remains available in the link fields so an editor can
+  // deliberately attach it to wording that actually exists in the body.
+  const bodyLines = plainBody.split('\n');
+  let trailingBlockStart = bodyLines.length;
+  let foundStandaloneAnchor = false;
+  for (let index = bodyLines.length - 1; index >= 0; index -= 1) {
+    const label = bodyLines[index].trim().toLocaleLowerCase();
+    if (!label) {
+      trailingBlockStart = index;
+      continue;
+    }
+    if (standaloneAnchorLabels.has(label)) {
+      foundStandaloneAnchor = true;
+      trailingBlockStart = index;
+      continue;
+    }
+    break;
+  }
+  const hasEarlierProse = bodyLines
+    .slice(0, trailingBlockStart)
+    .some((line) => line.trim());
+  if (foundStandaloneAnchor && hasEarlierProse) {
+    plainBody = bodyLines.slice(0, trailingBlockStart).join('\n').trimEnd();
+  } else {
+    plainBody = plainBody.trimEnd();
+  }
 
   const links = [...bodyLinks];
   for (const link of [...storedLinks].sort(
@@ -103,22 +117,26 @@ export function prepareBodyForEditing(
     if (links.some(
       (candidate) => canonicalLinkDestination(candidate.Url) === canonicalUrl,
     )) continue;
+    const matchingAnchorIndex = anchorText
+      ? links.findIndex(
+        (candidate) => (
+          candidate.Anchor_Text.trim().toLocaleLowerCase()
+          === anchorText.toLocaleLowerCase()
+        ),
+      )
+      : -1;
+    if (matchingAnchorIndex >= 0) {
+      links[matchingAnchorIndex] = {
+        ...links[matchingAnchorIndex],
+        Url: normalizedUrl,
+      };
+      continue;
+    }
     links.push({
       Url: normalizedUrl,
       Anchor_Text: anchorText,
       Display_Order: links.length,
     });
-  }
-
-  // Keep the body and link fields as one editable representation. A stored
-  // link label that is absent from the body would otherwise be appended only
-  // during serialization, making duplicate CTA text invisible until save.
-  for (const link of links) {
-    const label = link.Anchor_Text.trim();
-    if (!label || plainBody.toLocaleLowerCase().includes(label.toLocaleLowerCase())) {
-      continue;
-    }
-    plainBody = [plainBody.trimEnd(), label].filter(Boolean).join('\n');
   }
 
   return { body: plainBody, links: links.slice(0, 3) };
@@ -131,7 +149,11 @@ export function synchronizeBodyWithLinkLabel(
 ): string {
   const previous = previousLabel.trim();
   const next = nextLabel.trim().replace(/[<>]/g, '');
-  if (!previous || !next || previous === next) return body;
+  if (!next || previous === next) return body;
+  if (!previous) {
+    if (body.toLocaleLowerCase().includes(next.toLocaleLowerCase())) return body;
+    return [body.trimEnd(), next].filter(Boolean).join('\n');
+  }
 
   const matchIndex = body.toLocaleLowerCase().indexOf(previous.toLocaleLowerCase());
   if (matchIndex < 0) {
@@ -196,8 +218,6 @@ export function buildLinkedBody(body: string, links: EditableBodyLink[]): string
 
   const occupiedRanges: Array<{ start: number; end: number }> = [];
   const replacements: Array<{ start: number; end: number; markup: string }> = [];
-  const appendedLinks: string[] = [];
-
   for (const link of validLinks) {
     const label = linkLabel(link);
     if (!label) continue;
@@ -223,9 +243,6 @@ export function buildLinkedBody(body: string, links: EditableBodyLink[]): string
         end: matchIndex + label.length,
         markup,
       });
-    } else {
-      const markup = `<a href="${safeAttributeValue(link.Url)}">${label}</a>`;
-      appendedLinks.push(markup);
     }
   }
 
@@ -234,11 +251,15 @@ export function buildLinkedBody(body: string, links: EditableBodyLink[]): string
     linkedBody = `${linkedBody.slice(0, replacement.start)}${replacement.markup}${linkedBody.slice(replacement.end)}`;
   }
 
-  return [linkedBody.trimEnd(), ...appendedLinks].filter(Boolean).join('\n');
+  return linkedBody.trimEnd();
 }
 
-export function normalizedBodyLinks(links: EditableBodyLink[]): EditableBodyLink[] {
+export function normalizedBodyLinks(
+  links: EditableBodyLink[],
+  body?: string,
+): EditableBodyLink[] {
   const seenDestinations = new Set<string>();
+  const searchableBody = body?.toLocaleLowerCase();
   return links
     .map((link, index) => ({
       Url: normalizeEditableLinkUrl(link.Url),
@@ -247,6 +268,13 @@ export function normalizedBodyLinks(links: EditableBodyLink[]): EditableBodyLink
     }))
     .filter((link) => {
       if (!link.Url || !isSafeLinkDestination(link.Url)) return false;
+      if (
+        searchableBody !== undefined
+        && (
+          !link.Anchor_Text
+          || !searchableBody.includes(link.Anchor_Text.toLocaleLowerCase())
+        )
+      ) return false;
       const canonicalUrl = canonicalLinkDestination(link.Url);
       if (seenDestinations.has(canonicalUrl)) return false;
       seenDestinations.add(canonicalUrl);

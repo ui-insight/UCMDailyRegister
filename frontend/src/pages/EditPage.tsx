@@ -249,8 +249,15 @@ export default function EditPage() {
   };
 
   const handleEditBodyChange = (nextBody: string) => {
-    setEditLinks((links) => synchronizeLinksWithBodyChange(editBody, nextBody, links));
     setEditBody(nextBody);
+  };
+
+  const handleEditBodyCommit = (previousBody: string, nextBody: string) => {
+    setEditLinks((links) => synchronizeLinksWithBodyChange(
+      previousBody,
+      nextBody,
+      links,
+    ));
   };
 
   const handleLinkAnchorCommit = (
@@ -277,7 +284,7 @@ export default function EditPage() {
         : finalEditSource === 'saved'
           ? editorVersion
           : undefined;
-      const links = normalizedBodyLinks(editLinks);
+      const links = normalizedBodyLinks(editLinks, editBody);
       await saveEditorFinal(id, {
         Headline: submission?.Category === 'job_opportunity' ? '' : editHeadline,
         Body: buildLinkedBody(editBody, links),
@@ -740,7 +747,11 @@ export default function EditPage() {
                       headlineCase={aiVersion?.Headline_Case || null}
                     />
                   )}
-                  <BodyEditor value={editBody} onChange={handleEditBodyChange} />
+                  <BodyEditor
+                    value={editBody}
+                    onChange={handleEditBodyChange}
+                    onCommit={handleEditBodyCommit}
+                  />
                   <div className="border-t border-gray-100 pt-4">
                     <LinkEditor
                       links={editLinks}
