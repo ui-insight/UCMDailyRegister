@@ -149,7 +149,7 @@ export default function EditPage() {
           setEditHeadline(editorVersion.Headline);
           setEditBody(editable.body);
           setEditLinks(editable.links);
-          setFinalEditSource(preserveAILiveView ? 'ai' : 'saved');
+          setFinalEditSource('saved');
           setActiveTab(preserveAILiveView ? 'ai_edit' : 'editor');
         } else if (aiVersion) {
           const editable = prepareBodyForEditing(aiVersion.Body, sub.Links);
@@ -528,19 +528,11 @@ export default function EditPage() {
 
   const handleViewModeChange = (mode: ViewMode) => {
     setViewMode(mode);
-    if (mode !== 'live' || finalEditSource === 'ai') return;
-
-    if (finalEditSource !== null) {
-      const editable = prepareBodyForEditing(
-        aiVersion?.Body || aiEditResult?.Edited_Body || '',
-        submission.Links,
-      );
-      setEditHeadline(aiVersion?.Headline || aiEditResult?.Edited_Headline || '');
-      setEditBody(editable.body);
-      setEditLinks(editable.links);
+    // Live View edits the current working copy; never overwrite a saved draft
+    // or in-progress Final Edit content with the AI suggestion.
+    if (mode === 'live' && finalEditSource === null) {
+      setFinalEditSource('ai');
     }
-
-    setFinalEditSource('ai');
   };
 
   const editingFields = (

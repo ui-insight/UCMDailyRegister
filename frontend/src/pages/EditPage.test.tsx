@@ -343,6 +343,32 @@ describe('EditPage', () => {
     expect(screen.queryByRole('region', { name: 'Final edit' })).not.toBeInTheDocument();
   });
 
+  it('does not overwrite a saved draft when switching to Live View', async () => {
+    const user = userEvent.setup();
+    listEditVersionsMock.mockResolvedValue([
+      makeVersion({
+        Headline: 'AI working headline',
+        Body: 'AI working body.',
+      }),
+      makeVersion({
+        Id: 'version-final',
+        Version_Type: 'editor_final',
+        Headline: 'Draft headline kept by the editor',
+        Body: 'Draft body kept by the editor.',
+      }),
+    ]);
+
+    renderEditPage();
+
+    await screen.findByDisplayValue('Draft body kept by the editor.');
+    await user.click(screen.getByRole('button', { name: 'AI Suggested' }));
+    await user.click(screen.getByRole('button', { name: 'Live View' }));
+
+    const liveEdit = screen.getByRole('region', { name: 'AI live edit' });
+    expect(within(liveEdit).getByDisplayValue('Draft body kept by the editor.')).toBeInTheDocument();
+    expect(within(liveEdit).queryByDisplayValue('AI working body.')).not.toBeInTheDocument();
+  });
+
   it('edits and approves a body-only Jobs suggestion directly from Live View', async () => {
     const user = userEvent.setup();
     getSubmissionMock.mockResolvedValue(makeSubmission({

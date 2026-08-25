@@ -1622,7 +1622,7 @@ class TestDeterministicPostValidation:
 
         assert flags == [
             {
-                "type": "error",
+                "type": "warning",
                 "rule_key": "event_detail_ordering",
                 "message": (
                     "Keep event details in the same complete sentence as the event: "
@@ -1654,7 +1654,7 @@ class TestDeterministicPostValidation:
 
         assert flags == [
             {
-                "type": "error",
+                "type": "warning",
                 "rule_key": "headline_reader_perspective",
                 "message": (
                     "Headline changes the source event's intended action: "

@@ -250,6 +250,7 @@ class AIEditor:
                 "event_detail_ordering",
                 "Keep event details in the same complete sentence as the event: "
                 f"'{fragment}'",
+                heuristic=True,
             )
 
         ampersands = detect_disallowed_ampersands(text)
@@ -320,6 +321,7 @@ class AIEditor:
                     "headline_reader_perspective",
                     "Headline changes the source event's intended action: "
                     f'"{changed_action}"',
+                    heuristic=True,
                 )
             missing_contacts = detect_missing_source_contacts(
                 source_text,
