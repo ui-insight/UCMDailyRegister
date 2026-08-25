@@ -28,6 +28,14 @@ _HTML_TAG = re.compile(r"<[^>]*>")
 _ABBREVIATABLE_FULL = "January|February|August|September|October|November|December"
 _MONTH_ABBREV = "Jan|Feb|Aug|Sept|Oct|Nov|Dec"
 
+# Shared alternations for any month or weekday name, full or abbreviated.
+_MONTH_NAME = (
+    "Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|"
+    "June?|July?|Aug(?:ust)?|Sept?(?:ember)?|Oct(?:ober)?|Nov(?:ember)?|"
+    "Dec(?:ember)?"
+)
+_WEEKDAY_NAME = "Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday"
+
 _FULL_MONTH_WITH_DATE = re.compile(rf"\b(?:{_ABBREVIATABLE_FULL})\s+\d{{1,2}}(?!\d)")
 _ABBREV_WITHOUT_DATE = re.compile(rf"\b(?:{_MONTH_ABBREV})\.(?!\s*\d)")
 
@@ -38,19 +46,18 @@ _TIME_WITH_PERIOD = re.compile(
     re.IGNORECASE,
 )
 _PROTECTED_SENTENCE_PERIOD = re.compile(
-    r"\b(?:a\.m|p\.m|Jan|Feb|Aug|Sept|Oct|Nov|Dec)\.",
+    rf"\b(?:a\.m|p\.m|{_MONTH_ABBREV})\.",
     re.IGNORECASE,
 )
 _STANDALONE_EVENT_DETAIL_START = re.compile(
-    r"^(?:"
-    r"\d{1,2}(?::\d{2})?(?:\s*[-–—]\s*\d{1,2}(?::\d{2})?)?"
-    r"\s*(?:a\.m\.|p\.m\.)"
-    r"|noon\b|midnight\b"
-    r"|(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\b"
-    r"|(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|June?|July?|"
-    r"Aug(?:ust)?|Sept?(?:ember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)"
-    r"\.?\s+\d{1,2}\b"
-    r")",
+    rf"^(?:"
+    rf"\d{{1,2}}(?::\d{{2}})?(?:\s*[-–—]\s*\d{{1,2}}(?::\d{{2}})?)?"
+    rf"\s*(?:a\.m\.|p\.m\.)"
+    rf"|noon\b|midnight\b"
+    rf"|(?:{_WEEKDAY_NAME})\b"
+    rf"|(?:{_MONTH_NAME})"
+    rf"\.?\s+\d{{1,2}}\b"
+    rf")",
     re.IGNORECASE,
 )
 _COMPLETE_EVENT_DETAIL_VERB = re.compile(
@@ -245,16 +252,14 @@ _OFFICIAL_NAME = re.compile(
 )
 _BRANDED_TOKEN = re.compile(r"\b[A-Z][a-z]+[A-Z][A-Za-z]*\b")
 _WEEKDAY_DATE = re.compile(
-    r"\b(?P<weekday>Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)"
-    r",?\s+(?P<month>Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|"
-    r"June?|July?|Aug(?:ust)?|Sept?(?:ember)?|Oct(?:ober)?|Nov(?:ember)?|"
-    r"Dec(?:ember)?)\.?\s+(?P<day>\d{1,2})(?:,\s*(?P<year>\d{4}))?\b",
+    rf"\b(?P<weekday>{_WEEKDAY_NAME})"
+    rf",?\s+(?P<month>{_MONTH_NAME})"
+    rf"\.?\s+(?P<day>\d{{1,2}})(?:,\s*(?P<year>\d{{4}}))?\b",
     re.IGNORECASE,
 )
 _MONTH_DAY = re.compile(
-    r"\b(?P<month>Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|"
-    r"June?|July?|Aug(?:ust)?|Sept?(?:ember)?|Oct(?:ober)?|Nov(?:ember)?|"
-    r"Dec(?:ember)?)\.?\s+(?P<day>\d{1,2})(?:,\s*(?P<year>\d{4}))?\b",
+    rf"\b(?P<month>{_MONTH_NAME})"
+    rf"\.?\s+(?P<day>\d{{1,2}})(?:,\s*(?P<year>\d{{4}}))?\b",
     re.IGNORECASE,
 )
 _RELATIVE_DATE_REFERENCE = re.compile(
@@ -262,7 +267,7 @@ _RELATIVE_DATE_REFERENCE = re.compile(
     re.IGNORECASE,
 )
 _WEEKDAY_PREFIX = re.compile(
-    r"\b(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\s*$",
+    rf"\b(?:{_WEEKDAY_NAME}),?\s*$",
     re.IGNORECASE,
 )
 _MONTH_NUMBERS = {

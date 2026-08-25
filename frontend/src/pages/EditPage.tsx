@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   addScheduleRequest,
@@ -75,60 +75,7 @@ export default function EditPage() {
   const [editorialNotes, setEditorialNotes] = useState('');
   const isStaff = getSubmitterRole() === 'staff';
 
-  useEffect(() => {
-    if (!id) return;
-
-    void (async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const sub = await getSubmission(id);
-        setSubmission(sub);
-        setAssignedEditor(sub.Assigned_Editor || '');
-        setEditorialNotes(sub.Editorial_Notes || '');
-
-        try {
-          const vers = await listEditVersions(id);
-          setVersions(vers);
-          const aiVersion = [...vers].reverse().find((v) => v.Version_Type === 'ai_suggested');
-          const editorVersion = [...vers].reverse().find((v) => v.Version_Type === 'editor_final');
-          if (editorVersion) {
-            const editable = prepareBodyForEditing(editorVersion.Body, sub.Links);
-            setEditHeadline(editorVersion.Headline);
-            setEditBody(editable.body);
-            setEditLinks(editable.links);
-            setFinalEditSource('saved');
-            setActiveTab('editor');
-          } else if (aiVersion) {
-            const editable = prepareBodyForEditing(aiVersion.Body, sub.Links);
-            setEditHeadline(aiVersion.Headline);
-            setEditBody(editable.body);
-            setEditLinks(editable.links);
-            setFinalEditSource(null);
-            setActiveTab('ai_edit');
-          } else {
-            const editable = prepareBodyForEditing(sub.Original_Body, sub.Links);
-            setEditHeadline(sub.Original_Headline);
-            setEditBody(editable.body);
-            setEditLinks(editable.links);
-            setFinalEditSource(null);
-          }
-        } catch {
-          const editable = prepareBodyForEditing(sub.Original_Body, sub.Links);
-          setEditHeadline(sub.Original_Headline);
-          setEditBody(editable.body);
-          setEditLinks(editable.links);
-          setFinalEditSource(null);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load submission');
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [id]);
-
-  const loadData = async (preserveAILiveView = false) => {
+  const loadData = useCallback(async (preserveAILiveView = false) => {
     if (!id) return;
     setLoading(true);
     setError(null);
@@ -178,7 +125,11 @@ export default function EditPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
 
   const handleTriggerEdit = async (
     newsletterType: 'tdr' | 'myui',

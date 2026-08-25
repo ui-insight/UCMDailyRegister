@@ -12,6 +12,8 @@ without overwriting unrelated staff-maintained rules or allowed values.
 """
 
 from collections.abc import Sequence
+import json
+from pathlib import Path
 import uuid
 
 from alembic import op
@@ -24,60 +26,26 @@ branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
 
-STYLE_RULE_UPDATES = [
-    {
-        "category": "formatting",
-        "rule_key": "event_detail_ordering",
-        "rule_text": (
-            "Start event-detail constructions with the time, then give the day, "
-            "date and location in that order. Example: '3-4 p.m. Wednesday, Feb. "
-            "12, in the Pitman Center Vandal Ballroom.' Never place the day or "
-            "date before the time. Keep the time, day, date and location in the "
-            "same complete sentence as the event name. Never begin a separate "
-            "sentence with a time, date, day of the week or location fragment. "
-            "Correct: 'Stop by the Asian Studies Library Open House 2-4 p.m. "
-            "Thursday, Sept. 3, in Admin 204.' Incorrect: 'Stop by the Asian "
-            "Studies Library Open House. 2-4 p.m. Thursday, Sept. 3, in Admin "
-            "204.' Do not omit these elements. If the event is more than one "
-            "month away, omit the day of the week."
-        ),
-        "severity": "error",
-    },
-    {
-        "category": "voice",
-        "rule_key": "short_sentences",
-        "rule_text": (
-            "Use short, complete sentences. Each sentence should communicate "
-            "one main idea. Do not use semicolons. Replace semicolons with "
-            "periods. Split compound or lengthy sentences into separate "
-            "sentences. Favor clear, direct wording over complex sentence "
-            "structures. Keep sentences concise and easy to read. Never "
-            "separate an event from its time, date or location when shortening "
-            "or splitting prose; keep those details together in one complete "
-            "sentence."
-        ),
-        "severity": "error",
-    },
-    {
-        "category": "headlines",
-        "rule_key": "headline_reader_perspective",
-        "rule_text": (
-            "Headlines must be written from the reader's perspective using "
-            "verbs that accurately reflect the action the original submission "
-            "asks readers to take. Preserve the primary action, purpose and "
-            "intent; never substitute a different activity or transaction. "
-            "When an author reads from a book, invite readers to attend a "
-            "reading, not read or purchase the book. Correct headlines include "
-            "'Attend Elizabeth Bradfield's reading from SOFAR' and 'Hear "
-            "Elizabeth Bradfield read from SOFAR.' Incorrect headlines include "
-            "'Read Elizabeth Bradfield's poetry collection SOFAR' and "
-            "'Purchase Elizabeth Bradfield's poetry collection.' Likewise, "
-            "write 'Participate in VR research study' not 'Recruit research "
-            "participants'."
-        ),
-        "severity": "error",
-    },
-]
+# The shared seed file is the single source of truth for managed rule wording;
+# this migration only selects which rules to sync into existing databases.
+_SHARED_RULES_PATH = (
+    Path(__file__).resolve().parents[2] / "data" / "style_rules" / "shared_rules.json"
+)
+MANAGED_RULE_KEYS = (
+    "event_detail_ordering",
+    "short_sentences",
+    "headline_reader_perspective",
+)
+
+
+def _load_style_rule_updates() -> list[dict]:
+    seeded = {
+        rule["rule_key"]: rule for rule in json.loads(_SHARED_RULES_PATH.read_text())
+    }
+    return [seeded[rule_key] for rule_key in MANAGED_RULE_KEYS]
+
+
+STYLE_RULE_UPDATES = _load_style_rule_updates()
 
 
 style_rules = sa.table(
