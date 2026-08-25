@@ -33,7 +33,7 @@ import { buildEditorScheduleRequest } from '../utils/editorSchedule';
 import { Button, SegmentedToggle, Toast, useToast } from '../components/common';
 
 type Tab = 'original' | 'ai_edit' | 'editor';
-type ViewMode = 'diff' | 'side_by_side';
+type ViewMode = 'diff' | 'side_by_side' | 'live';
 type FinalizationAction = 'draft' | 'approve' | null;
 type FinalEditSource = 'original' | 'ai' | 'saved' | null;
 
@@ -128,7 +128,7 @@ export default function EditPage() {
     })();
   }, [id]);
 
-  const loadData = async () => {
+  const loadData = async (preserveAILiveView = false) => {
     if (!id) return;
     setLoading(true);
     setError(null);
@@ -150,7 +150,7 @@ export default function EditPage() {
           setEditBody(editable.body);
           setEditLinks(editable.links);
           setFinalEditSource('saved');
-          setActiveTab('editor');
+          setActiveTab(preserveAILiveView ? 'ai_edit' : 'editor');
         } else if (aiVersion) {
           const editable = prepareBodyForEditing(aiVersion.Body, sub.Links);
           setEditHeadline(aiVersion.Headline);
@@ -230,7 +230,7 @@ export default function EditPage() {
       setEditHeadline(submission.Original_Headline);
       setEditBody(editable.body);
       setEditLinks(editable.links);
-    } else {
+    } else if (finalEditSource !== 'ai') {
       const aiVersion = [...versions].reverse().find((v) => v.Version_Type === 'ai_suggested');
       const headline = aiVersion?.Headline || aiEditResult?.Edited_Headline;
       const body = aiVersion?.Body || aiEditResult?.Edited_Body;
@@ -299,7 +299,7 @@ export default function EditPage() {
           ? 'Final version saved and approved for newsletter'
           : 'Draft saved. Submission remains in review',
       );
-      await loadData();
+      await loadData(activeTab === 'ai_edit' && viewMode === 'live');
     } catch (err) {
       const message = err instanceof Error
         ? err.message
@@ -526,6 +526,98 @@ export default function EditPage() {
     handleReviewFinalEdit(activeTab === 'ai_edit' ? 'ai' : 'original');
   };
 
+  const handleViewModeChange = (mode: ViewMode) => {
+    setViewMode(mode);
+    // Live View edits the current working copy; never overwrite a saved draft
+    // or in-progress Final Edit content with the AI suggestion.
+    if (mode === 'live' && finalEditSource === null) {
+      setFinalEditSource('ai');
+    }
+  };
+
+  const editingFields = (
+    <>
+      {isJobSubmission ? (
+        <div className="rounded-md border border-ui-gold-200 bg-ui-gold-50 px-3 py-2">
+          <p className="text-xs font-medium text-ui-gold-800">Jobs listing</p>
+          <p className="mt-0.5 text-xs text-ui-gold-700">
+            Jobs run as one linked line without a separate headline.
+          </p>
+        </div>
+      ) : (
+        <HeadlineEditor
+          value={editHeadline}
+          onChange={setEditHeadline}
+          headlineCase={aiVersion?.Headline_Case || null}
+        />
+      )}
+      <BodyEditor
+        value={editBody}
+        onChange={handleEditBodyChange}
+        onCommit={handleEditBodyCommit}
+      />
+      <div className="border-t border-gray-100 pt-4">
+        <LinkEditor
+          links={editLinks}
+          onChange={setEditLinks}
+          onAnchorCommit={handleLinkAnchorCommit}
+          label="Links and CTA text"
+          description="Link text stays readable in the body while its destination is edited here. Add a secure web URL or an email address."
+        />
+      </div>
+      {editLinks.some((link) => link.Url.trim()) && (
+        <section
+          aria-label="Newsletter body preview"
+          className="rounded-md border border-gray-200 bg-gray-50 px-4 py-3"
+        >
+          <p className="mb-2 text-xs font-medium text-gray-500">Live preview</p>
+          <RichBody
+            text={buildLinkedBody(editBody, editLinks)}
+            className="text-sm leading-6 text-gray-800"
+          />
+        </section>
+      )}
+    </>
+  );
+
+  const finalizationControls = (
+    <div className="flex flex-col gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+      <div>
+        <p className="text-sm font-medium text-gray-900">
+          {canApproveFinal
+            ? 'Ready for newsletter assembly?'
+            : 'Save your work before leaving'}
+        </p>
+        <p className="mt-0.5 max-w-[65ch] text-xs text-gray-500">
+          {canApproveFinal
+            ? 'Save a draft for continued review, or approve the current text for the newsletter.'
+            : 'This submission cannot be approved in its current status, but you can keep your edits as a draft.'}
+        </p>
+      </div>
+      <div className="flex shrink-0 flex-wrap justify-end gap-2">
+        <Button
+          onClick={() => void handleFinalize(false)}
+          disabled={finalizationAction !== null}
+          variant="secondary"
+        >
+          {finalizationAction === 'draft' ? 'Saving draft...' : 'Save Draft'}
+        </Button>
+        {canApproveFinal && (
+          <Button
+            onClick={() => void handleFinalize(true)}
+            disabled={finalizationAction !== null}
+            variant="success"
+            title="Save this final version and approve it for newsletter assembly"
+          >
+            {finalizationAction === 'approve'
+              ? 'Saving and approving...'
+              : 'Save and Approve'}
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div>
       <Toast toast={toast} onDismiss={dismissToast} />
@@ -617,10 +709,11 @@ export default function EditPage() {
                 <SegmentedToggle
                   ariaLabel="AI edit view"
                   value={viewMode}
-                  onChange={setViewMode}
+                  onChange={handleViewModeChange}
                   options={[
                     { value: 'side_by_side', label: 'Side by Side' },
                     { value: 'diff', label: 'Inline Diff' },
+                    { value: 'live', label: 'Live View' },
                   ]}
                 />
 
@@ -661,6 +754,19 @@ export default function EditPage() {
                     aiHeadline={aiVersion?.Headline || aiEditResult?.Edited_Headline || ''}
                     aiBody={aiVersion?.Body || aiEditResult?.Edited_Body || ''}
                   />
+                )}
+
+                {viewMode === 'live' && (
+                  <section aria-label="AI live edit" className="min-w-0 space-y-4">
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-900">Live View</h3>
+                      <p className="mt-1 text-xs text-gray-500">
+                        Edit the AI suggestion, then save a draft or approve it from this view.
+                      </p>
+                    </div>
+                    {editingFields}
+                    {finalizationControls}
+                  </section>
                 )}
 
                 {/* Flags */}
@@ -733,81 +839,8 @@ export default function EditPage() {
                       Starting point: {finalEditSourceLabel}
                     </p>
                   </div>
-                  {isJobSubmission ? (
-                    <div className="rounded-md border border-ui-gold-200 bg-ui-gold-50 px-3 py-2">
-                      <p className="text-xs font-medium text-ui-gold-800">Jobs listing</p>
-                      <p className="mt-0.5 text-xs text-ui-gold-700">
-                        Jobs run as one linked line without a separate headline.
-                      </p>
-                    </div>
-                  ) : (
-                    <HeadlineEditor
-                      value={editHeadline}
-                      onChange={setEditHeadline}
-                      headlineCase={aiVersion?.Headline_Case || null}
-                    />
-                  )}
-                  <BodyEditor
-                    value={editBody}
-                    onChange={handleEditBodyChange}
-                    onCommit={handleEditBodyCommit}
-                  />
-                  <div className="border-t border-gray-100 pt-4">
-                    <LinkEditor
-                      links={editLinks}
-                      onChange={setEditLinks}
-                      onAnchorCommit={handleLinkAnchorCommit}
-                      label="Links and CTA text"
-                      description="Link text stays readable in the body while its destination is edited here. Add a secure web URL or an email address."
-                    />
-                  </div>
-                  {editLinks.some((link) => link.Url.trim()) && (
-                    <section
-                      aria-label="Newsletter body preview"
-                      className="rounded-md border border-gray-200 bg-gray-50 px-4 py-3"
-                    >
-                      <p className="mb-2 text-xs font-medium text-gray-500">Live preview</p>
-                      <RichBody
-                        text={buildLinkedBody(editBody, editLinks)}
-                        className="text-sm leading-6 text-gray-800"
-                      />
-                    </section>
-                  )}
-                  <div className="flex flex-col gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">
-                        {canApproveFinal
-                          ? 'Ready for newsletter assembly?'
-                          : 'Save your work before leaving'}
-                      </p>
-                      <p className="mt-0.5 max-w-[65ch] text-xs text-gray-500">
-                        {canApproveFinal
-                          ? 'Save a draft for continued review, or approve the current text for the newsletter.'
-                          : 'This submission cannot be approved in its current status, but you can keep your edits as a draft.'}
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 flex-wrap justify-end gap-2">
-                      <Button
-                        onClick={() => void handleFinalize(false)}
-                        disabled={finalizationAction !== null}
-                        variant="secondary"
-                      >
-                        {finalizationAction === 'draft' ? 'Saving draft...' : 'Save Draft'}
-                      </Button>
-                      {canApproveFinal && (
-                        <Button
-                          onClick={() => void handleFinalize(true)}
-                          disabled={finalizationAction !== null}
-                          variant="success"
-                          title="Save this final version and approve it for newsletter assembly"
-                        >
-                          {finalizationAction === 'approve'
-                            ? 'Saving and approving...'
-                            : 'Save and Approve'}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
+                  {editingFields}
+                  {finalizationControls}
                 </section>
               </div>
             )}

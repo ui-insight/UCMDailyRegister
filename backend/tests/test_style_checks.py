@@ -92,6 +92,38 @@ class TestEventDetailsAndAmpersands:
             "The workshop is at 2 p.m. Wednesday, Aug. 26, in IRIC 352."
         ) == []
 
+    def test_flags_standalone_event_time_and_date_fragments(self):
+        from app.utils.style_checks import detect_standalone_event_detail_fragments
+
+        assert detect_standalone_event_detail_fragments(
+            "Stop by the Asian Studies Library Open House. "
+            "2-4 p.m. Thursday, Sept. 3, in Admin 204."
+        ) == ["2-4 p.m. Thursday, Sept. 3, in Admin 204."]
+
+    def test_accepts_event_details_in_the_same_complete_sentence(self):
+        from app.utils.style_checks import detect_standalone_event_detail_fragments
+
+        assert detect_standalone_event_detail_fragments(
+            "Stop by the Asian Studies Library Open House "
+            "2-4 p.m. Thursday, Sept. 3, in Admin 204."
+        ) == []
+
+    def test_flags_a_reading_event_changed_into_an_instruction_to_read_the_book(self):
+        from app.utils.style_checks import detect_changed_event_call_to_action
+
+        assert detect_changed_event_call_to_action(
+            'Author Elizabeth Bradfield reads from her new poetry collection "SOFAR."',
+            "Read Elizabeth Bradfield's poetry collection 'SOFAR'",
+        ) == ["Read Elizabeth Bradfield's poetry collection 'SOFAR'"]
+
+    def test_accepts_a_headline_inviting_readers_to_attend_a_reading(self):
+        from app.utils.style_checks import detect_changed_event_call_to_action
+
+        assert detect_changed_event_call_to_action(
+            'Author Elizabeth Bradfield reads from her new poetry collection "SOFAR."',
+            "Attend Elizabeth Bradfield's reading from 'SOFAR'",
+        ) == []
+
     def test_flags_ampersand_in_official_name_but_allows_qa(self):
         assert detect_disallowed_ampersands(
             "The Research & Faculty Development Q&A starts soon."

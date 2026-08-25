@@ -60,6 +60,19 @@ def test_prompt_authorizes_flagged_acronym_expansions():
     assert "flag any full name you supply" in prompt
 
 
+def test_prompt_preserves_the_source_action_and_complete_event_sentences():
+    prompt = build_system_prompt(
+        newsletter_type="tdr",
+        category="faculty_staff",
+        style_rules=[],
+    )
+
+    assert "Preserve the action the original submission asks readers to take" in prompt
+    assert "attend a reading, not read or purchase the book" in prompt
+    assert "Keep the event name, time, date and location in the same complete sentence" in prompt
+    assert "Never begin a separate sentence with a time, date or weekday fragment" in prompt
+
+
 def test_length_section_has_no_stray_blank_line_for_non_jobs_categories():
     prompt = build_system_prompt(
         newsletter_type="tdr",

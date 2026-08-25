@@ -104,14 +104,15 @@ After the LLM returns its suggested edit, deterministic post-processing ensures 
 
 ## Editor Review Modes
 
-Once the AI pipeline produces an edit, the editor reviews changes on the **AI Suggested** tab using one of two comparison modes, selectable via a toggle:
+Once the AI pipeline produces an edit, the editor reviews changes on the **AI Suggested** tab using one of three modes, selectable via a toggle:
 
 | Mode            | Description                                                              |
 |-----------------|--------------------------------------------------------------------------|
-| **Inline Diff** | Word-level diff with red strikethrough (deletions) and green highlights (insertions). Shows exactly what the AI changed, token by token. Default view. |
-| **Side by Side**| Two-column layout with the original text on the left and AI-edited text on the right. Useful for reading the full copy in context and judging overall flow. Stacks vertically on small screens. |
+| **Side by Side**| Two-column layout with the original text on the left and AI-edited text on the right. Useful for reading the full copy in context and judging overall flow. Stacks vertically on small screens. Default view. |
+| **Inline Diff** | Word-level diff with red strikethrough (deletions) and green highlights (insertions). Shows exactly what the AI changed, token by token. |
+| **Live View**   | Editable AI-suggested headline, body, links, and linked-body preview. Editors can save a draft or approve the submission directly, or carry their changes into **Final Edit**. |
 
-Both modes display flags and a changes-made summary below the comparison.
+All modes display flags and a changes-made summary below the comparison or editor.
 
 ## Edit Version Storage
 
