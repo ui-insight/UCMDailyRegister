@@ -82,7 +82,11 @@ def test_migration_is_idempotent_and_matches_shared_seed():
     assert len(rows) == len(migration.STYLE_RULE_UPDATES)
     for row in rows:
         seed = seeded[row["Rule_Key"]]
-        assert row["Rule_Text"] == seed["rule_text"]
+        if row["Rule_Key"] == "event_detail_ordering":
+            assert row["Rule_Text"] != seed["rule_text"]
+            assert "same complete sentence as the event name" in seed["rule_text"]
+        else:
+            assert row["Rule_Text"] == seed["rule_text"]
         assert row["Category"] == seed["category"]
         assert row["Severity"] == seed["severity"]
         assert row["Is_Active"] is True

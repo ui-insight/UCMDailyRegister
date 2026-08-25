@@ -35,6 +35,8 @@ from app.utils.style_checks import (
     detect_twelve_oclock_meridiems,
     detect_cross_period_hyphen_ranges,
     detect_event_detail_order_violations,
+    detect_standalone_event_detail_fragments,
+    detect_changed_event_call_to_action,
     detect_disallowed_ampersands,
     detect_platform_names,
     detect_undefined_acronyms,
@@ -243,6 +245,12 @@ class AIEditor:
                 "event_detail_ordering",
                 f"Event details must put the time before the day and date: '{sentence}'",
             )
+        for fragment in detect_standalone_event_detail_fragments(body):
+            add(
+                "event_detail_ordering",
+                "Keep event details in the same complete sentence as the event: "
+                f"'{fragment}'",
+            )
 
         ampersands = detect_disallowed_ampersands(text)
         if ampersands:
@@ -307,6 +315,12 @@ class AIEditor:
         if source_text:
             comparison_output = source_comparison_output or f"{headline}\n{body}"
             body_source = source_body or source_text
+            for changed_action in detect_changed_event_call_to_action(body_source, headline):
+                add(
+                    "headline_reader_perspective",
+                    "Headline changes the source event's intended action: "
+                    f'"{changed_action}"',
+                )
             missing_contacts = detect_missing_source_contacts(
                 source_text,
                 comparison_output,

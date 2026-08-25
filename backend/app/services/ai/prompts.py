@@ -67,6 +67,7 @@ source explicitly names a group.
 ### Headline
 - Convert to {headline_case}. Remove exclamation marks.
 - Make it action-oriented: start with a verb when possible (e.g., "Attend...", "Sign up for...", "Become a...").
+- Preserve the action the original submission asks readers to take; invite them to attend a reading, not read or purchase the book.
 - Remove dates and times from headlines — those belong in the body.
 - Keep it short and informative, not promotional.
 
@@ -91,6 +92,8 @@ source explicitly names a group.
 ### Event Details
 - Ensure events include date, time and location. Flag if any are missing.
 - REQUIRED ORDER: start the event-detail construction with the time, then write the day, date and location. Never put the day or date before the time.
+- Keep the event name, time, date and location in the same complete sentence.
+- Never begin a separate sentence with a time, date or weekday fragment.
 - Example: "3-4 p.m. Wednesday, Feb. 12, in the Bruce M. Pitman Center Vandal Ballroom"
 
 ### Links
@@ -103,7 +106,7 @@ source explicitly names a group.
 ### Length and Structure
 - Trim verbose submissions to essential information. Produce exactly one paragraph.
 - REQUIRED: Use short, complete sentences. Each sentence should communicate one main idea.
-- Do not use semicolons. Replace them with periods and split compound or lengthy sentences.
+- Do not use semicolons. Replace them with periods and split compound or lengthy sentences without separating an event from its time, date or location.
 - Favor clear, direct wording over complex sentence structures.
 - Remove redundant phrasing, lists of minor duties, and excessive detail.
 {jobs_guidance}- Collapse bullet lists into flowing prose when possible.

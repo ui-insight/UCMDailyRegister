@@ -58,6 +58,16 @@ interface ScheduleEntry {
 
 const FALLBACK_CATEGORIES: AllowedValue[] = [
   {
+    Id: 'employee_announcement',
+    Value_Group: 'Submission_Category',
+    Code: 'employee_announcement',
+    Label: 'Employee (Faculty/Staff)',
+    Display_Order: 0,
+    Is_Active: true,
+    Visibility_Role: 'public',
+    Description: 'Announcements for all employees',
+  },
+  {
     Id: 'faculty_staff',
     Value_Group: 'Submission_Category',
     Code: 'faculty_staff',
@@ -76,16 +86,6 @@ const FALLBACK_CATEGORIES: AllowedValue[] = [
     Is_Active: true,
     Visibility_Role: 'public',
     Description: 'Student-focused announcements',
-  },
-  {
-    Id: 'employee_announcement',
-    Value_Group: 'Submission_Category',
-    Code: 'employee_announcement',
-    Label: 'Employee Announcement',
-    Display_Order: 3,
-    Is_Active: true,
-    Visibility_Role: 'public',
-    Description: 'Announcements for all employees',
   },
   {
     Id: 'job_opportunity',
@@ -131,7 +131,9 @@ const FALLBACK_CATEGORIES: AllowedValue[] = [
 
 export default function SubmissionForm() {
   const isStaff = getSubmitterRole() === 'staff';
-  const [category, setCategory] = useState<SubmissionCategory>('faculty_staff');
+  const [category, setCategory] = useState<SubmissionCategory>(
+    isStaff ? 'faculty_staff' : 'employee_announcement',
+  );
   const [categories, setCategories] = useState<AllowedValue[]>(FALLBACK_CATEGORIES);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [targetNewsletter, setTargetNewsletter] = useState<TargetNewsletter>('tdr');
@@ -277,16 +279,25 @@ export default function SubmissionForm() {
             || NEWSLETTER_CATEGORY_CODES[effectiveTargetNewsletter]?.has(cat.Code)
           : cat.Visibility_Role === 'public',
     )
-    .map((cat) =>
-      cat.Code === 'faculty_staff'
-        ? {
-            ...cat,
-            Label: isStaff
-              ? effectiveTargetNewsletter === 'both' ? 'News and Updates' : cat.Label
-              : 'Faculty/Staff and Student',
-          }
-        : cat
-    );
+    .map((cat) => {
+      if (cat.Code === 'employee_announcement') {
+        return {
+          ...cat,
+          Label: 'Employee (Faculty/Staff)',
+          Display_Order: 0,
+        };
+      }
+      if (cat.Code === 'faculty_staff') {
+        return {
+          ...cat,
+          Label: isStaff
+            ? effectiveTargetNewsletter === 'both' ? 'News and Updates' : cat.Label
+            : 'Faculty/Staff and Student',
+        };
+      }
+      return cat;
+    })
+    .sort((a, b) => a.Display_Order - b.Display_Order);
 
   const resetDatesForTarget = (nextTarget: TargetNewsletter) => {
     setSchedule((current) => ({

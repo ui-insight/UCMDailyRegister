@@ -251,6 +251,181 @@ describe('EditPage', () => {
     expect(screen.getByText('AI edit complete')).toBeInTheDocument();
   });
 
+  it('edits and approves an AI suggestion directly from Live View', async () => {
+    const user = userEvent.setup();
+    listEditVersionsMock.mockResolvedValue([
+      makeVersion({
+        Headline: 'AI working headline',
+        Body: 'AI working body.',
+        Headline_Case: 'title_case',
+      }),
+    ]);
+
+    renderEditPage();
+
+    await screen.findByText('AI working headline');
+    await user.click(screen.getByRole('button', { name: 'Live View' }));
+
+    const liveEdit = screen.getByRole('region', { name: 'AI live edit' });
+    const headline = within(liveEdit).getByPlaceholderText('Enter headline...');
+    const body = within(liveEdit).getByPlaceholderText('Enter body text...');
+
+    await user.clear(headline);
+    await user.type(headline, 'Editor-improved AI headline');
+    await user.clear(body);
+    await user.type(body, 'Editor-improved AI body.');
+    await user.click(within(liveEdit).getByRole('button', { name: /save and approve/i }));
+
+    await waitFor(() => {
+      expect(saveEditorFinalMock).toHaveBeenCalledWith('submission-1', {
+        Headline: 'Editor-improved AI headline',
+        Body: 'Editor-improved AI body.',
+        Headline_Case: 'title_case',
+        Approve_For_Newsletter: true,
+      });
+    });
+  });
+
+  it('keeps Live View changes when continuing to Final Edit', async () => {
+    const user = userEvent.setup();
+    listEditVersionsMock.mockResolvedValue([
+      makeVersion({
+        Headline: 'AI working headline',
+        Body: 'AI working body.',
+      }),
+    ]);
+
+    renderEditPage();
+
+    await screen.findByText('AI working headline');
+    await user.click(screen.getByRole('button', { name: 'Live View' }));
+
+    const liveEdit = screen.getByRole('region', { name: 'AI live edit' });
+    const body = within(liveEdit).getByPlaceholderText('Enter body text...');
+    await user.clear(body);
+    await user.type(body, 'Changes made before final review.');
+    await user.click(screen.getByRole('button', { name: /use ai suggestion in final edit/i }));
+
+    const finalEdit = screen.getByRole('region', { name: 'Final edit' });
+    expect(within(finalEdit).getByDisplayValue('Changes made before final review.'))
+      .toBeInTheDocument();
+    expect(within(finalEdit).getByText('Starting point: AI suggestion')).toBeInTheDocument();
+  });
+
+  it('keeps the AI Live View open after saving an editor draft', async () => {
+    const user = userEvent.setup();
+    const aiVersion = makeVersion({
+      Headline: 'AI working headline',
+      Body: 'AI working body.',
+    });
+    const savedDraft = makeVersion({
+      Id: 'version-final',
+      Version_Type: 'editor_final',
+      Headline: 'AI working headline',
+      Body: 'Draft revised in Live View.',
+    });
+    listEditVersionsMock
+      .mockResolvedValueOnce([aiVersion])
+      .mockResolvedValueOnce([aiVersion, savedDraft]);
+
+    renderEditPage();
+
+    await screen.findByText('AI working headline');
+    await user.click(screen.getByRole('button', { name: 'Live View' }));
+    const body = screen.getByPlaceholderText('Enter body text...');
+    await user.clear(body);
+    await user.type(body, 'Draft revised in Live View.');
+    await user.click(screen.getByRole('button', { name: /save draft/i }));
+
+    expect(await screen.findByText('Draft saved. Submission remains in review')).toBeInTheDocument();
+    const liveEdit = screen.getByRole('region', { name: 'AI live edit' });
+    expect(within(liveEdit).getByDisplayValue('Draft revised in Live View.')).toBeInTheDocument();
+    expect(screen.queryByRole('region', { name: 'Final edit' })).not.toBeInTheDocument();
+  });
+
+  it('edits and approves a body-only Jobs suggestion directly from Live View', async () => {
+    const user = userEvent.setup();
+    getSubmissionMock.mockResolvedValue(makeSubmission({
+      Category: 'job_opportunity',
+      Status: 'ai_edited',
+    }));
+    listEditVersionsMock.mockResolvedValue([
+      makeVersion({
+        Headline: '',
+        Body: 'Administrative specialist III, College of Engineering',
+      }),
+    ]);
+
+    renderEditPage();
+
+    await screen.findByText('Administrative specialist III, College of Engineering');
+    await user.click(screen.getByRole('button', { name: 'Live View' }));
+
+    const liveEdit = screen.getByRole('region', { name: 'AI live edit' });
+    expect(within(liveEdit).queryByPlaceholderText('Enter headline...')).not.toBeInTheDocument();
+    const body = within(liveEdit).getByPlaceholderText('Enter body text...');
+    await user.type(body, ', Boise');
+    await user.click(within(liveEdit).getByRole('button', { name: /save and approve/i }));
+
+    await waitFor(() => {
+      expect(saveEditorFinalMock).toHaveBeenCalledWith('submission-1', {
+        Headline: '',
+        Body: 'Administrative specialist III, College of Engineering, Boise',
+        Headline_Case: 'sentence_case',
+        Approve_For_Newsletter: true,
+      });
+    });
+  });
+
+  it('keeps CTA links synchronized while editing an AI suggestion in Live View', async () => {
+    const user = userEvent.setup();
+    getSubmissionMock.mockResolvedValue(makeSubmission({
+      Links: [
+        {
+          Id: 'link-1',
+          Url: 'https://example.com/register',
+          Anchor_Text: 'Register now',
+          Display_Order: 0,
+        },
+      ],
+    }));
+    listEditVersionsMock.mockResolvedValue([
+      makeVersion({
+        Headline: 'AI event headline',
+        Body: 'Reserve a seat. <a href="https://example.com/register">Register now</a>.',
+      }),
+    ]);
+
+    renderEditPage();
+
+    await screen.findByText('AI event headline');
+    await user.click(screen.getByRole('button', { name: 'Live View' }));
+
+    const liveEdit = screen.getByRole('region', { name: 'AI live edit' });
+    const body = within(liveEdit).getByPlaceholderText('Enter body text...');
+    expect(body).toHaveValue('Reserve a seat. Register now.');
+
+    await user.clear(body);
+    await user.type(body, 'Reserve a seat. Sign up today.');
+    await user.click(within(liveEdit).getByRole('button', { name: /save draft/i }));
+
+    await waitFor(() => {
+      expect(saveEditorFinalMock).toHaveBeenCalledWith('submission-1', {
+        Headline: 'AI event headline',
+        Body: 'Reserve a seat. <a href="https://example.com/register">Sign up today</a>.',
+        Headline_Case: 'sentence_case',
+        Approve_For_Newsletter: false,
+        Links: [
+          {
+            Url: 'https://example.com/register',
+            Anchor_Text: 'Sign up today',
+            Display_Order: 0,
+          },
+        ],
+      });
+    });
+  });
+
   it('reviews and approves the latest AI version through Final Edit', async () => {
     const user = userEvent.setup();
     const aiVersion = makeVersion({

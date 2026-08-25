@@ -1602,6 +1602,67 @@ class TestDeterministicPostValidation:
             "ap_style_times",
         }
 
+    async def test_standalone_event_time_and_date_fragment_is_flagged(self):
+        flags = AIEditor(SuccessfulProvider()).post_analyze(
+            "Attend the Asian Studies Library Open House",
+            (
+                "Stop by the Asian Studies Library Open House. "
+                "2-4 p.m. Thursday, Sept. 3, in Admin 204."
+            ),
+            "faculty_staff",
+            [
+                {
+                    "category": "formatting",
+                    "rule_key": "event_detail_ordering",
+                    "rule_text": "Keep event details in a complete sentence.",
+                    "severity": "error",
+                }
+            ],
+        )
+
+        assert flags == [
+            {
+                "type": "error",
+                "rule_key": "event_detail_ordering",
+                "message": (
+                    "Keep event details in the same complete sentence as the event: "
+                    "'2-4 p.m. Thursday, Sept. 3, in Admin 204.'"
+                ),
+            }
+        ]
+
+    async def test_headline_that_changes_a_reading_into_reading_the_book_is_flagged(self):
+        source_body = (
+            'Author and naturalist Elizabeth Bradfield reads from her new poetry '
+            'collection "SOFAR."'
+        )
+        flags = AIEditor(SuccessfulProvider()).post_analyze(
+            "Read Elizabeth Bradfield's poetry collection 'SOFAR'",
+            source_body,
+            "faculty_staff",
+            [
+                {
+                    "category": "headlines",
+                    "rule_key": "headline_reader_perspective",
+                    "rule_text": "Preserve the intended action in the headline.",
+                    "severity": "error",
+                }
+            ],
+            source_text=source_body,
+            source_body=source_body,
+        )
+
+        assert flags == [
+            {
+                "type": "error",
+                "rule_key": "headline_reader_perspective",
+                "message": (
+                    "Headline changes the source event's intended action: "
+                    '"Read Elizabeth Bradfield\'s poetry collection \'SOFAR\'"'
+                ),
+            }
+        ]
+
     async def test_relative_word_cannot_replace_source_calendar_date(self):
         source_body = (
             "Regular business hours of 8 a.m. to 5 p.m. resume today, Aug. 24."

@@ -136,6 +136,28 @@ afterEach(() => {
 });
 
 describe('SubmissionForm', () => {
+  it('puts Employee (Faculty/Staff) first and selects it for public submitters', async () => {
+    listAllowedValuesMock.mockResolvedValue([
+      ...allowedCategories,
+      {
+        Id: 'employee_announcement',
+        Value_Group: 'Submission_Category',
+        Code: 'employee_announcement',
+        Label: 'Employee Announcement',
+        Display_Order: 6,
+        Is_Active: true,
+        Visibility_Role: 'public',
+        Description: null,
+      },
+    ]);
+
+    render(<SubmissionForm />);
+
+    const employee = await screen.findByRole('option', { name: 'Employee (Faculty/Staff)' });
+    expect(screen.getAllByRole('option')[0]).toBe(employee);
+    expect(screen.getByLabelText('Announcement Type')).toHaveValue('employee_announcement');
+  });
+
   it('does not expose staff-only Builder sections as announcement types', async () => {
     render(<SubmissionForm />);
 

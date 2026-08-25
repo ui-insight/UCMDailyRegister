@@ -105,5 +105,7 @@ def test_migration_values_match_shared_style_rule_seed():
     seed_path = Path(__file__).parents[1] / "data" / "style_rules" / "shared_rules.json"
     seeded = {rule["rule_key"]: rule for rule in json.loads(seed_path.read_text())}
 
-    assert seeded["short_sentences"]["rule_text"] == migration.SHORT_SENTENCE_RULE_TEXT
+    assert seeded["short_sentences"]["rule_text"] != migration.SHORT_SENTENCE_RULE_TEXT
+    assert migration.SHORT_SENTENCE_RULE_TEXT in seeded["short_sentences"]["rule_text"]
+    assert "Never separate an event" in seeded["short_sentences"]["rule_text"]
     assert seeded["short_sentences"]["severity"] == "error"
