@@ -279,24 +279,16 @@ export default function SubmissionForm() {
             || NEWSLETTER_CATEGORY_CODES[effectiveTargetNewsletter]?.has(cat.Code)
           : cat.Visibility_Role === 'public',
     )
-    .map((cat) => {
-      if (cat.Code === 'employee_announcement') {
-        return {
-          ...cat,
-          Label: 'Employee (Faculty/Staff)',
-          Display_Order: 0,
-        };
-      }
-      if (cat.Code === 'faculty_staff') {
-        return {
-          ...cat,
-          Label: isStaff
-            ? effectiveTargetNewsletter === 'both' ? 'News and Updates' : cat.Label
-            : 'Faculty/Staff and Student',
-        };
-      }
-      return cat;
-    })
+    .map((cat) =>
+      cat.Code === 'faculty_staff'
+        ? {
+            ...cat,
+            Label: isStaff
+              ? effectiveTargetNewsletter === 'both' ? 'News and Updates' : cat.Label
+              : 'Faculty/Staff and Student',
+          }
+        : cat
+    )
     .sort((a, b) => a.Display_Order - b.Display_Order);
 
   const resetDatesForTarget = (nextTarget: TargetNewsletter) => {
