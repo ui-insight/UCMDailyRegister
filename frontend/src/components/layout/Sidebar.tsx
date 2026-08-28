@@ -19,6 +19,7 @@ const navItems: NavItem[] = [
   { to: '/recurring-messages', label: 'Recurring', icon: '', roles: ['staff'] },
   { to: '/slc-calendar', label: 'SLC Calendar', icon: '', roles: ['staff', 'slc'] },
   { to: '/slc-triage', label: 'SLC Triage', icon: '', roles: ['staff', 'slc'] },
+  { to: '/slc-digest', label: 'SLC Digest', icon: '', roles: ['staff', 'slc'] },
   { to: '/submit-slc-event', label: 'Submit SLC Event', icon: '+ ', roles: ['staff', 'slc'] },
   { to: '/style-rules', label: 'Style Rules', icon: '', roles: ['staff'] },
   { to: '/feedback', label: 'Feedback', icon: '', roles: ['staff'] },

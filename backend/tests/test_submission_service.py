@@ -179,3 +179,108 @@ async def test_date_range_listing_excludes_one_time_submissions_outside_range(db
 
     assert total == 0
     assert items == []
+
+
+# --- Weekly SLC digest week-range query (#335) ---
+
+
+async def _create_slc_event(db, headline: str, schedule: dict) -> None:
+    await submission_service.create_submission(
+        db,
+        SubmissionCreate(
+            Category="slc_event",
+            Target_Newsletter="none",
+            Original_Headline=headline,
+            Original_Body="Start time: 7:00 PM\nLocation: Pitman Center",
+            Submitter_Name="SLC event triage",
+            Submitter_Email="slc-triage@uidaho.edu",
+            Show_In_SLC_Calendar=True,
+            Links=[],
+            Schedule_Requests=[schedule],
+        ),
+    )
+
+
+@pytest.mark.asyncio
+async def test_slc_week_query_hydrates_multi_day_and_recurring_occurrences(db):
+    """The digest week (Mon 2026-09-07 .. Sun 2026-09-13) picks up every
+    occurrence inside the window, including weekend days: SLC-only events
+    are not clipped to newsletter publication dates."""
+    # Spans Sat 9/5 - Wed 9/9; only Mon-Wed fall inside the digest week.
+    await _create_slc_event(
+        db,
+        "Homecoming setup",
+        {
+            "Requested_Date": "2026-09-05",
+            "Recurrence_Type": "date_range",
+            "Recurrence_End_Date": "2026-09-09",
+        },
+    )
+    # Weekly on Tuesdays; 9/8 is the only occurrence inside the week.
+    await _create_slc_event(
+        db,
+        "Leadership briefing",
+        {
+            "Requested_Date": "2026-09-01",
+            "Recurrence_Type": "weekly",
+            "Recurrence_End_Date": "2026-12-15",
+        },
+    )
+    # Saturday one-time event inside the week.
+    await _create_slc_event(
+        db,
+        "Vandal football home game",
+        {"Requested_Date": "2026-09-12", "Recurrence_Type": "once"},
+    )
+
+    items, total = await submission_service.list_submissions(
+        db,
+        slc_calendar_only=True,
+        date_from=date(2026, 9, 7),
+        date_to=date(2026, 9, 13),
+    )
+
+    assert total == 3
+    by_headline = {item.Original_Headline: item for item in items}
+    assert by_headline["Homecoming setup"].Occurrence_Dates == [
+        "2026-09-07",
+        "2026-09-08",
+        "2026-09-09",
+    ]
+    assert by_headline["Leadership briefing"].Occurrence_Dates == ["2026-09-08"]
+    assert by_headline["Vandal football home game"].Occurrence_Dates == ["2026-09-12"]
+
+
+@pytest.mark.asyncio
+async def test_slc_week_query_excludes_out_of_week_and_non_slc_events(db):
+    await _create_slc_event(
+        db,
+        "Event after the digest week",
+        {"Requested_Date": "2026-09-20", "Recurrence_Type": "once"},
+    )
+    # In-week newsletter submission that is not on the SLC calendar.
+    await submission_service.create_submission(
+        db,
+        SubmissionCreate(
+            Category="faculty_staff",
+            Target_Newsletter="tdr",
+            Original_Headline="Newsletter announcement",
+            Original_Body="Body text.",
+            Submitter_Name="Test User",
+            Submitter_Email="test@uidaho.edu",
+            Links=[],
+            Schedule_Requests=[
+                {"Requested_Date": "2026-09-08", "Recurrence_Type": "once"}
+            ],
+        ),
+    )
+
+    items, total = await submission_service.list_submissions(
+        db,
+        slc_calendar_only=True,
+        date_from=date(2026, 9, 7),
+        date_to=date(2026, 9, 13),
+    )
+
+    assert total == 0
+    assert items == []

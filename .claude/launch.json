@@ -3,9 +3,10 @@
   "configurations": [
     {
       "name": "frontend",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev", "--prefix", "frontend"],
-      "port": 5173
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd \"$(dirname \"$0\")\"/frontend && exec npm run dev -- --port \"${PORT:-5173}\"", "/Users/barrierobison/Documents/Administration/AICoordination2026/UCMDailyRegister-App/placeholder"],
+      "port": 5173,
+      "autoPort": true
     },
     {
       "name": "backend",
