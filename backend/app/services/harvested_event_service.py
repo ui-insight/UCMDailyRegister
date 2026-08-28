@@ -314,6 +314,7 @@ async def _promote_event(
         existing = await db.get(Submission, event.Promoted_Submission_Id)
         if existing is not None:
             existing.Event_Classification = classification
+            existing.Original_Body = _build_promoted_body(event)
             return
         # Staff deleted the promoted submission out from under the link;
         # fall through and promote again.
@@ -380,10 +381,28 @@ def _build_promoted_body(event: HarvestedEvent) -> str:
         parts.append(f"Location: {event.Location}")
     if event.Category_Path:
         parts.append(f"Category: {event.Category_Path}")
+    description = _flatten_description(event.Description)
+    if description:
+        parts.append(f"Description: {description}")
     if event.Source_Url:
         parts.append(f"Event page: {event.Source_Url}")
     parts.append("Source: U of I events calendar (Trumba)")
     return "\n".join(parts)
+
+
+DESCRIPTION_MAX_CHARS = 600
+
+
+def _flatten_description(description: str) -> str:
+    """Collapse a feed description to one capped line for the label/value body.
+
+    The body format is line-oriented ("Label: value"), so embedded newlines
+    would be parsed as separate fields by the digest and calendar views.
+    """
+    flat = " ".join(description.split())
+    if len(flat) <= DESCRIPTION_MAX_CHARS:
+        return flat
+    return flat[:DESCRIPTION_MAX_CHARS].rsplit(" ", 1)[0].rstrip(".,;:") + "…"
 
 
 def _parse_feed_datetime(value: object) -> datetime | None:

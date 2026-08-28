@@ -6,12 +6,14 @@ import { EmptyState, Toast, useToast } from '../components/common';
 import { addDaysToISODate } from '../utils/date';
 import { copyHtmlToClipboard } from '../utils/clipboard';
 import {
+  buildDefaultPreamble,
   buildDigestDays,
   buildDigestHtml,
   buildDigestText,
   defaultDigestWeekStart,
   formatDayHeading,
   formatWeekRange,
+  truncateDescription,
   weekStartOf,
   type DigestEvent,
 } from '../utils/slcDigest';
@@ -59,15 +61,24 @@ export default function SLCDigestPage() {
     () => buildDigestDays(submissions, weekStart),
     [submissions, weekStart],
   );
-  const eventCount = days.reduce((sum, day) => sum + day.events.length, 0);
+  const eventCount = new Set(
+    days.flatMap((day) => day.events.map((event) => event.submission.Id)),
+  ).size;
+
+  const suggestedPreamble = useMemo(
+    () => buildDefaultPreamble(weekStart, days),
+    [weekStart, days],
+  );
+  const [preambleDraft, setPreambleDraft] = useState<string | null>(null);
+  const preamble = preambleDraft ?? suggestedPreamble;
 
   const handleCopy = async () => {
     setCopying(true);
     setError(null);
     try {
       const flavor = await copyHtmlToClipboard(
-        buildDigestHtml(weekStart, days),
-        buildDigestText(weekStart, days),
+        buildDigestHtml(weekStart, days, preamble),
+        buildDigestText(weekStart, days, preamble),
       );
       showToast(
         flavor === 'rich'
@@ -168,6 +179,37 @@ export default function SLCDigestPage() {
         </div>
       </div>
 
+      <div className="bg-white rounded-lg shadow p-4 mb-6">
+        <div className="flex items-center justify-between gap-3 mb-2">
+          <label
+            htmlFor="slc-digest-preamble"
+            className="text-sm font-medium text-gray-900"
+          >
+            Email preamble
+          </label>
+          {preambleDraft !== null && (
+            <button
+              type="button"
+              onClick={() => setPreambleDraft(null)}
+              className="text-xs font-medium text-ui-clearwater-700 hover:text-ui-clearwater-600"
+            >
+              Reset to suggested text
+            </button>
+          )}
+        </div>
+        <textarea
+          id="slc-digest-preamble"
+          value={preamble}
+          onChange={(e) => setPreambleDraft(e.target.value)}
+          rows={4}
+          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900"
+        />
+        <p className="mt-1 text-xs text-gray-500">
+          Included at the top of the copied email. The suggested text updates
+          with the selected week until you edit it.
+        </p>
+      </div>
+
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded-lg mb-4">
           {error}
@@ -189,6 +231,17 @@ export default function SLCDigestPage() {
           <p className="text-sm text-gray-500 mb-4">
             Week of {formatWeekRange(weekStart)}
           </p>
+          {preamble
+            .split(/\n{2,}/)
+            .filter((paragraph) => paragraph.trim())
+            .map((paragraph, index) => (
+              <p
+                key={index}
+                className="text-sm text-gray-700 mb-3 whitespace-pre-line"
+              >
+                {paragraph.trim()}
+              </p>
+            ))}
           {days.map((day) => (
             <section key={day.date} className="mt-5 first:mt-0">
               <h4 className="text-sm font-semibold text-ui-clearwater-700 border-b border-gray-100 pb-1 mb-2">
@@ -211,7 +264,15 @@ export default function SLCDigestPage() {
 }
 
 function DigestEventRow({ event }: { event: DigestEvent }) {
-  const detail = [event.time, event.location].filter(Boolean).join(' · ');
+  const detail = [
+    event.time,
+    event.location,
+    event.sponsor,
+    event.category,
+    event.ticketed ? `Ticketed: ${event.ticketed}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
   return (
     <div className="text-sm">
       <div className="flex items-center gap-2">
@@ -240,6 +301,11 @@ function DigestEventRow({ event }: { event: DigestEvent }) {
         )}
       </div>
       {detail && <p className="text-xs text-gray-500 mt-0.5">{detail}</p>}
+      {event.description && (
+        <p className="text-xs text-gray-600 mt-0.5">
+          {truncateDescription(event.description)}
+        </p>
+      )}
     </div>
   );
 }

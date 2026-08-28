@@ -129,7 +129,17 @@ describe('SLCDigestPage', () => {
     expect(screen.getByRole('button', { name: 'Copy for email' })).toBeDisabled();
   });
 
-  it('copies the digest as rich text and confirms', async () => {
+  it('prefills an editable preamble that summarizes the week', async () => {
+    renderDigestPage();
+    await screen.findByText('Screen on the Green');
+
+    const textarea = screen.getByLabelText('Email preamble') as HTMLTextAreaElement;
+    expect(textarea.value).toContain(
+      'It features 1 event, including 1 strategic event.',
+    );
+  });
+
+  it('copies the digest as rich text with the preamble and confirms', async () => {
     const write = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal('ClipboardItem', FakeClipboardItem);
     Object.defineProperty(navigator, 'clipboard', {
@@ -144,13 +154,43 @@ describe('SLCDigestPage', () => {
 
     await waitFor(() => expect(write).toHaveBeenCalledTimes(1));
     const item = write.mock.calls[0][0][0] as FakeClipboardItem;
-    expect(await item.data['text/html'].text()).toContain(
-      'href="https://events.uidaho.edu/screen-on-the-green"',
-    );
+    const html = await item.data['text/html'].text();
+    expect(html).toContain('href="https://events.uidaho.edu/screen-on-the-green"');
+    expect(html).toContain('Good morning,');
     expect(await item.data['text/plain'].text()).toContain('Screen on the Green');
     expect(
       await screen.findByText('Copied — paste into your Outlook email'),
     ).toBeInTheDocument();
+  });
+
+  it('copies an edited preamble and resets it to the suggested text', async () => {
+    const write = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('ClipboardItem', FakeClipboardItem);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { write, writeText: vi.fn() },
+      configurable: true,
+    });
+
+    renderDigestPage();
+    await screen.findByText('Screen on the Green');
+
+    const textarea = screen.getByLabelText('Email preamble');
+    await userEvent.clear(textarea);
+    await userEvent.type(textarea, 'A custom note from Cami.');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Copy for email' }));
+    await waitFor(() => expect(write).toHaveBeenCalledTimes(1));
+    const item = write.mock.calls[0][0][0] as FakeClipboardItem;
+    expect(await item.data['text/plain'].text()).toContain(
+      'A custom note from Cami.',
+    );
+
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Reset to suggested text' }),
+    );
+    expect(
+      (screen.getByLabelText('Email preamble') as HTMLTextAreaElement).value,
+    ).toContain('Good morning,');
   });
 
   it('falls back to plain text when rich clipboard writes are unavailable', async () => {

@@ -10,7 +10,9 @@ from app.models.harvested_event import HarvestedEvent
 from app.models.submission import Submission
 from app.services import harvested_event_service
 from app.services.harvested_event_service import (
+    DESCRIPTION_MAX_CHARS,
     TRUMBA_SOURCE_TYPE,
+    _flatten_description,
     harvest_trumba_events,
     list_harvested_events,
     parse_trumba_feed,
@@ -303,6 +305,22 @@ class TestSLCEndpointAuthorization:
         assert response.status_code == 502
 
 
+class TestFlattenDescription:
+    def test_collapses_newlines_and_whitespace(self):
+        assert (
+            _flatten_description("Line one.\n\nLine  two.\tEnd.")
+            == "Line one. Line two. End."
+        )
+
+    def test_short_description_is_unchanged(self):
+        assert _flatten_description("A short blurb.") == "A short blurb."
+
+    def test_caps_overlong_description_at_a_word_boundary(self):
+        flat = _flatten_description("word " * 300)
+        assert len(flat) <= DESCRIPTION_MAX_CHARS + 1
+        assert flat.endswith("word…")
+
+
 FUTURE_DATE = date.today() + timedelta(days=30)
 
 
@@ -374,6 +392,10 @@ class TestTriageActions:
         assert promoted["Event_Classification"] == "strategic"
         assert promoted["Occurrence_Dates"] == [FUTURE_DATE.isoformat()]
         assert "Location: Tower Lawn" in promoted["Original_Body"]
+        assert (
+            "Description: A free, family-friendly outdoor movie night."
+            in promoted["Original_Body"]
+        )
         assert "Event page: https://www.uidaho.edu/events" in promoted["Original_Body"]
 
     async def test_multi_day_event_promotes_as_date_range(
@@ -419,6 +441,29 @@ class TestTriageActions:
         submission = await db.get(Submission, submission_id)
         assert submission is not None
         assert submission.Event_Classification == "signature"
+
+    async def test_reflag_refreshes_promoted_body(
+        self, client, slc_headers, db: AsyncSession
+    ):
+        event = await seed_harvested_event(db)
+        first = await self.patch_status(client, slc_headers, event.Id, "flagged")
+        assert first.status_code == 200
+
+        event.Description = "Now featuring a live band before the movie."
+        await db.commit()
+
+        second = await self.patch_status(
+            client, slc_headers, event.Id, "flagged", "strategic"
+        )
+        assert second.status_code == 200
+        submission = await db.get(
+            Submission, second.json()["Promoted_Submission_Id"]
+        )
+        assert submission is not None
+        assert (
+            "Description: Now featuring a live band before the movie."
+            in submission.Original_Body
+        )
 
     async def test_reharvest_preserves_promotion(
         self, client, slc_headers, db: AsyncSession, monkeypatch
