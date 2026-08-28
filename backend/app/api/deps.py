@@ -48,3 +48,14 @@ async def require_staff(
             detail="This action is available to staff editors only.",
         )
     return submitter_role
+
+
+async def require_staff_or_slc(
+    submitter_role: SubmitterRole = Depends(get_submitter_role),
+) -> SubmitterRole:
+    if submitter_role not in ("staff", "slc"):
+        raise HTTPException(
+            status_code=403,
+            detail="This action is only available to authorized SLC viewers and staff.",
+        )
+    return submitter_role
