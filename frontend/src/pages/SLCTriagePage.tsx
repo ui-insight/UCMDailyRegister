@@ -1,11 +1,19 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { listHarvestedEvents, runHarvest } from '../api/slcEvents';
-import type { HarvestedEvent } from '../types/harvestedEvent';
+import { listHarvestedEvents, runHarvest, updateHarvestedEvent } from '../api/slcEvents';
+import type { HarvestedEvent, SLCReviewStatus } from '../types/harvestedEvent';
 import { getSubmitterRole } from '../utils/submitterRole';
 import { EmptyState } from '../components/common';
 import { toISODate } from '../utils/date';
 
 const LOOKAHEAD_DAYS = 60;
+
+type Classification = 'strategic' | 'signature';
+type StatusFilter = '' | SLCReviewStatus;
+
+function matchesStatusFilter(event: HarvestedEvent, filter: StatusFilter): boolean {
+  if (!filter) return event.SLC_Review_Status !== 'dismissed';
+  return event.SLC_Review_Status === filter;
+}
 
 function topCategory(event: HarvestedEvent): string {
   return event.Category_Path?.split('|')[0] ?? 'Uncategorized';
@@ -53,6 +61,8 @@ export default function SLCTriagePage() {
   const [harvesting, setHarvesting] = useState(false);
   const [harvestSummary, setHarvestSummary] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('');
+  const [busyEventId, setBusyEventId] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!allowed) return;
@@ -65,6 +75,7 @@ export default function SLCTriagePage() {
       const data = await listHarvestedEvents({
         date_from: toISODate(today),
         date_to: toISODate(horizon),
+        review_status: statusFilter || undefined,
         limit: 500,
       });
       setEvents(data.Items);
@@ -73,7 +84,7 @@ export default function SLCTriagePage() {
     } finally {
       setLoading(false);
     }
-  }, [allowed]);
+  }, [allowed, statusFilter]);
 
   useEffect(() => {
     fetchData();
@@ -97,15 +108,40 @@ export default function SLCTriagePage() {
     }
   };
 
+  const handleTriage = async (
+    event: HarvestedEvent,
+    status: SLCReviewStatus,
+    classification?: Classification,
+  ) => {
+    setBusyEventId(event.Id);
+    setError(null);
+    try {
+      const updated = await updateHarvestedEvent(event.Id, {
+        SLC_Review_Status: status,
+        ...(classification ? { Event_Classification: classification } : {}),
+      });
+      setEvents((current) =>
+        current.map((item) => (item.Id === updated.Id ? updated : item)),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update the event');
+    } finally {
+      setBusyEventId(null);
+    }
+  };
+
   const categories = useMemo(() => {
     const unique = new Set(events.map(topCategory));
     return [...unique].sort((a, b) => a.localeCompare(b));
   }, [events]);
 
   const filteredEvents = useMemo(() => {
-    if (!categoryFilter) return events;
-    return events.filter((event) => topCategory(event) === categoryFilter);
-  }, [events, categoryFilter]);
+    return events.filter(
+      (event) =>
+        matchesStatusFilter(event, statusFilter)
+        && (!categoryFilter || topCategory(event) === categoryFilter),
+    );
+  }, [events, categoryFilter, statusFilter]);
 
   const eventsByWeek = useMemo(() => {
     const map = new Map<string, HarvestedEvent[]>();
@@ -169,6 +205,22 @@ export default function SLCTriagePage() {
               ))}
             </select>
           </div>
+          <div>
+            <label htmlFor="slc-triage-status" className="block text-xs text-gray-500 mb-1">
+              Status
+            </label>
+            <select
+              id="slc-triage-status"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+            >
+              <option value="">Active (new + flagged)</option>
+              <option value="new">New only</option>
+              <option value="flagged">Flagged only</option>
+              <option value="dismissed">Dismissed</option>
+            </select>
+          </div>
           <div className="text-xs text-gray-500 self-center">
             Showing {filteredEvents.length} event
             {filteredEvents.length === 1 ? '' : 's'} over the next {LOOKAHEAD_DAYS} days
@@ -201,7 +253,12 @@ export default function SLCTriagePage() {
               </h3>
               <div className="space-y-3">
                 {weekEvents.map((event) => (
-                  <TriageEventCard key={event.Id} event={event} />
+                  <TriageEventCard
+                    key={event.Id}
+                    event={event}
+                    busy={busyEventId === event.Id}
+                    onTriage={handleTriage}
+                  />
                 ))}
               </div>
             </section>
@@ -212,7 +269,19 @@ export default function SLCTriagePage() {
   );
 }
 
-function TriageEventCard({ event }: { event: HarvestedEvent }) {
+function TriageEventCard({
+  event,
+  busy,
+  onTriage,
+}: {
+  event: HarvestedEvent;
+  busy: boolean;
+  onTriage: (
+    event: HarvestedEvent,
+    status: SLCReviewStatus,
+    classification?: Classification,
+  ) => void;
+}) {
   return (
     <div className="bg-white rounded-lg shadow p-4 flex gap-4">
       <div className="w-28 shrink-0 text-sm">
@@ -234,6 +303,16 @@ function TriageEventCard({ event }: { event: HarvestedEvent }) {
                 Canceled
               </span>
             )}
+            {event.SLC_Review_Status === 'flagged' && (
+              <span className="text-[10px] uppercase tracking-wide rounded border border-ui-clearwater-200 bg-ui-clearwater-50 px-1.5 py-0.5 text-ui-clearwater-700">
+                Flagged{event.Promoted_Classification ? `: ${event.Promoted_Classification}` : ''}
+              </span>
+            )}
+            {event.SLC_Review_Status === 'dismissed' && (
+              <span className="text-[10px] uppercase tracking-wide rounded border border-gray-200 bg-gray-100 px-1.5 py-0.5 text-gray-500">
+                Dismissed
+              </span>
+            )}
             <span className="text-[10px] uppercase tracking-wide rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-gray-600">
               {topCategory(event)}
             </span>
@@ -245,17 +324,118 @@ function TriageEventCard({ event }: { event: HarvestedEvent }) {
         {event.Description && (
           <p className="text-xs text-gray-600 mt-1.5 line-clamp-2">{event.Description}</p>
         )}
-        {event.Source_Url && (
-          <a
-            href={event.Source_Url}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-1.5 inline-block text-xs font-medium text-ui-clearwater-700 hover:text-ui-clearwater-600"
-          >
-            Event page ↗
-          </a>
-        )}
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {event.Source_Url && (
+            <a
+              href={event.Source_Url}
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs font-medium text-ui-clearwater-700 hover:text-ui-clearwater-600"
+            >
+              Event page ↗
+            </a>
+          )}
+          <div className="ml-auto flex items-center gap-2">
+            <TriageActions event={event} busy={busy} onTriage={onTriage} />
+          </div>
+        </div>
       </div>
     </div>
+  );
+}
+
+function TriageActions({
+  event,
+  busy,
+  onTriage,
+}: {
+  event: HarvestedEvent;
+  busy: boolean;
+  onTriage: (
+    event: HarvestedEvent,
+    status: SLCReviewStatus,
+    classification?: Classification,
+  ) => void;
+}) {
+  const buttonClass =
+    'rounded-md border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50';
+
+  if (event.SLC_Review_Status === 'new') {
+    return (
+      <>
+        <select
+          aria-label={`Flag ${event.Title} for SLC`}
+          value=""
+          disabled={busy}
+          onChange={(e) => {
+            const value = e.target.value;
+            if (!value) return;
+            onTriage(
+              event,
+              'flagged',
+              value === 'unclassified' ? undefined : (value as Classification),
+            );
+          }}
+          className="rounded-md border border-ui-gold-400 bg-ui-gold-50 px-2.5 py-1 text-xs font-medium text-ui-black disabled:opacity-50"
+        >
+          <option value="">Flag for SLC…</option>
+          <option value="unclassified">Flag (unclassified)</option>
+          <option value="strategic">Flag as strategic</option>
+          <option value="signature">Flag as signature</option>
+        </select>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => onTriage(event, 'dismissed')}
+          className={buttonClass}
+        >
+          Dismiss
+        </button>
+      </>
+    );
+  }
+
+  if (event.SLC_Review_Status === 'flagged') {
+    return (
+      <>
+        <select
+          aria-label={`Classification for ${event.Title}`}
+          value={event.Promoted_Classification ?? 'unclassified'}
+          disabled={busy}
+          onChange={(e) => {
+            const value = e.target.value;
+            onTriage(
+              event,
+              'flagged',
+              value === 'unclassified' ? undefined : (value as Classification),
+            );
+          }}
+          className="rounded-md border border-gray-300 px-2.5 py-1 text-xs text-gray-700 disabled:opacity-50"
+        >
+          <option value="unclassified">Unclassified</option>
+          <option value="strategic">Strategic</option>
+          <option value="signature">Signature</option>
+        </select>
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => onTriage(event, 'new')}
+          className={buttonClass}
+        >
+          Un-flag
+        </button>
+      </>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      onClick={() => onTriage(event, 'new')}
+      className={buttonClass}
+    >
+      Restore
+    </button>
   );
 }

@@ -12,14 +12,25 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import SubmitterRole, get_db, require_staff_or_slc
+from app.models.harvested_event import HarvestedEvent
 from app.schemas.harvested_event import (
     HarvestedEventListResponse,
     HarvestedEventResponse,
+    HarvestedEventUpdate,
     HarvestSummaryResponse,
 )
 from app.services import harvested_event_service
 
 router = APIRouter(prefix="/slc", tags=["slc"])
+
+
+def _to_response(event: HarvestedEvent) -> HarvestedEventResponse:
+    response = HarvestedEventResponse.model_validate(event)
+    if event.Promoted_Submission_Rel is not None:
+        response.Promoted_Classification = (
+            event.Promoted_Submission_Rel.Event_Classification
+        )
+    return response
 
 
 @router.post("/harvest", response_model=HarvestSummaryResponse)
@@ -66,6 +77,27 @@ async def list_harvested_events(
         limit=limit,
     )
     return HarvestedEventListResponse(
-        Items=[HarvestedEventResponse.model_validate(item) for item in items],
+        Items=[_to_response(item) for item in items],
         Total=total,
     )
+
+
+@router.patch(
+    "/harvested-events/{harvested_event_id}", response_model=HarvestedEventResponse
+)
+async def update_harvested_event(
+    harvested_event_id: str,
+    data: HarvestedEventUpdate,
+    db: AsyncSession = Depends(get_db),
+    submitter_role: SubmitterRole = Depends(require_staff_or_slc),
+):
+    """Apply a triage decision: flag (promoting to the SLC calendar) or dismiss."""
+    event = await harvested_event_service.set_review_status(
+        db,
+        harvested_event_id,
+        status=data.SLC_Review_Status,
+        classification=data.Event_Classification,
+    )
+    if event is None:
+        raise HTTPException(status_code=404, detail="Harvested event not found")
+    return _to_response(event)

@@ -2,7 +2,11 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { listHarvestedEvents, runHarvest } from '../api/slcEvents';
+import {
+  listHarvestedEvents,
+  runHarvest,
+  updateHarvestedEvent,
+} from '../api/slcEvents';
 import type { HarvestedEvent } from '../types/harvestedEvent';
 import { getSubmitterRole } from '../utils/submitterRole';
 import SLCTriagePage from './SLCTriagePage';
@@ -10,6 +14,7 @@ import SLCTriagePage from './SLCTriagePage';
 vi.mock('../api/slcEvents', () => ({
   listHarvestedEvents: vi.fn(),
   runHarvest: vi.fn(),
+  updateHarvestedEvent: vi.fn(),
 }));
 
 vi.mock('../utils/submitterRole', () => ({
@@ -18,6 +23,7 @@ vi.mock('../utils/submitterRole', () => ({
 
 const listHarvestedEventsMock = vi.mocked(listHarvestedEvents);
 const runHarvestMock = vi.mocked(runHarvest);
+const updateHarvestedEventMock = vi.mocked(updateHarvestedEvent);
 const getSubmitterRoleMock = vi.mocked(getSubmitterRole);
 
 function renderTriagePage() {
@@ -53,6 +59,8 @@ function makeHarvestedEvent(overrides: Partial<HarvestedEvent> = {}): HarvestedE
     Category_Path: 'Student Affairs|Dept. of Student Involvement',
     Is_Canceled: false,
     SLC_Review_Status: 'new',
+    Promoted_Submission_Id: null,
+    Promoted_Classification: null,
     First_Seen_At: isoDaysFromNow(0),
     Last_Seen_At: isoDaysFromNow(0),
     ...overrides,
@@ -149,6 +157,104 @@ describe('SLCTriagePage', () => {
     ).toBeInTheDocument();
     expect(runHarvestMock).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(listHarvestedEventsMock).toHaveBeenCalledTimes(2));
+  });
+
+  it('flags an event with a classification', async () => {
+    const event = makeHarvestedEvent();
+    listHarvestedEventsMock.mockResolvedValue({ Items: [event], Total: 1 });
+    updateHarvestedEventMock.mockResolvedValue({
+      ...event,
+      SLC_Review_Status: 'flagged',
+      Promoted_Submission_Id: 'submission-1',
+      Promoted_Classification: 'strategic',
+    });
+    renderTriagePage();
+    await screen.findByText('Screen on the Green');
+
+    await userEvent.selectOptions(
+      screen.getByLabelText('Flag Screen on the Green for SLC'),
+      'strategic',
+    );
+
+    expect(updateHarvestedEventMock).toHaveBeenCalledWith('harvested-1', {
+      SLC_Review_Status: 'flagged',
+      Event_Classification: 'strategic',
+    });
+    expect(await screen.findByText('Flagged: strategic')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Un-flag' })).toBeInTheDocument();
+  });
+
+  it('dismisses an event and hides it from the active view', async () => {
+    const event = makeHarvestedEvent();
+    listHarvestedEventsMock.mockResolvedValue({ Items: [event], Total: 1 });
+    updateHarvestedEventMock.mockResolvedValue({
+      ...event,
+      SLC_Review_Status: 'dismissed',
+    });
+    renderTriagePage();
+    await screen.findByText('Screen on the Green');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+
+    expect(updateHarvestedEventMock).toHaveBeenCalledWith('harvested-1', {
+      SLC_Review_Status: 'dismissed',
+    });
+    await waitFor(() =>
+      expect(screen.queryByText('Screen on the Green')).not.toBeInTheDocument(),
+    );
+  });
+
+  it('un-flags a flagged event', async () => {
+    const event = makeHarvestedEvent({
+      SLC_Review_Status: 'flagged',
+      Promoted_Submission_Id: 'submission-1',
+      Promoted_Classification: 'signature',
+    });
+    listHarvestedEventsMock.mockResolvedValue({ Items: [event], Total: 1 });
+    updateHarvestedEventMock.mockResolvedValue({
+      ...event,
+      SLC_Review_Status: 'new',
+      Promoted_Submission_Id: null,
+      Promoted_Classification: null,
+    });
+    renderTriagePage();
+    await screen.findByText('Flagged: signature');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Un-flag' }));
+
+    expect(updateHarvestedEventMock).toHaveBeenCalledWith('harvested-1', {
+      SLC_Review_Status: 'new',
+    });
+    await waitFor(() =>
+      expect(screen.queryByText('Flagged: signature')).not.toBeInTheDocument(),
+    );
+    expect(
+      screen.getByLabelText('Flag Screen on the Green for SLC'),
+    ).toBeInTheDocument();
+  });
+
+  it('restores a dismissed event from the dismissed view', async () => {
+    const event = makeHarvestedEvent({ SLC_Review_Status: 'dismissed' });
+    listHarvestedEventsMock.mockResolvedValue({ Items: [], Total: 0 });
+    renderTriagePage();
+    await screen.findByText('No harvested events yet');
+
+    listHarvestedEventsMock.mockResolvedValue({ Items: [event], Total: 1 });
+    await userEvent.selectOptions(screen.getByLabelText('Status'), 'dismissed');
+
+    await screen.findByText('Screen on the Green');
+    expect(listHarvestedEventsMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ review_status: 'dismissed' }),
+    );
+
+    updateHarvestedEventMock.mockResolvedValue({
+      ...event,
+      SLC_Review_Status: 'new',
+    });
+    await userEvent.click(screen.getByRole('button', { name: 'Restore' }));
+    expect(updateHarvestedEventMock).toHaveBeenCalledWith('harvested-1', {
+      SLC_Review_Status: 'new',
+    });
   });
 
   it('shows an error when the refresh fails', async () => {

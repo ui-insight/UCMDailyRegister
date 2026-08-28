@@ -17,8 +17,15 @@ export interface HarvestedEvent {
   Category_Path: string | null;
   Is_Canceled: boolean;
   SLC_Review_Status: SLCReviewStatus;
+  Promoted_Submission_Id: string | null;
+  Promoted_Classification: 'strategic' | 'signature' | null;
   First_Seen_At: string;
   Last_Seen_At: string;
+}
+
+export interface HarvestedEventUpdate {
+  SLC_Review_Status: SLCReviewStatus;
+  Event_Classification?: 'strategic' | 'signature';
 }
 
 export interface HarvestedEventListResponse {

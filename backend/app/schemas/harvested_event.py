@@ -2,7 +2,15 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+
+class HarvestedEventUpdate(BaseModel):
+    SLC_Review_Status: str = Field(pattern="^(new|flagged|dismissed)$")
+    # Only applied when flagging; carried onto the promoted submission.
+    Event_Classification: str | None = Field(
+        default=None, pattern="^(strategic|signature)$"
+    )
 
 
 class HarvestedEventResponse(BaseModel):
@@ -20,6 +28,10 @@ class HarvestedEventResponse(BaseModel):
     Category_Path: str | None
     Is_Canceled: bool
     SLC_Review_Status: str
+    Promoted_Submission_Id: str | None
+    # Mirrors the promoted submission's Event_Classification; None when the
+    # event is not flagged. Populated by the route, not the ORM row.
+    Promoted_Classification: str | None = None
     First_Seen_At: datetime
     Last_Seen_At: datetime
 

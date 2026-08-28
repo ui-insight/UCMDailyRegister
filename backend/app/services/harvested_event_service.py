@@ -17,6 +17,14 @@ re-running never duplicates rows. A SHA-256 Content_Hash over the harvested
 fields detects upstream edits; changed events are updated in place while the
 coordinator's SLC_Review_Status is always preserved. Every event seen in the
 feed gets its Last_Seen_At bumped.
+
+Triage transitions live here too. Flagging promotes the event onto the SLC
+calendar by creating an SLC-only Submission (same shape as the workbook
+importer: Category "slc_event", Target_Newsletter "none", schedule rows for
+the event dates) and linking it via Promoted_Submission_Id. Withdrawing a
+flag deletes that promoted submission: it is a machine-created copy fully
+derivable from the harvested event, so deletion loses nothing and keeps
+un-flagged events off the SLC calendar entirely.
 """
 
 from __future__ import annotations
@@ -31,9 +39,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.models.harvested_event import HarvestedEvent
+from app.models.submission import Submission, SubmissionScheduleRequest
 from app.services.calendar_event_service import _clean_html
 
 TRUMBA_SOURCE_TYPE = "trumba"
+TRIAGE_NAME = "SLC event triage"
+TRIAGE_EMAIL = "slc-triage@uidaho.edu"
+REVIEW_STATUSES = ("new", "flagged", "dismissed")
 
 _MAX_LOCATION_LENGTH = 255
 _MAX_CATEGORY_LENGTH = 255
@@ -229,6 +241,8 @@ async def list_harvested_events(
 
     The category filter matches a Category_Path branch: "Student Affairs"
     matches both "Student Affairs" and "Student Affairs|Campus Recreation".
+    Without an explicit review_status, dismissed events are excluded so the
+    default triage view only shows events still worth looking at.
     """
     query = sa.select(HarvestedEvent)
     if date_from:
@@ -248,6 +262,8 @@ async def list_harvested_events(
         )
     if review_status:
         query = query.where(HarvestedEvent.SLC_Review_Status == review_status)
+    else:
+        query = query.where(HarvestedEvent.SLC_Review_Status != "dismissed")
 
     total = (
         await db.execute(
@@ -260,6 +276,114 @@ async def list_harvested_events(
     ).offset(offset).limit(limit)
     items = list((await db.execute(query)).scalars().all())
     return items, total
+
+
+async def set_review_status(
+    db: AsyncSession,
+    harvested_event_id: str,
+    *,
+    status: str,
+    classification: str | None = None,
+) -> HarvestedEvent | None:
+    """Apply a triage decision to a harvested event. Idempotent.
+
+    Flagging creates (or, on re-flag, updates the classification of) the
+    promoted SLC submission; any other status withdraws the promotion by
+    deleting that submission. Returns None when the event does not exist.
+    """
+    event = await db.get(HarvestedEvent, harvested_event_id)
+    if event is None:
+        return None
+
+    if status == "flagged":
+        await _promote_event(db, event, classification)
+    else:
+        await _withdraw_promotion(db, event)
+    event.SLC_Review_Status = status
+
+    await db.commit()
+    await db.refresh(event)
+    return event
+
+
+async def _promote_event(
+    db: AsyncSession, event: HarvestedEvent, classification: str | None
+) -> None:
+    """Create the SLC calendar submission for a flagged event, once."""
+    if event.Promoted_Submission_Id:
+        existing = await db.get(Submission, event.Promoted_Submission_Id)
+        if existing is not None:
+            existing.Event_Classification = classification
+            return
+        # Staff deleted the promoted submission out from under the link;
+        # fall through and promote again.
+
+    submission = Submission(
+        Category="slc_event",
+        Target_Newsletter="none",
+        Original_Headline=event.Title,
+        Original_Body=_build_promoted_body(event),
+        Submitter_Name=TRIAGE_NAME,
+        Submitter_Email=TRIAGE_EMAIL,
+        Submitter_Notes=(
+            f"Promoted from harvested event {event.Id} "
+            f"({event.Source_Type} event {event.Source_Id})."
+        ),
+        Show_In_SLC_Calendar=True,
+        Event_Classification=classification,
+        Status="approved",
+    )
+    db.add(submission)
+    await db.flush()
+
+    start_date = event.Event_Start.date()
+    end_date = event.Event_End.date() if event.Event_End else start_date
+    is_range = end_date > start_date
+    db.add(
+        SubmissionScheduleRequest(
+            Submission_Id=submission.Id,
+            Requested_Date=start_date,
+            Repeat_Count=1,
+            Recurrence_Type="date_range" if is_range else "once",
+            Recurrence_Interval=1,
+            Recurrence_End_Date=end_date if is_range else None,
+            Excluded_Dates=[],
+        )
+    )
+    event.Promoted_Submission_Id = submission.Id
+
+
+async def _withdraw_promotion(db: AsyncSession, event: HarvestedEvent) -> None:
+    """Delete the promoted submission, if one still exists."""
+    if not event.Promoted_Submission_Id:
+        return
+    submission = await db.get(Submission, event.Promoted_Submission_Id)
+    if submission is not None:
+        await db.delete(submission)
+    event.Promoted_Submission_Id = None
+
+
+def _build_promoted_body(event: HarvestedEvent) -> str:
+    """Render the label/value body the SLC calendar day panel expects."""
+    start_date = event.Event_Start.date()
+    end_date = event.Event_End.date() if event.Event_End else start_date
+    source_date = start_date.strftime("%-m/%-d/%Y")
+    if end_date > start_date:
+        source_date = f"{source_date} - {end_date.strftime('%-m/%-d/%Y')}"
+
+    parts = [f"Source date: {source_date}"]
+    if event.All_Day:
+        parts.append("Start time: All day")
+    else:
+        parts.append(f"Start time: {event.Event_Start.strftime('%-I:%M %p')}")
+    if event.Location:
+        parts.append(f"Location: {event.Location}")
+    if event.Category_Path:
+        parts.append(f"Category: {event.Category_Path}")
+    if event.Source_Url:
+        parts.append(f"Event page: {event.Source_Url}")
+    parts.append("Source: U of I events calendar (Trumba)")
+    return "\n".join(parts)
 
 
 def _parse_feed_datetime(value: object) -> datetime | None:
