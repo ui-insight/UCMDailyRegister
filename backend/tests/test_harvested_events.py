@@ -1,12 +1,13 @@
 """Tests for the Trumba harvest service and SLC triage endpoints."""
 
-from datetime import datetime
+from datetime import date, datetime, time, timedelta
 
 import pytest
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.harvested_event import HarvestedEvent
+from app.models.submission import Submission
 from app.services import harvested_event_service
 from app.services.harvested_event_service import (
     TRUMBA_SOURCE_TYPE,
@@ -228,6 +229,30 @@ class TestListHarvestedEvents:
         assert total == 1
         assert items[0].Source_Id == "2"
 
+    async def test_default_listing_excludes_dismissed(self, db: AsyncSession):
+        await self.seed_events(db)
+        db.add(
+            HarvestedEvent(
+                Source_Type=TRUMBA_SOURCE_TYPE,
+                Source_Id="4",
+                Title="Dismissed Event",
+                Description="Not for SLC.",
+                Event_Start=datetime(2026, 9, 5, 9, 0),
+                Content_Hash="d" * 64,
+                SLC_Review_Status="dismissed",
+            )
+        )
+        await db.commit()
+
+        _, total_default = await list_harvested_events(db)
+        assert total_default == 3
+
+        items, total_dismissed = await list_harvested_events(
+            db, review_status="dismissed"
+        )
+        assert total_dismissed == 1
+        assert items[0].Source_Id == "4"
+
 
 class TestSLCEndpointAuthorization:
     async def test_public_cannot_list_or_harvest(self, client):
@@ -276,3 +301,209 @@ class TestSLCEndpointAuthorization:
         )
         response = await client.post("/api/v1/slc/harvest", headers=slc_headers)
         assert response.status_code == 502
+
+
+FUTURE_DATE = date.today() + timedelta(days=30)
+
+
+async def seed_harvested_event(db: AsyncSession, **overrides) -> HarvestedEvent:
+    """Insert one harvested event with sensible defaults and return it."""
+    values = {
+        "Source_Type": TRUMBA_SOURCE_TYPE,
+        "Source_Id": "204106464",
+        "Source_Url": "https://www.uidaho.edu/events?trumbaEmbed=view%3Devent%26eventid%3D204106464",
+        "Title": "Screen on the Green",
+        "Description": "A free, family-friendly outdoor movie night.",
+        "Location": "Tower Lawn",
+        "Event_Start": datetime.combine(FUTURE_DATE, time(20, 30)),
+        "Event_End": datetime.combine(FUTURE_DATE, time(22, 30)),
+        "Category_Path": "Student Affairs|Dept. of Student Involvement",
+        "Content_Hash": "a" * 64,
+    }
+    values.update(overrides)
+    event = HarvestedEvent(**values)
+    db.add(event)
+    await db.commit()
+    await db.refresh(event)
+    return event
+
+
+class TestTriageActions:
+    async def patch_status(
+        self, client, headers, event_id: str, status: str, classification=None
+    ):
+        payload = {"SLC_Review_Status": status}
+        if classification is not None:
+            payload["Event_Classification"] = classification
+        return await client.patch(
+            f"/api/v1/slc/harvested-events/{event_id}", headers=headers, json=payload
+        )
+
+    async def count_submissions(self, db: AsyncSession) -> int:
+        return (
+            await db.execute(sa.select(sa.func.count()).select_from(Submission))
+        ).scalar_one()
+
+    async def test_flag_promotes_event_onto_slc_calendar(
+        self, client, slc_headers, db: AsyncSession
+    ):
+        event = await seed_harvested_event(db)
+        response = await self.patch_status(
+            client, slc_headers, event.Id, "flagged", "strategic"
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["SLC_Review_Status"] == "flagged"
+        assert body["Promoted_Submission_Id"]
+        assert body["Promoted_Classification"] == "strategic"
+
+        calendar = await client.get(
+            "/api/v1/submissions/",
+            headers=slc_headers,
+            params={
+                "slc_calendar_only": "true",
+                "date_from": FUTURE_DATE.isoformat(),
+                "date_to": FUTURE_DATE.isoformat(),
+            },
+        )
+        assert calendar.status_code == 200
+        items = calendar.json()["Items"]
+        assert len(items) == 1
+        promoted = items[0]
+        assert promoted["Original_Headline"] == "Screen on the Green"
+        assert promoted["Event_Classification"] == "strategic"
+        assert promoted["Occurrence_Dates"] == [FUTURE_DATE.isoformat()]
+        assert "Location: Tower Lawn" in promoted["Original_Body"]
+        assert "Event page: https://www.uidaho.edu/events" in promoted["Original_Body"]
+
+    async def test_multi_day_event_promotes_as_date_range(
+        self, client, slc_headers, db: AsyncSession
+    ):
+        end_date = FUTURE_DATE + timedelta(days=2)
+        event = await seed_harvested_event(
+            db, Event_End=datetime.combine(end_date, time(17, 0))
+        )
+        response = await self.patch_status(client, slc_headers, event.Id, "flagged")
+        assert response.status_code == 200
+
+        calendar = await client.get(
+            "/api/v1/submissions/",
+            headers=slc_headers,
+            params={
+                "slc_calendar_only": "true",
+                "date_from": FUTURE_DATE.isoformat(),
+                "date_to": end_date.isoformat(),
+            },
+        )
+        items = calendar.json()["Items"]
+        assert len(items) == 1
+        assert items[0]["Occurrence_Dates"] == [
+            (FUTURE_DATE + timedelta(days=offset)).isoformat() for offset in range(3)
+        ]
+
+    async def test_flagging_is_idempotent(self, client, slc_headers, db: AsyncSession):
+        event = await seed_harvested_event(db)
+        first = await self.patch_status(client, slc_headers, event.Id, "flagged")
+        second = await self.patch_status(
+            client, slc_headers, event.Id, "flagged", "signature"
+        )
+        assert second.status_code == 200
+        assert (
+            second.json()["Promoted_Submission_Id"]
+            == first.json()["Promoted_Submission_Id"]
+        )
+        assert second.json()["Promoted_Classification"] == "signature"
+        assert await self.count_submissions(db) == 1
+
+        submission_id = second.json()["Promoted_Submission_Id"]
+        submission = await db.get(Submission, submission_id)
+        assert submission is not None
+        assert submission.Event_Classification == "signature"
+
+    async def test_reharvest_preserves_promotion(
+        self, client, slc_headers, db: AsyncSession, monkeypatch
+    ):
+        start = datetime.combine(FUTURE_DATE, time(20, 30))
+        patch_feed(
+            monkeypatch,
+            [make_feed_entry(startDateTime=start.isoformat(), endDateTime=None)],
+        )
+        await client.post("/api/v1/slc/harvest", headers=slc_headers)
+        event = (await db.execute(sa.select(HarvestedEvent))).scalar_one()
+        await self.patch_status(client, slc_headers, event.Id, "flagged")
+
+        patch_feed(
+            monkeypatch,
+            [
+                make_feed_entry(
+                    startDateTime=start.isoformat(),
+                    endDateTime=None,
+                    location="Moved to the Kibbie Dome",
+                )
+            ],
+        )
+        await client.post("/api/v1/slc/harvest", headers=slc_headers)
+
+        listed = await client.get(
+            "/api/v1/slc/harvested-events", headers=slc_headers
+        )
+        items = listed.json()["Items"]
+        assert len(items) == 1
+        assert items[0]["SLC_Review_Status"] == "flagged"
+        assert items[0]["Promoted_Submission_Id"]
+        assert await self.count_submissions(db) == 1
+
+    async def test_unflag_withdraws_promoted_submission(
+        self, client, slc_headers, db: AsyncSession
+    ):
+        event = await seed_harvested_event(db)
+        flagged = await self.patch_status(client, slc_headers, event.Id, "flagged")
+        submission_id = flagged.json()["Promoted_Submission_Id"]
+
+        response = await self.patch_status(client, slc_headers, event.Id, "new")
+        assert response.status_code == 200
+        assert response.json()["SLC_Review_Status"] == "new"
+        assert response.json()["Promoted_Submission_Id"] is None
+        assert await db.get(Submission, submission_id) is None
+
+    async def test_dismiss_from_flagged_withdraws_and_hides(
+        self, client, slc_headers, db: AsyncSession
+    ):
+        event = await seed_harvested_event(db)
+        await self.patch_status(client, slc_headers, event.Id, "flagged")
+
+        response = await self.patch_status(client, slc_headers, event.Id, "dismissed")
+        assert response.status_code == 200
+        assert response.json()["Promoted_Submission_Id"] is None
+        assert await self.count_submissions(db) == 0
+
+        default_list = await client.get(
+            "/api/v1/slc/harvested-events", headers=slc_headers
+        )
+        assert default_list.json()["Total"] == 0
+
+        dismissed_list = await client.get(
+            "/api/v1/slc/harvested-events",
+            headers=slc_headers,
+            params={"review_status": "dismissed"},
+        )
+        assert dismissed_list.json()["Total"] == 1
+
+    async def test_invalid_status_rejected(self, client, slc_headers, db: AsyncSession):
+        event = await seed_harvested_event(db)
+        response = await self.patch_status(client, slc_headers, event.Id, "archived")
+        assert response.status_code == 422
+
+    async def test_patch_requires_slc_or_staff(self, client, db: AsyncSession):
+        event = await seed_harvested_event(db)
+        response = await client.patch(
+            f"/api/v1/slc/harvested-events/{event.Id}",
+            json={"SLC_Review_Status": "flagged"},
+        )
+        assert response.status_code == 403
+
+    async def test_patch_unknown_event_returns_404(self, client, slc_headers):
+        response = await self.patch_status(
+            client, slc_headers, "does-not-exist", "flagged"
+        )
+        assert response.status_code == 404

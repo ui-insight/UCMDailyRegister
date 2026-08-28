@@ -1,6 +1,8 @@
 import { apiFetch } from './client';
 import type {
+  HarvestedEvent,
   HarvestedEventListResponse,
+  HarvestedEventUpdate,
   HarvestSummary,
 } from '../types/harvestedEvent';
 
@@ -28,4 +30,14 @@ export async function listHarvestedEvents(params?: {
 
 export async function runHarvest(): Promise<HarvestSummary> {
   return apiFetch<HarvestSummary>('/slc/harvest', { method: 'POST' });
+}
+
+export async function updateHarvestedEvent(
+  id: string,
+  data: HarvestedEventUpdate,
+): Promise<HarvestedEvent> {
+  return apiFetch<HarvestedEvent>(`/slc/harvested-events/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
 }
