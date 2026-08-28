@@ -1,5 +1,10 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { listHarvestedEvents, runHarvest, updateHarvestedEvent } from '../api/slcEvents';
+import {
+  acknowledgeUpstreamChange,
+  listHarvestedEvents,
+  runHarvest,
+  updateHarvestedEvent,
+} from '../api/slcEvents';
 import type { HarvestedEvent, SLCReviewStatus } from '../types/harvestedEvent';
 import { getSubmitterRole } from '../utils/submitterRole';
 import { EmptyState } from '../components/common';
@@ -125,6 +130,23 @@ export default function SLCTriagePage() {
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update the event');
+    } finally {
+      setBusyEventId(null);
+    }
+  };
+
+  const handleAcknowledge = async (event: HarvestedEvent) => {
+    setBusyEventId(event.Id);
+    setError(null);
+    try {
+      const updated = await acknowledgeUpstreamChange(event.Id);
+      setEvents((current) =>
+        current.map((item) => (item.Id === updated.Id ? updated : item)),
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : 'Failed to acknowledge the change',
+      );
     } finally {
       setBusyEventId(null);
     }
@@ -259,6 +281,7 @@ export default function SLCTriagePage() {
                     event={event}
                     busy={busyEventId === event.Id}
                     onTriage={handleTriage}
+                    onAcknowledge={handleAcknowledge}
                   />
                 ))}
               </div>
@@ -274,6 +297,7 @@ function TriageEventCard({
   event,
   busy,
   onTriage,
+  onAcknowledge,
 }: {
   event: HarvestedEvent;
   busy: boolean;
@@ -282,6 +306,7 @@ function TriageEventCard({
     status: SLCReviewStatus,
     classification?: Classification,
   ) => void;
+  onAcknowledge: (event: HarvestedEvent) => void;
 }) {
   return (
     <div className="bg-white rounded-lg shadow p-4 flex gap-4">
@@ -340,6 +365,41 @@ function TriageEventCard({
             <TriageActions event={event} busy={busy} onTriage={onTriage} />
           </div>
         </div>
+        {event.SLC_Review_Status === 'flagged' && event.Upstream_Changed_At && (
+          <div
+            className={`mt-2 flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2 text-xs ${
+              event.Is_Canceled
+                ? 'border-red-200 bg-red-50 text-red-800'
+                : 'border-amber-200 bg-amber-50 text-amber-800'
+            }`}
+          >
+            <span>
+              {event.Is_Canceled
+                ? 'Canceled upstream — this event was canceled or removed on the university calendar.'
+                : 'Updated upstream — the event details changed on the university calendar after you flagged it.'}
+            </span>
+            <div className="flex shrink-0 items-center gap-2">
+              {event.Is_Canceled && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => onTriage(event, 'new')}
+                  className="rounded-md border border-red-300 bg-white px-2.5 py-1 font-medium text-red-700 hover:bg-red-100 disabled:opacity-50"
+                >
+                  Un-flag
+                </button>
+              )}
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => onAcknowledge(event)}
+                className="rounded-md border border-gray-300 bg-white px-2.5 py-1 font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                {event.Is_Canceled ? 'Keep flagged' : 'Acknowledge'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

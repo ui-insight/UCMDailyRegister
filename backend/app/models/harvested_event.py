@@ -24,6 +24,13 @@ Flagging promotes the event onto the SLC calendar by creating an SLC-only
 Submission (the same shape the workbook importer produces), and records that
 provenance in Promoted_Submission_Id. The FK uses ON DELETE SET NULL so a
 staff deletion of the promoted submission leaves the harvested event intact.
+
+Upstream_Changed_At powers the "changed upstream" badges on the triage page:
+it is stamped when a re-harvest finds that a flagged event's upstream data
+changed, was canceled, or disappeared from the feed while still in the feed's
+coverage window. The coordinator clears it by acknowledging the change (or by
+un-flagging); it is only ever set on flagged events, since only those carry a
+promoted submission that could go stale.
 """
 
 import uuid
@@ -77,6 +84,9 @@ class HarvestedEvent(Base):
     Content_Hash: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     SLC_Review_Status: Mapped[str] = mapped_column(
         sa.String(50), nullable=False, default="new", server_default="new"
+    )
+    Upstream_Changed_At: Mapped[datetime | None] = mapped_column(
+        sa.DateTime, nullable=True
     )
     Promoted_Submission_Id: Mapped[str | None] = mapped_column(
         sa.String(36),

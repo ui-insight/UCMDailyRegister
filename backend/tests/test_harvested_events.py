@@ -552,3 +552,225 @@ class TestTriageActions:
             client, slc_headers, "does-not-exist", "flagged"
         )
         assert response.status_code == 404
+
+
+class TestUpstreamChangeDetection:
+    def entry(self, event_id: int, days_ahead: int, **overrides) -> dict:
+        """A feed entry with a dynamic future date, so coverage math holds."""
+        start = datetime.combine(
+            date.today() + timedelta(days=days_ahead), time(15, 0)
+        )
+        fields: dict = {
+            "eventID": event_id,
+            "seriesID": None,
+            "startDateTime": start.isoformat(),
+            "endDateTime": (start + timedelta(hours=2)).isoformat(),
+        }
+        fields.update(overrides)
+        return make_feed_entry(**fields)
+
+    async def harvest(self, client, slc_headers, monkeypatch, payload) -> dict:
+        patch_feed(monkeypatch, payload)
+        response = await client.post("/api/v1/slc/harvest", headers=slc_headers)
+        assert response.status_code == 200
+        return response.json()
+
+    async def get_event(self, client, slc_headers, source_id: str) -> dict:
+        response = await client.get(
+            "/api/v1/slc/harvested-events",
+            headers=slc_headers,
+            params={"limit": 500},
+        )
+        assert response.status_code == 200
+        for item in response.json()["Items"]:
+            if item["Source_Id"] == source_id:
+                return item
+        raise AssertionError(f"source id {source_id} not in listing")
+
+    async def flag(self, client, slc_headers, source_id: str) -> dict:
+        event = await self.get_event(client, slc_headers, source_id)
+        response = await client.patch(
+            f"/api/v1/slc/harvested-events/{event['Id']}",
+            headers=slc_headers,
+            json={"SLC_Review_Status": "flagged"},
+        )
+        assert response.status_code == 200
+        return response.json()
+
+    async def test_upstream_edit_badges_and_resyncs_promoted_submission(
+        self, client, slc_headers, db: AsyncSession, monkeypatch
+    ):
+        await self.harvest(client, slc_headers, monkeypatch, [self.entry(1, 10)])
+        flagged = await self.flag(client, slc_headers, "1")
+        assert flagged["Upstream_Changed_At"] is None
+
+        await self.harvest(
+            client,
+            slc_headers,
+            monkeypatch,
+            [
+                self.entry(
+                    1,
+                    12,
+                    title="Screen on the Green (moved)",
+                    description="<p>Now at the Kibbie Dome.</p>",
+                )
+            ],
+        )
+
+        event = await self.get_event(client, slc_headers, "1")
+        assert event["Upstream_Changed_At"] is not None
+        assert event["Is_Canceled"] is False
+
+        submission = await db.get(Submission, event["Promoted_Submission_Id"])
+        assert submission is not None
+        assert submission.Original_Headline == "Screen on the Green (moved)"
+        assert "Description: Now at the Kibbie Dome." in submission.Original_Body
+        assert submission.Schedule_Requests[0].Requested_Date == (
+            date.today() + timedelta(days=12)
+        )
+
+    async def test_feed_cancellation_badges_and_marks_promoted_body(
+        self, client, slc_headers, db: AsyncSession, monkeypatch
+    ):
+        await self.harvest(client, slc_headers, monkeypatch, [self.entry(1, 10)])
+        await self.flag(client, slc_headers, "1")
+
+        await self.harvest(
+            client, slc_headers, monkeypatch, [self.entry(1, 10, canceled=True)]
+        )
+
+        event = await self.get_event(client, slc_headers, "1")
+        assert event["Is_Canceled"] is True
+        assert event["Upstream_Changed_At"] is not None
+        submission = await db.get(Submission, event["Promoted_Submission_Id"])
+        assert submission is not None
+        assert "Canceled: yes" in submission.Original_Body
+
+    async def test_flagged_event_missing_from_feed_is_canceled(
+        self, client, slc_headers, monkeypatch
+    ):
+        await self.harvest(
+            client,
+            slc_headers,
+            monkeypatch,
+            [self.entry(1, 10), self.entry(2, 15), self.entry(3, 12)],
+        )
+        await self.flag(client, slc_headers, "1")
+
+        summary = await self.harvest(
+            client, slc_headers, monkeypatch, [self.entry(2, 15)]
+        )
+        assert summary["Updated"] == 1
+
+        event = await self.get_event(client, slc_headers, "1")
+        assert event["Is_Canceled"] is True
+        assert event["Upstream_Changed_At"] is not None
+        # Disappearance only matters for flagged events.
+        other = await self.get_event(client, slc_headers, "3")
+        assert other["Is_Canceled"] is False
+        assert other["Upstream_Changed_At"] is None
+
+    async def test_event_beyond_feed_coverage_is_not_canceled(
+        self, client, slc_headers, monkeypatch
+    ):
+        await self.harvest(
+            client, slc_headers, monkeypatch, [self.entry(1, 15), self.entry(2, 5)]
+        )
+        await self.flag(client, slc_headers, "1")
+
+        # The new fetch only covers +5 days; event 1 at +15 days is beyond it.
+        await self.harvest(client, slc_headers, monkeypatch, [self.entry(2, 5)])
+
+        event = await self.get_event(client, slc_headers, "1")
+        assert event["Is_Canceled"] is False
+        assert event["Upstream_Changed_At"] is None
+
+    async def test_reappearing_event_is_restored(
+        self, client, slc_headers, db: AsyncSession, monkeypatch
+    ):
+        both = [self.entry(1, 10), self.entry(2, 15)]
+        await self.harvest(client, slc_headers, monkeypatch, both)
+        await self.flag(client, slc_headers, "1")
+        await self.harvest(client, slc_headers, monkeypatch, [self.entry(2, 15)])
+        await self.harvest(client, slc_headers, monkeypatch, both)
+
+        event = await self.get_event(client, slc_headers, "1")
+        assert event["Is_Canceled"] is False
+        assert event["Upstream_Changed_At"] is not None
+        submission = await db.get(Submission, event["Promoted_Submission_Id"])
+        assert submission is not None
+        assert "Canceled: yes" not in submission.Original_Body
+
+    async def test_harvest_resyncs_stale_promoted_body(
+        self, client, slc_headers, db: AsyncSession, monkeypatch
+    ):
+        await self.harvest(client, slc_headers, monkeypatch, [self.entry(1, 10)])
+        flagged = await self.flag(client, slc_headers, "1")
+
+        submission = await db.get(Submission, flagged["Promoted_Submission_Id"])
+        assert submission is not None
+        submission.Original_Headline = "Stale title"
+        submission.Original_Body = "stale"
+        await db.commit()
+
+        summary = await self.harvest(
+            client, slc_headers, monkeypatch, [self.entry(1, 10)]
+        )
+        assert summary["Unchanged"] == 1
+
+        await db.refresh(submission)
+        assert submission.Original_Headline == "Screen on the Green"
+        assert "Description:" in submission.Original_Body
+        # A resync alone is not an upstream change; no badge.
+        event = await self.get_event(client, slc_headers, "1")
+        assert event["Upstream_Changed_At"] is None
+
+    async def test_acknowledge_clears_badge(
+        self, client, slc_headers, monkeypatch
+    ):
+        await self.harvest(client, slc_headers, monkeypatch, [self.entry(1, 10)])
+        await self.flag(client, slc_headers, "1")
+        await self.harvest(
+            client, slc_headers, monkeypatch, [self.entry(1, 10, title="New title")]
+        )
+        event = await self.get_event(client, slc_headers, "1")
+        assert event["Upstream_Changed_At"] is not None
+
+        response = await client.post(
+            f"/api/v1/slc/harvested-events/{event['Id']}/acknowledge-upstream",
+            headers=slc_headers,
+        )
+        assert response.status_code == 200
+        assert response.json()["Upstream_Changed_At"] is None
+
+    async def test_unflag_clears_badge(self, client, slc_headers, monkeypatch):
+        await self.harvest(client, slc_headers, monkeypatch, [self.entry(1, 10)])
+        await self.flag(client, slc_headers, "1")
+        await self.harvest(
+            client, slc_headers, monkeypatch, [self.entry(1, 10, title="New title")]
+        )
+        event = await self.get_event(client, slc_headers, "1")
+        assert event["Upstream_Changed_At"] is not None
+
+        response = await client.patch(
+            f"/api/v1/slc/harvested-events/{event['Id']}",
+            headers=slc_headers,
+            json={"SLC_Review_Status": "new"},
+        )
+        assert response.status_code == 200
+        assert response.json()["Upstream_Changed_At"] is None
+
+    async def test_acknowledge_unknown_event_returns_404(self, client, slc_headers):
+        response = await client.post(
+            "/api/v1/slc/harvested-events/does-not-exist/acknowledge-upstream",
+            headers=slc_headers,
+        )
+        assert response.status_code == 404
+
+    async def test_acknowledge_requires_slc_or_staff(self, client, db: AsyncSession):
+        event = await seed_harvested_event(db)
+        response = await client.post(
+            f"/api/v1/slc/harvested-events/{event.Id}/acknowledge-upstream"
+        )
+        assert response.status_code == 403

@@ -28,6 +28,10 @@ class HarvestedEventResponse(BaseModel):
     Category_Path: str | None
     Is_Canceled: bool
     SLC_Review_Status: str
+    # Set when a re-harvest finds the upstream event edited, canceled, or
+    # missing from the feed while this event is flagged; cleared on
+    # acknowledge or un-flag.
+    Upstream_Changed_At: datetime | None
     Promoted_Submission_Id: str | None
     # Mirrors the promoted submission's Event_Classification; None when the
     # event is not flagged. Populated by the route, not the ORM row.

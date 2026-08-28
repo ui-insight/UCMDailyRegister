@@ -6,6 +6,7 @@ import {
   buildDigestHtml,
   buildDigestText,
   defaultDigestWeekStart,
+  excludeCanceledEvents,
   formatWeekRange,
   parseBodyFields,
   toDigestEvent,
@@ -178,6 +179,60 @@ describe('buildDigestDays', () => {
       'morning',
       'evening',
     ]);
+  });
+});
+
+describe('canceled events', () => {
+  const canceledBody = [
+    'Canceled: yes',
+    'Source date: 9/9/2026',
+    'Start time: 7:00 PM',
+    'Location: Tower Lawn',
+  ].join('\n');
+
+  it('parses the promoted-body canceled marker', () => {
+    expect(toDigestEvent(makeSubmission({ Original_Body: canceledBody })).canceled).toBe(true);
+    expect(toDigestEvent(makeSubmission()).canceled).toBe(false);
+  });
+
+  it('excludeCanceledEvents drops canceled events and empty days', () => {
+    const days = buildDigestDays(
+      [
+        makeSubmission({ Id: 'live', Occurrence_Dates: ['2026-09-09'] }),
+        makeSubmission({
+          Id: 'gone',
+          Original_Body: canceledBody,
+          Occurrence_Dates: ['2026-09-09', '2026-09-10'],
+        }),
+      ],
+      '2026-09-07',
+    );
+    const emailDays = excludeCanceledEvents(days);
+    expect(emailDays).toHaveLength(1);
+    expect(emailDays[0].date).toBe('2026-09-09');
+    expect(emailDays[0].events.map((e) => e.submission.Id)).toEqual(['live']);
+    // The full day list still carries both, for the struck-through preview.
+    expect(days[0].events).toHaveLength(2);
+  });
+
+  it('keeps canceled events out of the copied email payloads', () => {
+    const days = excludeCanceledEvents(
+      buildDigestDays(
+        [
+          makeSubmission({ Id: 'live', Occurrence_Dates: ['2026-09-09'] }),
+          makeSubmission({
+            Id: 'gone',
+            Original_Headline: 'Canceled Gala',
+            Original_Body: canceledBody,
+            Occurrence_Dates: ['2026-09-09'],
+          }),
+        ],
+        '2026-09-07',
+      ),
+    );
+    expect(buildDigestHtml('2026-09-07', days)).not.toContain('Canceled Gala');
+    expect(buildDigestText('2026-09-07', days)).not.toContain('Canceled Gala');
+    expect(buildDefaultPreamble('2026-09-07', days)).toContain('It features 1 event');
   });
 });
 

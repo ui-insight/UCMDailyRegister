@@ -18,6 +18,18 @@ fields detects upstream edits; changed events are updated in place while the
 coordinator's SLC_Review_Status is always preserved. Every event seen in the
 feed gets its Last_Seen_At bumped.
 
+For flagged events, a harvest additionally guards against emailing stale
+information. An upstream edit or cancellation stamps Upstream_Changed_At,
+which the triage page surfaces as an acknowledgeable badge. A flagged future
+event that disappears from the feed while still inside the feed's coverage
+window (bounded by the last fetched occurrence, since the feed is a rolling
+~3-week window capped at 200 rows) is treated as canceled upstream. And every
+harvest re-syncs each flagged event's promoted submission — headline, body,
+and schedule dates — with the current harvested data, which doubles as an
+automatic backfill whenever the promoted body format changes. The harvested
+feed is the source of truth for promoted events: manual edits to a promoted
+submission are overwritten by design.
+
 Triage transitions live here too. Flagging promotes the event onto the SLC
 calendar by creating an SLC-only Submission (same shape as the workbook
 importer: Category "slc_event", Target_Newsletter "none", schedule rows for
@@ -157,6 +169,7 @@ async def harvest_trumba_events(db: AsyncSession) -> HarvestSummary:
     payload = await fetch_trumba_feed()
     events, skipped = parse_trumba_feed(payload)
     summary = await upsert_harvested_events(db, events)
+    summary.updated += await _cancel_disappeared_flagged_events(db, events)
     summary.fetched = len(payload)
     summary.skipped += skipped
     return summary
@@ -207,7 +220,14 @@ async def upsert_harvested_events(
             continue
 
         if existing.Content_Hash == content_hash:
-            summary.unchanged += 1
+            if existing.Is_Canceled != event.canceled:
+                # Only the disappearance handling below desyncs Is_Canceled
+                # from the hash; a reappearing event is restored here.
+                existing.Is_Canceled = event.canceled
+                _mark_upstream_change(existing)
+                summary.updated += 1
+            else:
+                summary.unchanged += 1
         else:
             existing.Series_Id = event.series_id
             existing.Source_Url = event.url
@@ -220,11 +240,60 @@ async def upsert_harvested_events(
             existing.Category_Path = event.category_path
             existing.Is_Canceled = event.canceled
             existing.Content_Hash = content_hash
+            _mark_upstream_change(existing)
             summary.updated += 1
+        _sync_promoted_submission(existing)
         existing.Last_Seen_At = sa.func.now()
 
     await db.commit()
     return summary
+
+
+def _mark_upstream_change(event: HarvestedEvent) -> None:
+    """Stamp the change marker — only flagged events carry the badge."""
+    if event.SLC_Review_Status == "flagged":
+        event.Upstream_Changed_At = sa.func.now()
+
+
+async def _cancel_disappeared_flagged_events(
+    db: AsyncSession, events: list[TrumbaFeedEvent]
+) -> int:
+    """Mark flagged future events missing from the feed as canceled upstream.
+
+    Trumba drops deleted events from the feed without a tombstone. The feed
+    only covers a rolling window (~3 weeks, capped at 200 rows), so absence is
+    only meaningful for events starting on or before the last fetched
+    occurrence; events beyond that boundary simply are not covered yet. Limited
+    to flagged events — they are the ones whose promoted submissions would
+    otherwise be emailed stale.
+    """
+    if not events:
+        return 0
+    coverage_end = max(event.event_start for event in events)
+    seen_ids = {event.source_id for event in events}
+    rows = (
+        (
+            await db.execute(
+                sa.select(HarvestedEvent).where(
+                    HarvestedEvent.Source_Type == TRUMBA_SOURCE_TYPE,
+                    HarvestedEvent.SLC_Review_Status == "flagged",
+                    HarvestedEvent.Is_Canceled.is_(False),
+                    HarvestedEvent.Event_Start > datetime.now(),
+                    HarvestedEvent.Event_Start <= coverage_end,
+                    HarvestedEvent.Source_Id.not_in(seen_ids),
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    for event in rows:
+        event.Is_Canceled = True
+        event.Upstream_Changed_At = sa.func.now()
+        _sync_promoted_submission(event)
+    if rows:
+        await db.commit()
+    return len(rows)
 
 
 async def list_harvested_events(
@@ -299,8 +368,26 @@ async def set_review_status(
         await _promote_event(db, event, classification)
     else:
         await _withdraw_promotion(db, event)
+        # The badge only makes sense while the promotion exists.
+        event.Upstream_Changed_At = None
     event.SLC_Review_Status = status
 
+    await db.commit()
+    await db.refresh(event)
+    return event
+
+
+async def acknowledge_upstream_change(
+    db: AsyncSession, harvested_event_id: str
+) -> HarvestedEvent | None:
+    """Clear the upstream-change marker once the coordinator has reviewed it.
+
+    Returns None when the event does not exist.
+    """
+    event = await db.get(HarvestedEvent, harvested_event_id)
+    if event is None:
+        return None
+    event.Upstream_Changed_At = None
     await db.commit()
     await db.refresh(event)
     return event
@@ -314,7 +401,7 @@ async def _promote_event(
         existing = await db.get(Submission, event.Promoted_Submission_Id)
         if existing is not None:
             existing.Event_Classification = classification
-            existing.Original_Body = _build_promoted_body(event)
+            _sync_promoted_submission(event)
             return
         # Staff deleted the promoted submission out from under the link;
         # fall through and promote again.
@@ -354,6 +441,34 @@ async def _promote_event(
     event.Promoted_Submission_Id = submission.Id
 
 
+def _sync_promoted_submission(event: HarvestedEvent) -> None:
+    """Re-derive the promoted submission from the current harvested data.
+
+    Keeps headline, body, and schedule dates in step with upstream edits, and
+    doubles as a backfill when the promoted body format changes: the body is
+    rebuilt on every harvest and updated whenever the rendered form differs.
+    No-op for events without a live promotion.
+    """
+    submission = event.Promoted_Submission_Rel
+    if submission is None:
+        return
+    if submission.Original_Headline != event.Title:
+        submission.Original_Headline = event.Title
+    new_body = _build_promoted_body(event)
+    if submission.Original_Body != new_body:
+        submission.Original_Body = new_body
+
+    request = submission.Schedule_Requests[0] if submission.Schedule_Requests else None
+    if request is None:
+        return
+    start_date = event.Event_Start.date()
+    end_date = event.Event_End.date() if event.Event_End else start_date
+    is_range = end_date > start_date
+    request.Requested_Date = start_date
+    request.Recurrence_Type = "date_range" if is_range else "once"
+    request.Recurrence_End_Date = end_date if is_range else None
+
+
 async def _withdraw_promotion(db: AsyncSession, event: HarvestedEvent) -> None:
     """Delete the promoted submission, if one still exists."""
     if not event.Promoted_Submission_Id:
@@ -372,7 +487,12 @@ def _build_promoted_body(event: HarvestedEvent) -> str:
     if end_date > start_date:
         source_date = f"{source_date} - {end_date.strftime('%-m/%-d/%Y')}"
 
-    parts = [f"Source date: {source_date}"]
+    parts = []
+    if event.Is_Canceled:
+        # Parsed by the digest view, which strikes canceled events in the
+        # preview and keeps them out of the copied email.
+        parts.append("Canceled: yes")
+    parts.append(f"Source date: {source_date}")
     if event.All_Day:
         parts.append("Start time: All day")
     else:

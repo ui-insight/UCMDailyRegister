@@ -193,6 +193,42 @@ describe('SLCDigestPage', () => {
     ).toContain('Good morning,');
   });
 
+  it('strikes canceled events in the preview and keeps them out of the copy', async () => {
+    listSubmissionsMock.mockResolvedValue({
+      Items: [
+        makeSubmission(),
+        makeSubmission({
+          Id: 'sub-canceled',
+          Original_Headline: 'Canceled Gala',
+          Original_Body: ['Canceled: yes', 'Start time: 6:00 PM'].join('\n'),
+          Event_Classification: null,
+        }),
+      ],
+      Total: 2,
+    });
+    const write = vi.fn().mockResolvedValue(undefined);
+    vi.stubGlobal('ClipboardItem', FakeClipboardItem);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { write, writeText: vi.fn() },
+      configurable: true,
+    });
+
+    renderDigestPage();
+    await screen.findByText('Canceled Gala');
+
+    expect(screen.getByText('Canceled — not emailed')).toBeInTheDocument();
+    expect(screen.getByText(/1 event this week/)).toBeInTheDocument();
+    expect(
+      (screen.getByLabelText('Email preamble') as HTMLTextAreaElement).value,
+    ).toContain('It features 1 event');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Copy for email' }));
+    await waitFor(() => expect(write).toHaveBeenCalledTimes(1));
+    const item = write.mock.calls[0][0][0] as FakeClipboardItem;
+    expect(await item.data['text/html'].text()).not.toContain('Canceled Gala');
+    expect(await item.data['text/plain'].text()).not.toContain('Canceled Gala');
+  });
+
   it('falls back to plain text when rich clipboard writes are unavailable', async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, 'clipboard', {
