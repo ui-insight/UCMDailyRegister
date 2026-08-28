@@ -172,7 +172,8 @@ export default function SLCTriagePage() {
           <h2 className="text-2xl font-bold text-gray-900">SLC Event Triage</h2>
           <p className="text-sm text-gray-500 mt-1">
             Upcoming campus events harvested from the U of I events calendar.
-            Review them for Senior Leadership Council relevance.
+            Check SLC to put an event on the SLC calendar; add Strategic or
+            Signature to classify it.
           </p>
         </div>
         <button
@@ -305,7 +306,7 @@ function TriageEventCard({
             )}
             {event.SLC_Review_Status === 'flagged' && (
               <span className="text-[10px] uppercase tracking-wide rounded border border-ui-clearwater-200 bg-ui-clearwater-50 px-1.5 py-0.5 text-ui-clearwater-700">
-                Flagged{event.Promoted_Classification ? `: ${event.Promoted_Classification}` : ''}
+                Flagged
               </span>
             )}
             {event.SLC_Review_Status === 'dismissed' && (
@@ -360,82 +361,89 @@ function TriageActions({
   const buttonClass =
     'rounded-md border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50';
 
-  if (event.SLC_Review_Status === 'new') {
+  if (event.SLC_Review_Status === 'dismissed') {
     return (
-      <>
-        <select
-          aria-label={`Flag ${event.Title} for SLC`}
-          value=""
-          disabled={busy}
-          onChange={(e) => {
-            const value = e.target.value;
-            if (!value) return;
-            onTriage(
-              event,
-              'flagged',
-              value === 'unclassified' ? undefined : (value as Classification),
-            );
-          }}
-          className="rounded-md border border-ui-gold-400 bg-ui-gold-50 px-2.5 py-1 text-xs font-medium text-ui-black disabled:opacity-50"
-        >
-          <option value="">Flag for SLC…</option>
-          <option value="unclassified">Flag (unclassified)</option>
-          <option value="strategic">Flag as strategic</option>
-          <option value="signature">Flag as signature</option>
-        </select>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => onTriage(event, 'dismissed')}
-          className={buttonClass}
-        >
-          Dismiss
-        </button>
-      </>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => onTriage(event, 'new')}
+        className={buttonClass}
+      >
+        Restore
+      </button>
     );
   }
 
-  if (event.SLC_Review_Status === 'flagged') {
-    return (
-      <>
-        <select
-          aria-label={`Classification for ${event.Title}`}
-          value={event.Promoted_Classification ?? 'unclassified'}
-          disabled={busy}
-          onChange={(e) => {
-            const value = e.target.value;
-            onTriage(
-              event,
-              'flagged',
-              value === 'unclassified' ? undefined : (value as Classification),
-            );
-          }}
-          className="rounded-md border border-gray-300 px-2.5 py-1 text-xs text-gray-700 disabled:opacity-50"
-        >
-          <option value="unclassified">Unclassified</option>
-          <option value="strategic">Strategic</option>
-          <option value="signature">Signature</option>
-        </select>
-        <button
-          type="button"
-          disabled={busy}
-          onClick={() => onTriage(event, 'new')}
-          className={buttonClass}
-        >
-          Un-flag
-        </button>
-      </>
-    );
-  }
+  const flagged = event.SLC_Review_Status === 'flagged';
+  const classification = flagged ? event.Promoted_Classification : null;
+  const toggleClassification = (value: Classification) =>
+    onTriage(event, 'flagged', classification === value ? undefined : value);
 
   return (
-    <button
-      type="button"
-      disabled={busy}
-      onClick={() => onTriage(event, 'new')}
-      className={buttonClass}
+    <>
+      <TriageToggleBox
+        label="SLC"
+        ariaLabel={`Flag ${event.Title} for SLC`}
+        checked={flagged}
+        disabled={busy}
+        onChange={() => onTriage(event, flagged ? 'new' : 'flagged')}
+      />
+      <TriageToggleBox
+        label="Strategic"
+        ariaLabel={`Mark ${event.Title} strategic`}
+        checked={classification === 'strategic'}
+        disabled={busy}
+        onChange={() => toggleClassification('strategic')}
+      />
+      <TriageToggleBox
+        label="Signature"
+        ariaLabel={`Mark ${event.Title} signature`}
+        checked={classification === 'signature'}
+        disabled={busy}
+        onChange={() => toggleClassification('signature')}
+      />
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => onTriage(event, 'dismissed')}
+        className={buttonClass}
+      >
+        Dismiss
+      </button>
+    </>
+  );
+}
+
+function TriageToggleBox({
+  label,
+  ariaLabel,
+  checked,
+  disabled,
+  onChange,
+}: {
+  label: string;
+  ariaLabel: string;
+  checked: boolean;
+  disabled: boolean;
+  onChange: () => void;
+}) {
+  return (
+    <label
+      className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium ${
+        checked
+          ? 'border-ui-gold-400 bg-ui-gold-50 text-ui-black'
+          : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+      } ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
     >
-      Restore
-    </button>
+      <input
+        type="checkbox"
+        aria-label={ariaLabel}
+        checked={checked}
+        disabled={disabled}
+        onChange={onChange}
+        className="h-3.5 w-3.5 accent-ui-gold-500"
+      />
+      {label}
+    </label>
   );
 }

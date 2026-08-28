@@ -159,7 +159,31 @@ describe('SLCTriagePage', () => {
     await waitFor(() => expect(listHarvestedEventsMock).toHaveBeenCalledTimes(2));
   });
 
-  it('flags an event with a classification', async () => {
+  it('flags an event for SLC with the SLC box', async () => {
+    const event = makeHarvestedEvent();
+    listHarvestedEventsMock.mockResolvedValue({ Items: [event], Total: 1 });
+    updateHarvestedEventMock.mockResolvedValue({
+      ...event,
+      SLC_Review_Status: 'flagged',
+      Promoted_Submission_Id: 'submission-1',
+    });
+    renderTriagePage();
+    await screen.findByText('Screen on the Green');
+
+    await userEvent.click(
+      screen.getByLabelText('Flag Screen on the Green for SLC'),
+    );
+
+    expect(updateHarvestedEventMock).toHaveBeenCalledWith('harvested-1', {
+      SLC_Review_Status: 'flagged',
+    });
+    expect(await screen.findByText('Flagged')).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Flag Screen on the Green for SLC'),
+    ).toBeChecked();
+  });
+
+  it('checking Strategic flags for SLC and classifies in one step', async () => {
     const event = makeHarvestedEvent();
     listHarvestedEventsMock.mockResolvedValue({ Items: [event], Total: 1 });
     updateHarvestedEventMock.mockResolvedValue({
@@ -171,17 +195,52 @@ describe('SLCTriagePage', () => {
     renderTriagePage();
     await screen.findByText('Screen on the Green');
 
-    await userEvent.selectOptions(
-      screen.getByLabelText('Flag Screen on the Green for SLC'),
-      'strategic',
+    await userEvent.click(
+      screen.getByLabelText('Mark Screen on the Green strategic'),
     );
 
     expect(updateHarvestedEventMock).toHaveBeenCalledWith('harvested-1', {
       SLC_Review_Status: 'flagged',
       Event_Classification: 'strategic',
     });
-    expect(await screen.findByText('Flagged: strategic')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Un-flag' })).toBeInTheDocument();
+    expect(await screen.findByText('Flagged')).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Flag Screen on the Green for SLC'),
+    ).toBeChecked();
+    expect(
+      screen.getByLabelText('Mark Screen on the Green strategic'),
+    ).toBeChecked();
+  });
+
+  it('unchecking the classification keeps the event flagged for SLC', async () => {
+    const event = makeHarvestedEvent({
+      SLC_Review_Status: 'flagged',
+      Promoted_Submission_Id: 'submission-1',
+      Promoted_Classification: 'strategic',
+    });
+    listHarvestedEventsMock.mockResolvedValue({ Items: [event], Total: 1 });
+    updateHarvestedEventMock.mockResolvedValue({
+      ...event,
+      Promoted_Classification: null,
+    });
+    renderTriagePage();
+    await screen.findByText('Screen on the Green');
+
+    await userEvent.click(
+      screen.getByLabelText('Mark Screen on the Green strategic'),
+    );
+
+    expect(updateHarvestedEventMock).toHaveBeenCalledWith('harvested-1', {
+      SLC_Review_Status: 'flagged',
+    });
+    await waitFor(() =>
+      expect(
+        screen.getByLabelText('Mark Screen on the Green strategic'),
+      ).not.toBeChecked(),
+    );
+    expect(
+      screen.getByLabelText('Flag Screen on the Green for SLC'),
+    ).toBeChecked();
   });
 
   it('dismisses an event and hides it from the active view', async () => {
@@ -204,7 +263,7 @@ describe('SLCTriagePage', () => {
     );
   });
 
-  it('un-flags a flagged event', async () => {
+  it('unchecking SLC un-flags a flagged event', async () => {
     const event = makeHarvestedEvent({
       SLC_Review_Status: 'flagged',
       Promoted_Submission_Id: 'submission-1',
@@ -218,19 +277,27 @@ describe('SLCTriagePage', () => {
       Promoted_Classification: null,
     });
     renderTriagePage();
-    await screen.findByText('Flagged: signature');
+    await screen.findByText('Flagged');
+    expect(
+      screen.getByLabelText('Mark Screen on the Green signature'),
+    ).toBeChecked();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Un-flag' }));
+    await userEvent.click(
+      screen.getByLabelText('Flag Screen on the Green for SLC'),
+    );
 
     expect(updateHarvestedEventMock).toHaveBeenCalledWith('harvested-1', {
       SLC_Review_Status: 'new',
     });
     await waitFor(() =>
-      expect(screen.queryByText('Flagged: signature')).not.toBeInTheDocument(),
+      expect(screen.queryByText('Flagged')).not.toBeInTheDocument(),
     );
     expect(
       screen.getByLabelText('Flag Screen on the Green for SLC'),
-    ).toBeInTheDocument();
+    ).not.toBeChecked();
+    expect(
+      screen.getByLabelText('Mark Screen on the Green signature'),
+    ).not.toBeChecked();
   });
 
   it('restores a dismissed event from the dismissed view', async () => {

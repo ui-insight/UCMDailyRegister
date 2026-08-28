@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Submission } from '../types/submission';
 import {
+  buildDefaultPreamble,
   buildDigestDays,
   buildDigestHtml,
   buildDigestText,
@@ -8,6 +9,7 @@ import {
   formatWeekRange,
   parseBodyFields,
   toDigestEvent,
+  truncateDescription,
   weekStartOf,
 } from './slcDigest';
 
@@ -21,6 +23,8 @@ function makeSubmission(overrides: Partial<Submission> = {}): Submission {
       'Source date: 9/9/2026',
       'Start time: 7:00 PM',
       'Location: Tower Lawn',
+      'Category: Student Affairs|Dept. of Student Involvement',
+      'Description: Bring your blankets for an outdoor movie night on the lawn.',
       'Event page: https://events.uidaho.edu/screen-on-the-green',
       'Source: U of I events calendar (Trumba)',
     ].join('\n'),
@@ -71,23 +75,33 @@ describe('formatWeekRange', () => {
 });
 
 describe('parseBodyFields / toDigestEvent', () => {
-  it('extracts time, location, and event link from a promoted Trumba body', () => {
+  it('extracts details and the event link from a promoted Trumba body', () => {
     const event = toDigestEvent(makeSubmission());
     expect(event.time).toBe('7:00 PM');
     expect(event.location).toBe('Tower Lawn');
     expect(event.url).toBe('https://events.uidaho.edu/screen-on-the-green');
+    expect(event.description).toBe(
+      'Bring your blankets for an outdoor movie night on the lawn.',
+    );
+    expect(event.category).toBe('Student Affairs');
+    expect(event.sponsor).toBeNull();
     expect(event.classification).toBe('signature');
   });
 
   it('matches labels case-insensitively (manual submit form writes "Start Time")', () => {
     const event = toDigestEvent(
       makeSubmission({
-        Original_Body: 'Event: Donor dinner\nLocation: 1912 Center\nStart Time: 6 p.m.',
+        Original_Body:
+          'Event: Donor dinner\nLocation: 1912 Center\nStart Time: 6 p.m.'
+          + '\nSponsor: Office of the President\nTicketed: Yes',
       }),
     );
     expect(event.time).toBe('6 p.m.');
     expect(event.location).toBe('1912 Center');
+    expect(event.sponsor).toBe('Office of the President');
+    expect(event.ticketed).toBe('Yes');
     expect(event.url).toBeNull();
+    expect(event.description).toBeNull();
   });
 
   it('keeps URL values intact despite the colon in https://', () => {
@@ -167,6 +181,56 @@ describe('buildDigestDays', () => {
   });
 });
 
+describe('truncateDescription', () => {
+  it('returns short text unchanged', () => {
+    expect(truncateDescription('A short blurb.')).toBe('A short blurb.');
+  });
+
+  it('cuts long text at a word boundary with an ellipsis', () => {
+    const truncated = truncateDescription('word '.repeat(100).trim());
+    expect(truncated.length).toBeLessThanOrEqual(241);
+    expect(truncated.endsWith('word…')).toBe(true);
+  });
+});
+
+describe('buildDefaultPreamble', () => {
+  it('summarizes the week with classification counts, deduping multi-day events', () => {
+    const days = buildDigestDays(
+      [
+        makeSubmission({
+          Id: 'multi-strategic',
+          Event_Classification: 'strategic',
+          Occurrence_Dates: ['2026-09-08', '2026-09-09'],
+        }),
+        makeSubmission({
+          Id: 'signature',
+          Occurrence_Dates: ['2026-09-10'],
+        }),
+        makeSubmission({
+          Id: 'plain',
+          Event_Classification: null,
+          Occurrence_Dates: ['2026-09-11'],
+        }),
+      ],
+      '2026-09-07',
+    );
+    const preamble = buildDefaultPreamble('2026-09-07', days);
+    expect(preamble).toContain('Good morning,');
+    expect(preamble).toContain('week of September 7 – 13, 2026');
+    expect(preamble).toContain(
+      'It features 3 events, including 1 strategic event and 1 signature event.',
+    );
+  });
+
+  it('omits the classification clause when nothing is classified', () => {
+    const days = buildDigestDays(
+      [makeSubmission({ Event_Classification: null, Occurrence_Dates: ['2026-09-09'] })],
+      '2026-09-07',
+    );
+    expect(buildDefaultPreamble('2026-09-07', days)).toContain('It features 1 event.');
+  });
+});
+
 describe('buildDigestHtml / buildDigestText', () => {
   const submissions = [
     makeSubmission({
@@ -181,18 +245,37 @@ describe('buildDigestHtml / buildDigestText', () => {
     expect(html).toContain('Wednesday, September 9');
     expect(html).toContain('href="https://events.uidaho.edu/screen-on-the-green"');
     expect(html).toContain('[Signature]');
-    expect(html).toContain('7:00 PM · Tower Lawn');
+    expect(html).toContain('7:00 PM · Tower Lawn · Student Affairs');
+    expect(html).toContain('Bring your blankets for an outdoor movie night on the lawn.');
+    expect(html).toContain('>Event page</a>');
     expect(html).toContain('Vandals &lt;Kickoff&gt; &amp; Rally');
     expect(html).not.toContain('<Kickoff>');
     expect(html).not.toContain('class=');
   });
 
-  it('renders the plain-text fallback with headings, details, and URLs', () => {
-    const text = buildDigestText('2026-09-07', buildDigestDays(submissions, '2026-09-07'));
+  it('includes the preamble as escaped paragraphs', () => {
+    const html = buildDigestHtml(
+      '2026-09-07',
+      buildDigestDays(submissions, '2026-09-07'),
+      'Good morning,\n\nA <warm> welcome to the week.',
+    );
+    expect(html).toContain('<p style="margin:0 0 12px;">Good morning,</p>');
+    expect(html).toContain('A &lt;warm&gt; welcome to the week.');
+    expect(html).not.toContain('<warm>');
+  });
+
+  it('renders the plain-text fallback with the preamble, details, and URLs', () => {
+    const text = buildDigestText(
+      '2026-09-07',
+      buildDigestDays(submissions, '2026-09-07'),
+      'Good morning,\n\nHere is the week ahead.',
+    );
     expect(text).toContain('SENIOR LEADERSHIP COUNCIL EVENTS');
+    expect(text).toContain('Good morning,\n\nHere is the week ahead.');
     expect(text).toContain('WEDNESDAY, SEPTEMBER 9');
     expect(text).toContain('Vandals <Kickoff> & Rally [Signature]');
-    expect(text).toContain('7:00 PM · Tower Lawn');
+    expect(text).toContain('7:00 PM · Tower Lawn · Student Affairs');
+    expect(text).toContain('Bring your blankets for an outdoor movie night on the lawn.');
     expect(text).toContain('https://events.uidaho.edu/screen-on-the-green');
   });
 });
