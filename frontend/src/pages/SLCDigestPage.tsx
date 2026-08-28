@@ -11,6 +11,7 @@ import {
   buildDigestHtml,
   buildDigestText,
   defaultDigestWeekStart,
+  excludeCanceledEvents,
   formatDayHeading,
   formatWeekRange,
   truncateDescription,
@@ -61,13 +62,16 @@ export default function SLCDigestPage() {
     () => buildDigestDays(submissions, weekStart),
     [submissions, weekStart],
   );
+  // Canceled events stay visible (struck) in the preview but never reach the
+  // copied email, so the count, preamble, and payloads all use emailDays.
+  const emailDays = useMemo(() => excludeCanceledEvents(days), [days]);
   const eventCount = new Set(
-    days.flatMap((day) => day.events.map((event) => event.submission.Id)),
+    emailDays.flatMap((day) => day.events.map((event) => event.submission.Id)),
   ).size;
 
   const suggestedPreamble = useMemo(
-    () => buildDefaultPreamble(weekStart, days),
-    [weekStart, days],
+    () => buildDefaultPreamble(weekStart, emailDays),
+    [weekStart, emailDays],
   );
   const [preambleDraft, setPreambleDraft] = useState<string | null>(null);
   const preamble = preambleDraft ?? suggestedPreamble;
@@ -77,8 +81,8 @@ export default function SLCDigestPage() {
     setError(null);
     try {
       const flavor = await copyHtmlToClipboard(
-        buildDigestHtml(weekStart, days, preamble),
-        buildDigestText(weekStart, days, preamble),
+        buildDigestHtml(weekStart, emailDays, preamble),
+        buildDigestText(weekStart, emailDays, preamble),
       );
       showToast(
         flavor === 'rich'
@@ -276,7 +280,7 @@ function DigestEventRow({ event }: { event: DigestEvent }) {
   return (
     <div className="text-sm">
       <div className="flex items-center gap-2">
-        {event.url ? (
+        {event.url && !event.canceled ? (
           <a
             href={event.url}
             target="_blank"
@@ -286,8 +290,17 @@ function DigestEventRow({ event }: { event: DigestEvent }) {
             {event.submission.Original_Headline}
           </a>
         ) : (
-          <span className="font-medium text-gray-900">
+          <span
+            className={`font-medium ${
+              event.canceled ? 'text-gray-400 line-through' : 'text-gray-900'
+            }`}
+          >
             {event.submission.Original_Headline}
+          </span>
+        )}
+        {event.canceled && (
+          <span className="shrink-0 text-[10px] uppercase tracking-wide rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-red-700">
+            Canceled — not emailed
           </span>
         )}
         {event.classification && (

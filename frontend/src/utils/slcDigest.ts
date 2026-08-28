@@ -26,6 +26,7 @@ export interface DigestEvent {
   sponsor: string | null;
   category: string | null;
   ticketed: string | null;
+  canceled: boolean;
   classification: EventClassification | null;
 }
 
@@ -87,8 +88,23 @@ export function toDigestEvent(submission: Submission): DigestEvent {
     sponsor: fields.get('sponsor') ?? null,
     category: categoryPath?.split('|')[0]?.trim() || null,
     ticketed: fields.get('ticketed') ?? null,
+    canceled: (fields.get('canceled') ?? '').toLowerCase() === 'yes',
     classification: submission.Event_Classification,
   };
+}
+
+/**
+ * Drop canceled events (and any day left empty) for the emailed digest.
+ * The on-screen preview keeps them, struck through, so the coordinator can
+ * see why the email differs.
+ */
+export function excludeCanceledEvents(days: DigestDay[]): DigestDay[] {
+  return days
+    .map((day) => ({
+      date: day.date,
+      events: day.events.filter((event) => !event.canceled),
+    }))
+    .filter((day) => day.events.length > 0);
 }
 
 /** Cap a description for the digest, cutting at a word boundary. */

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  acknowledgeUpstreamChange,
   listHarvestedEvents,
   runHarvest,
   updateHarvestedEvent,
@@ -12,6 +13,7 @@ import { getSubmitterRole } from '../utils/submitterRole';
 import SLCTriagePage from './SLCTriagePage';
 
 vi.mock('../api/slcEvents', () => ({
+  acknowledgeUpstreamChange: vi.fn(),
   listHarvestedEvents: vi.fn(),
   runHarvest: vi.fn(),
   updateHarvestedEvent: vi.fn(),
@@ -21,6 +23,7 @@ vi.mock('../utils/submitterRole', () => ({
   getSubmitterRole: vi.fn(),
 }));
 
+const acknowledgeUpstreamChangeMock = vi.mocked(acknowledgeUpstreamChange);
 const listHarvestedEventsMock = vi.mocked(listHarvestedEvents);
 const runHarvestMock = vi.mocked(runHarvest);
 const updateHarvestedEventMock = vi.mocked(updateHarvestedEvent);
@@ -59,6 +62,7 @@ function makeHarvestedEvent(overrides: Partial<HarvestedEvent> = {}): HarvestedE
     Category_Path: 'Student Affairs|Dept. of Student Involvement',
     Is_Canceled: false,
     SLC_Review_Status: 'new',
+    Upstream_Changed_At: null,
     Promoted_Submission_Id: null,
     Promoted_Classification: null,
     First_Seen_At: isoDaysFromNow(0),
@@ -298,6 +302,66 @@ describe('SLCTriagePage', () => {
     expect(
       screen.getByLabelText('Mark Screen on the Green signature'),
     ).not.toBeChecked();
+  });
+
+  it('shows the updated-upstream badge and acknowledges it', async () => {
+    const event = makeHarvestedEvent({
+      SLC_Review_Status: 'flagged',
+      Promoted_Submission_Id: 'submission-1',
+      Upstream_Changed_At: isoDaysFromNow(0),
+    });
+    listHarvestedEventsMock.mockResolvedValue({ Items: [event], Total: 1 });
+    acknowledgeUpstreamChangeMock.mockResolvedValue({
+      ...event,
+      Upstream_Changed_At: null,
+    });
+    renderTriagePage();
+
+    expect(
+      await screen.findByText(/Updated upstream — the event details changed/),
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Acknowledge' }));
+
+    expect(acknowledgeUpstreamChangeMock).toHaveBeenCalledWith('harvested-1');
+    await waitFor(() =>
+      expect(
+        screen.queryByText(/Updated upstream/),
+      ).not.toBeInTheDocument(),
+    );
+  });
+
+  it('shows the canceled-upstream badge with un-flag and keep options', async () => {
+    const event = makeHarvestedEvent({
+      SLC_Review_Status: 'flagged',
+      Promoted_Submission_Id: 'submission-1',
+      Is_Canceled: true,
+      Upstream_Changed_At: isoDaysFromNow(0),
+    });
+    listHarvestedEventsMock.mockResolvedValue({ Items: [event], Total: 1 });
+    updateHarvestedEventMock.mockResolvedValue({
+      ...event,
+      SLC_Review_Status: 'new',
+      Promoted_Submission_Id: null,
+      Upstream_Changed_At: null,
+    });
+    renderTriagePage();
+
+    expect(
+      await screen.findByText(/Canceled upstream — this event was canceled/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Keep flagged' }),
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Un-flag' }));
+
+    expect(updateHarvestedEventMock).toHaveBeenCalledWith('harvested-1', {
+      SLC_Review_Status: 'new',
+    });
+    await waitFor(() =>
+      expect(screen.queryByText(/Canceled upstream/)).not.toBeInTheDocument(),
+    );
   });
 
   it('restores a dismissed event from the dismissed view', async () => {

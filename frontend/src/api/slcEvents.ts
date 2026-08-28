@@ -41,3 +41,12 @@ export async function updateHarvestedEvent(
     body: JSON.stringify(data),
   });
 }
+
+export async function acknowledgeUpstreamChange(
+  id: string,
+): Promise<HarvestedEvent> {
+  return apiFetch<HarvestedEvent>(
+    `/slc/harvested-events/${id}/acknowledge-upstream`,
+    { method: 'POST' },
+  );
+}

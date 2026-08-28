@@ -101,3 +101,21 @@ async def update_harvested_event(
     if event is None:
         raise HTTPException(status_code=404, detail="Harvested event not found")
     return _to_response(event)
+
+
+@router.post(
+    "/harvested-events/{harvested_event_id}/acknowledge-upstream",
+    response_model=HarvestedEventResponse,
+)
+async def acknowledge_upstream_change(
+    harvested_event_id: str,
+    db: AsyncSession = Depends(get_db),
+    submitter_role: SubmitterRole = Depends(require_staff_or_slc),
+):
+    """Clear the upstream-change badge once the coordinator has reviewed it."""
+    event = await harvested_event_service.acknowledge_upstream_change(
+        db, harvested_event_id
+    )
+    if event is None:
+        raise HTTPException(status_code=404, detail="Harvested event not found")
+    return _to_response(event)
