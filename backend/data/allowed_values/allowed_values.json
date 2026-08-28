@@ -48,5 +48,9 @@
 
   {"Value_Group": "Schedule_Mode", "Code": "academic_year", "Label": "Academic Year", "Display_Order": 1, "Description": "August through May schedule"},
   {"Value_Group": "Schedule_Mode", "Code": "summer", "Label": "Summer", "Display_Order": 2, "Description": "June through July schedule"},
-  {"Value_Group": "Schedule_Mode", "Code": "winter_break", "Label": "Winter Break", "Display_Order": 3, "Description": "Custom dates at editor discretion during winter break"}
+  {"Value_Group": "Schedule_Mode", "Code": "winter_break", "Label": "Winter Break", "Display_Order": 3, "Description": "Custom dates at editor discretion during winter break"},
+
+  {"Value_Group": "SLC_Review_Status", "Code": "new", "Label": "New", "Display_Order": 10, "Visibility_Role": "slc", "Description": "Harvested from an external calendar and awaiting SLC review"},
+  {"Value_Group": "SLC_Review_Status", "Code": "flagged", "Label": "Flagged for SLC", "Display_Order": 20, "Visibility_Role": "slc", "Description": "Marked relevant to the Senior Leadership Council"},
+  {"Value_Group": "SLC_Review_Status", "Code": "dismissed", "Label": "Dismissed", "Display_Order": 30, "Visibility_Role": "slc", "Description": "Reviewed and judged not relevant to the Senior Leadership Council"}
 ]

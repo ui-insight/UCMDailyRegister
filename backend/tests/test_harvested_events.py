@@ -1,0 +1,278 @@
+"""Tests for the Trumba harvest service and SLC triage endpoints."""
+
+from datetime import datetime
+
+import pytest
+import sqlalchemy as sa
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.models.harvested_event import HarvestedEvent
+from app.services import harvested_event_service
+from app.services.harvested_event_service import (
+    TRUMBA_SOURCE_TYPE,
+    harvest_trumba_events,
+    list_harvested_events,
+    parse_trumba_feed,
+)
+
+
+def make_feed_entry(**overrides) -> dict:
+    """Return a valid Trumba JSON feed entry with sensible defaults."""
+    entry = {
+        "eventID": 204106464,
+        "seriesID": 204106400,
+        "title": "Screen on the Green",
+        "description": "<p>Bring your <b>blankets</b> for a movie night.</p>",
+        "location": "Tower Lawn - Theophilus Tower - Main Campus",
+        "locationType": "In-Person",
+        "webLink": "",
+        "startDateTime": "2026-09-04T20:30:00",
+        "endDateTime": "2026-09-04T22:30:00",
+        "allDay": False,
+        "canceled": False,
+        "permaLinkUrl": "https://www.uidaho.edu/events?trumbaEmbed=view%3Devent%26eventid%3D204106464",
+        "categoryCalendar": "Student Affairs|Dept. of Student Involvement",
+    }
+    entry.update(overrides)
+    return entry
+
+
+def patch_feed(monkeypatch: pytest.MonkeyPatch, payload: list[dict]) -> None:
+    """Replace the live feed fetch with a canned payload."""
+
+    async def fake_fetch() -> list[dict]:
+        return payload
+
+    monkeypatch.setattr(harvested_event_service, "fetch_trumba_feed", fake_fetch)
+
+
+class TestParseTrumbaFeed:
+    def test_parses_valid_entry(self):
+        events, skipped = parse_trumba_feed([make_feed_entry()])
+        assert skipped == 0
+        assert len(events) == 1
+        event = events[0]
+        assert event.source_id == "204106464"
+        assert event.series_id == "204106400"
+        assert event.title == "Screen on the Green"
+        assert event.description == "Bring your blankets for a movie night."
+        assert event.location == "Tower Lawn - Theophilus Tower - Main Campus"
+        assert event.event_start == datetime(2026, 9, 4, 20, 30)
+        assert event.event_end == datetime(2026, 9, 4, 22, 30)
+        assert event.category_path == "Student Affairs|Dept. of Student Involvement"
+        assert event.url and "204106464" in event.url
+        assert event.canceled is False
+        assert event.all_day is False
+
+    def test_skips_entries_missing_required_fields(self):
+        payload = [
+            make_feed_entry(eventID=None),
+            make_feed_entry(title="   "),
+            make_feed_entry(startDateTime="not-a-date"),
+            make_feed_entry(startDateTime=None),
+            make_feed_entry(eventID=999),
+        ]
+        events, skipped = parse_trumba_feed(payload)
+        assert skipped == 4
+        assert [event.source_id for event in events] == ["999"]
+
+    def test_collapses_duplicate_event_ids(self):
+        payload = [
+            make_feed_entry(title="First copy"),
+            make_feed_entry(title="Second copy"),
+        ]
+        events, skipped = parse_trumba_feed(payload)
+        assert skipped == 0
+        assert len(events) == 1
+        assert events[0].title == "Second copy"
+
+    def test_canceled_and_all_day_flags(self):
+        events, _ = parse_trumba_feed(
+            [make_feed_entry(canceled=True, allDay=True, endDateTime=None)]
+        )
+        assert events[0].canceled is True
+        assert events[0].all_day is True
+        assert events[0].event_end is None
+
+    def test_truncates_overlong_location(self):
+        events, _ = parse_trumba_feed([make_feed_entry(location="x" * 300)])
+        assert events[0].location is not None
+        assert len(events[0].location) == 255
+
+    def test_unescapes_html_entities_in_title(self):
+        events, _ = parse_trumba_feed(
+            [make_feed_entry(title="Screen on the Green: &#39;Project  Hail Mary&#39;")]
+        )
+        assert events[0].title == "Screen on the Green: 'Project Hail Mary'"
+
+    def test_strips_html_from_location(self):
+        events, _ = parse_trumba_feed(
+            [
+                make_feed_entry(
+                    location='<a href="https://maps.example.com">Bruce Pitman Center</a>'
+                )
+            ]
+        )
+        assert events[0].location == "Bruce Pitman Center"
+
+
+class TestHarvestUpsert:
+    async def test_harvest_is_idempotent(self, db: AsyncSession, monkeypatch):
+        payload = [
+            make_feed_entry(),
+            make_feed_entry(eventID=111, title="Volleyball vs. WSU", seriesID=None),
+        ]
+        patch_feed(monkeypatch, payload)
+
+        first = await harvest_trumba_events(db)
+        assert first.fetched == 2
+        assert first.created == 2
+        assert first.updated == 0
+
+        second = await harvest_trumba_events(db)
+        assert second.created == 0
+        assert second.updated == 0
+        assert second.unchanged == 2
+
+        total = (
+            await db.execute(sa.select(sa.func.count()).select_from(HarvestedEvent))
+        ).scalar_one()
+        assert total == 2
+
+    async def test_upstream_change_updates_row_and_preserves_review_status(
+        self, db: AsyncSession, monkeypatch
+    ):
+        patch_feed(monkeypatch, [make_feed_entry()])
+        await harvest_trumba_events(db)
+
+        row = (await db.execute(sa.select(HarvestedEvent))).scalar_one()
+        row.SLC_Review_Status = "flagged"
+        await db.commit()
+        original_hash = row.Content_Hash
+
+        patch_feed(
+            monkeypatch,
+            [make_feed_entry(location="Moved to the Kibbie Dome", canceled=True)],
+        )
+        summary = await harvest_trumba_events(db)
+        assert summary.updated == 1
+        assert summary.created == 0
+
+        row = (await db.execute(sa.select(HarvestedEvent))).scalar_one()
+        assert row.Location == "Moved to the Kibbie Dome"
+        assert row.Is_Canceled is True
+        assert row.Content_Hash != original_hash
+        assert row.SLC_Review_Status == "flagged"
+
+    async def test_skipped_entries_are_counted(self, db: AsyncSession, monkeypatch):
+        patch_feed(monkeypatch, [make_feed_entry(), make_feed_entry(eventID=None)])
+        summary = await harvest_trumba_events(db)
+        assert summary.fetched == 2
+        assert summary.created == 1
+        assert summary.skipped == 1
+
+
+class TestListHarvestedEvents:
+    async def seed_events(self, db: AsyncSession) -> None:
+        db.add_all(
+            [
+                HarvestedEvent(
+                    Source_Type=TRUMBA_SOURCE_TYPE,
+                    Source_Id="1",
+                    Title="Intramural Kickoff",
+                    Description="Sports.",
+                    Event_Start=datetime(2026, 9, 1, 17, 0),
+                    Category_Path="Student Affairs|Campus Recreation|Intramurals",
+                    Content_Hash="a" * 64,
+                ),
+                HarvestedEvent(
+                    Source_Type=TRUMBA_SOURCE_TYPE,
+                    Source_Id="2",
+                    Title="Chamber Music Series",
+                    Description="Music.",
+                    Event_Start=datetime(2026, 9, 17, 19, 30),
+                    Category_Path="University of Idaho - CLASS",
+                    Content_Hash="b" * 64,
+                    SLC_Review_Status="flagged",
+                ),
+                HarvestedEvent(
+                    Source_Type=TRUMBA_SOURCE_TYPE,
+                    Source_Id="3",
+                    Title="Student Affairs Open House",
+                    Description="Open house.",
+                    Event_Start=datetime(2026, 10, 2, 10, 0),
+                    Category_Path="Student Affairs",
+                    Content_Hash="c" * 64,
+                ),
+            ]
+        )
+        await db.commit()
+
+    async def test_date_range_filter(self, db: AsyncSession):
+        await self.seed_events(db)
+        items, total = await list_harvested_events(
+            db, date_from=datetime(2026, 9, 1).date(), date_to=datetime(2026, 9, 30).date()
+        )
+        assert total == 2
+        assert [item.Source_Id for item in items] == ["1", "2"]
+
+    async def test_category_filter_matches_branch(self, db: AsyncSession):
+        await self.seed_events(db)
+        items, total = await list_harvested_events(db, category="Student Affairs")
+        assert total == 2
+        assert {item.Source_Id for item in items} == {"1", "3"}
+
+    async def test_review_status_filter(self, db: AsyncSession):
+        await self.seed_events(db)
+        items, total = await list_harvested_events(db, review_status="flagged")
+        assert total == 1
+        assert items[0].Source_Id == "2"
+
+
+class TestSLCEndpointAuthorization:
+    async def test_public_cannot_list_or_harvest(self, client):
+        list_response = await client.get("/api/v1/slc/harvested-events")
+        assert list_response.status_code == 403
+        harvest_response = await client.post("/api/v1/slc/harvest")
+        assert harvest_response.status_code == 403
+
+    @pytest.mark.parametrize("headers_fixture", ["slc_headers", "staff_headers"])
+    async def test_slc_and_staff_can_list(self, client, request, headers_fixture):
+        headers = request.getfixturevalue(headers_fixture)
+        response = await client.get("/api/v1/slc/harvested-events", headers=headers)
+        assert response.status_code == 200
+        body = response.json()
+        assert body == {"Items": [], "Total": 0}
+
+    async def test_harvest_endpoint_returns_summary(
+        self, client, slc_headers, monkeypatch
+    ):
+        patch_feed(monkeypatch, [make_feed_entry()])
+        response = await client.post("/api/v1/slc/harvest", headers=slc_headers)
+        assert response.status_code == 200
+        assert response.json() == {
+            "Fetched": 1,
+            "Created": 1,
+            "Updated": 0,
+            "Unchanged": 0,
+            "Skipped": 0,
+        }
+
+        listed = await client.get("/api/v1/slc/harvested-events", headers=slc_headers)
+        assert listed.status_code == 200
+        body = listed.json()
+        assert body["Total"] == 1
+        assert body["Items"][0]["Title"] == "Screen on the Green"
+        assert body["Items"][0]["SLC_Review_Status"] == "new"
+
+    async def test_harvest_feed_failure_returns_502(
+        self, client, slc_headers, monkeypatch
+    ):
+        async def failing_fetch() -> list[dict]:
+            raise ValueError("Trumba feed did not return a JSON array of events.")
+
+        monkeypatch.setattr(
+            harvested_event_service, "fetch_trumba_feed", failing_fetch
+        )
+        response = await client.post("/api/v1/slc/harvest", headers=slc_headers)
+        assert response.status_code == 502

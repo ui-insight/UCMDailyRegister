@@ -19,6 +19,7 @@ Models included:
     Newsletter               -- A single newsletter edition (TDR or My UI)
     NewsletterItem           -- A placed submission within a newsletter
     NewsletterExternalItem   -- Imported external item placed within a newsletter
+    HarvestedEvent           -- External calendar event harvested for SLC triage
     RecurringMessage         -- Centrally managed recurring editorial content
     RecurringMessageIssueOverride -- Issue-level skip/override markers
     ProductFeedback        -- In-app bug reports and feature ideas
@@ -32,6 +33,7 @@ from app.models.allowed_value import AllowedValue
 from app.models.blackout_date import BlackoutDate
 from app.models.custom_publish_date import CustomPublishDate
 from app.models.edit_history import EditVersion
+from app.models.harvested_event import HarvestedEvent
 from app.models.newsletter import Newsletter, NewsletterExternalItem, NewsletterItem
 from app.models.feedback import ProductFeedback
 from app.models.recurring_message import RecurringMessage, RecurringMessageIssueOverride
@@ -46,6 +48,7 @@ __all__ = [
     "BlackoutDate",
     "CustomPublishDate",
     "EditVersion",
+    "HarvestedEvent",
     "Newsletter",
     "NewsletterExternalItem",
     "NewsletterItem",

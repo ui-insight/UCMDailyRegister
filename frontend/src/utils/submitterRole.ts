@@ -10,7 +10,7 @@ const STAFF_ONLY_ROUTE_PREFIXES = [
   '/edit',
   '/home',
 ];
-const SLC_ROUTE_PREFIXES = ['/slc-calendar', '/submit-slc-event'];
+const SLC_ROUTE_PREFIXES = ['/slc-calendar', '/slc-triage', '/submit-slc-event'];
 
 function parseRole(value: string | null): SubmitterRole | null {
   if (!value) return null;
