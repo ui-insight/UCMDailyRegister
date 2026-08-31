@@ -52,6 +52,7 @@ async def harvest_events(
         Updated=summary.updated,
         Unchanged=summary.unchanged,
         Skipped=summary.skipped,
+        Canceled=summary.canceled,
     )
 
 

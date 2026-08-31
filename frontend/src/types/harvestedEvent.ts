@@ -40,4 +40,5 @@ export interface HarvestSummary {
   Updated: number;
   Unchanged: number;
   Skipped: number;
+  Canceled: number;
 }

@@ -103,7 +103,10 @@ export default function SLCTriagePage() {
       const summary = await runHarvest();
       setHarvestSummary(
         `Feed refreshed: ${summary.Created} new, ${summary.Updated} updated, `
-        + `${summary.Unchanged} unchanged.`,
+        + `${summary.Unchanged} unchanged.`
+        + (summary.Canceled > 0
+          ? ` ${summary.Canceled} canceled upstream.`
+          : ''),
       );
       await fetchData();
     } catch (err) {

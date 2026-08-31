@@ -85,6 +85,9 @@ class HarvestSummary:
     updated: int = 0
     unchanged: int = 0
     skipped: int = 0
+    # Existing events newly canceled this harvest (feed-marked or disappeared);
+    # a subset of `updated`, broken out so cancellations stand out in logs.
+    canceled: int = 0
 
 
 async def fetch_trumba_feed() -> list[dict]:
@@ -169,9 +172,50 @@ async def harvest_trumba_events(db: AsyncSession) -> HarvestSummary:
     payload = await fetch_trumba_feed()
     events, skipped = parse_trumba_feed(payload)
     summary = await upsert_harvested_events(db, events)
-    summary.updated += await _cancel_disappeared_flagged_events(db, events)
+    disappeared = await _cancel_disappeared_flagged_events(db, events)
+    summary.updated += disappeared
+    summary.canceled += disappeared
     summary.fetched = len(payload)
     summary.skipped += skipped
+    return summary
+
+
+async def plan_trumba_harvest(db: AsyncSession) -> HarvestSummary:
+    """Fetch the feed and report what a harvest would change, without writing.
+
+    The CLI's dry-run mode. Mirrors the decision rules of
+    upsert_harvested_events and _cancel_disappeared_flagged_events.
+    """
+    payload = await fetch_trumba_feed()
+    events, skipped = parse_trumba_feed(payload)
+    summary = HarvestSummary(fetched=len(payload), skipped=skipped)
+    if not events:
+        return summary
+
+    result = await db.execute(
+        sa.select(HarvestedEvent).where(
+            HarvestedEvent.Source_Type == TRUMBA_SOURCE_TYPE,
+            HarvestedEvent.Source_Id.in_([event.source_id for event in events]),
+        )
+    )
+    existing_by_source_id = {row.Source_Id: row for row in result.scalars()}
+    for event in events:
+        existing = existing_by_source_id.get(event.source_id)
+        if existing is None:
+            summary.created += 1
+        elif (
+            existing.Content_Hash != compute_content_hash(event)
+            or existing.Is_Canceled != event.canceled
+        ):
+            summary.updated += 1
+            if event.canceled and not existing.Is_Canceled:
+                summary.canceled += 1
+        else:
+            summary.unchanged += 1
+
+    disappeared = len(await _select_disappeared_flagged_events(db, events))
+    summary.updated += disappeared
+    summary.canceled += disappeared
     return summary
 
 
@@ -219,6 +263,7 @@ async def upsert_harvested_events(
             summary.created += 1
             continue
 
+        was_canceled = existing.Is_Canceled
         if existing.Content_Hash == content_hash:
             if existing.Is_Canceled != event.canceled:
                 # Only the disappearance handling below desyncs Is_Canceled
@@ -242,6 +287,8 @@ async def upsert_harvested_events(
             existing.Content_Hash = content_hash
             _mark_upstream_change(existing)
             summary.updated += 1
+        if event.canceled and not was_canceled:
+            summary.canceled += 1
         _sync_promoted_submission(existing)
         existing.Last_Seen_At = sa.func.now()
 
@@ -255,10 +302,10 @@ def _mark_upstream_change(event: HarvestedEvent) -> None:
         event.Upstream_Changed_At = sa.func.now()
 
 
-async def _cancel_disappeared_flagged_events(
+async def _select_disappeared_flagged_events(
     db: AsyncSession, events: list[TrumbaFeedEvent]
-) -> int:
-    """Mark flagged future events missing from the feed as canceled upstream.
+) -> list[HarvestedEvent]:
+    """Flagged, un-canceled future events inside feed coverage but absent.
 
     Trumba drops deleted events from the feed without a tombstone. The feed
     only covers a rolling window (~3 weeks, capped at 200 rows), so absence is
@@ -268,25 +315,27 @@ async def _cancel_disappeared_flagged_events(
     otherwise be emailed stale.
     """
     if not events:
-        return 0
+        return []
     coverage_end = max(event.event_start for event in events)
     seen_ids = {event.source_id for event in events}
-    rows = (
-        (
-            await db.execute(
-                sa.select(HarvestedEvent).where(
-                    HarvestedEvent.Source_Type == TRUMBA_SOURCE_TYPE,
-                    HarvestedEvent.SLC_Review_Status == "flagged",
-                    HarvestedEvent.Is_Canceled.is_(False),
-                    HarvestedEvent.Event_Start > datetime.now(),
-                    HarvestedEvent.Event_Start <= coverage_end,
-                    HarvestedEvent.Source_Id.not_in(seen_ids),
-                )
-            )
+    result = await db.execute(
+        sa.select(HarvestedEvent).where(
+            HarvestedEvent.Source_Type == TRUMBA_SOURCE_TYPE,
+            HarvestedEvent.SLC_Review_Status == "flagged",
+            HarvestedEvent.Is_Canceled.is_(False),
+            HarvestedEvent.Event_Start > datetime.now(),
+            HarvestedEvent.Event_Start <= coverage_end,
+            HarvestedEvent.Source_Id.not_in(seen_ids),
         )
-        .scalars()
-        .all()
     )
+    return list(result.scalars().all())
+
+
+async def _cancel_disappeared_flagged_events(
+    db: AsyncSession, events: list[TrumbaFeedEvent]
+) -> int:
+    """Mark flagged future events missing from the feed as canceled upstream."""
+    rows = await _select_disappeared_flagged_events(db, events)
     for event in rows:
         event.Is_Canceled = True
         event.Upstream_Changed_At = sa.func.now()

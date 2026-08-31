@@ -150,6 +150,7 @@ describe('SLCTriagePage', () => {
       Updated: 3,
       Unchanged: 185,
       Skipped: 0,
+      Canceled: 2,
     });
     renderTriagePage();
     await screen.findByText('No harvested events yet');
@@ -157,7 +158,9 @@ describe('SLCTriagePage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Refresh events' }));
 
     expect(
-      await screen.findByText('Feed refreshed: 12 new, 3 updated, 185 unchanged.'),
+      await screen.findByText(
+        'Feed refreshed: 12 new, 3 updated, 185 unchanged. 2 canceled upstream.',
+      ),
     ).toBeInTheDocument();
     expect(runHarvestMock).toHaveBeenCalledTimes(1);
     await waitFor(() => expect(listHarvestedEventsMock).toHaveBeenCalledTimes(2));
