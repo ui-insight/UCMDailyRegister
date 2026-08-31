@@ -34,6 +34,33 @@ export interface HarvestedEventListResponse {
   Total: number;
 }
 
+export type OpsReviewStatus = 'new' | 'reviewed' | 'dismissed';
+
+// Mirrors OpsEventResponse: the ops lens deliberately excludes SLC fields.
+export interface OpsEvent {
+  Id: string;
+  Source_Type: string;
+  Source_Id: string;
+  Series_Id: string | null;
+  Source_Url: string | null;
+  Title: string;
+  Description: string;
+  Location: string | null;
+  Event_Start: string;
+  Event_End: string | null;
+  All_Day: boolean;
+  Category_Path: string | null;
+  Is_Canceled: boolean;
+  Ops_Review_Status: OpsReviewStatus;
+  First_Seen_At: string;
+  Last_Seen_At: string;
+}
+
+export interface OpsEventListResponse {
+  Items: OpsEvent[];
+  Total: number;
+}
+
 export interface HarvestSummary {
   Fetched: number;
   Created: number;

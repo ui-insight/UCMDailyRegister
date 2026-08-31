@@ -1,4 +1,4 @@
-export type SubmitterRole = 'public' | 'staff' | 'slc';
+export type SubmitterRole = 'public' | 'staff' | 'slc' | 'ops';
 
 const STORAGE_KEY = 'ucm_submitter_role';
 const STAFF_ONLY_ROUTE_PREFIXES = [
@@ -11,12 +11,14 @@ const STAFF_ONLY_ROUTE_PREFIXES = [
   '/home',
 ];
 const SLC_ROUTE_PREFIXES = ['/slc-calendar', '/slc-triage', '/submit-slc-event'];
+const OPS_ROUTE_PREFIXES = ['/ops-triage'];
 
 function parseRole(value: string | null): SubmitterRole | null {
   if (!value) return null;
   const normalized = value.toLowerCase();
   if (normalized === 'staff') return 'staff';
   if (normalized === 'slc') return 'slc';
+  if (normalized === 'ops') return 'ops';
   if (normalized === 'public') return 'public';
   return null;
 }
@@ -37,6 +39,10 @@ function inferRoleFromPath(
 
   if (SLC_ROUTE_PREFIXES.some((prefix) => matchesRoutePrefix(normalizedPath, prefix))) {
     return preferredRole === 'staff' || preferredRole === 'slc' ? preferredRole : 'slc';
+  }
+
+  if (OPS_ROUTE_PREFIXES.some((prefix) => matchesRoutePrefix(normalizedPath, prefix))) {
+    return preferredRole === 'staff' || preferredRole === 'ops' ? preferredRole : 'ops';
   }
 
   return preferredRole;

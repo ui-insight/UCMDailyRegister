@@ -12,6 +12,7 @@ import SLCCalendarPage from './pages/SLCCalendarPage';
 import SLCEventSubmitPage from './pages/SLCEventSubmitPage';
 import SLCTriagePage from './pages/SLCTriagePage';
 import SLCDigestPage from './pages/SLCDigestPage';
+import OpsTriagePage from './pages/OpsTriagePage';
 import DataGovernancePage from './pages/DataGovernancePage';
 import FeedbackPage from './pages/FeedbackPage';
 
@@ -31,6 +32,7 @@ export default function App() {
           <Route path="/slc-triage" element={<SLCTriagePage />} />
           <Route path="/slc-digest" element={<SLCDigestPage />} />
           <Route path="/submit-slc-event" element={<SLCEventSubmitPage />} />
+          <Route path="/ops-triage" element={<OpsTriagePage />} />
           <Route path="/style-rules" element={<StyleRulesPage />} />
           <Route path="/feedback" element={<FeedbackPage />} />
           <Route path="/data-governance" element={<DataGovernancePage />} />

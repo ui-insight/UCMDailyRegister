@@ -34,6 +34,13 @@ const ROLES: RoleOption[] = [
       'Private calendar of strategic and signature events for SLC members and admins.',
     target: '/slc-calendar',
   },
+  {
+    role: 'ops',
+    title: 'Event Services view',
+    description:
+      'Triage upcoming campus events for operational needs: catering, alcohol service, room setup, and tabling.',
+    target: '/ops-triage',
+  },
 ];
 
 export default function LandingPage() {

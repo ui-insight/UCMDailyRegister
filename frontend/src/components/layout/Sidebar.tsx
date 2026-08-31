@@ -9,11 +9,11 @@ type NavItem = {
   to: string;
   label: string;
   icon: string;
-  roles: ('public' | 'staff' | 'slc')[];
+  roles: ('public' | 'staff' | 'slc' | 'ops')[];
 };
 
 const navItems: NavItem[] = [
-  { to: '/submit', label: 'Submit', icon: '+ ', roles: ['public', 'staff', 'slc'] },
+  { to: '/submit', label: 'Submit', icon: '+ ', roles: ['public', 'staff', 'slc', 'ops'] },
   { to: '/dashboard', label: 'Dashboard', icon: '', roles: ['staff'] },
   { to: '/builder', label: 'Builder', icon: '', roles: ['staff'] },
   { to: '/recurring-messages', label: 'Recurring', icon: '', roles: ['staff'] },
@@ -21,16 +21,18 @@ const navItems: NavItem[] = [
   { to: '/slc-triage', label: 'SLC Triage', icon: '', roles: ['staff', 'slc'] },
   { to: '/slc-digest', label: 'SLC Digest', icon: '', roles: ['staff', 'slc'] },
   { to: '/submit-slc-event', label: 'Submit SLC Event', icon: '+ ', roles: ['staff', 'slc'] },
+  { to: '/ops-triage', label: 'Ops Triage', icon: '', roles: ['staff', 'ops'] },
   { to: '/style-rules', label: 'Style Rules', icon: '', roles: ['staff'] },
   { to: '/feedback', label: 'Feedback', icon: '', roles: ['staff'] },
   { to: '/data-governance', label: 'Data Governance', icon: '', roles: ['staff'] },
   { to: '/settings', label: 'Settings', icon: '', roles: ['staff'] },
 ];
 
-const ROLE_LABEL: Record<'public' | 'staff' | 'slc', string> = {
+const ROLE_LABEL: Record<'public' | 'staff' | 'slc' | 'ops', string> = {
   public: 'Submitter View',
   staff: 'Staff View',
   slc: 'SLC Leadership View',
+  ops: 'Event Services View',
 };
 
 export default function Sidebar() {

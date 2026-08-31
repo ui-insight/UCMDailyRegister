@@ -52,5 +52,9 @@
 
   {"Value_Group": "SLC_Review_Status", "Code": "new", "Label": "New", "Display_Order": 10, "Visibility_Role": "slc", "Description": "Harvested from an external calendar and awaiting SLC review"},
   {"Value_Group": "SLC_Review_Status", "Code": "flagged", "Label": "Flagged for SLC", "Display_Order": 20, "Visibility_Role": "slc", "Description": "Marked relevant to the Senior Leadership Council"},
-  {"Value_Group": "SLC_Review_Status", "Code": "dismissed", "Label": "Dismissed", "Display_Order": 30, "Visibility_Role": "slc", "Description": "Reviewed and judged not relevant to the Senior Leadership Council"}
+  {"Value_Group": "SLC_Review_Status", "Code": "dismissed", "Label": "Dismissed", "Display_Order": 30, "Visibility_Role": "slc", "Description": "Reviewed and judged not relevant to the Senior Leadership Council"},
+
+  {"Value_Group": "Ops_Review_Status", "Code": "new", "Label": "New", "Display_Order": 10, "Visibility_Role": "ops", "Description": "Harvested from an external calendar and awaiting Event Services review"},
+  {"Value_Group": "Ops_Review_Status", "Code": "reviewed", "Label": "Reviewed", "Display_Order": 20, "Visibility_Role": "ops", "Description": "Reviewed by Event Services for operational service needs"},
+  {"Value_Group": "Ops_Review_Status", "Code": "dismissed", "Label": "Dismissed", "Display_Order": 30, "Visibility_Role": "ops", "Description": "Reviewed and judged not to concern Event Services"}
 ]
