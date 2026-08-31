@@ -53,3 +53,5 @@ class HarvestSummaryResponse(BaseModel):
     Updated: int
     Unchanged: int
     Skipped: int
+    # Existing events newly canceled by this harvest; a subset of Updated.
+    Canceled: int

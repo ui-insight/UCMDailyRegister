@@ -327,6 +327,75 @@ curl http://localhost:9280/api/v1/health
 curl http://localhost:9280/api/v1/submissions/?limit=1
 ```
 
+## Scheduled SLC Harvest
+
+The SLC triage workflow depends on regular harvests of the U of I Trumba
+events feed: a harvest pulls new events into `/slc-triage`, and it is the only
+moment upstream edits, cancellations, and disappearances of flagged events are
+detected and badged. The repository deliberately has no in-process scheduler
+(no APScheduler or Celery); scheduling belongs to the deployment layer.
+
+### CLI
+
+`backend/scripts/harvest_slc_events.py` is the scheduled counterpart of the
+triage page's "Refresh events" button and `POST /api/v1/slc/harvest` — all
+three call the same harvest service. It is a dry run unless `--apply` is
+given:
+
+```bash
+# Local development (from backend/, venv active)
+python scripts/harvest_slc_events.py            # dry run: report what would change
+python scripts/harvest_slc_events.py --apply    # persist the harvest
+
+# Inside a deployed backend container
+docker exec ucmnews-dev-backend-1 python scripts/harvest_slc_events.py --apply
+```
+
+Each run prints one timestamped line of counts:
+
+```
+[APPLY] 2026-08-28T06:15:02 fetched=200 created=3 updated=1 unchanged=196 canceled=0 skipped=0
+```
+
+`canceled` counts existing events newly canceled by that harvest (feed-marked
+or disappeared from the feed) — a nonzero value is the signal that flagged
+events may need attention on `/slc-triage`. Failures (network error, feed
+shape change) print a clear error to stderr and exit nonzero without touching
+existing rows, so cron can detect and report them.
+
+`docker exec` with a non-`uvicorn` command skips the entrypoint's
+migrate-and-seed preamble, so the scheduled run starts immediately against the
+already-migrated database.
+
+### Cron on the deployment host
+
+Schedule the harvest with the host crontab on the target server, one line per
+environment, writing to a log file so outcomes and drift stay visible:
+
+```cron
+# crontab -e as the devops user on openera.insight.uidaho.edu
+15 * * * * docker exec ucmnews-dev-backend-1  python scripts/harvest_slc_events.py --apply >> /home/devops/UCMDailyRegister/logs/harvest-dev.log  2>&1
+45 * * * * docker exec ucmnews-prod-backend-1 python scripts/harvest_slc_events.py --apply >> /home/devops/UCMDailyRegister/logs/harvest-prod.log 2>&1
+```
+
+Create the log directory once (`mkdir -p /home/devops/UCMDailyRegister/logs`).
+Hourly is comfortably fresh for the weekly SLC cadence and trivial in cost
+(one 200-row feed fetch); the two environments are offset so they never fetch
+at the same moment. Check recent outcomes with:
+
+```bash
+tail -n 24 /home/devops/UCMDailyRegister/logs/harvest-dev.log
+```
+
+A `[ERROR]` line means that run changed nothing; the next successful run
+catches up, since harvesting is idempotent. If runs must alert someone,
+set `MAILTO` in the crontab or wrap the line in the site's monitoring runner.
+
+An alternative for hosts where the crontab is unavailable is a lightweight
+cron sidecar container in `docker-compose.yml` that runs the same
+`docker exec`-equivalent command on a schedule; the host crontab is preferred
+here because the deploy host already runs both environments' containers.
+
 ## Production Considerations
 
 ??? info "Production Checklist"

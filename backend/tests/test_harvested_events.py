@@ -16,6 +16,8 @@ from app.services.harvested_event_service import (
     harvest_trumba_events,
     list_harvested_events,
     parse_trumba_feed,
+    plan_trumba_harvest,
+    set_review_status,
 )
 
 
@@ -283,6 +285,7 @@ class TestSLCEndpointAuthorization:
             "Updated": 0,
             "Unchanged": 0,
             "Skipped": 0,
+            "Canceled": 0,
         }
 
         listed = await client.get("/api/v1/slc/harvested-events", headers=slc_headers)
@@ -636,9 +639,10 @@ class TestUpstreamChangeDetection:
         await self.harvest(client, slc_headers, monkeypatch, [self.entry(1, 10)])
         await self.flag(client, slc_headers, "1")
 
-        await self.harvest(
+        summary = await self.harvest(
             client, slc_headers, monkeypatch, [self.entry(1, 10, canceled=True)]
         )
+        assert summary["Canceled"] == 1
 
         event = await self.get_event(client, slc_headers, "1")
         assert event["Is_Canceled"] is True
@@ -662,6 +666,7 @@ class TestUpstreamChangeDetection:
             client, slc_headers, monkeypatch, [self.entry(2, 15)]
         )
         assert summary["Updated"] == 1
+        assert summary["Canceled"] == 1
 
         event = await self.get_event(client, slc_headers, "1")
         assert event["Is_Canceled"] is True
@@ -774,3 +779,70 @@ class TestUpstreamChangeDetection:
             f"/api/v1/slc/harvested-events/{event.Id}/acknowledge-upstream"
         )
         assert response.status_code == 403
+
+
+class TestPlanHarvest:
+    def entry(self, event_id: int, days_ahead: int, **overrides) -> dict:
+        start = datetime.combine(
+            date.today() + timedelta(days=days_ahead), time(15, 0)
+        )
+        fields: dict = {
+            "eventID": event_id,
+            "seriesID": None,
+            "startDateTime": start.isoformat(),
+            "endDateTime": (start + timedelta(hours=2)).isoformat(),
+        }
+        fields.update(overrides)
+        return make_feed_entry(**fields)
+
+    async def test_plan_reports_changes_without_writing(
+        self, db: AsyncSession, monkeypatch
+    ):
+        patch_feed(
+            monkeypatch,
+            [self.entry(1, 10), self.entry(2, 15, title="Chamber Music")],
+        )
+        await harvest_trumba_events(db)
+        flagged = (
+            await db.execute(
+                sa.select(HarvestedEvent).where(HarvestedEvent.Source_Id == "1")
+            )
+        ).scalar_one()
+        await set_review_status(db, flagged.Id, status="flagged")
+
+        patch_feed(
+            monkeypatch,
+            [
+                self.entry(2, 15, title="Chamber Music (moved)"),  # would update
+                self.entry(3, 12),  # would create
+                # entry 1 is missing while inside coverage: would cancel
+            ],
+        )
+        summary = await plan_trumba_harvest(db)
+        assert summary.created == 1
+        assert summary.updated == 2  # the edit plus the disappearance
+        assert summary.canceled == 1  # the disappearance
+        assert summary.unchanged == 0
+
+        # Nothing was written: no cancellation, no badge, no new or edited rows.
+        await db.refresh(flagged)
+        assert flagged.Is_Canceled is False
+        assert flagged.Upstream_Changed_At is None
+        titles = set(
+            (await db.execute(sa.select(HarvestedEvent.Title))).scalars()
+        )
+        assert titles == {"Screen on the Green", "Chamber Music"}
+
+    async def test_plan_counts_feed_cancellations(
+        self, db: AsyncSession, monkeypatch
+    ):
+        patch_feed(monkeypatch, [self.entry(1, 10)])
+        await harvest_trumba_events(db)
+
+        patch_feed(monkeypatch, [self.entry(1, 10, canceled=True)])
+        summary = await plan_trumba_harvest(db)
+        assert summary.updated == 1
+        assert summary.canceled == 1
+
+        row = (await db.execute(sa.select(HarvestedEvent))).scalar_one()
+        assert row.Is_Canceled is False
