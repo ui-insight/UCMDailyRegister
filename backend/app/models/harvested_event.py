@@ -52,6 +52,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base
 
 if TYPE_CHECKING:
+    from app.models.ops_need_assessment import OpsNeedAssessment
     from app.models.submission import Submission
 
 
@@ -102,6 +103,11 @@ class HarvestedEvent(Base):
     Ops_Review_Status: Mapped[str] = mapped_column(
         sa.String(50), nullable=False, default="new", server_default="new"
     )
+    # The Content_Hash the current ops needs assessment saw; NULL or stale
+    # means the classify-pending step still owes this event an assessment.
+    Ops_Assessed_Content_Hash: Mapped[str | None] = mapped_column(
+        sa.String(64), nullable=True
+    )
     Upstream_Changed_At: Mapped[datetime | None] = mapped_column(
         sa.DateTime, nullable=True
     )
@@ -118,3 +124,9 @@ class HarvestedEvent(Base):
     )
 
     Promoted_Submission_Rel: Mapped["Submission | None"] = relationship(lazy="selectin")
+    Ops_Needs_Rel: Mapped[list["OpsNeedAssessment"]] = relationship(
+        back_populates="Harvested_Event_Rel",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        order_by="OpsNeedAssessment.Need",
+    )

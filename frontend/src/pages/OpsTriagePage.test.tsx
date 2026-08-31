@@ -53,6 +53,8 @@ function makeOpsEvent(overrides: Partial<OpsEvent> = {}): OpsEvent {
     Category_Path: 'Student Affairs|Dept. of Student Involvement',
     Is_Canceled: false,
     Ops_Review_Status: 'new',
+    Needs: [],
+    Needs_Assessed: false,
     First_Seen_At: isoDaysFromNow(0),
     Last_Seen_At: isoDaysFromNow(0),
     ...overrides,
@@ -144,6 +146,61 @@ describe('OpsTriagePage', () => {
 
     expect(screen.getByText('Alumni Awards Reception')).toBeInTheDocument();
     expect(screen.queryByText('Screen on the Green')).not.toBeInTheDocument();
+  });
+
+  it('renders suggested-need chips with confidence and rationale', async () => {
+    listOpsEventsMock.mockResolvedValue({
+      Items: [
+        makeOpsEvent({
+          Needs_Assessed: true,
+          Needs: [
+            {
+              Need: 'catering',
+              Confidence: 'high',
+              Rationale: "Says 'reception to follow'.",
+            },
+            {
+              Need: 'outdoor_space',
+              Confidence: 'medium',
+              Rationale: 'Held on the Tower Lawn.',
+            },
+          ],
+        }),
+      ],
+      Total: 1,
+    });
+    renderOpsTriagePage();
+
+    const cateringChip = await screen.findByText('Catering');
+    expect(cateringChip).toHaveAttribute(
+      'title',
+      "high confidence — Says 'reception to follow'.",
+    );
+    expect(screen.getByText('Outdoor Space')).toBeInTheDocument();
+  });
+
+  it('shows an unobtrusive note for assessed events with no needs', async () => {
+    listOpsEventsMock.mockResolvedValue({
+      Items: [makeOpsEvent({ Needs_Assessed: true, Needs: [] })],
+      Total: 1,
+    });
+    renderOpsTriagePage();
+
+    expect(
+      await screen.findByText('No service needs detected'),
+    ).toBeInTheDocument();
+  });
+
+  it('marks unassessed events as awaiting assessment', async () => {
+    listOpsEventsMock.mockResolvedValue({
+      Items: [makeOpsEvent()],
+      Total: 1,
+    });
+    renderOpsTriagePage();
+
+    expect(
+      await screen.findByText('Awaiting AI assessment'),
+    ).toBeInTheDocument();
   });
 
   it('marks canceled events', async () => {

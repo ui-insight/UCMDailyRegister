@@ -29,6 +29,12 @@ class Settings(BaseSettings):
     mindrouter_endpoint_url: str = "https://mindrouter.uidaho.edu/v1/chat/completions"
     mindrouter_model: str = "openai/gpt-oss-120b"
 
+    # Ops needs classifier — always MindRouter, independent of LLM_PROVIDER.
+    # Endpoint and key fall back to the MINDROUTER_* values when unset.
+    ops_classifier_model: str = "Qwen/Qwen3.6-27B"
+    ops_classifier_endpoint_url: str = ""
+    ops_classifier_api_key: str = ""
+
     # App
     environment: str = "development"
     upload_dir: str = "./uploads"

@@ -5,13 +5,15 @@ events feed the Senior Leadership Council triage workflow and are not part
 of the public submission surface.
 """
 
+import logging
 from datetime import date
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import SubmitterRole, get_db, require_staff_or_slc
+from app.db.engine import async_session_factory
 from app.models.harvested_event import HarvestedEvent
 from app.schemas.harvested_event import (
     HarvestedEventListResponse,
@@ -20,8 +22,25 @@ from app.schemas.harvested_event import (
     HarvestSummaryResponse,
 )
 from app.services import harvested_event_service
+from app.services.ops_event_service import classify_pending_ops_events
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/slc", tags=["slc"])
+
+
+async def _classify_pending_in_background() -> None:
+    """Run the ops classify-pending step after a manual harvest.
+
+    Runs on its own session after the response is sent, so the Refresh
+    button never waits on LLM calls; any failure just leaves events
+    unassessed for the next scheduled run.
+    """
+    try:
+        async with async_session_factory() as session:
+            await classify_pending_ops_events(session)
+    except Exception:
+        logger.exception("Background ops classification failed")
 
 
 def _to_response(event: HarvestedEvent) -> HarvestedEventResponse:
@@ -35,6 +54,7 @@ def _to_response(event: HarvestedEvent) -> HarvestedEventResponse:
 
 @router.post("/harvest", response_model=HarvestSummaryResponse)
 async def harvest_events(
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     submitter_role: SubmitterRole = Depends(require_staff_or_slc),
 ):
@@ -46,6 +66,7 @@ async def harvest_events(
             status_code=502,
             detail="Could not fetch the university events feed. Try again shortly.",
         ) from exc
+    background_tasks.add_task(_classify_pending_in_background)
     return HarvestSummaryResponse(
         Fetched=summary.fetched,
         Created=summary.created,

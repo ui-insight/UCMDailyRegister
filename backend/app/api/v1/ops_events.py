@@ -12,14 +12,27 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import SubmitterRole, get_db, require_staff_or_ops
+from app.models.harvested_event import HarvestedEvent
 from app.schemas.harvested_event import (
     OpsEventListResponse,
     OpsEventResponse,
     OpsEventUpdate,
+    OpsNeedResponse,
 )
 from app.services import ops_event_service
 
 router = APIRouter(prefix="/ops", tags=["ops"])
+
+
+def _to_response(event: HarvestedEvent) -> OpsEventResponse:
+    response = OpsEventResponse.model_validate(event)
+    response.Needs = [
+        OpsNeedResponse.model_validate(need) for need in event.Ops_Needs_Rel
+    ]
+    response.Needs_Assessed = (
+        event.Ops_Assessed_Content_Hash == event.Content_Hash
+    )
+    return response
 
 
 @router.get("/harvested-events", response_model=OpsEventListResponse)
@@ -44,7 +57,7 @@ async def list_ops_events(
         limit=limit,
     )
     return OpsEventListResponse(
-        Items=[OpsEventResponse.model_validate(item) for item in items],
+        Items=[_to_response(item) for item in items],
         Total=total,
     )
 
@@ -64,4 +77,4 @@ async def update_ops_event(
     )
     if event is None:
         raise HTTPException(status_code=404, detail="Harvested event not found")
-    return OpsEventResponse.model_validate(event)
+    return _to_response(event)

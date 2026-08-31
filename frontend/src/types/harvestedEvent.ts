@@ -35,6 +35,13 @@ export interface HarvestedEventListResponse {
 }
 
 export type OpsReviewStatus = 'new' | 'reviewed' | 'dismissed';
+export type OpsNeedConfidence = 'low' | 'medium' | 'high';
+
+export interface OpsNeed {
+  Need: string;
+  Confidence: OpsNeedConfidence;
+  Rationale: string;
+}
 
 // Mirrors OpsEventResponse: the ops lens deliberately excludes SLC fields.
 export interface OpsEvent {
@@ -52,6 +59,8 @@ export interface OpsEvent {
   Category_Path: string | null;
   Is_Canceled: boolean;
   Ops_Review_Status: OpsReviewStatus;
+  Needs: OpsNeed[];
+  Needs_Assessed: boolean;
   First_Seen_At: string;
   Last_Seen_At: string;
 }

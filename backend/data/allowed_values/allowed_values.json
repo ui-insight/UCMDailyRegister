@@ -56,5 +56,15 @@
 
   {"Value_Group": "Ops_Review_Status", "Code": "new", "Label": "New", "Display_Order": 10, "Visibility_Role": "ops", "Description": "Harvested from an external calendar and awaiting Event Services review"},
   {"Value_Group": "Ops_Review_Status", "Code": "reviewed", "Label": "Reviewed", "Display_Order": 20, "Visibility_Role": "ops", "Description": "Reviewed by Event Services for operational service needs"},
-  {"Value_Group": "Ops_Review_Status", "Code": "dismissed", "Label": "Dismissed", "Display_Order": 30, "Visibility_Role": "ops", "Description": "Reviewed and judged not to concern Event Services"}
+  {"Value_Group": "Ops_Review_Status", "Code": "dismissed", "Label": "Dismissed", "Display_Order": 30, "Visibility_Role": "ops", "Description": "Reviewed and judged not to concern Event Services"},
+
+  {"Value_Group": "Ops_Need_Type", "Code": "catering", "Label": "Catering", "Display_Order": 10, "Visibility_Role": "ops", "Description": "Food or beverage service implied by the event listing"},
+  {"Value_Group": "Ops_Need_Type", "Code": "alcohol_service", "Label": "Alcohol Service", "Display_Order": 20, "Visibility_Role": "ops", "Description": "Alcohol service implied by the event listing"},
+  {"Value_Group": "Ops_Need_Type", "Code": "room_setup", "Label": "Room Setup / AV", "Display_Order": 30, "Visibility_Role": "ops", "Description": "Room configuration, furniture, or AV support implied by the event listing"},
+  {"Value_Group": "Ops_Need_Type", "Code": "tabling", "Label": "Tabling", "Display_Order": 40, "Visibility_Role": "ops", "Description": "Tables or booth space implied by the event listing"},
+  {"Value_Group": "Ops_Need_Type", "Code": "outdoor_space", "Label": "Outdoor Space", "Display_Order": 50, "Visibility_Role": "ops", "Description": "Outdoor grounds or lawn use implied by the event listing"},
+
+  {"Value_Group": "Ops_Need_Confidence", "Code": "low", "Label": "Low", "Display_Order": 10, "Visibility_Role": "ops", "Description": "A weak hint worth a human glance"},
+  {"Value_Group": "Ops_Need_Confidence", "Code": "medium", "Label": "Medium", "Display_Order": 20, "Visibility_Role": "ops", "Description": "A reasonable inference from the event type or venue"},
+  {"Value_Group": "Ops_Need_Confidence", "Code": "high", "Label": "High", "Display_Order": 30, "Visibility_Role": "ops", "Description": "The listing states or strongly implies the service"}
 ]

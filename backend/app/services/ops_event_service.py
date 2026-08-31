@@ -12,12 +12,25 @@ Ops_Review_Status and never reads or writes SLC review state, promotion, or
 upstream-change bookkeeping.
 """
 
+import logging
+from dataclasses import dataclass
 from datetime import date, datetime, time
 
+import httpx
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
+from app.models.allowed_value import AllowedValue
 from app.models.harvested_event import HarvestedEvent
+from app.models.ops_need_assessment import OpsNeedAssessment
+from app.services.ai.ops_needs_classifier import (
+    assess_event,
+    build_ops_classifier_provider,
+)
+from app.services.ai.provider import LLMProvider
+
+logger = logging.getLogger(__name__)
 
 
 async def list_ops_events(
@@ -67,6 +80,117 @@ async def list_ops_events(
     ).offset(offset).limit(limit)
     result = await db.execute(query)
     return list(result.scalars().all()), total
+
+
+@dataclass
+class ClassificationSummary:
+    """Outcome counts for one classify-pending run."""
+
+    assessed: int = 0
+    failed: int = 0
+    pending: int = 0  # events still owed an assessment after this run
+
+
+def _pending_filter():
+    return sa.or_(
+        HarvestedEvent.Ops_Assessed_Content_Hash.is_(None),
+        HarvestedEvent.Ops_Assessed_Content_Hash != HarvestedEvent.Content_Hash,
+    )
+
+
+async def _need_codes(db: AsyncSession) -> list[str]:
+    result = await db.execute(
+        sa.select(AllowedValue.Code)
+        .where(
+            AllowedValue.Value_Group == "Ops_Need_Type",
+            AllowedValue.Is_Active == True,  # noqa: E712
+        )
+        .order_by(AllowedValue.Display_Order)
+    )
+    return list(result.scalars().all())
+
+
+async def _count_pending(db: AsyncSession) -> int:
+    return (
+        await db.execute(
+            sa.select(sa.func.count())
+            .select_from(HarvestedEvent)
+            .where(_pending_filter())
+        )
+    ).scalar_one()
+
+
+async def classify_pending_ops_events(
+    db: AsyncSession,
+    *,
+    provider: LLMProvider | None = None,
+    limit: int = 200,
+) -> ClassificationSummary:
+    """Assess events that are new or whose content changed since assessment.
+
+    Each event is classified at most once per content version
+    (Ops_Assessed_Content_Hash records what the assessment saw), and each
+    success commits individually so progress survives interruption. A
+    connectivity failure aborts the run — the platform is down, so there is
+    no point burning the rest of the batch — while a malformed response
+    skips just that event. Either way nothing is marked, so unassessed
+    events are picked up on the next run. Never raises for classifier
+    trouble; the harvest that invoked it must not fail.
+    """
+    summary = ClassificationSummary()
+    need_codes = await _need_codes(db)
+    if not need_codes:
+        logger.warning("Ops_Need_Type vocabulary is empty; skipping classification")
+        summary.pending = await _count_pending(db)
+        return summary
+
+    if provider is None:
+        provider = build_ops_classifier_provider(settings)
+
+    result = await db.execute(
+        sa.select(HarvestedEvent)
+        .where(_pending_filter())
+        .order_by(HarvestedEvent.Event_Start)
+        .limit(limit)
+    )
+    events = list(result.scalars().all())
+
+    for event in events:
+        try:
+            suggestions = await assess_event(
+                provider,
+                title=event.Title,
+                description=event.Description,
+                location=event.Location,
+                category_path=event.Category_Path,
+                need_codes=need_codes,
+            )
+        except httpx.HTTPError as exc:
+            logger.error("Ops classifier unreachable; aborting run: %s", exc)
+            break
+        except ValueError as exc:
+            logger.warning(
+                "Ops classifier returned malformed output for event %s: %s",
+                event.Id,
+                exc,
+            )
+            summary.failed += 1
+            continue
+
+        event.Ops_Needs_Rel = [
+            OpsNeedAssessment(
+                Need=suggestion.need,
+                Confidence=suggestion.confidence,
+                Rationale=suggestion.rationale,
+            )
+            for suggestion in suggestions
+        ]
+        event.Ops_Assessed_Content_Hash = event.Content_Hash
+        await db.commit()
+        summary.assessed += 1
+
+    summary.pending = await _count_pending(db)
+    return summary
 
 
 async def set_ops_review_status(
