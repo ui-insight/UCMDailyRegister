@@ -47,6 +47,39 @@ class HarvestedEventListResponse(BaseModel):
     Total: int
 
 
+class OpsEventResponse(BaseModel):
+    """A harvested event through the Event Services (ops) triage lens.
+
+    Deliberately excludes the SLC lens's fields (review status, promotion,
+    upstream-change bookkeeping) — the two workflows share rows but neither
+    surface exposes the other's state.
+    """
+
+    Id: str
+    Source_Type: str
+    Source_Id: str
+    Series_Id: str | None
+    Source_Url: str | None
+    Title: str
+    Description: str
+    Location: str | None
+    Event_Start: datetime
+    Event_End: datetime | None
+    All_Day: bool
+    Category_Path: str | None
+    Is_Canceled: bool
+    Ops_Review_Status: str
+    First_Seen_At: datetime
+    Last_Seen_At: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class OpsEventListResponse(BaseModel):
+    Items: list[OpsEventResponse]
+    Total: int
+
+
 class HarvestSummaryResponse(BaseModel):
     Fetched: int
     Created: int

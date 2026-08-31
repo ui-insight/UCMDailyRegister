@@ -292,6 +292,14 @@ overwrites `X-Trusted-User-Role` and `X-Trusted-Auth-Secret` before forwarding
 requests to the backend, and FastAPI accepts staff-only routes only when the
 secret matches.
 
+The recognized trusted roles are `staff` (all editor tools; also passes every
+role-gated page), `slc` (the SLC calendar, triage, and digest pages), and
+`ops` (the `/ops-triage` page for Event Services). Asserting `staff` is the
+usual prototype choice since it satisfies every gate. For local (non-Docker)
+development, set `DEV_TRUSTED_ROLE` / `DEV_TRUSTED_SECRET` in
+`frontend/.env.local` and the matching `TRUSTED_ROLE_HEADER_SECRET` in
+`backend/.env`; the Vite proxy injects the headers.
+
 For a non-prototype production deployment, leave `TRUSTED_ROLE_HEADER_ROLE`
 blank in the app container and have the campus auth gateway or reverse proxy
 decide the real user role, strip any client-supplied trusted headers, and then

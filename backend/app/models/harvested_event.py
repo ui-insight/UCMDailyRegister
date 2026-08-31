@@ -25,6 +25,15 @@ Submission (the same shape the workbook importer produces), and records that
 provenance in Promoted_Submission_Id. The FK uses ON DELETE SET NULL so a
 staff deletion of the promoted submission leaves the harvested event intact.
 
+Ops_Review_Status drives a second, fully independent triage lens over the
+same rows: Event Services reviews upcoming public events for operational
+demands on their staff (catering, alcohol service, room setup, tabling,
+outdoor space). Every harvested event starts as "new" on the ops lens; the
+Event Services reviewer marks events "reviewed" or "dismissed". The two
+lenses never read or write each other's status — the SLC coordinator and
+Event Services triage the same events without collision. The vocabulary is
+governed by the AllowedValue table under the Ops_Review_Status group.
+
 Upstream_Changed_At powers the "changed upstream" badges on the triage page:
 it is stamped when a re-harvest finds that a flagged event's upstream data
 changed, was canceled, or disappeared from the feed while still in the feed's
@@ -59,6 +68,11 @@ class HarvestedEvent(Base):
             "SLC_Review_Status",
             "Event_Start",
         ),
+        sa.Index(
+            "ix_harvested_events_Ops_Review_Status_Event_Start",
+            "Ops_Review_Status",
+            "Event_Start",
+        ),
         sa.Index("ix_harvested_events_Event_Start", "Event_Start"),
     )
 
@@ -83,6 +97,9 @@ class HarvestedEvent(Base):
     )
     Content_Hash: Mapped[str] = mapped_column(sa.String(64), nullable=False)
     SLC_Review_Status: Mapped[str] = mapped_column(
+        sa.String(50), nullable=False, default="new", server_default="new"
+    )
+    Ops_Review_Status: Mapped[str] = mapped_column(
         sa.String(50), nullable=False, default="new", server_default="new"
     )
     Upstream_Changed_At: Mapped[datetime | None] = mapped_column(

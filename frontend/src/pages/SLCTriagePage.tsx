@@ -9,6 +9,13 @@ import type { HarvestedEvent, SLCReviewStatus } from '../types/harvestedEvent';
 import { getSubmitterRole } from '../utils/submitterRole';
 import { EmptyState } from '../components/common';
 import { toISODate } from '../utils/date';
+import {
+  formatEventDate,
+  formatEventTime,
+  formatWeekHeading,
+  topCategory,
+  weekStartKey,
+} from '../utils/eventDisplay';
 
 const LOOKAHEAD_DAYS = 60;
 
@@ -18,42 +25,6 @@ type StatusFilter = '' | SLCReviewStatus;
 function matchesStatusFilter(event: HarvestedEvent, filter: StatusFilter): boolean {
   if (!filter) return event.SLC_Review_Status !== 'dismissed';
   return event.SLC_Review_Status === filter;
-}
-
-function topCategory(event: HarvestedEvent): string {
-  return event.Category_Path?.split('|')[0] ?? 'Uncategorized';
-}
-
-function weekStartKey(isoDateTime: string): string {
-  const d = new Date(isoDateTime);
-  const daysSinceMonday = (d.getDay() + 6) % 7;
-  d.setDate(d.getDate() - daysSinceMonday);
-  return toISODate(d);
-}
-
-function formatWeekHeading(weekStartISO: string): string {
-  return `Week of ${new Date(weekStartISO + 'T12:00:00').toLocaleDateString('en-US', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-  })}`;
-}
-
-function formatEventDate(event: HarvestedEvent): string {
-  return new Date(event.Event_Start).toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  });
-}
-
-function formatEventTime(event: HarvestedEvent): string {
-  if (event.All_Day) return 'All day';
-  const timeOptions: Intl.DateTimeFormatOptions = { hour: 'numeric', minute: '2-digit' };
-  const start = new Date(event.Event_Start).toLocaleTimeString('en-US', timeOptions);
-  if (!event.Event_End) return start;
-  const end = new Date(event.Event_End).toLocaleTimeString('en-US', timeOptions);
-  return `${start} – ${end}`;
 }
 
 export default function SLCTriagePage() {

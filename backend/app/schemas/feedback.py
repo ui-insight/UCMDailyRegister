@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, field_validator
 FEEDBACK_TYPE_PATTERN = r"^(bug|idea)$"
 FEEDBACK_STATUS_PATTERN = r"^(new|reviewed|exported|closed)$"
 NOTIFICATION_STATUS_PATTERN = r"^(pending|sent|failed|disabled)$"
-ROLE_PATTERN = r"^(public|staff|slc)$"
+ROLE_PATTERN = r"^(public|staff|slc|ops)$"
 
 
 class ProductFeedbackCreate(BaseModel):

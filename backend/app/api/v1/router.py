@@ -12,6 +12,7 @@ from app.api.v1.allowed_values import router as allowed_values_router
 from app.api.v1.settings import router as settings_router
 from app.api.v1.feedback import router as feedback_router
 from app.api.v1.slc_events import router as slc_events_router
+from app.api.v1.ops_events import router as ops_events_router
 
 router = APIRouter(prefix="/api/v1")
 
@@ -27,3 +28,4 @@ router.include_router(allowed_values_router)
 router.include_router(settings_router)
 router.include_router(feedback_router)
 router.include_router(slc_events_router)
+router.include_router(ops_events_router)

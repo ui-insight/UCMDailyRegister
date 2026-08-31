@@ -8,7 +8,7 @@ export interface ProductFeedback {
   Summary: string;
   Details: string;
   Contact_Email: string | null;
-  Submitter_Role: 'public' | 'staff' | 'slc';
+  Submitter_Role: 'public' | 'staff' | 'slc' | 'ops';
   Route: string;
   App_Environment: string;
   Host: string;
@@ -29,7 +29,7 @@ export interface ProductFeedbackCreate {
   Summary: string;
   Details: string;
   Contact_Email?: string | null;
-  Submitter_Role: 'public' | 'staff' | 'slc';
+  Submitter_Role: 'public' | 'staff' | 'slc' | 'ops';
   Route: string;
   App_Environment: string;
   Host: string;

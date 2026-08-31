@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.db.engine import async_session_factory
 
-SubmitterRole = Literal["public", "staff", "slc"]
+SubmitterRole = Literal["public", "staff", "slc", "ops"]
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
@@ -33,7 +33,7 @@ async def get_submitter_role(
             raise HTTPException(status_code=403, detail="Trusted role header verification failed.")
 
         normalized = x_trusted_user_role.lower()
-        if normalized in ("staff", "slc"):
+        if normalized in ("staff", "slc", "ops"):
             return cast(SubmitterRole, normalized)
 
     return cast(SubmitterRole, "public")
@@ -57,5 +57,16 @@ async def require_staff_or_slc(
         raise HTTPException(
             status_code=403,
             detail="This action is only available to authorized SLC viewers and staff.",
+        )
+    return submitter_role
+
+
+async def require_staff_or_ops(
+    submitter_role: SubmitterRole = Depends(get_submitter_role),
+) -> SubmitterRole:
+    if submitter_role not in ("staff", "ops"):
+        raise HTTPException(
+            status_code=403,
+            detail="This action is only available to Event Services and staff.",
         )
     return submitter_role

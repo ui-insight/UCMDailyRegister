@@ -71,6 +71,15 @@ def slc_headers() -> dict[str, str]:
 
 
 @pytest.fixture
+def ops_headers() -> dict[str, str]:
+    """Return headers that simulate the trusted auth boundary asserting ops access."""
+    return {
+        "X-Trusted-User-Role": "ops",
+        "X-Trusted-Auth-Secret": TEST_TRUSTED_ROLE_SECRET,
+    }
+
+
+@pytest.fixture
 async def db() -> AsyncGenerator[AsyncSession, None]:
     """Provide an async DB session for direct model access in tests."""
     async with TestSession() as session:
