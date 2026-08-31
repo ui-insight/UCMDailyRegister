@@ -11,6 +11,11 @@ and reports what a harvest would change, without writing. Output is a single
 timestamped line of counts, so cron logs stay grep-able; failures (network
 error, feed shape change) print a clear error to stderr and exit nonzero,
 leaving existing rows untouched.
+
+An apply run finishes with the ops classify-pending step: events that are new
+or whose content changed get an AI needs assessment for /ops-triage (a second
+counts line). Classifier trouble — MindRouter down, malformed output — never
+fails the harvest; unassessed events are picked up on the next run.
 """
 
 from __future__ import annotations
@@ -27,6 +32,7 @@ from app.services.harvested_event_service import (
     harvest_trumba_events,
     plan_trumba_harvest,
 )
+from app.services.ops_event_service import classify_pending_ops_events
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -58,6 +64,20 @@ async def _run(args: argparse.Namespace) -> int:
         f"updated={summary.updated} unchanged={summary.unchanged} "
         f"canceled={summary.canceled} skipped={summary.skipped}"
     )
+
+    if args.apply:
+        try:
+            async with async_session_factory() as session:
+                classification = await classify_pending_ops_events(session)
+        except Exception as exc:  # the harvest already succeeded; never fail it
+            stamp = datetime.now().isoformat(timespec="seconds")
+            print(f"[WARN] {stamp} ops classification failed: {exc}", file=sys.stderr)
+        else:
+            stamp = datetime.now().isoformat(timespec="seconds")
+            print(
+                f"[CLASSIFY] {stamp} assessed={classification.assessed} "
+                f"failed={classification.failed} pending={classification.pending}"
+            )
     return 0
 
 

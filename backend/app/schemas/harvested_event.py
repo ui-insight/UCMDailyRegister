@@ -51,6 +51,14 @@ class OpsEventUpdate(BaseModel):
     Ops_Review_Status: str = Field(pattern="^(new|reviewed|dismissed)$")
 
 
+class OpsNeedResponse(BaseModel):
+    Need: str
+    Confidence: str
+    Rationale: str
+
+    model_config = {"from_attributes": True}
+
+
 class OpsEventResponse(BaseModel):
     """A harvested event through the Event Services (ops) triage lens.
 
@@ -73,6 +81,12 @@ class OpsEventResponse(BaseModel):
     Category_Path: str | None
     Is_Canceled: bool
     Ops_Review_Status: str
+    # AI-suggested operational needs; populated by the route from the
+    # assessment rows, not the ORM row itself.
+    Needs: list[OpsNeedResponse] = []
+    # True once the classifier has assessed this event's current content
+    # version; False means an assessment is still owed (or content changed).
+    Needs_Assessed: bool = False
     First_Seen_At: datetime
     Last_Seen_At: datetime
 

@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { listOpsEvents, updateOpsEvent } from '../api/opsEvents';
-import type { OpsEvent, OpsReviewStatus } from '../types/harvestedEvent';
+import type { OpsEvent, OpsNeed, OpsReviewStatus } from '../types/harvestedEvent';
 import { getSubmitterRole } from '../utils/submitterRole';
 import { EmptyState } from '../components/common';
 import { toISODate } from '../utils/date';
@@ -19,6 +19,25 @@ type StatusFilter = '' | OpsReviewStatus;
 function matchesStatusFilter(event: OpsEvent, filter: StatusFilter): boolean {
   if (!filter) return event.Ops_Review_Status !== 'dismissed';
   return event.Ops_Review_Status === filter;
+}
+
+// Mirrors the Ops_Need_Type AllowedValue group's labels.
+const NEED_LABELS: Record<string, string> = {
+  catering: 'Catering',
+  alcohol_service: 'Alcohol Service',
+  room_setup: 'Room Setup / AV',
+  tabling: 'Tabling',
+  outdoor_space: 'Outdoor Space',
+};
+
+const CONFIDENCE_CHIP_CLASSES: Record<OpsNeed['Confidence'], string> = {
+  high: 'border-ui-gold-400 bg-ui-gold-50 text-ui-black',
+  medium: 'border-ui-gold-300 bg-white text-gray-800',
+  low: 'border-gray-300 bg-white text-gray-500',
+};
+
+function needLabel(need: OpsNeed): string {
+  return NEED_LABELS[need.Need] ?? need.Need;
 }
 
 export default function OpsTriagePage() {
@@ -254,6 +273,27 @@ function OpsEventCard({
         {event.Description && (
           <p className="text-xs text-gray-600 mt-1.5 line-clamp-2">{event.Description}</p>
         )}
+        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          {!event.Needs_Assessed ? (
+            <span className="text-[11px] italic text-gray-400">
+              Awaiting AI assessment
+            </span>
+          ) : event.Needs.length === 0 ? (
+            <span className="text-[11px] italic text-gray-400">
+              No service needs detected
+            </span>
+          ) : (
+            event.Needs.map((need) => (
+              <span
+                key={need.Need}
+                title={`${need.Confidence} confidence — ${need.Rationale}`}
+                className={`text-[11px] font-medium rounded-full border px-2 py-0.5 ${CONFIDENCE_CHIP_CLASSES[need.Confidence] ?? CONFIDENCE_CHIP_CLASSES.low}`}
+              >
+                {needLabel(need)}
+              </span>
+            ))
+          )}
+        </div>
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {event.Source_Url && (
             <a

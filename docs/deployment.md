@@ -256,6 +256,11 @@ MINDROUTER_API_KEY=mr2_...
 MINDROUTER_ENDPOINT_URL=https://mindrouter.uidaho.edu/v1/chat/completions
 MINDROUTER_MODEL=openai/gpt-oss-120b
 
+# Ops needs classifier (always MindRouter, independent of LLM_PROVIDER;
+# endpoint and key fall back to the MINDROUTER_* values above when unset).
+# Confirm the exact model id against the MindRouter catalog before deploying.
+OPS_CLASSIFIER_MODEL=Qwen/Qwen3.6-27B
+
 # Docker
 HOST_PORT=9280          # 9290 for dev
 DOCKER_SUBNET=10.20.9.0/24  # 10.20.10.0/24 for dev
@@ -371,6 +376,17 @@ or disappeared from the feed) — a nonzero value is the signal that flagged
 events may need attention on `/slc-triage`. Failures (network error, feed
 shape change) print a clear error to stderr and exit nonzero without touching
 existing rows, so cron can detect and report them.
+
+An apply run then classifies operational needs for `/ops-triage` (events new
+or changed since their last assessment) and prints a second counts line:
+
+```
+[CLASSIFY] 2026-08-28T06:15:09 assessed=3 failed=0 pending=0
+```
+
+Classifier trouble — MindRouter down, malformed output — never fails the
+harvest: the run logs the problem, `pending` stays nonzero, and the next
+successful run catches up.
 
 `docker exec` with a non-`uvicorn` command skips the entrypoint's
 migrate-and-seed preamble, so the scheduled run starts immediately against the
