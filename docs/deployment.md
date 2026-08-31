@@ -340,15 +340,16 @@ detected and badged. The repository deliberately has no in-process scheduler
 `backend/scripts/harvest_slc_events.py` is the scheduled counterpart of the
 triage page's "Refresh events" button and `POST /api/v1/slc/harvest` — all
 three call the same harvest service. It is a dry run unless `--apply` is
-given:
+given. Invoke it as a module (`-m`) so the `app` package resolves in the
+container, which has no editable install of the backend package:
 
 ```bash
 # Local development (from backend/, venv active)
-python scripts/harvest_slc_events.py            # dry run: report what would change
-python scripts/harvest_slc_events.py --apply    # persist the harvest
+python -m scripts.harvest_slc_events            # dry run: report what would change
+python -m scripts.harvest_slc_events --apply    # persist the harvest
 
 # Inside a deployed backend container
-docker exec ucmnews-dev-backend-1 python scripts/harvest_slc_events.py --apply
+docker exec ucmnews-dev-backend-1 python -m scripts.harvest_slc_events --apply
 ```
 
 Each run prints one timestamped line of counts:
@@ -374,8 +375,8 @@ environment, writing to a log file so outcomes and drift stay visible:
 
 ```cron
 # crontab -e as the devops user on openera.insight.uidaho.edu
-15 * * * * docker exec ucmnews-dev-backend-1  python scripts/harvest_slc_events.py --apply >> /home/devops/UCMDailyRegister/logs/harvest-dev.log  2>&1
-45 * * * * docker exec ucmnews-prod-backend-1 python scripts/harvest_slc_events.py --apply >> /home/devops/UCMDailyRegister/logs/harvest-prod.log 2>&1
+15 * * * * docker exec ucmnews-dev-backend-1  python -m scripts.harvest_slc_events --apply >> /home/devops/UCMDailyRegister/logs/harvest-dev.log  2>&1
+45 * * * * docker exec ucmnews-prod-backend-1 python -m scripts.harvest_slc_events --apply >> /home/devops/UCMDailyRegister/logs/harvest-prod.log 2>&1
 ```
 
 Create the log directory once (`mkdir -p /home/devops/UCMDailyRegister/logs`).
