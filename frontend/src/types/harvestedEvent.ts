@@ -56,6 +56,10 @@ export interface OpsEvent {
   Last_Seen_At: string;
 }
 
+export interface OpsEventUpdate {
+  Ops_Review_Status: OpsReviewStatus;
+}
+
 export interface OpsEventListResponse {
   Items: OpsEvent[];
   Total: number;

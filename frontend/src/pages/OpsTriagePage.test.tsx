@@ -2,13 +2,14 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { listOpsEvents } from '../api/opsEvents';
+import { listOpsEvents, updateOpsEvent } from '../api/opsEvents';
 import type { OpsEvent } from '../types/harvestedEvent';
 import { getSubmitterRole } from '../utils/submitterRole';
 import OpsTriagePage from './OpsTriagePage';
 
 vi.mock('../api/opsEvents', () => ({
   listOpsEvents: vi.fn(),
+  updateOpsEvent: vi.fn(),
 }));
 
 vi.mock('../utils/submitterRole', () => ({
@@ -16,6 +17,7 @@ vi.mock('../utils/submitterRole', () => ({
 }));
 
 const listOpsEventsMock = vi.mocked(listOpsEvents);
+const updateOpsEventMock = vi.mocked(updateOpsEvent);
 const getSubmitterRoleMock = vi.mocked(getSubmitterRole);
 
 function renderOpsTriagePage() {
@@ -152,6 +154,87 @@ describe('OpsTriagePage', () => {
     renderOpsTriagePage();
 
     expect(await screen.findByText('Canceled')).toBeInTheDocument();
+  });
+
+  it('marks an event reviewed and shows the badge', async () => {
+    listOpsEventsMock.mockResolvedValue({
+      Items: [makeOpsEvent()],
+      Total: 1,
+    });
+    updateOpsEventMock.mockResolvedValue(
+      makeOpsEvent({ Ops_Review_Status: 'reviewed' }),
+    );
+    renderOpsTriagePage();
+    await screen.findByText('Screen on the Green');
+
+    await userEvent.click(
+      screen.getByRole('checkbox', { name: 'Mark Screen on the Green reviewed' }),
+    );
+
+    expect(updateOpsEventMock).toHaveBeenCalledWith('harvested-1', {
+      Ops_Review_Status: 'reviewed',
+    });
+    // Both the toggle and the new status badge render "Reviewed".
+    expect(await screen.findAllByText('Reviewed')).toHaveLength(2);
+    expect(
+      screen.getByRole('checkbox', { name: 'Mark Screen on the Green reviewed' }),
+    ).toBeChecked();
+  });
+
+  it('dismisses an event out of the default view and restores it from the dismissed view', async () => {
+    listOpsEventsMock.mockResolvedValue({
+      Items: [makeOpsEvent()],
+      Total: 1,
+    });
+    updateOpsEventMock.mockResolvedValue(
+      makeOpsEvent({ Ops_Review_Status: 'dismissed' }),
+    );
+    renderOpsTriagePage();
+    await screen.findByText('Screen on the Green');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+
+    expect(updateOpsEventMock).toHaveBeenCalledWith('harvested-1', {
+      Ops_Review_Status: 'dismissed',
+    });
+    expect(screen.queryByText('Screen on the Green')).not.toBeInTheDocument();
+
+    listOpsEventsMock.mockResolvedValue({
+      Items: [makeOpsEvent({ Ops_Review_Status: 'dismissed' })],
+      Total: 1,
+    });
+    await userEvent.selectOptions(screen.getByLabelText('Status'), 'dismissed');
+
+    expect(await screen.findByText('Screen on the Green')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Restore' }),
+    ).toBeInTheDocument();
+  });
+
+  it('requests the selected status filter from the API', async () => {
+    listOpsEventsMock.mockResolvedValue({ Items: [], Total: 0 });
+    renderOpsTriagePage();
+    await screen.findByText('No upcoming events');
+
+    await userEvent.selectOptions(screen.getByLabelText('Status'), 'reviewed');
+
+    expect(listOpsEventsMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ review_status: 'reviewed' }),
+    );
+  });
+
+  it('surfaces update errors', async () => {
+    listOpsEventsMock.mockResolvedValue({
+      Items: [makeOpsEvent()],
+      Total: 1,
+    });
+    updateOpsEventMock.mockRejectedValue(new Error('Update failed'));
+    renderOpsTriagePage();
+    await screen.findByText('Screen on the Green');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
+
+    expect(await screen.findByText('Update failed')).toBeInTheDocument();
   });
 
   it('shows an empty state when no events are upcoming', async () => {

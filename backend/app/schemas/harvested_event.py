@@ -47,6 +47,10 @@ class HarvestedEventListResponse(BaseModel):
     Total: int
 
 
+class OpsEventUpdate(BaseModel):
+    Ops_Review_Status: str = Field(pattern="^(new|reviewed|dismissed)$")
+
+
 class OpsEventResponse(BaseModel):
     """A harvested event through the Event Services (ops) triage lens.
 

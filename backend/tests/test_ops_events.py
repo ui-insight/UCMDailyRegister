@@ -169,3 +169,83 @@ class TestListOpsEvents:
 
         await db.refresh(event)
         assert event.Ops_Review_Status == "reviewed"
+
+
+class TestUpdateOpsEvent:
+    async def patch_status(
+        self, client: AsyncClient, headers, event_id: str, status: str
+    ):
+        return await client.patch(
+            f"/api/v1/ops/harvested-events/{event_id}",
+            headers=headers,
+            json={"Ops_Review_Status": status},
+        )
+
+    async def test_review_dismiss_and_restore(
+        self, client: AsyncClient, ops_headers, db: AsyncSession, monkeypatch
+    ):
+        await harvest(db, monkeypatch, [entry(1, 10)])
+        event = await get_event(db, "1")
+
+        response = await self.patch_status(client, ops_headers, event.Id, "reviewed")
+        assert response.status_code == 200
+        assert response.json()["Ops_Review_Status"] == "reviewed"
+
+        response = await self.patch_status(client, ops_headers, event.Id, "dismissed")
+        assert response.json()["Ops_Review_Status"] == "dismissed"
+
+        listed = await client.get("/api/v1/ops/harvested-events", headers=ops_headers)
+        assert listed.json()["Total"] == 0
+
+        response = await self.patch_status(client, ops_headers, event.Id, "new")
+        assert response.json()["Ops_Review_Status"] == "new"
+
+        listed = await client.get("/api/v1/ops/harvested-events", headers=ops_headers)
+        assert listed.json()["Total"] == 1
+
+    async def test_rejects_unknown_status(
+        self, client: AsyncClient, ops_headers, db: AsyncSession, monkeypatch
+    ):
+        await harvest(db, monkeypatch, [entry(1, 10)])
+        event = await get_event(db, "1")
+        response = await self.patch_status(client, ops_headers, event.Id, "flagged")
+        assert response.status_code == 422
+
+    async def test_missing_event_returns_404(
+        self, client: AsyncClient, ops_headers
+    ):
+        response = await self.patch_status(client, ops_headers, "no-such-id", "reviewed")
+        assert response.status_code == 404
+
+    async def test_requires_ops_or_staff_role(
+        self, client: AsyncClient, slc_headers, db: AsyncSession, monkeypatch
+    ):
+        await harvest(db, monkeypatch, [entry(1, 10)])
+        event = await get_event(db, "1")
+
+        response = await client.patch(
+            f"/api/v1/ops/harvested-events/{event.Id}",
+            json={"Ops_Review_Status": "reviewed"},
+        )
+        assert response.status_code == 403
+
+        response = await self.patch_status(client, slc_headers, event.Id, "reviewed")
+        assert response.status_code == 403
+
+    async def test_ops_transitions_leave_slc_state_untouched(
+        self, client: AsyncClient, ops_headers, db: AsyncSession, monkeypatch
+    ):
+        """Dismissing on the ops lens must not withdraw an SLC promotion."""
+        await harvest(db, monkeypatch, [entry(1, 10)])
+        event = await get_event(db, "1")
+        await set_review_status(db, event.Id, status="flagged")
+        await db.refresh(event)
+        promoted_id = event.Promoted_Submission_Id
+        assert promoted_id is not None
+
+        await self.patch_status(client, ops_headers, event.Id, "dismissed")
+
+        await db.refresh(event)
+        assert event.SLC_Review_Status == "flagged"
+        assert event.Promoted_Submission_Id == promoted_id
+        assert event.Ops_Review_Status == "dismissed"

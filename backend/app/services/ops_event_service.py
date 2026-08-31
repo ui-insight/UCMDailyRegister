@@ -67,3 +67,25 @@ async def list_ops_events(
     ).offset(offset).limit(limit)
     result = await db.execute(query)
     return list(result.scalars().all()), total
+
+
+async def set_ops_review_status(
+    db: AsyncSession,
+    harvested_event_id: str,
+    *,
+    status: str,
+) -> HarvestedEvent | None:
+    """Apply an ops triage decision to a harvested event. Idempotent.
+
+    Unlike the SLC lens's set_review_status, no transition has side effects:
+    the ops lens promotes nothing and keeps no per-lens bookkeeping yet, so
+    this only moves Ops_Review_Status. Returns None when the event does not
+    exist.
+    """
+    event = await db.get(HarvestedEvent, harvested_event_id)
+    if event is None:
+        return None
+    event.Ops_Review_Status = status
+    await db.commit()
+    await db.refresh(event)
+    return event

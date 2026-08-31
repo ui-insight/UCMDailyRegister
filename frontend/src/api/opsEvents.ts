@@ -1,5 +1,9 @@
 import { apiFetch } from './client';
-import type { OpsEventListResponse } from '../types/harvestedEvent';
+import type {
+  OpsEvent,
+  OpsEventListResponse,
+  OpsEventUpdate,
+} from '../types/harvestedEvent';
 
 export async function listOpsEvents(params?: {
   date_from?: string;
@@ -21,4 +25,14 @@ export async function listOpsEvents(params?: {
   return apiFetch<OpsEventListResponse>(
     `/ops/harvested-events${query ? `?${query}` : ''}`,
   );
+}
+
+export async function updateOpsEvent(
+  id: string,
+  data: OpsEventUpdate,
+): Promise<OpsEvent> {
+  return apiFetch<OpsEvent>(`/ops/harvested-events/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
 }

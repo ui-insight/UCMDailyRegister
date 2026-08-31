@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { listOpsEvents } from '../api/opsEvents';
-import type { OpsEvent } from '../types/harvestedEvent';
+import { listOpsEvents, updateOpsEvent } from '../api/opsEvents';
+import type { OpsEvent, OpsReviewStatus } from '../types/harvestedEvent';
 import { getSubmitterRole } from '../utils/submitterRole';
 import { EmptyState } from '../components/common';
 import { toISODate } from '../utils/date';
@@ -14,6 +14,13 @@ import {
 
 const LOOKAHEAD_DAYS = 60;
 
+type StatusFilter = '' | OpsReviewStatus;
+
+function matchesStatusFilter(event: OpsEvent, filter: StatusFilter): boolean {
+  if (!filter) return event.Ops_Review_Status !== 'dismissed';
+  return event.Ops_Review_Status === filter;
+}
+
 export default function OpsTriagePage() {
   const role = getSubmitterRole();
   const allowed = role === 'ops' || role === 'staff';
@@ -22,6 +29,8 @@ export default function OpsTriagePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('');
+  const [busyEventId, setBusyEventId] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!allowed) return;
@@ -34,6 +43,7 @@ export default function OpsTriagePage() {
       const data = await listOpsEvents({
         date_from: toISODate(today),
         date_to: toISODate(horizon),
+        review_status: statusFilter || undefined,
         limit: 500,
       });
       setEvents(data.Items);
@@ -42,11 +52,28 @@ export default function OpsTriagePage() {
     } finally {
       setLoading(false);
     }
-  }, [allowed]);
+  }, [allowed, statusFilter]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const handleTriage = async (event: OpsEvent, status: OpsReviewStatus) => {
+    setBusyEventId(event.Id);
+    setError(null);
+    try {
+      const updated = await updateOpsEvent(event.Id, {
+        Ops_Review_Status: status,
+      });
+      setEvents((current) =>
+        current.map((item) => (item.Id === updated.Id ? updated : item)),
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update the event');
+    } finally {
+      setBusyEventId(null);
+    }
+  };
 
   const categories = useMemo(() => {
     const unique = new Set(events.map(topCategory));
@@ -55,9 +82,11 @@ export default function OpsTriagePage() {
 
   const filteredEvents = useMemo(() => {
     return events.filter(
-      (event) => !categoryFilter || topCategory(event) === categoryFilter,
+      (event) =>
+        matchesStatusFilter(event, statusFilter)
+        && (!categoryFilter || topCategory(event) === categoryFilter),
     );
-  }, [events, categoryFilter]);
+  }, [events, categoryFilter, statusFilter]);
 
   const eventsByWeek = useMemo(() => {
     const map = new Map<string, OpsEvent[]>();
@@ -113,6 +142,22 @@ export default function OpsTriagePage() {
               ))}
             </select>
           </div>
+          <div>
+            <label htmlFor="ops-triage-status" className="block text-xs text-gray-500 mb-1">
+              Status
+            </label>
+            <select
+              id="ops-triage-status"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+            >
+              <option value="">Active (new + reviewed)</option>
+              <option value="new">New only</option>
+              <option value="reviewed">Reviewed only</option>
+              <option value="dismissed">Dismissed</option>
+            </select>
+          </div>
           <div className="text-xs text-gray-500 self-center">
             Showing {filteredEvents.length} event
             {filteredEvents.length === 1 ? '' : 's'} over the next {LOOKAHEAD_DAYS} days
@@ -142,7 +187,12 @@ export default function OpsTriagePage() {
               </h3>
               <div className="space-y-3">
                 {weekEvents.map((event) => (
-                  <OpsEventCard key={event.Id} event={event} />
+                  <OpsEventCard
+                    key={event.Id}
+                    event={event}
+                    busy={busyEventId === event.Id}
+                    onTriage={handleTriage}
+                  />
                 ))}
               </div>
             </section>
@@ -153,7 +203,15 @@ export default function OpsTriagePage() {
   );
 }
 
-function OpsEventCard({ event }: { event: OpsEvent }) {
+function OpsEventCard({
+  event,
+  busy,
+  onTriage,
+}: {
+  event: OpsEvent;
+  busy: boolean;
+  onTriage: (event: OpsEvent, status: OpsReviewStatus) => void;
+}) {
   return (
     <div className="bg-white rounded-lg shadow p-4 flex gap-4">
       <div className="w-28 shrink-0 text-sm">
@@ -175,6 +233,16 @@ function OpsEventCard({ event }: { event: OpsEvent }) {
                 Canceled
               </span>
             )}
+            {event.Ops_Review_Status === 'reviewed' && (
+              <span className="text-[10px] uppercase tracking-wide rounded border border-ui-clearwater-200 bg-ui-clearwater-50 px-1.5 py-0.5 text-ui-clearwater-700">
+                Reviewed
+              </span>
+            )}
+            {event.Ops_Review_Status === 'dismissed' && (
+              <span className="text-[10px] uppercase tracking-wide rounded border border-gray-200 bg-gray-100 px-1.5 py-0.5 text-gray-500">
+                Dismissed
+              </span>
+            )}
             <span className="text-[10px] uppercase tracking-wide rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-gray-600">
               {topCategory(event)}
             </span>
@@ -186,8 +254,8 @@ function OpsEventCard({ event }: { event: OpsEvent }) {
         {event.Description && (
           <p className="text-xs text-gray-600 mt-1.5 line-clamp-2">{event.Description}</p>
         )}
-        {event.Source_Url && (
-          <div className="mt-2">
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          {event.Source_Url && (
             <a
               href={event.Source_Url}
               target="_blank"
@@ -196,9 +264,69 @@ function OpsEventCard({ event }: { event: OpsEvent }) {
             >
               Event page ↗
             </a>
+          )}
+          <div className="ml-auto flex items-center gap-2">
+            <OpsTriageActions event={event} busy={busy} onTriage={onTriage} />
           </div>
-        )}
+        </div>
       </div>
     </div>
+  );
+}
+
+function OpsTriageActions({
+  event,
+  busy,
+  onTriage,
+}: {
+  event: OpsEvent;
+  busy: boolean;
+  onTriage: (event: OpsEvent, status: OpsReviewStatus) => void;
+}) {
+  const buttonClass =
+    'rounded-md border border-gray-300 px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50';
+
+  if (event.Ops_Review_Status === 'dismissed') {
+    return (
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => onTriage(event, 'new')}
+        className={buttonClass}
+      >
+        Restore
+      </button>
+    );
+  }
+
+  const reviewed = event.Ops_Review_Status === 'reviewed';
+  return (
+    <>
+      <label
+        className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium ${
+          reviewed
+            ? 'border-ui-gold-400 bg-ui-gold-50 text-ui-black'
+            : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+        } ${busy ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+      >
+        <input
+          type="checkbox"
+          aria-label={`Mark ${event.Title} reviewed`}
+          checked={reviewed}
+          disabled={busy}
+          onChange={() => onTriage(event, reviewed ? 'new' : 'reviewed')}
+          className="h-3.5 w-3.5 accent-ui-gold-500"
+        />
+        Reviewed
+      </label>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => onTriage(event, 'dismissed')}
+        className={buttonClass}
+      >
+        Dismiss
+      </button>
+    </>
   );
 }

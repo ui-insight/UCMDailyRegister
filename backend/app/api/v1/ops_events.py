@@ -8,11 +8,15 @@ not part of the public submission surface.
 
 from datetime import date
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import SubmitterRole, get_db, require_staff_or_ops
-from app.schemas.harvested_event import OpsEventListResponse, OpsEventResponse
+from app.schemas.harvested_event import (
+    OpsEventListResponse,
+    OpsEventResponse,
+    OpsEventUpdate,
+)
 from app.services import ops_event_service
 
 router = APIRouter(prefix="/ops", tags=["ops"])
@@ -43,3 +47,21 @@ async def list_ops_events(
         Items=[OpsEventResponse.model_validate(item) for item in items],
         Total=total,
     )
+
+
+@router.patch(
+    "/harvested-events/{harvested_event_id}", response_model=OpsEventResponse
+)
+async def update_ops_event(
+    harvested_event_id: str,
+    data: OpsEventUpdate,
+    db: AsyncSession = Depends(get_db),
+    submitter_role: SubmitterRole = Depends(require_staff_or_ops),
+):
+    """Apply an ops triage decision: mark reviewed, dismiss, or restore."""
+    event = await ops_event_service.set_ops_review_status(
+        db, harvested_event_id, status=data.Ops_Review_Status
+    )
+    if event is None:
+        raise HTTPException(status_code=404, detail="Harvested event not found")
+    return OpsEventResponse.model_validate(event)
