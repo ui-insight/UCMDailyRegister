@@ -40,6 +40,13 @@ changed, was canceled, or disappeared from the feed while still in the feed's
 coverage window. The coordinator clears it by acknowledging the change (or by
 un-flagging); it is only ever set on flagged events, since only those carry a
 promoted submission that could go stale.
+
+Ops_Upstream_Changed_At is the ops lens's own copy of that bookkeeping: it is
+stamped under the same upstream conditions but only on ops-reviewed events —
+the ones whose confirmed needs represent Event Services planning that could
+go stale — and Event Services acknowledges (or un-reviews) it independently.
+The two markers never read or clear each other, so the SLC coordinator
+acknowledging a change never hides it from Event Services, and vice versa.
 """
 
 import uuid
@@ -109,6 +116,9 @@ class HarvestedEvent(Base):
         sa.String(64), nullable=True
     )
     Upstream_Changed_At: Mapped[datetime | None] = mapped_column(
+        sa.DateTime, nullable=True
+    )
+    Ops_Upstream_Changed_At: Mapped[datetime | None] = mapped_column(
         sa.DateTime, nullable=True
     )
     Promoted_Submission_Id: Mapped[str | None] = mapped_column(

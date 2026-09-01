@@ -62,3 +62,10 @@ export async function removeOpsNeed(id: string, need: string): Promise<OpsEvent>
     method: 'DELETE',
   });
 }
+
+export async function acknowledgeOpsUpstreamChange(id: string): Promise<OpsEvent> {
+  return apiFetch<OpsEvent>(
+    `/ops/harvested-events/${id}/acknowledge-upstream`,
+    { method: 'POST' },
+  );
+}

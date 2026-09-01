@@ -239,15 +239,36 @@ async def set_ops_review_status(
 ) -> HarvestedEvent | None:
     """Apply an ops triage decision to a harvested event. Idempotent.
 
-    Unlike the SLC lens's set_review_status, no transition has side effects:
-    the ops lens promotes nothing and keeps no per-lens bookkeeping yet, so
-    this only moves Ops_Review_Status. Returns None when the event does not
-    exist.
+    Unlike the SLC lens's set_review_status there is nothing to promote or
+    withdraw; the only side effect is clearing the ops upstream-change badge
+    when the event leaves reviewed, since the badge only means anything while
+    Event Services is watching the event. Returns None when the event does
+    not exist.
     """
     event = await db.get(HarvestedEvent, harvested_event_id)
     if event is None:
         return None
     event.Ops_Review_Status = status
+    if status != "reviewed":
+        event.Ops_Upstream_Changed_At = None
+    await db.commit()
+    await db.refresh(event)
+    return event
+
+
+async def acknowledge_ops_upstream_change(
+    db: AsyncSession, harvested_event_id: str
+) -> HarvestedEvent | None:
+    """Clear the ops upstream-change marker once Event Services has seen it.
+
+    Touches only the ops lens's marker — the SLC coordinator's badge on the
+    same event is theirs to acknowledge. Returns None when the event does
+    not exist.
+    """
+    event = await db.get(HarvestedEvent, harvested_event_id)
+    if event is None:
+        return None
+    event.Ops_Upstream_Changed_At = None
     await db.commit()
     await db.refresh(event)
     return event

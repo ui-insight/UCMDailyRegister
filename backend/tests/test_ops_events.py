@@ -171,6 +171,107 @@ class TestListOpsEvents:
         assert event.Ops_Review_Status == "reviewed"
 
 
+class TestOpsUpstreamBadges:
+    async def reviewed_event(self, client, ops_headers, db, monkeypatch, **entry_kwargs):
+        """Harvest one event, mark it ops-reviewed, and return its id."""
+        await harvest(db, monkeypatch, [entry(1, 10, **entry_kwargs)])
+        event_id = (await get_event(db, "1")).Id
+        await client.patch(
+            f"/api/v1/ops/harvested-events/{event_id}",
+            headers=ops_headers,
+            json={"Ops_Review_Status": "reviewed"},
+        )
+        db.expire_all()
+        return event_id
+
+    async def test_content_change_badges_reviewed_events_only(
+        self, client, ops_headers, db: AsyncSession, monkeypatch
+    ):
+        await self.reviewed_event(client, ops_headers, db, monkeypatch)
+        await harvest(db, monkeypatch, [entry(1, 10, title="Movie Night (moved)"), entry(2, 12)])
+        await harvest(db, monkeypatch, [entry(1, 10, title="Movie Night (moved)"), entry(2, 12, title="Second (edited)")])
+
+        first = await get_event(db, "1")
+        second = await get_event(db, "2")
+        assert first.Ops_Upstream_Changed_At is not None
+        assert first.Upstream_Changed_At is None  # SLC lens untouched
+        assert second.Ops_Upstream_Changed_At is None  # not reviewed
+
+    async def test_feed_cancellation_badges_reviewed_event(
+        self, client, ops_headers, db: AsyncSession, monkeypatch
+    ):
+        await self.reviewed_event(client, ops_headers, db, monkeypatch)
+        await harvest(db, monkeypatch, [entry(1, 10, canceled=True)])
+
+        event = await get_event(db, "1")
+        assert event.Is_Canceled is True
+        assert event.Ops_Upstream_Changed_At is not None
+
+    async def test_disappearance_cancels_and_badges_ops_reviewed_event(
+        self, client, ops_headers, db: AsyncSession, monkeypatch
+    ):
+        """A reviewed (but not SLC-flagged) event vanishing inside coverage."""
+        await self.reviewed_event(client, ops_headers, db, monkeypatch)
+        await harvest(db, monkeypatch, [entry(2, 15)])
+
+        event = await get_event(db, "1")
+        assert event.Is_Canceled is True
+        assert event.Ops_Upstream_Changed_At is not None
+        assert event.Upstream_Changed_At is None  # SLC never watched it
+
+    async def test_acknowledgment_is_independent_per_lens(
+        self, client, ops_headers, slc_headers, db: AsyncSession, monkeypatch
+    ):
+        event_id = await self.reviewed_event(client, ops_headers, db, monkeypatch)
+        await set_review_status(db, event_id, status="flagged")
+        await harvest(db, monkeypatch, [entry(1, 10, title="Movie Night (moved)")])
+
+        event = await get_event(db, "1")
+        assert event.Upstream_Changed_At is not None
+        assert event.Ops_Upstream_Changed_At is not None
+
+        response = await client.post(
+            f"/api/v1/ops/harvested-events/{event_id}/acknowledge-upstream",
+            headers=ops_headers,
+        )
+        assert response.status_code == 200
+        assert response.json()["Ops_Upstream_Changed_At"] is None
+        await db.refresh(event)
+        assert event.Upstream_Changed_At is not None  # SLC badge survives
+
+        response = await client.post(
+            f"/api/v1/slc/harvested-events/{event_id}/acknowledge-upstream",
+            headers=slc_headers,
+        )
+        assert response.status_code == 200
+        await db.refresh(event)
+        assert event.Upstream_Changed_At is None
+        assert event.Ops_Upstream_Changed_At is None  # already cleared, untouched
+
+    async def test_unreview_clears_ops_badge(
+        self, client, ops_headers, db: AsyncSession, monkeypatch
+    ):
+        event_id = await self.reviewed_event(client, ops_headers, db, monkeypatch)
+        await harvest(db, monkeypatch, [entry(1, 10, title="Movie Night (moved)")])
+
+        response = await client.patch(
+            f"/api/v1/ops/harvested-events/{event_id}",
+            headers=ops_headers,
+            json={"Ops_Review_Status": "new"},
+        )
+        assert response.json()["Ops_Upstream_Changed_At"] is None
+
+    async def test_acknowledge_requires_ops_or_staff(
+        self, client, slc_headers, ops_headers, db: AsyncSession, monkeypatch
+    ):
+        event_id = await self.reviewed_event(client, ops_headers, db, monkeypatch)
+        response = await client.post(
+            f"/api/v1/ops/harvested-events/{event_id}/acknowledge-upstream",
+            headers=slc_headers,
+        )
+        assert response.status_code == 403
+
+
 class TestUpdateOpsEvent:
     async def patch_status(
         self, client: AsyncClient, headers, event_id: str, status: str
