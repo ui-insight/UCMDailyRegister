@@ -1,0 +1,1470 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="AI-assisted newsletter production for the University of Idaho">
+      
+      
+      
+      
+        <link rel="prev" href="../deployment/">
+      
+      
+        <link rel="next" href="../data-governance/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>GitHub Enterprise Migration - UCM Daily Register</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#github-organization-transfer-and-enterprise-migration" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="UCM Daily Register" class="md-header__button md-logo" aria-label="UCM Daily Register" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            UCM Daily Register
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              GitHub Enterprise Migration
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/ui-insight/UCMDailyRegister" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ui-insight/UCMDailyRegister
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="UCM Daily Register" class="md-nav__button md-logo" aria-label="UCM Daily Register" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    UCM Daily Register
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ui-insight/UCMDailyRegister" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ui-insight/UCMDailyRegister
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udm-alignment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UDM Alignment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ai-editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../branding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Branding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GitHub Enterprise Migration
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GitHub Enterprise Migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#executive-assessment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Executive assessment
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#current-state-inventory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Current-state inventory
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Current-state inventory">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#access-control-difference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Access-control difference
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#enterprise-models-oit-must-identify" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enterprise models OIT must identify
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-1-transfer-the-repository-to-ui-ai4ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 1: transfer the repository to ui-AI4UI
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 1: transfer the repository to ui-AI4UI">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#preconditions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Preconditions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#transfer-procedure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Transfer procedure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#update-clones" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Update clones
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#update-repository-references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Update repository references
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#post-transfer-validation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Post-transfer validation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#phase-2-prepare-for-the-oit-enterprise-change" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Phase 2: prepare for the OIT enterprise change
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Phase 2: prepare for the OIT enterprise change">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#questions-for-oit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Questions for OIT
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#low-disruption-path-attach-the-existing-organization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Low-disruption path: attach the existing organization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#importer-path-managed-users-ghecom-or-a-new-destination" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Importer path: managed users, ghe.com, or a new destination
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deployment-impact-and-private-repository-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deployment impact and private-repository authentication
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#recovery-and-rollback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Recovery and rollback
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#decision-record" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Decision record
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-governance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Governance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enterprise AI Framework
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Enterprise AI Framework
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../governance/enterprise-ai-framework/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../governance/enterprise-ai-framework/approved-stack-evidence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Approved Stack Evidence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../backup-and-recovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backup & Recovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../audit-logging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Audit Logging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="github-organization-transfer-and-enterprise-migration">GitHub Organization Transfer and Enterprise Migration<a class="headerlink" href="#github-organization-transfer-and-enterprise-migration" title="Permanent link">&para;</a></h1>
+<p>This runbook describes how to move UCM Daily Register from
+<code>ui-insight/UCMDailyRegister</code> to <code>ui-AI4UI/UCMDailyRegister</code> and how to prepare
+for a later migration into the University of Idaho's GitHub Enterprise
+environment.</p>
+<p>The two changes must be treated separately:</p>
+<ol>
+<li><strong>Repository transfer:</strong> move the existing GitHub.com repository between the
+   <code>ui-insight</code> and <code>ui-AI4UI</code> organizations.</li>
+<li><strong>Enterprise migration:</strong> allow OIT to attach the organization to, or import
+   its repositories into, a university-managed GitHub Enterprise environment.</li>
+</ol>
+<p>The first change is low risk for the running application. The risk of the second
+depends on the GitHub Enterprise product and identity model selected by OIT.</p>
+<h2 id="executive-assessment">Executive assessment<a class="headerlink" href="#executive-assessment" title="Permanent link">&para;</a></h2>
+<p>Moving the repository to <code>ui-AI4UI</code> does not move or restart the production
+application. Production and development run as Docker Compose projects on
+<code>openera.insight.uidaho.edu</code>; their PostgreSQL databases, uploads, environment
+files, DNS names, and running containers are independent of GitHub repository
+ownership.</p>
+<p>The immediate risks are instead:</p>
+<ul>
+<li>developers losing write access because the organizations have different
+  membership and base-permission models;</li>
+<li>the GitHub Pages documentation URL changing without a redirect;</li>
+<li>hard-coded repository URLs continuing to reference <code>ui-insight</code>;</li>
+<li>GitHub Actions or Pages being restricted by destination policies; and</li>
+<li>the deployment server losing <code>git pull</code> access if a later enterprise migration
+  makes the repository private.</li>
+</ul>
+<h2 id="current-state-inventory">Current-state inventory<a class="headerlink" href="#current-state-inventory" title="Permanent link">&para;</a></h2>
+<p>This inventory was verified on August 6, 2026. Recheck it immediately before a
+transfer or migration.</p>
+<table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Current state</th>
+<th>Migration significance</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Repository</td>
+<td>Public <code>ui-insight/UCMDailyRegister</code>, default branch <code>main</code></td>
+<td>Eligible for a normal GitHub.com organization-to-organization transfer</td>
+</tr>
+<tr>
+<td>Destination</td>
+<td><code>ui-AI4UI</code> exists and does not contain a repository named <code>UCMDailyRegister</code></td>
+<td>The destination name is available</td>
+</tr>
+<tr>
+<td>Repository authority</td>
+<td>Current maintainer has admin access to the repository and owner access in both organizations</td>
+<td>The maintainer can perform the normal repository transfer</td>
+</tr>
+<tr>
+<td>Open work</td>
+<td>72 open issues and 5 open pull requests</td>
+<td>Must remain present and usable after transfer</td>
+</tr>
+<tr>
+<td>CI</td>
+<td>GitHub Actions on standard GitHub-hosted runners</td>
+<td>Destination and enterprise Actions policies must permit the workflows</td>
+</tr>
+<tr>
+<td>Actions history</td>
+<td>419 workflow runs</td>
+<td>Preserved by a normal transfer, but not by GitHub Enterprise Importer</td>
+</tr>
+<tr>
+<td>Actions configuration</td>
+<td>No repository Actions secrets or variables; no custom or self-hosted runners</td>
+<td>Reduces importer follow-up work</td>
+</tr>
+<tr>
+<td>Documentation</td>
+<td>MkDocs publishes from <code>gh-pages</code> to public GitHub Pages</td>
+<td>Pages URL changes on repository transfer and does not redirect</td>
+</tr>
+<tr>
+<td>Pages environment</td>
+<td>One <code>github-pages</code> environment</td>
+<td>Verify after a transfer; recreate after an importer migration if required</td>
+</tr>
+<tr>
+<td>Integrations</td>
+<td>No repository webhooks, releases, Git LFS objects, rulesets, or deploy keys</td>
+<td>Reduces transfer and importer risk</td>
+</tr>
+<tr>
+<td>Branch policy</td>
+<td>No branch protection rule on <code>main</code></td>
+<td>No existing protection to preserve; destination or enterprise rules may add one</td>
+</tr>
+<tr>
+<td>Deployment</td>
+<td>Manual <code>git pull</code> followed by <code>./deploy.sh dev</code> or <code>./deploy.sh prod</code></td>
+<td>Running services are independent of the repository owner</td>
+</tr>
+<tr>
+<td>Server clone</td>
+<td><code>/home/devops/UCMDailyRegister</code>, public HTTPS remote, no credential helper</td>
+<td>Works while public; requires approved machine authentication if made private</td>
+</tr>
+</tbody>
+</table>
+<h3 id="access-control-difference">Access-control difference<a class="headerlink" href="#access-control-difference" title="Permanent link">&para;</a></h3>
+<p>At the time of the inventory:</p>
+<ul>
+<li><code>ui-insight</code> had 25 members and granted organization members base <strong>write</strong>
+  access.</li>
+<li>The repository had no team-specific access grants. Most write access therefore
+  came from source-organization membership.</li>
+<li><code>ui-AI4UI</code> had five members and granted organization members base <strong>read</strong>
+  access.</li>
+</ul>
+<p>Inherited permissions from <code>ui-insight</code> do not become destination team grants.
+Most existing contributors will therefore lose push access unless they are
+invited to <code>ui-AI4UI</code> and granted explicit access.</p>
+<p>Before transfer, create a destination team such as
+<code>ucm-daily-register-developers</code>, invite the developers who still need access,
+and grant the team <code>write</code> access to the repository. Do not reproduce broad
+organization-wide write access unless it is an intentional governance decision.</p>
+<h2 id="enterprise-models-oit-must-identify">Enterprise models OIT must identify<a class="headerlink" href="#enterprise-models-oit-must-identify" title="Permanent link">&para;</a></h2>
+<p>"GitHub Enterprise" is not a single migration path. Ask OIT which of the
+following is planned before promising dates or behavior.</p>
+<table>
+<thead>
+<tr>
+<th>Target model</th>
+<th>Likely process</th>
+<th>Expected effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Standard GitHub Enterprise Cloud on <code>github.com</code>, using personal GitHub accounts</td>
+<td>OIT invites the existing <code>ui-AI4UI</code> organization into the enterprise account</td>
+<td>Organization and repository URLs remain unchanged; enterprise billing, SSO, 2FA, Actions policies, rulesets, and other controls begin applying</td>
+</tr>
+<tr>
+<td>GitHub Enterprise Cloud with Enterprise Managed Users</td>
+<td>Import repositories or organizations into an enterprise-owned destination</td>
+<td>Existing outside organizations cannot simply join; identity and access must be reprovisioned</td>
+</tr>
+<tr>
+<td>GitHub Enterprise Cloud with data residency on <code>ghe.com</code></td>
+<td>GitHub Enterprise Importer into the university's <code>ghe.com</code> subdomain</td>
+<td>Hostnames and URLs change; importer limitations and follow-up work apply</td>
+</tr>
+<tr>
+<td>GitHub Enterprise Server</td>
+<td>OIT-defined migration into a separate server installation</td>
+<td>Separate URLs, authentication, connectivity, feature, and migration considerations apply</td>
+</tr>
+</tbody>
+</table>
+<p>GitHub documents the standard organization-attachment process and its
+limitations in <a href="https://docs.github.com/en/enterprise-cloud@latest/admin/managing-accounts-and-repositories/managing-organizations-in-your-enterprise/adding-organizations-to-your-enterprise">Adding organizations to your enterprise</a>. GitHub
+documents importer migration paths in <a href="https://docs.github.com/en/migrations/using-github-enterprise-importer/migrating-between-github-products">About migrations between GitHub
+products</a>.</p>
+<h2 id="phase-1-transfer-the-repository-to-ui-ai4ui">Phase 1: transfer the repository to <code>ui-AI4UI</code><a class="headerlink" href="#phase-1-transfer-the-repository-to-ui-ai4ui" title="Permanent link">&para;</a></h2>
+<h3 id="preconditions">Preconditions<a class="headerlink" href="#preconditions" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[ ] Confirm the destination will remain <code>ui-AI4UI/UCMDailyRegister</code>.</li>
+<li>[ ] Confirm no repository or fork with that name exists in <code>ui-AI4UI</code>.</li>
+<li>[ ] Decide which current contributors need continued push or issue-management
+      access.</li>
+<li>[ ] Invite those contributors to <code>ui-AI4UI</code> and create explicit team grants.</li>
+<li>[ ] In <code>ui-AI4UI</code> organization settings, confirm GitHub Actions is enabled.</li>
+<li>[ ] Confirm the Actions policy permits GitHub-authored actions including
+      <code>actions/checkout</code>, <code>actions/setup-python</code>, and <code>actions/setup-node</code>.</li>
+<li>[ ] Confirm the documentation workflow's <code>GITHUB_TOKEN</code> can write repository
+      contents so <code>mkdocs gh-deploy</code> can update <code>gh-pages</code>.</li>
+<li>[ ] Confirm public repositories and public GitHub Pages are allowed.</li>
+<li>[ ] Record the issue, pull-request, collaborator, Pages, and Actions inventory
+      for post-transfer comparison.</li>
+<li>[ ] Avoid merges and permission changes during the transfer and validation
+      window.</li>
+</ul>
+<h3 id="transfer-procedure">Transfer procedure<a class="headerlink" href="#transfer-procedure" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Open <code>ui-insight/UCMDailyRegister</code> on GitHub.</li>
+<li>Go to <strong>Settings → General → Danger Zone → Transfer</strong>.</li>
+<li>Select or enter <code>ui-AI4UI</code> as the new owner.</li>
+<li>Keep the repository name <code>UCMDailyRegister</code>.</li>
+<li>Enter the requested confirmation text and complete the transfer.</li>
+<li>Do <strong>not</strong> create a replacement repository at
+   <code>ui-insight/UCMDailyRegister</code>. Reusing the old location permanently removes
+   GitHub's redirect.</li>
+</ol>
+<p>GitHub preserves Git history, issues, pull requests, wiki content, stars,
+watchers, releases, repository settings, repository secrets, webhooks, and
+deploy keys during a normal repository transfer. Old repository and Git URLs
+redirect to the new location. See <a href="https://docs.github.com/en/enterprise-cloud@latest/repositories/creating-and-managing-repositories/transferring-a-repository">Transferring a repository</a>.</p>
+<p>GitHub Pages is the notable exception: the old Pages URL does not redirect.
+After the transfer, the expected documentation URL is:</p>
+<div class="highlight"><pre><span></span><code>https://ui-ai4ui.github.io/UCMDailyRegister/
+</code></pre></div>
+<h3 id="update-clones">Update clones<a class="headerlink" href="#update-clones" title="Permanent link">&para;</a></h3>
+<p>Redirects provide short-term compatibility, but every maintained clone should
+use the destination URL directly:</p>
+<div class="highlight"><pre><span></span><code>git<span class="w"> </span>remote<span class="w"> </span>set-url<span class="w"> </span>origin<span class="w"> </span>https://github.com/ui-AI4UI/UCMDailyRegister.git
+git<span class="w"> </span>remote<span class="w"> </span>-v
+git<span class="w"> </span>fetch<span class="w"> </span>origin
+</code></pre></div>
+<p>Update the deployment server as well:</p>
+<div class="highlight"><pre><span></span><code>ssh<span class="w"> </span>devops@openera.insight.uidaho.edu
+git<span class="w"> </span>-C<span class="w"> </span>/home/devops/UCMDailyRegister<span class="w"> </span>remote<span class="w"> </span>set-url<span class="w"> </span>origin<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>https://github.com/ui-AI4UI/UCMDailyRegister.git
+git<span class="w"> </span>-C<span class="w"> </span>/home/devops/UCMDailyRegister<span class="w"> </span>fetch<span class="w"> </span>origin
+</code></pre></div>
+<h3 id="update-repository-references">Update repository references<a class="headerlink" href="#update-repository-references" title="Permanent link">&para;</a></h3>
+<p>Replace old-owner URLs where they are intended to identify this repository,
+including:</p>
+<ul>
+<li><code>mkdocs.yml</code> repository metadata;</li>
+<li>the frontend feedback issue builder and its tests;</li>
+<li>agent and contributor issue-tracker instructions;</li>
+<li>backup and disaster-recovery clone commands;</li>
+<li>governance evidence JSON, schema IDs, raw-content URLs, and Markdown links;</li>
+<li>issue and pull-request links in project documentation; and</li>
+<li>local and server Git remotes.</li>
+</ul>
+<p>Links to other repositories that remain in <code>ui-insight</code>, such as AISPEG, must
+not be changed mechanically.</p>
+<p>Commit and push the reference updates after the transfer. That push should run
+CI and republish the Pages branch under the new owner.</p>
+<h3 id="post-transfer-validation">Post-transfer validation<a class="headerlink" href="#post-transfer-validation" title="Permanent link">&para;</a></h3>
+<ul>
+<li>[ ] Repository is public at <code>ui-AI4UI/UCMDailyRegister</code>.</li>
+<li>[ ] Default branch is <code>main</code>, with all expected branches and tags.</li>
+<li>[ ] The issue and pull-request counts match the pre-transfer inventory.</li>
+<li>[ ] A sample of issue comments, assignments, labels, and cross-references is
+      intact.</li>
+<li>[ ] Required developers have their intended repository roles.</li>
+<li>[ ] CI completes successfully on a push or pull request.</li>
+<li>[ ] The documentation workflow can update <code>gh-pages</code>.</li>
+<li>[ ] The new GitHub Pages URL loads.</li>
+<li>[ ] The application feedback link opens the destination issue form.</li>
+<li>[ ] Dependabot remains enabled and can open pull requests.</li>
+<li>[ ] Local development clones can fetch and push.</li>
+<li>[ ] The deployment-server clone can fetch.</li>
+<li>[ ] A normal dev deployment succeeds when the next application change is
+      ready; a repository transfer alone does not require a production restart.</li>
+</ul>
+<h2 id="phase-2-prepare-for-the-oit-enterprise-change">Phase 2: prepare for the OIT enterprise change<a class="headerlink" href="#phase-2-prepare-for-the-oit-enterprise-change" title="Permanent link">&para;</a></h2>
+<h3 id="questions-for-oit">Questions for OIT<a class="headerlink" href="#questions-for-oit" title="Permanent link">&para;</a></h3>
+<p>Obtain written answers to these questions before the enterprise cutover:</p>
+<ol>
+<li>Is the target standard GitHub Enterprise Cloud on <code>github.com</code>, Enterprise
+   Managed Users, GitHub Enterprise Cloud on <code>ghe.com</code>, or GitHub Enterprise
+   Server?</li>
+<li>Will OIT attach the existing <code>ui-AI4UI</code> organization, or create a new
+   organization and import repositories?</li>
+<li>Will repository and Pages URLs remain unchanged?</li>
+<li>Are public repositories and public GitHub Pages permitted?</li>
+<li>Are GitHub Actions and GitHub-hosted runners permitted?</li>
+<li>May Actions use a write-capable <code>GITHUB_TOKEN</code>, and must actions be pinned to
+   full commit SHAs?</li>
+<li>Will Azure Pipelines, ArgoCD, or another OIT service replace any current
+   workflow?</li>
+<li>How will current users and historical contributors be mapped or provisioned?</li>
+<li>Are outside collaborators allowed?</li>
+<li>What machine-authentication mechanism is approved for production servers
+    that pull private source code?</li>
+<li>Will OIT perform an importer trial and provide migration logs before the
+    production cutover?</li>
+<li>What maintenance window, change freeze, validation period, and rollback
+    process will OIT use?</li>
+</ol>
+<h3 id="low-disruption-path-attach-the-existing-organization">Low-disruption path: attach the existing organization<a class="headerlink" href="#low-disruption-path-attach-the-existing-organization" title="Permanent link">&para;</a></h3>
+<p>If OIT uses standard GitHub Enterprise Cloud on <code>github.com</code>, an enterprise
+owner can invite <code>ui-AI4UI</code> to join the enterprise. An organization owner
+accepts the invitation, and the enterprise owner completes it. GitHub states
+that resources remain at the same URLs.</p>
+<p>Validate the following inherited enterprise controls immediately afterward:</p>
+<ul>
+<li>SAML SSO and authorization of personal access tokens or SSH keys;</li>
+<li>2FA requirements and user license availability;</li>
+<li>Actions allow lists, workflow token permissions, and SHA-pinning rules;</li>
+<li>organization or enterprise rulesets and branch protections;</li>
+<li>public-repository and GitHub Pages policies;</li>
+<li>outside-collaborator restrictions; and</li>
+<li>repository creation, deletion, visibility, and administration policies.</li>
+</ul>
+<h3 id="importer-path-managed-users-ghecom-or-a-new-destination">Importer path: managed users, <code>ghe.com</code>, or a new destination<a class="headerlink" href="#importer-path-managed-users-ghecom-or-a-new-destination" title="Permanent link">&para;</a></h3>
+<p>If OIT must use GitHub Enterprise Importer, require a trial migration and a
+written validation report. GitHub recommends pausing changes during the
+production migration because the importer does not support delta migrations.
+Changes made at the source after migration begins must be moved manually.</p>
+<p>For GitHub.com sources, repository content such as Git history, issues, pull
+requests, milestones, wikis, Actions workflow files, repository settings,
+releases, and attachments is generally migrated. Important exceptions include:</p>
+<ul>
+<li>all repositories arrive private by default;</li>
+<li>team membership is not migrated;</li>
+<li>Actions secrets, variables, environments, runners, artifacts, and run history
+  are not migrated;</li>
+<li>GitHub Apps and their installations are not migrated;</li>
+<li>webhook secrets are not migrated, and migrated webhooks must be re-enabled;</li>
+<li>Dependabot alert history and commit status checks are not migrated;</li>
+<li>repository discussions, comment edit history, and some cross-reference
+  semantics are not migrated;</li>
+<li>Git LFS objects are not migrated automatically; and</li>
+<li>user-authored history other than Git commits may initially be assigned to
+  placeholder "mannequin" identities until identities are reclaimed.</li>
+</ul>
+<p>See <a href="https://docs.github.com/en/migrations/using-github-enterprise-importer/migrating-between-github-products/about-migrations-between-github-products">About migrations between GitHub products with GitHub Enterprise
+Importer</a> and <a href="https://docs.github.com/en/migrations/using-github-enterprise-importer/migrating-between-github-products/overview-of-a-migration-between-github-products">Overview of a migration between GitHub
+products</a> for GitHub's current support matrix and follow-up
+tasks.</p>
+<p>For this repository, the highest-priority importer follow-up tasks are:</p>
+<ol>
+<li>Restore the intended public visibility if OIT policy permits it.</li>
+<li>Recreate team membership and repository access.</li>
+<li>Recreate and validate the <code>github-pages</code> environment and Pages publication.</li>
+<li>Enable GitHub Actions and validate both workflow files.</li>
+<li>Rebuild Dependabot configuration and confirm alerts and updates work.</li>
+<li>Update all repository, raw-content, Pages, and clone URLs.</li>
+<li>Configure the deployment server with an OIT-approved credential if the
+   destination repository is private.</li>
+<li>Reclaim contributor identities and audit issue/PR assignments.</li>
+</ol>
+<h2 id="deployment-impact-and-private-repository-authentication">Deployment impact and private-repository authentication<a class="headerlink" href="#deployment-impact-and-private-repository-authentication" title="Permanent link">&para;</a></h2>
+<p>The deployed application does not depend on GitHub at runtime. A GitHub outage,
+repository transfer, or repository rename does not stop the existing containers.
+It affects the ability to fetch new code for a future deployment.</p>
+<p>While the repository is public, the deployment server can fetch over HTTPS
+without credentials. If an enterprise migration makes it private, do not place
+a long-lived token directly in the remote URL. Obtain OIT approval for one of:</p>
+<ul>
+<li>a GitHub App installation with narrowly scoped repository access;</li>
+<li>an organization-approved fine-grained personal access token stored through an
+  approved secret-management mechanism; or</li>
+<li>an SSH/deploy-key or machine-user design allowed by enterprise policy.</li>
+</ul>
+<p>The chosen credential must be tested for SSO authorization, expiration,
+rotation, revocation, incident response, and noninteractive <code>git fetch</code> before
+the cutover.</p>
+<h2 id="recovery-and-rollback">Recovery and rollback<a class="headerlink" href="#recovery-and-rollback" title="Permanent link">&para;</a></h2>
+<p>For a normal repository transfer, GitHub redirects the old repository and Git
+URLs. Most failures can therefore be corrected in place by restoring access,
+adjusting Actions policies, republishing Pages, or updating direct URLs.</p>
+<p>If an essential destination policy cannot be corrected, organization owners can
+transfer the repository back, provided the old repository name remains
+available and policies allow the transfer. Do not create a placeholder at the
+old path; doing so removes redirects and complicates rollback.</p>
+<p>For an importer migration, follow OIT's approved rollback plan. Keep the source
+repository unchanged and unavailable for writes until the destination passes
+validation. Do not delete or archive the source as part of the initial cutover.</p>
+<h2 id="decision-record">Decision record<a class="headerlink" href="#decision-record" title="Permanent link">&para;</a></h2>
+<p>Record the following before each phase:</p>
+<table>
+<thead>
+<tr>
+<th>Decision</th>
+<th>Owner</th>
+<th>Date</th>
+<th>Evidence or ticket</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Developers receiving destination write access</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Repository visibility after transfer</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>OIT enterprise product and identity model</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>GitHub Actions approval or replacement</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>GitHub Pages approval or replacement</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Deployment-server authentication method</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Trial migration result, if applicable</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>Production cutover and rollback authority</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
