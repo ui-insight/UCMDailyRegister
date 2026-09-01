@@ -36,11 +36,15 @@ export interface HarvestedEventListResponse {
 
 export type OpsReviewStatus = 'new' | 'reviewed' | 'dismissed';
 export type OpsNeedConfidence = 'low' | 'medium' | 'high';
+export type OpsNeedVerdict = 'suggested' | 'confirmed' | 'rejected';
 
 export interface OpsNeed {
   Need: string;
-  Confidence: OpsNeedConfidence;
+  // null for staff-added needs; confidence only describes AI suggestions.
+  Confidence: OpsNeedConfidence | null;
   Rationale: string;
+  Verdict: OpsNeedVerdict;
+  Source: 'ai' | 'staff';
 }
 
 // Mirrors OpsEventResponse: the ops lens deliberately excludes SLC fields.

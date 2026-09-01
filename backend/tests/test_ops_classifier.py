@@ -188,6 +188,30 @@ class TestClassifyPendingOpsEvents:
         ).scalar_one()
         assert rows == 1
 
+    async def test_resuggested_need_updates_in_place(
+        self, db: AsyncSession, monkeypatch, ops_need_vocabulary
+    ):
+        """Re-suggesting a still-suggested need must not trip the unique key."""
+        await self.harvest(db, monkeypatch, [entry(1, 10)])
+        provider = FakeClassifierProvider([{"needs": [suggestion()]}])
+        await classify_pending_ops_events(db, provider=provider)
+
+        await self.harvest(
+            db, monkeypatch, [entry(1, 10, description="Catered lunch, room TBD.")]
+        )
+        provider = FakeClassifierProvider(
+            [{"needs": [suggestion(confidence="medium", rationale="Catered lunch.")]}]
+        )
+        summary = await classify_pending_ops_events(db, provider=provider)
+        assert summary.assessed == 1
+
+        event = await get_event(db, "1")
+        (row,) = event.Ops_Needs_Rel
+        assert row.Need == "catering"
+        assert row.Confidence == "medium"
+        assert row.Rationale == "Catered lunch."
+        assert row.Verdict == "suggested"
+
     async def test_connectivity_failure_aborts_and_marks_nothing(
         self, db: AsyncSession, monkeypatch, ops_need_vocabulary
     ):
@@ -226,6 +250,212 @@ class TestClassifyPendingOpsEvents:
         assert summary.assessed == 0
         assert summary.pending == 1
         assert provider.calls == []
+
+
+class TestNeedVerdicts:
+    async def seed_assessed_event(self, db, monkeypatch, needs):
+        patch_feed(monkeypatch, [entry(1, 10)])
+        await harvested_event_service.harvest_trumba_events(db)
+        provider = FakeClassifierProvider([{"needs": needs}])
+        await classify_pending_ops_events(db, provider=provider)
+        return await get_event(db, "1")
+
+    async def test_confirm_reject_and_undo(
+        self, client: AsyncClient, ops_headers, db: AsyncSession, monkeypatch,
+        ops_need_vocabulary,
+    ):
+        event = await self.seed_assessed_event(
+            db, monkeypatch,
+            [suggestion(), suggestion(need="tabling", confidence="low")],
+        )
+
+        response = await client.patch(
+            f"/api/v1/ops/harvested-events/{event.Id}/needs/catering",
+            headers=ops_headers,
+            json={"Verdict": "confirmed"},
+        )
+        assert response.status_code == 200
+        needs = {n["Need"]: n for n in response.json()["Needs"]}
+        assert needs["catering"]["Verdict"] == "confirmed"
+        assert needs["catering"]["Source"] == "ai"
+        assert needs["tabling"]["Verdict"] == "suggested"
+
+        response = await client.patch(
+            f"/api/v1/ops/harvested-events/{event.Id}/needs/tabling",
+            headers=ops_headers,
+            json={"Verdict": "rejected"},
+        )
+        needs = {n["Need"]: n for n in response.json()["Needs"]}
+        assert needs["tabling"]["Verdict"] == "rejected"
+
+        response = await client.patch(
+            f"/api/v1/ops/harvested-events/{event.Id}/needs/tabling",
+            headers=ops_headers,
+            json={"Verdict": "suggested"},
+        )
+        assert response.json()["Needs"][1]["Verdict"] == "suggested"
+
+    async def test_add_staff_need_and_remove_it(
+        self, client: AsyncClient, ops_headers, db: AsyncSession, monkeypatch,
+        ops_need_vocabulary,
+    ):
+        event = await self.seed_assessed_event(db, monkeypatch, [])
+
+        response = await client.post(
+            f"/api/v1/ops/harvested-events/{event.Id}/needs",
+            headers=ops_headers,
+            json={"Need": "alcohol_service"},
+        )
+        assert response.status_code == 200
+        (need,) = response.json()["Needs"]
+        assert need["Need"] == "alcohol_service"
+        assert need["Verdict"] == "confirmed"
+        assert need["Source"] == "staff"
+        assert need["Confidence"] is None
+
+        response = await client.delete(
+            f"/api/v1/ops/harvested-events/{event.Id}/needs/alcohol_service",
+            headers=ops_headers,
+        )
+        assert response.status_code == 200
+        assert response.json()["Needs"] == []
+
+    async def test_adding_an_ai_suggested_need_confirms_it(
+        self, client: AsyncClient, ops_headers, db: AsyncSession, monkeypatch,
+        ops_need_vocabulary,
+    ):
+        event = await self.seed_assessed_event(db, monkeypatch, [suggestion()])
+
+        response = await client.post(
+            f"/api/v1/ops/harvested-events/{event.Id}/needs",
+            headers=ops_headers,
+            json={"Need": "catering"},
+        )
+        (need,) = response.json()["Needs"]
+        assert need["Verdict"] == "confirmed"
+        assert need["Source"] == "ai"  # still the AI's suggestion, now confirmed
+
+    async def test_ai_suggestions_cannot_be_removed(
+        self, client: AsyncClient, ops_headers, db: AsyncSession, monkeypatch,
+        ops_need_vocabulary,
+    ):
+        event = await self.seed_assessed_event(db, monkeypatch, [suggestion()])
+
+        response = await client.delete(
+            f"/api/v1/ops/harvested-events/{event.Id}/needs/catering",
+            headers=ops_headers,
+        )
+        assert response.status_code == 400
+
+    async def test_unknown_need_type_is_rejected(
+        self, client: AsyncClient, ops_headers, db: AsyncSession, monkeypatch,
+        ops_need_vocabulary,
+    ):
+        event = await self.seed_assessed_event(db, monkeypatch, [])
+        response = await client.post(
+            f"/api/v1/ops/harvested-events/{event.Id}/needs",
+            headers=ops_headers,
+            json={"Need": "fireworks"},
+        )
+        assert response.status_code == 422
+
+    async def test_missing_rows_return_404_and_slc_role_403(
+        self, client: AsyncClient, ops_headers, slc_headers, db: AsyncSession,
+        monkeypatch, ops_need_vocabulary,
+    ):
+        event = await self.seed_assessed_event(db, monkeypatch, [])
+        response = await client.patch(
+            f"/api/v1/ops/harvested-events/{event.Id}/needs/catering",
+            headers=ops_headers,
+            json={"Verdict": "confirmed"},
+        )
+        assert response.status_code == 404
+
+        response = await client.post(
+            f"/api/v1/ops/harvested-events/{event.Id}/needs",
+            headers=slc_headers,
+            json={"Need": "catering"},
+        )
+        assert response.status_code == 403
+
+    async def test_reclassification_preserves_staff_verdicts(
+        self, client: AsyncClient, ops_headers, db: AsyncSession, monkeypatch,
+        ops_need_vocabulary,
+    ):
+        event = await self.seed_assessed_event(
+            db, monkeypatch,
+            [
+                suggestion(),  # catering — will be confirmed
+                suggestion(need="tabling", confidence="low"),  # will be rejected
+                suggestion(need="room_setup", confidence="low"),  # stays suggested
+            ],
+        )
+        for need, verdict in (("catering", "confirmed"), ("tabling", "rejected")):
+            await client.patch(
+                f"/api/v1/ops/harvested-events/{event.Id}/needs/{need}",
+                headers=ops_headers,
+                json={"Verdict": verdict},
+            )
+        await client.post(
+            f"/api/v1/ops/harvested-events/{event.Id}/needs",
+            headers=ops_headers,
+            json={"Need": "outdoor_space"},
+        )
+
+        # Upstream content change re-queues the event; the new assessment
+        # suggests tabling again (already rejected) and alcohol (new).
+        patch_feed(monkeypatch, [entry(1, 10, description="Now with a hosted bar.")])
+        await harvested_event_service.harvest_trumba_events(db)
+        # The verdicts above were written through the API's own session;
+        # expire so this session sees them, as a fresh classify session would.
+        db.expire_all()
+        provider = FakeClassifierProvider(
+            [
+                {
+                    "needs": [
+                        suggestion(need="tabling"),
+                        suggestion(need="alcohol_service"),
+                    ]
+                }
+            ]
+        )
+        summary = await classify_pending_ops_events(db, provider=provider)
+        assert summary.assessed == 1
+
+        await db.refresh(event)
+        by_need = {row.Need: row for row in event.Ops_Needs_Rel}
+        assert set(by_need) == {"catering", "tabling", "outdoor_space", "alcohol_service"}
+        assert by_need["catering"].Verdict == "confirmed"
+        assert by_need["tabling"].Verdict == "rejected"  # not resurrected
+        assert by_need["outdoor_space"].Source == "staff"
+        assert by_need["alcohol_service"].Verdict == "suggested"
+        assert "room_setup" not in by_need  # unjudged suggestion was replaced
+
+    async def test_need_filter_excludes_rejected(
+        self, client: AsyncClient, ops_headers, db: AsyncSession, monkeypatch,
+        ops_need_vocabulary,
+    ):
+        patch_feed(monkeypatch, [entry(1, 10), entry(2, 12), entry(3, 14)])
+        await harvested_event_service.harvest_trumba_events(db)
+        provider = FakeClassifierProvider(
+            [
+                {"needs": [suggestion()]},  # event 1: catering suggested
+                {"needs": [suggestion(confidence="low")]},  # event 2: catering
+                {"needs": []},  # event 3: nothing
+            ]
+        )
+        await classify_pending_ops_events(db, provider=provider)
+        second = await get_event(db, "2")
+        await client.patch(
+            f"/api/v1/ops/harvested-events/{second.Id}/needs/catering",
+            headers=ops_headers,
+            json={"Verdict": "rejected"},
+        )
+
+        response = await client.get(
+            "/api/v1/ops/harvested-events?need=catering", headers=ops_headers
+        )
+        assert [item["Source_Id"] for item in response.json()["Items"]] == ["1"]
 
 
 class TestNeedsInOpsListing:

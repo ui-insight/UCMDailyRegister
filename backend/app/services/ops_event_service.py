@@ -40,6 +40,7 @@ async def list_ops_events(
     date_to: date | None = None,
     category: str | None = None,
     review_status: str | None = None,
+    need: str | None = None,
     offset: int = 0,
     limit: int = 200,
 ) -> tuple[list[HarvestedEvent], int]:
@@ -47,10 +48,22 @@ async def list_ops_events(
 
     The category filter matches a Category_Path branch: "Student Affairs"
     matches both "Student Affairs" and "Student Affairs|Campus Recreation".
-    Without an explicit review_status, ops-dismissed events are excluded so
-    the default queue only shows events still worth looking at.
+    The need filter keeps events with a suspected or confirmed assessment
+    for that need (rejected doesn't count). Without an explicit
+    review_status, ops-dismissed events are excluded so the default queue
+    only shows events still worth looking at.
     """
     query = sa.select(HarvestedEvent)
+    if need:
+        query = query.where(
+            sa.select(OpsNeedAssessment.Id)
+            .where(
+                OpsNeedAssessment.Harvested_Event_Id == HarvestedEvent.Id,
+                OpsNeedAssessment.Need == need,
+                OpsNeedAssessment.Verdict != "rejected",
+            )
+            .exists()
+        )
     if date_from:
         query = query.where(
             HarvestedEvent.Event_Start >= datetime.combine(date_from, time.min)
@@ -177,14 +190,39 @@ async def classify_pending_ops_events(
             summary.failed += 1
             continue
 
-        event.Ops_Needs_Rel = [
+        # Staff judgment survives re-assessment: any row that was confirmed,
+        # rejected, or staff-added stays, and the classifier never resurrects
+        # a need the reviewer already judged. Still-suggested rows update in
+        # place (never delete-and-reinsert the same (event, need) key — the
+        # unique constraint would trip inside one flush) or drop away when no
+        # longer suggested.
+        judged = {
+            row.Need
+            for row in event.Ops_Needs_Rel
+            if row.Verdict != "suggested" or row.Source == "staff"
+        }
+        fresh = {
+            suggestion.need: suggestion
+            for suggestion in suggestions
+            if suggestion.need not in judged
+        }
+        for row in list(event.Ops_Needs_Rel):
+            if row.Need in judged:
+                continue
+            suggestion = fresh.pop(row.Need, None)
+            if suggestion is None:
+                event.Ops_Needs_Rel.remove(row)
+            else:
+                row.Confidence = suggestion.confidence
+                row.Rationale = suggestion.rationale
+        event.Ops_Needs_Rel.extend(
             OpsNeedAssessment(
                 Need=suggestion.need,
                 Confidence=suggestion.confidence,
                 Rationale=suggestion.rationale,
             )
-            for suggestion in suggestions
-        ]
+            for suggestion in fresh.values()
+        )
         event.Ops_Assessed_Content_Hash = event.Content_Hash
         await db.commit()
         summary.assessed += 1
@@ -213,3 +251,85 @@ async def set_ops_review_status(
     await db.commit()
     await db.refresh(event)
     return event
+
+
+async def set_need_verdict(
+    db: AsyncSession,
+    harvested_event_id: str,
+    need: str,
+    *,
+    verdict: str,
+) -> HarvestedEvent | None:
+    """Record Event Services' judgment on one assessed need. Idempotent.
+
+    Returns None when the event or the need's assessment row does not exist.
+    """
+    event = await db.get(HarvestedEvent, harvested_event_id)
+    if event is None:
+        return None
+    row = next((r for r in event.Ops_Needs_Rel if r.Need == need), None)
+    if row is None:
+        return None
+    row.Verdict = verdict
+    await db.commit()
+    await db.refresh(event)
+    return event
+
+
+async def add_staff_need(
+    db: AsyncSession,
+    harvested_event_id: str,
+    need: str,
+) -> HarvestedEvent | None:
+    """Add a need the AI missed, entering as confirmed with staff provenance.
+
+    Adding a need that already has an assessment row (suggested or rejected)
+    confirms that row instead of duplicating it. Raises ValueError for a
+    need outside the Ops_Need_Type vocabulary; returns None when the event
+    does not exist.
+    """
+    if need not in await _need_codes(db):
+        raise ValueError(f"Unknown ops need type: {need}")
+    event = await db.get(HarvestedEvent, harvested_event_id)
+    if event is None:
+        return None
+    row = next((r for r in event.Ops_Needs_Rel if r.Need == need), None)
+    if row is not None:
+        row.Verdict = "confirmed"
+    else:
+        event.Ops_Needs_Rel.append(
+            OpsNeedAssessment(
+                Need=need,
+                Confidence=None,
+                Rationale="",
+                Verdict="confirmed",
+                Source="staff",
+            )
+        )
+    await db.commit()
+    await db.refresh(event)
+    return event
+
+
+async def remove_staff_need(
+    db: AsyncSession,
+    harvested_event_id: str,
+    need: str,
+) -> tuple[HarvestedEvent | None, str]:
+    """Remove a staff-added need row. AI suggestions are rejected, not removed.
+
+    Returns (event, outcome) where outcome is "removed", "not_staff", or
+    "not_found".
+    """
+    event = await db.get(HarvestedEvent, harvested_event_id)
+    if event is None:
+        return None, "not_found"
+    row = next((r for r in event.Ops_Needs_Rel if r.Need == need), None)
+    if row is None:
+        return None, "not_found"
+    if row.Source != "staff":
+        return event, "not_staff"
+    event.Ops_Needs_Rel.remove(row)
+    await db.commit()
+    await db.refresh(event)
+    return event, "removed"

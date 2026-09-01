@@ -1,6 +1,17 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
-import { listOpsEvents, updateOpsEvent } from '../api/opsEvents';
-import type { OpsEvent, OpsNeed, OpsReviewStatus } from '../types/harvestedEvent';
+import {
+  addOpsNeed,
+  listOpsEvents,
+  removeOpsNeed,
+  setOpsNeedVerdict,
+  updateOpsEvent,
+} from '../api/opsEvents';
+import type {
+  OpsEvent,
+  OpsNeed,
+  OpsNeedVerdict,
+  OpsReviewStatus,
+} from '../types/harvestedEvent';
 import { getSubmitterRole } from '../utils/submitterRole';
 import { EmptyState } from '../components/common';
 import { toISODate } from '../utils/date';
@@ -30,7 +41,7 @@ const NEED_LABELS: Record<string, string> = {
   outdoor_space: 'Outdoor Space',
 };
 
-const CONFIDENCE_CHIP_CLASSES: Record<OpsNeed['Confidence'], string> = {
+const CONFIDENCE_CHIP_CLASSES: Record<'high' | 'medium' | 'low', string> = {
   high: 'border-ui-gold-400 bg-ui-gold-50 text-ui-black',
   medium: 'border-ui-gold-300 bg-white text-gray-800',
   low: 'border-gray-300 bg-white text-gray-500',
@@ -38,6 +49,11 @@ const CONFIDENCE_CHIP_CLASSES: Record<OpsNeed['Confidence'], string> = {
 
 function needLabel(need: OpsNeed): string {
   return NEED_LABELS[need.Need] ?? need.Need;
+}
+
+function needTitle(need: OpsNeed): string {
+  if (need.Source === 'staff') return 'Added by Event Services';
+  return `${need.Confidence} confidence — ${need.Rationale}`;
 }
 
 export default function OpsTriagePage() {
@@ -49,6 +65,7 @@ export default function OpsTriagePage() {
   const [error, setError] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('');
+  const [needFilter, setNeedFilter] = useState('');
   const [busyEventId, setBusyEventId] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
@@ -63,6 +80,7 @@ export default function OpsTriagePage() {
         date_from: toISODate(today),
         date_to: toISODate(horizon),
         review_status: statusFilter || undefined,
+        need: needFilter || undefined,
         limit: 500,
       });
       setEvents(data.Items);
@@ -71,28 +89,58 @@ export default function OpsTriagePage() {
     } finally {
       setLoading(false);
     }
-  }, [allowed, statusFilter]);
+  }, [allowed, statusFilter, needFilter]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  const handleTriage = async (event: OpsEvent, status: OpsReviewStatus) => {
-    setBusyEventId(event.Id);
+  const applyEventUpdate = async (
+    eventId: string,
+    update: () => Promise<OpsEvent>,
+    failureMessage: string,
+  ) => {
+    setBusyEventId(eventId);
     setError(null);
     try {
-      const updated = await updateOpsEvent(event.Id, {
-        Ops_Review_Status: status,
-      });
+      const updated = await update();
       setEvents((current) =>
         current.map((item) => (item.Id === updated.Id ? updated : item)),
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update the event');
+      setError(err instanceof Error ? err.message : failureMessage);
     } finally {
       setBusyEventId(null);
     }
   };
+
+  const handleTriage = (event: OpsEvent, status: OpsReviewStatus) =>
+    applyEventUpdate(
+      event.Id,
+      () => updateOpsEvent(event.Id, { Ops_Review_Status: status }),
+      'Failed to update the event',
+    );
+
+  const handleVerdict = (event: OpsEvent, need: string, verdict: OpsNeedVerdict) =>
+    applyEventUpdate(
+      event.Id,
+      () => setOpsNeedVerdict(event.Id, need, verdict),
+      'Failed to update the need',
+    );
+
+  const handleAddNeed = (event: OpsEvent, need: string) =>
+    applyEventUpdate(
+      event.Id,
+      () => addOpsNeed(event.Id, need),
+      'Failed to add the need',
+    );
+
+  const handleRemoveNeed = (event: OpsEvent, need: string) =>
+    applyEventUpdate(
+      event.Id,
+      () => removeOpsNeed(event.Id, need),
+      'Failed to remove the need',
+    );
 
   const categories = useMemo(() => {
     const unique = new Set(events.map(topCategory));
@@ -177,6 +225,24 @@ export default function OpsTriagePage() {
               <option value="dismissed">Dismissed</option>
             </select>
           </div>
+          <div>
+            <label htmlFor="ops-triage-need" className="block text-xs text-gray-500 mb-1">
+              Need
+            </label>
+            <select
+              id="ops-triage-need"
+              value={needFilter}
+              onChange={(e) => setNeedFilter(e.target.value)}
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+            >
+              <option value="">All needs</option>
+              {Object.entries(NEED_LABELS).map(([code, label]) => (
+                <option key={code} value={code}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="text-xs text-gray-500 self-center">
             Showing {filteredEvents.length} event
             {filteredEvents.length === 1 ? '' : 's'} over the next {LOOKAHEAD_DAYS} days
@@ -211,6 +277,9 @@ export default function OpsTriagePage() {
                     event={event}
                     busy={busyEventId === event.Id}
                     onTriage={handleTriage}
+                    onVerdict={handleVerdict}
+                    onAddNeed={handleAddNeed}
+                    onRemoveNeed={handleRemoveNeed}
                   />
                 ))}
               </div>
@@ -226,11 +295,21 @@ function OpsEventCard({
   event,
   busy,
   onTriage,
+  onVerdict,
+  onAddNeed,
+  onRemoveNeed,
 }: {
   event: OpsEvent;
   busy: boolean;
   onTriage: (event: OpsEvent, status: OpsReviewStatus) => void;
+  onVerdict: (event: OpsEvent, need: string, verdict: OpsNeedVerdict) => void;
+  onAddNeed: (event: OpsEvent, need: string) => void;
+  onRemoveNeed: (event: OpsEvent, need: string) => void;
 }) {
+  const addableNeeds = Object.entries(NEED_LABELS).filter(
+    ([code]) =>
+      !event.Needs.some((need) => need.Need === code && need.Verdict !== 'rejected'),
+  );
   return (
     <div className="bg-white rounded-lg shadow p-4 flex gap-4">
       <div className="w-28 shrink-0 text-sm">
@@ -274,7 +353,7 @@ function OpsEventCard({
           <p className="text-xs text-gray-600 mt-1.5 line-clamp-2">{event.Description}</p>
         )}
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          {!event.Needs_Assessed ? (
+          {!event.Needs_Assessed && event.Needs.length === 0 ? (
             <span className="text-[11px] italic text-gray-400">
               Awaiting AI assessment
             </span>
@@ -284,14 +363,33 @@ function OpsEventCard({
             </span>
           ) : (
             event.Needs.map((need) => (
-              <span
+              <NeedChip
                 key={need.Need}
-                title={`${need.Confidence} confidence — ${need.Rationale}`}
-                className={`text-[11px] font-medium rounded-full border px-2 py-0.5 ${CONFIDENCE_CHIP_CLASSES[need.Confidence] ?? CONFIDENCE_CHIP_CLASSES.low}`}
-              >
-                {needLabel(need)}
-              </span>
+                event={event}
+                need={need}
+                busy={busy}
+                onVerdict={onVerdict}
+                onRemoveNeed={onRemoveNeed}
+              />
             ))
+          )}
+          {addableNeeds.length > 0 && (
+            <select
+              aria-label={`Add need to ${event.Title}`}
+              value=""
+              disabled={busy}
+              onChange={(e) => {
+                if (e.target.value) onAddNeed(event, e.target.value);
+              }}
+              className="text-[11px] rounded-full border border-dashed border-gray-300 bg-white px-1.5 py-0.5 text-gray-500 hover:border-gray-400"
+            >
+              <option value="">+ Add need</option>
+              {addableNeeds.map(([code, label]) => (
+                <option key={code} value={code}>
+                  {label}
+                </option>
+              ))}
+            </select>
           )}
         </div>
         <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -311,6 +409,106 @@ function OpsEventCard({
         </div>
       </div>
     </div>
+  );
+}
+
+function NeedChip({
+  event,
+  need,
+  busy,
+  onVerdict,
+  onRemoveNeed,
+}: {
+  event: OpsEvent;
+  need: OpsNeed;
+  busy: boolean;
+  onVerdict: (event: OpsEvent, need: string, verdict: OpsNeedVerdict) => void;
+  onRemoveNeed: (event: OpsEvent, need: string) => void;
+}) {
+  const label = needLabel(need);
+  const chipButtonClass =
+    'text-[11px] leading-none px-0.5 hover:text-ui-black disabled:opacity-50';
+
+  if (need.Verdict === 'rejected') {
+    return (
+      <span
+        title={needTitle(need)}
+        className="text-[11px] font-medium rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-gray-400 line-through inline-flex items-center gap-1"
+      >
+        {label}
+        <button
+          type="button"
+          disabled={busy}
+          aria-label={`Restore ${label} for ${event.Title}`}
+          title="Restore suggestion"
+          onClick={() => onVerdict(event, need.Need, 'suggested')}
+          className={`${chipButtonClass} no-underline`}
+        >
+          ↺
+        </button>
+      </span>
+    );
+  }
+
+  if (need.Verdict === 'confirmed') {
+    return (
+      <span
+        title={needTitle(need)}
+        className="text-[11px] font-semibold rounded-full border border-ui-gold-500 bg-ui-gold-400 px-2 py-0.5 text-ui-black inline-flex items-center gap-1"
+      >
+        ✓ {label}
+        <button
+          type="button"
+          disabled={busy}
+          aria-label={
+            need.Source === 'staff'
+              ? `Remove ${label} from ${event.Title}`
+              : `Unconfirm ${label} for ${event.Title}`
+          }
+          title={need.Source === 'staff' ? 'Remove' : 'Back to suggested'}
+          onClick={() =>
+            need.Source === 'staff'
+              ? onRemoveNeed(event, need.Need)
+              : onVerdict(event, need.Need, 'suggested')
+          }
+          className={chipButtonClass}
+        >
+          ✕
+        </button>
+      </span>
+    );
+  }
+
+  const confidenceClass = need.Confidence
+    ? CONFIDENCE_CHIP_CLASSES[need.Confidence]
+    : CONFIDENCE_CHIP_CLASSES.low;
+  return (
+    <span
+      title={needTitle(need)}
+      className={`text-[11px] font-medium rounded-full border px-2 py-0.5 inline-flex items-center gap-1 ${confidenceClass}`}
+    >
+      {label}
+      <button
+        type="button"
+        disabled={busy}
+        aria-label={`Confirm ${label} for ${event.Title}`}
+        title="Confirm need"
+        onClick={() => onVerdict(event, need.Need, 'confirmed')}
+        className={chipButtonClass}
+      >
+        ✓
+      </button>
+      <button
+        type="button"
+        disabled={busy}
+        aria-label={`Reject ${label} for ${event.Title}`}
+        title="Reject suggestion"
+        onClick={() => onVerdict(event, need.Need, 'rejected')}
+        className={chipButtonClass}
+      >
+        ✕
+      </button>
+    </span>
   );
 }
 

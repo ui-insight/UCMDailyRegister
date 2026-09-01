@@ -13,9 +13,16 @@ Assessments are produced by the classify-pending step that follows each
 harvest apply. An event is classified at most once per content version:
 HarvestedEvent.Ops_Assessed_Content_Hash records which Content_Hash the
 current assessment saw, so unchanged events are never re-billed and events
-whose upstream content changed are re-assessed on the next run. Re-assessing
-replaces this event's suggestion rows wholesale (the verdict lifecycle that
-will preserve staff judgments arrives with the confirm/reject slice).
+whose upstream content changed are re-assessed on the next run.
+
+Verdict layers Event Services' judgment over the AI's: every AI row enters
+as "suggested" and the reviewer confirms or rejects it (Ops_Need_Verdict
+vocabulary). Needs the AI missed are added by staff and enter as confirmed
+with Source "staff" (Ops_Need_Source vocabulary) and no confidence — the
+confidence column only means anything for AI suggestions. Re-assessment
+replaces only rows that are still AI-suggested; any row carrying a staff
+verdict (confirmed, rejected, or staff-added) survives, and the classifier
+never resurrects a need the reviewer already judged.
 
 Rows are children of their harvested event and disappear with it; nothing
 else references them.
@@ -54,8 +61,15 @@ class OpsNeedAssessment(Base):
         index=True,
     )
     Need: Mapped[str] = mapped_column(sa.String(50), nullable=False)
-    Confidence: Mapped[str] = mapped_column(sa.String(20), nullable=False)
+    # NULL for staff-added needs; confidence only describes AI suggestions.
+    Confidence: Mapped[str | None] = mapped_column(sa.String(20), nullable=True)
     Rationale: Mapped[str] = mapped_column(sa.Text, nullable=False)
+    Verdict: Mapped[str] = mapped_column(
+        sa.String(20), nullable=False, default="suggested", server_default="suggested"
+    )
+    Source: Mapped[str] = mapped_column(
+        sa.String(20), nullable=False, default="ai", server_default="ai"
+    )
     Created_At: Mapped[datetime] = mapped_column(
         sa.DateTime, nullable=False, server_default=sa.func.now()
     )

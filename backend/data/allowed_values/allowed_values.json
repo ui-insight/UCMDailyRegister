@@ -66,5 +66,12 @@
 
   {"Value_Group": "Ops_Need_Confidence", "Code": "low", "Label": "Low", "Display_Order": 10, "Visibility_Role": "ops", "Description": "A weak hint worth a human glance"},
   {"Value_Group": "Ops_Need_Confidence", "Code": "medium", "Label": "Medium", "Display_Order": 20, "Visibility_Role": "ops", "Description": "A reasonable inference from the event type or venue"},
-  {"Value_Group": "Ops_Need_Confidence", "Code": "high", "Label": "High", "Display_Order": 30, "Visibility_Role": "ops", "Description": "The listing states or strongly implies the service"}
+  {"Value_Group": "Ops_Need_Confidence", "Code": "high", "Label": "High", "Display_Order": 30, "Visibility_Role": "ops", "Description": "The listing states or strongly implies the service"},
+
+  {"Value_Group": "Ops_Need_Verdict", "Code": "suggested", "Label": "Suggested", "Display_Order": 10, "Visibility_Role": "ops", "Description": "AI-suggested and awaiting Event Services judgment"},
+  {"Value_Group": "Ops_Need_Verdict", "Code": "confirmed", "Label": "Confirmed", "Display_Order": 20, "Visibility_Role": "ops", "Description": "Confirmed by Event Services as a real service need"},
+  {"Value_Group": "Ops_Need_Verdict", "Code": "rejected", "Label": "Rejected", "Display_Order": 30, "Visibility_Role": "ops", "Description": "Judged by Event Services not to be a real service need"},
+
+  {"Value_Group": "Ops_Need_Source", "Code": "ai", "Label": "AI Suggested", "Display_Order": 10, "Visibility_Role": "ops", "Description": "Produced by the ops needs classifier"},
+  {"Value_Group": "Ops_Need_Source", "Code": "staff", "Label": "Staff Added", "Display_Order": 20, "Visibility_Role": "ops", "Description": "Added by an Event Services reviewer"}
 ]
