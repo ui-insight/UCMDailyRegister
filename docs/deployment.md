@@ -258,8 +258,7 @@ MINDROUTER_MODEL=openai/gpt-oss-120b
 
 # Ops needs classifier (always MindRouter, independent of LLM_PROVIDER;
 # endpoint and key fall back to the MINDROUTER_* values above when unset).
-# Confirm the exact model id against the MindRouter catalog before deploying.
-OPS_CLASSIFIER_MODEL=Qwen/Qwen3.6-27B
+OPS_CLASSIFIER_MODEL=qwen/qwen3.8-27b
 
 # Docker
 HOST_PORT=9280          # 9290 for dev
