@@ -2,13 +2,22 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { listOpsEvents, updateOpsEvent } from '../api/opsEvents';
-import type { OpsEvent } from '../types/harvestedEvent';
+import {
+  addOpsNeed,
+  listOpsEvents,
+  removeOpsNeed,
+  setOpsNeedVerdict,
+  updateOpsEvent,
+} from '../api/opsEvents';
+import type { OpsEvent, OpsNeed } from '../types/harvestedEvent';
 import { getSubmitterRole } from '../utils/submitterRole';
 import OpsTriagePage from './OpsTriagePage';
 
 vi.mock('../api/opsEvents', () => ({
+  addOpsNeed: vi.fn(),
   listOpsEvents: vi.fn(),
+  removeOpsNeed: vi.fn(),
+  setOpsNeedVerdict: vi.fn(),
   updateOpsEvent: vi.fn(),
 }));
 
@@ -18,6 +27,20 @@ vi.mock('../utils/submitterRole', () => ({
 
 const listOpsEventsMock = vi.mocked(listOpsEvents);
 const updateOpsEventMock = vi.mocked(updateOpsEvent);
+const addOpsNeedMock = vi.mocked(addOpsNeed);
+const removeOpsNeedMock = vi.mocked(removeOpsNeed);
+const setOpsNeedVerdictMock = vi.mocked(setOpsNeedVerdict);
+
+function makeNeed(overrides: Partial<OpsNeed> = {}): OpsNeed {
+  return {
+    Need: 'catering',
+    Confidence: 'high',
+    Rationale: "Says 'reception to follow'.",
+    Verdict: 'suggested',
+    Source: 'ai',
+    ...overrides,
+  };
+}
 const getSubmitterRoleMock = vi.mocked(getSubmitterRole);
 
 function renderOpsTriagePage() {
@@ -154,16 +177,12 @@ describe('OpsTriagePage', () => {
         makeOpsEvent({
           Needs_Assessed: true,
           Needs: [
-            {
-              Need: 'catering',
-              Confidence: 'high',
-              Rationale: "Says 'reception to follow'.",
-            },
-            {
+            makeNeed(),
+            makeNeed({
               Need: 'outdoor_space',
               Confidence: 'medium',
               Rationale: 'Held on the Tower Lawn.',
-            },
+            }),
           ],
         }),
       ],
@@ -171,12 +190,126 @@ describe('OpsTriagePage', () => {
     });
     renderOpsTriagePage();
 
-    const cateringChip = await screen.findByText('Catering');
-    expect(cateringChip).toHaveAttribute(
-      'title',
+    const cateringChip = await screen.findByTitle(
       "high confidence — Says 'reception to follow'.",
     );
-    expect(screen.getByText('Outdoor Space')).toBeInTheDocument();
+    expect(cateringChip).toHaveTextContent('Catering');
+    expect(
+      screen.getByTitle('medium confidence — Held on the Tower Lawn.'),
+    ).toHaveTextContent('Outdoor Space');
+  });
+
+  it('confirms and rejects suggested needs', async () => {
+    listOpsEventsMock.mockResolvedValue({
+      Items: [
+        makeOpsEvent({
+          Needs_Assessed: true,
+          Needs: [makeNeed(), makeNeed({ Need: 'tabling', Confidence: 'low' })],
+        }),
+      ],
+      Total: 1,
+    });
+    setOpsNeedVerdictMock.mockResolvedValue(
+      makeOpsEvent({
+        Needs_Assessed: true,
+        Needs: [
+          makeNeed({ Verdict: 'confirmed' }),
+          makeNeed({ Need: 'tabling', Confidence: 'low' }),
+        ],
+      }),
+    );
+    renderOpsTriagePage();
+    await screen.findByText('Catering');
+
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Confirm Catering for Screen on the Green' }),
+    );
+    expect(setOpsNeedVerdictMock).toHaveBeenCalledWith(
+      'harvested-1', 'catering', 'confirmed',
+    );
+    expect(await screen.findByText('✓ Catering')).toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Reject Tabling for Screen on the Green' }),
+    );
+    expect(setOpsNeedVerdictMock).toHaveBeenLastCalledWith(
+      'harvested-1', 'tabling', 'rejected',
+    );
+  });
+
+  it('restores a rejected need', async () => {
+    listOpsEventsMock.mockResolvedValue({
+      Items: [
+        makeOpsEvent({
+          Needs_Assessed: true,
+          Needs: [makeNeed({ Verdict: 'rejected' })],
+        }),
+      ],
+      Total: 1,
+    });
+    setOpsNeedVerdictMock.mockResolvedValue(
+      makeOpsEvent({ Needs_Assessed: true, Needs: [makeNeed()] }),
+    );
+    renderOpsTriagePage();
+    await screen.findByText('Catering');
+
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Restore Catering for Screen on the Green' }),
+    );
+    expect(setOpsNeedVerdictMock).toHaveBeenCalledWith(
+      'harvested-1', 'catering', 'suggested',
+    );
+  });
+
+  it('adds a need the AI missed and removes a staff-added one', async () => {
+    listOpsEventsMock.mockResolvedValue({
+      Items: [makeOpsEvent({ Needs_Assessed: true, Needs: [] })],
+      Total: 1,
+    });
+    const staffNeed = makeNeed({
+      Need: 'alcohol_service',
+      Confidence: null,
+      Rationale: '',
+      Verdict: 'confirmed',
+      Source: 'staff',
+    });
+    addOpsNeedMock.mockResolvedValue(
+      makeOpsEvent({ Needs_Assessed: true, Needs: [staffNeed] }),
+    );
+    removeOpsNeedMock.mockResolvedValue(
+      makeOpsEvent({ Needs_Assessed: true, Needs: [] }),
+    );
+    renderOpsTriagePage();
+    await screen.findByText('No service needs detected');
+
+    await userEvent.selectOptions(
+      screen.getByLabelText('Add need to Screen on the Green'),
+      'alcohol_service',
+    );
+    expect(addOpsNeedMock).toHaveBeenCalledWith('harvested-1', 'alcohol_service');
+    expect(await screen.findByText('✓ Alcohol Service')).toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: 'Remove Alcohol Service from Screen on the Green',
+      }),
+    );
+    expect(removeOpsNeedMock).toHaveBeenCalledWith('harvested-1', 'alcohol_service');
+    expect(
+      await screen.findByText('No service needs detected'),
+    ).toBeInTheDocument();
+  });
+
+  it('requests the selected need filter from the API', async () => {
+    listOpsEventsMock.mockResolvedValue({ Items: [], Total: 0 });
+    renderOpsTriagePage();
+    await screen.findByText('No upcoming events');
+
+    await userEvent.selectOptions(screen.getByLabelText('Need'), 'catering');
+
+    expect(listOpsEventsMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({ need: 'catering' }),
+    );
   });
 
   it('shows an unobtrusive note for assessed events with no needs', async () => {

@@ -53,10 +53,22 @@ class OpsEventUpdate(BaseModel):
 
 class OpsNeedResponse(BaseModel):
     Need: str
-    Confidence: str
+    # None for staff-added needs; confidence only describes AI suggestions.
+    Confidence: str | None
     Rationale: str
+    Verdict: str
+    Source: str
 
     model_config = {"from_attributes": True}
+
+
+class OpsNeedCreate(BaseModel):
+    # Validated against the Ops_Need_Type vocabulary in the service.
+    Need: str = Field(min_length=1, max_length=50)
+
+
+class OpsNeedVerdictUpdate(BaseModel):
+    Verdict: str = Field(pattern="^(suggested|confirmed|rejected)$")
 
 
 class OpsEventResponse(BaseModel):
