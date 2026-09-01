@@ -93,6 +93,10 @@ class OpsEventResponse(BaseModel):
     Category_Path: str | None
     Is_Canceled: bool
     Ops_Review_Status: str
+    # Stamped when a re-harvest finds an ops-reviewed event edited, canceled,
+    # or missing from the feed; cleared on ops acknowledge or un-review.
+    # Independent of the SLC lens's Upstream_Changed_At.
+    Ops_Upstream_Changed_At: datetime | None
     # AI-suggested operational needs; populated by the route from the
     # assessment rows, not the ORM row itself.
     Needs: list[OpsNeedResponse] = []

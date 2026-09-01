@@ -85,6 +85,24 @@ async def update_ops_event(
 
 
 @router.post(
+    "/harvested-events/{harvested_event_id}/acknowledge-upstream",
+    response_model=OpsEventResponse,
+)
+async def acknowledge_upstream_change(
+    harvested_event_id: str,
+    db: AsyncSession = Depends(get_db),
+    submitter_role: SubmitterRole = Depends(require_staff_or_ops),
+):
+    """Clear the ops upstream-change badge once Event Services has seen it."""
+    event = await ops_event_service.acknowledge_ops_upstream_change(
+        db, harvested_event_id
+    )
+    if event is None:
+        raise HTTPException(status_code=404, detail="Harvested event not found")
+    return _to_response(event)
+
+
+@router.post(
     "/harvested-events/{harvested_event_id}/needs",
     response_model=OpsEventResponse,
 )

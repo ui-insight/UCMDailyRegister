@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
+  acknowledgeOpsUpstreamChange,
   addOpsNeed,
   listOpsEvents,
   removeOpsNeed,
@@ -142,6 +143,13 @@ export default function OpsTriagePage() {
       'Failed to remove the need',
     );
 
+  const handleAcknowledge = (event: OpsEvent) =>
+    applyEventUpdate(
+      event.Id,
+      () => acknowledgeOpsUpstreamChange(event.Id),
+      'Failed to acknowledge the change',
+    );
+
   const categories = useMemo(() => {
     const unique = new Set(events.map(topCategory));
     return [...unique].sort((a, b) => a.localeCompare(b));
@@ -280,6 +288,7 @@ export default function OpsTriagePage() {
                     onVerdict={handleVerdict}
                     onAddNeed={handleAddNeed}
                     onRemoveNeed={handleRemoveNeed}
+                    onAcknowledge={handleAcknowledge}
                   />
                 ))}
               </div>
@@ -298,6 +307,7 @@ function OpsEventCard({
   onVerdict,
   onAddNeed,
   onRemoveNeed,
+  onAcknowledge,
 }: {
   event: OpsEvent;
   busy: boolean;
@@ -305,6 +315,7 @@ function OpsEventCard({
   onVerdict: (event: OpsEvent, need: string, verdict: OpsNeedVerdict) => void;
   onAddNeed: (event: OpsEvent, need: string) => void;
   onRemoveNeed: (event: OpsEvent, need: string) => void;
+  onAcknowledge: (event: OpsEvent) => void;
 }) {
   const addableNeeds = Object.entries(NEED_LABELS).filter(
     ([code]) =>
@@ -407,6 +418,29 @@ function OpsEventCard({
             <OpsTriageActions event={event} busy={busy} onTriage={onTriage} />
           </div>
         </div>
+        {event.Ops_Review_Status === 'reviewed' && event.Ops_Upstream_Changed_At && (
+          <div
+            className={`mt-2 flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2 text-xs ${
+              event.Is_Canceled
+                ? 'border-red-200 bg-red-50 text-red-800'
+                : 'border-amber-200 bg-amber-50 text-amber-800'
+            }`}
+          >
+            <span>
+              {event.Is_Canceled
+                ? 'Canceled upstream — this event was canceled or removed on the university calendar.'
+                : 'Updated upstream — the event details changed on the university calendar after you reviewed it.'}
+            </span>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => onAcknowledge(event)}
+              className="shrink-0 rounded-md border border-gray-300 bg-white px-2.5 py-1 font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            >
+              Acknowledge
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

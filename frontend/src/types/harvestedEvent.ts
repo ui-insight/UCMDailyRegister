@@ -63,6 +63,7 @@ export interface OpsEvent {
   Category_Path: string | null;
   Is_Canceled: boolean;
   Ops_Review_Status: OpsReviewStatus;
+  Ops_Upstream_Changed_At: string | null;
   Needs: OpsNeed[];
   Needs_Assessed: boolean;
   First_Seen_At: string;

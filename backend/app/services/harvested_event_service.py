@@ -297,22 +297,31 @@ async def upsert_harvested_events(
 
 
 def _mark_upstream_change(event: HarvestedEvent) -> None:
-    """Stamp the change marker — only flagged events carry the badge."""
+    """Stamp each lens's change marker on the events it is watching.
+
+    The SLC lens watches flagged events (their promoted submissions could go
+    stale); the ops lens watches reviewed events (their confirmed needs
+    represent Event Services planning). The two markers are acknowledged
+    independently, so both are stamped here and never read together.
+    """
     if event.SLC_Review_Status == "flagged":
         event.Upstream_Changed_At = sa.func.now()
+    if event.Ops_Review_Status == "reviewed":
+        event.Ops_Upstream_Changed_At = sa.func.now()
 
 
 async def _select_disappeared_flagged_events(
     db: AsyncSession, events: list[TrumbaFeedEvent]
 ) -> list[HarvestedEvent]:
-    """Flagged, un-canceled future events inside feed coverage but absent.
+    """Watched, un-canceled future events inside feed coverage but absent.
 
     Trumba drops deleted events from the feed without a tombstone. The feed
     only covers a rolling window (~3 weeks, capped at 200 rows), so absence is
     only meaningful for events starting on or before the last fetched
     occurrence; events beyond that boundary simply are not covered yet. Limited
-    to flagged events — they are the ones whose promoted submissions would
-    otherwise be emailed stale.
+    to watched events — SLC-flagged (their promoted submissions would
+    otherwise be emailed stale) or ops-reviewed (Event Services would
+    otherwise staff a vanished event).
     """
     if not events:
         return []
@@ -321,7 +330,10 @@ async def _select_disappeared_flagged_events(
     result = await db.execute(
         sa.select(HarvestedEvent).where(
             HarvestedEvent.Source_Type == TRUMBA_SOURCE_TYPE,
-            HarvestedEvent.SLC_Review_Status == "flagged",
+            sa.or_(
+                HarvestedEvent.SLC_Review_Status == "flagged",
+                HarvestedEvent.Ops_Review_Status == "reviewed",
+            ),
             HarvestedEvent.Is_Canceled.is_(False),
             HarvestedEvent.Event_Start > datetime.now(),
             HarvestedEvent.Event_Start <= coverage_end,
@@ -334,11 +346,11 @@ async def _select_disappeared_flagged_events(
 async def _cancel_disappeared_flagged_events(
     db: AsyncSession, events: list[TrumbaFeedEvent]
 ) -> int:
-    """Mark flagged future events missing from the feed as canceled upstream."""
+    """Mark watched future events missing from the feed as canceled upstream."""
     rows = await _select_disappeared_flagged_events(db, events)
     for event in rows:
         event.Is_Canceled = True
-        event.Upstream_Changed_At = sa.func.now()
+        _mark_upstream_change(event)
         _sync_promoted_submission(event)
     if rows:
         await db.commit()

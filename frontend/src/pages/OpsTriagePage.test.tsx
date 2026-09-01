@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  acknowledgeOpsUpstreamChange,
   addOpsNeed,
   listOpsEvents,
   removeOpsNeed,
@@ -14,6 +15,7 @@ import { getSubmitterRole } from '../utils/submitterRole';
 import OpsTriagePage from './OpsTriagePage';
 
 vi.mock('../api/opsEvents', () => ({
+  acknowledgeOpsUpstreamChange: vi.fn(),
   addOpsNeed: vi.fn(),
   listOpsEvents: vi.fn(),
   removeOpsNeed: vi.fn(),
@@ -28,6 +30,7 @@ vi.mock('../utils/submitterRole', () => ({
 const listOpsEventsMock = vi.mocked(listOpsEvents);
 const updateOpsEventMock = vi.mocked(updateOpsEvent);
 const addOpsNeedMock = vi.mocked(addOpsNeed);
+const acknowledgeOpsUpstreamChangeMock = vi.mocked(acknowledgeOpsUpstreamChange);
 const removeOpsNeedMock = vi.mocked(removeOpsNeed);
 const setOpsNeedVerdictMock = vi.mocked(setOpsNeedVerdict);
 
@@ -76,6 +79,7 @@ function makeOpsEvent(overrides: Partial<OpsEvent> = {}): OpsEvent {
     Category_Path: 'Student Affairs|Dept. of Student Involvement',
     Is_Canceled: false,
     Ops_Review_Status: 'new',
+    Ops_Upstream_Changed_At: null,
     Needs: [],
     Needs_Assessed: false,
     First_Seen_At: isoDaysFromNow(0),
@@ -425,6 +429,62 @@ describe('OpsTriagePage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
 
     expect(await screen.findByText('Update failed')).toBeInTheDocument();
+  });
+
+  it('badges reviewed events changed upstream and acknowledges the change', async () => {
+    listOpsEventsMock.mockResolvedValue({
+      Items: [
+        makeOpsEvent({
+          Ops_Review_Status: 'reviewed',
+          Ops_Upstream_Changed_At: isoDaysFromNow(0),
+        }),
+      ],
+      Total: 1,
+    });
+    acknowledgeOpsUpstreamChangeMock.mockResolvedValue(
+      makeOpsEvent({ Ops_Review_Status: 'reviewed', Ops_Upstream_Changed_At: null }),
+    );
+    renderOpsTriagePage();
+
+    expect(
+      await screen.findByText(/Updated upstream — the event details changed/),
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Acknowledge' }));
+
+    expect(acknowledgeOpsUpstreamChangeMock).toHaveBeenCalledWith('harvested-1');
+    expect(
+      screen.queryByText(/Updated upstream/),
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows the canceled variant of the upstream badge', async () => {
+    listOpsEventsMock.mockResolvedValue({
+      Items: [
+        makeOpsEvent({
+          Ops_Review_Status: 'reviewed',
+          Ops_Upstream_Changed_At: isoDaysFromNow(0),
+          Is_Canceled: true,
+        }),
+      ],
+      Total: 1,
+    });
+    renderOpsTriagePage();
+
+    expect(
+      await screen.findByText(/Canceled upstream — this event was canceled/),
+    ).toBeInTheDocument();
+  });
+
+  it('shows no upstream badge on unreviewed events', async () => {
+    listOpsEventsMock.mockResolvedValue({
+      Items: [makeOpsEvent({ Ops_Upstream_Changed_At: isoDaysFromNow(0) })],
+      Total: 1,
+    });
+    renderOpsTriagePage();
+    await screen.findByText('Screen on the Green');
+
+    expect(screen.queryByText(/Updated upstream/)).not.toBeInTheDocument();
   });
 
   it('shows an empty state when no events are upcoming', async () => {
