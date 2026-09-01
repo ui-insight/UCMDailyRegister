@@ -11,9 +11,8 @@ platform) so event text never leaves campus infrastructure, and it is
 deliberately independent of the global LLM_PROVIDER switch that drives the
 newsletter editing pipeline: build_ops_classifier_provider() constructs its
 own MindRouterProvider from the OPS_CLASSIFIER_* settings, falling back to
-the MINDROUTER_* endpoint and key when unset. The default model is Qwen 3.6
-27B (OPS_CLASSIFIER_MODEL overrides it; confirm the exact id against the
-MindRouter catalog per deployment).
+the MINDROUTER_* endpoint and key when unset. The default model is Qwen 3.8
+27B (OPS_CLASSIFIER_MODEL overrides it).
 
 assess_event() is the whole interface: fields in, validated suggestions
 out. Malformed model output raises ValueError; connectivity failures

@@ -31,7 +31,7 @@ class Settings(BaseSettings):
 
     # Ops needs classifier — always MindRouter, independent of LLM_PROVIDER.
     # Endpoint and key fall back to the MINDROUTER_* values when unset.
-    ops_classifier_model: str = "Qwen/Qwen3.6-27B"
+    ops_classifier_model: str = "qwen/qwen3.8-27b"
     ops_classifier_endpoint_url: str = ""
     ops_classifier_api_key: str = ""
 
