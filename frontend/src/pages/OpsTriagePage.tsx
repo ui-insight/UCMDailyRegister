@@ -42,10 +42,14 @@ const NEED_LABELS: Record<string, string> = {
   outdoor_space: 'Outdoor Space',
 };
 
-const CONFIDENCE_CHIP_CLASSES: Record<'high' | 'medium' | 'low', string> = {
-  high: 'border-ui-gold-400 bg-ui-gold-50 text-ui-black',
-  medium: 'border-ui-gold-300 bg-white text-gray-800',
-  low: 'border-gray-300 bg-white text-gray-500',
+// Suggested chips are dashed (tentative) and encode confidence twice —
+// a strongly stepped color plus a dot meter — so the level survives both
+// squinting and color-blindness. The legend above the list explains all
+// chip states.
+const CONFIDENCE_CHIP: Record<'high' | 'medium' | 'low', { classes: string; dots: string }> = {
+  high: { classes: 'border-amber-600 bg-amber-200 text-amber-950', dots: '●●●' },
+  medium: { classes: 'border-amber-400 bg-amber-50 text-amber-900', dots: '●●○' },
+  low: { classes: 'border-gray-400 bg-white text-gray-500', dots: '●○○' },
 };
 
 function needLabel(need: OpsNeed): string {
@@ -54,7 +58,7 @@ function needLabel(need: OpsNeed): string {
 
 function needTitle(need: OpsNeed): string {
   if (need.Source === 'staff') return 'Added by Event Services';
-  return `${need.Confidence} confidence — ${need.Rationale}`;
+  return `AI suggestion, ${need.Confidence} confidence — ${need.Rationale}`;
 }
 
 export default function OpsTriagePage() {
@@ -256,6 +260,7 @@ export default function OpsTriagePage() {
             {filteredEvents.length === 1 ? '' : 's'} over the next {LOOKAHEAD_DAYS} days
           </div>
         </div>
+        <NeedLegend />
       </div>
 
       {error && (
@@ -446,6 +451,37 @@ function OpsEventCard({
   );
 }
 
+function NeedLegend() {
+  const sample = 'rounded-full border px-2 py-0.5 inline-flex items-center gap-1';
+  return (
+    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-gray-100 pt-3 text-[11px] text-gray-500">
+      <span className="font-medium text-gray-600">Service needs:</span>
+      <span className="inline-flex items-center gap-1.5">
+        AI suggestions (dashed)
+        <span className={`${sample} border-dashed ${CONFIDENCE_CHIP.high.classes}`}>
+          <span aria-hidden="true" className="tracking-tighter text-[9px]">●●●</span> high
+        </span>
+        <span className={`${sample} border-dashed ${CONFIDENCE_CHIP.medium.classes}`}>
+          <span aria-hidden="true" className="tracking-tighter text-[9px]">●●○</span> medium
+        </span>
+        <span className={`${sample} border-dashed ${CONFIDENCE_CHIP.low.classes}`}>
+          <span aria-hidden="true" className="tracking-tighter text-[9px]">●○○</span> low
+        </span>
+        — confirm ✓ or dismiss ✕ each
+      </span>
+      <span className="inline-flex items-center gap-1.5">
+        <span className={`${sample} border-ui-gold-500 bg-ui-gold-400 font-semibold text-ui-black`}>
+          ✓ confirmed
+        </span>
+        <span className={`${sample} border-gray-200 bg-gray-50 text-gray-400 line-through`}>
+          dismissed
+        </span>
+        (↺ restores)
+      </span>
+    </div>
+  );
+}
+
 function NeedChip({
   event,
   need,
@@ -513,32 +549,35 @@ function NeedChip({
     );
   }
 
-  const confidenceClass = need.Confidence
-    ? CONFIDENCE_CHIP_CLASSES[need.Confidence]
-    : CONFIDENCE_CHIP_CLASSES.low;
+  const confidence = CONFIDENCE_CHIP[need.Confidence ?? 'low'];
+  const suggestionButtonClass =
+    'text-[11px] leading-none rounded border border-current/30 bg-white/70 px-1 py-0.5 hover:bg-white disabled:opacity-50';
   return (
     <span
       title={needTitle(need)}
-      className={`text-[11px] font-medium rounded-full border px-2 py-0.5 inline-flex items-center gap-1 ${confidenceClass}`}
+      className={`text-[11px] font-medium rounded-full border border-dashed px-2 py-0.5 inline-flex items-center gap-1.5 ${confidence.classes}`}
     >
+      <span aria-hidden="true" className="tracking-tighter text-[9px]">
+        {confidence.dots}
+      </span>
       {label}
       <button
         type="button"
         disabled={busy}
         aria-label={`Confirm ${label} for ${event.Title}`}
-        title="Confirm need"
+        title="Confirm — Event Services will likely be needed"
         onClick={() => onVerdict(event, need.Need, 'confirmed')}
-        className={chipButtonClass}
+        className={suggestionButtonClass}
       >
         ✓
       </button>
       <button
         type="button"
         disabled={busy}
-        aria-label={`Reject ${label} for ${event.Title}`}
-        title="Reject suggestion"
+        aria-label={`Dismiss ${label} suggestion for ${event.Title}`}
+        title="Dismiss — not a real service need"
         onClick={() => onVerdict(event, need.Need, 'rejected')}
-        className={chipButtonClass}
+        className={suggestionButtonClass}
       >
         ✕
       </button>

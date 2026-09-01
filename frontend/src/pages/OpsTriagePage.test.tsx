@@ -195,12 +195,25 @@ describe('OpsTriagePage', () => {
     renderOpsTriagePage();
 
     const cateringChip = await screen.findByTitle(
-      "high confidence — Says 'reception to follow'.",
+      "AI suggestion, high confidence — Says 'reception to follow'.",
     );
     expect(cateringChip).toHaveTextContent('Catering');
-    expect(
-      screen.getByTitle('medium confidence — Held on the Tower Lawn.'),
-    ).toHaveTextContent('Outdoor Space');
+    expect(cateringChip).toHaveTextContent('●●●');
+    const outdoorChip = screen.getByTitle(
+      'AI suggestion, medium confidence — Held on the Tower Lawn.',
+    );
+    expect(outdoorChip).toHaveTextContent('Outdoor Space');
+    expect(outdoorChip).toHaveTextContent('●●○');
+  });
+
+  it('shows the chip legend', async () => {
+    listOpsEventsMock.mockResolvedValue({ Items: [], Total: 0 });
+    renderOpsTriagePage();
+    await screen.findByText('No upcoming events');
+
+    expect(screen.getByText(/AI suggestions \(dashed\)/)).toBeInTheDocument();
+    expect(screen.getByText('✓ confirmed')).toBeInTheDocument();
+    expect(screen.getByText('dismissed')).toBeInTheDocument();
   });
 
   it('confirms and rejects suggested needs', async () => {
@@ -234,7 +247,7 @@ describe('OpsTriagePage', () => {
     expect(await screen.findByText('✓ Catering')).toBeInTheDocument();
 
     await userEvent.click(
-      screen.getByRole('button', { name: 'Reject Tabling for Screen on the Green' }),
+      screen.getByRole('button', { name: 'Dismiss Tabling suggestion for Screen on the Green' }),
     );
     expect(setOpsNeedVerdictMock).toHaveBeenLastCalledWith(
       'harvested-1', 'tabling', 'rejected',
