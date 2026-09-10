@@ -136,3 +136,81 @@ class TestTrustedRoleAuthorization:
         assert item["Submitter_Name"] == ""
         assert item["Submitter_Email"] == ""
         assert item["Submitter_Notes"] is None
+
+    async def test_only_staff_can_update_or_schedule_existing_submissions(
+        self,
+        client: AsyncClient,
+        staff_headers: dict[str, str],
+        slc_headers: dict[str, str],
+        ops_headers: dict[str, str],
+    ):
+        submission_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(),
+        )
+        assert submission_resp.status_code == 201
+        submission_id = submission_resp.json()["Id"]
+
+        for headers in ({}, slc_headers, ops_headers):
+            empty_update_resp = await client.patch(
+                f"/api/v1/submissions/{submission_id}",
+                json={},
+                headers=headers,
+            )
+            assert empty_update_resp.status_code == 403
+
+            status_update_resp = await client.patch(
+                f"/api/v1/submissions/{submission_id}",
+                json={"Status": "approved"},
+                headers=headers,
+            )
+            assert status_update_resp.status_code == 403
+
+            schedule_resp = await client.post(
+                f"/api/v1/submissions/{submission_id}/schedule",
+                json={"Requested_Date": "2026-04-01"},
+                headers=headers,
+            )
+            assert schedule_resp.status_code == 403
+
+        staff_detail_resp = await client.get(
+            f"/api/v1/submissions/{submission_id}",
+            headers=staff_headers,
+        )
+        assert staff_detail_resp.status_code == 200
+        assert staff_detail_resp.json()["Status"] == "new"
+        assert len(staff_detail_resp.json()["Schedule_Requests"]) == 1
+
+    async def test_only_staff_can_list_or_read_newsletters(
+        self,
+        client: AsyncClient,
+        staff_headers: dict[str, str],
+        slc_headers: dict[str, str],
+        ops_headers: dict[str, str],
+    ):
+        create_resp = await client.post(
+            "/api/v1/newsletters",
+            json=make_newsletter_data(),
+            headers=staff_headers,
+        )
+        assert create_resp.status_code == 201
+        newsletter_id = create_resp.json()["Id"]
+
+        for headers in ({}, slc_headers, ops_headers):
+            list_resp = await client.get("/api/v1/newsletters", headers=headers)
+            assert list_resp.status_code == 403
+
+            detail_resp = await client.get(
+                f"/api/v1/newsletters/{newsletter_id}",
+                headers=headers,
+            )
+            assert detail_resp.status_code == 403
+
+        staff_list_resp = await client.get("/api/v1/newsletters", headers=staff_headers)
+        assert staff_list_resp.status_code == 200
+
+        staff_detail_resp = await client.get(
+            f"/api/v1/newsletters/{newsletter_id}",
+            headers=staff_headers,
+        )
+        assert staff_detail_resp.status_code == 200

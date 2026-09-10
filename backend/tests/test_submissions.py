@@ -399,18 +399,23 @@ class TestSubmissionCRUD:
         resp = await client.get("/api/v1/submissions/nonexistent", headers=staff_headers)
         assert resp.status_code == 404
 
-    async def test_update_submission(self, client: AsyncClient):
+    async def test_update_submission(
+        self, client: AsyncClient, staff_headers: dict[str, str]
+    ):
         create_resp = await client.post("/api/v1/submissions/", json=make_submission_data())
         sub_id = create_resp.json()["Id"]
 
         resp = await client.patch(
             f"/api/v1/submissions/{sub_id}",
             json={"Status": "approved"},
+            headers=staff_headers,
         )
         assert resp.status_code == 200
         assert resp.json()["Status"] == "approved"
 
-    async def test_update_submission_survey_end_date(self, client: AsyncClient):
+    async def test_update_submission_survey_end_date(
+        self, client: AsyncClient, staff_headers: dict[str, str]
+    ):
         create_resp = await client.post(
             "/api/v1/submissions/",
             json=make_submission_data(Category="survey"),
@@ -420,6 +425,7 @@ class TestSubmissionCRUD:
         resp = await client.patch(
             f"/api/v1/submissions/{sub_id}",
             json={"Survey_End_Date": "2026-05-01"},
+            headers=staff_headers,
         )
         assert resp.status_code == 200
         assert resp.json()["Survey_End_Date"] == "2026-05-01"
@@ -453,7 +459,7 @@ class TestSubmissionCRUD:
             json={"Assigned_Editor": "Jane Editor"},
         )
         assert resp.status_code == 403
-        assert "Only staff editors" in resp.json()["detail"]
+        assert "staff editors only" in resp.json()["detail"]
 
     async def test_staff_list_includes_editorial_workflow_fields(
         self, client: AsyncClient, staff_headers: dict[str, str]
@@ -563,13 +569,16 @@ class TestSubmissionLinks:
 @pytest.mark.asyncio
 @freeze_time(FROZEN_TODAY)
 class TestSubmissionSchedule:
-    async def test_add_schedule_request(self, client: AsyncClient):
+    async def test_add_schedule_request(
+        self, client: AsyncClient, staff_headers: dict[str, str]
+    ):
         create_resp = await client.post("/api/v1/submissions/", json=make_submission_data())
         sub_id = create_resp.json()["Id"]
 
         resp = await client.post(
             f"/api/v1/submissions/{sub_id}/schedule",
             json={"Requested_Date": "2026-04-01", "Repeat_Count": 2},
+            headers=staff_headers,
         )
         assert resp.status_code == 201
         assert resp.json()["Repeat_Count"] == 2

@@ -72,10 +72,11 @@ External Data Sources ──▶ Backend:
 - Optional submitter notes (free text — may inadvertently contain PII)
 
 **Access control:** Public submitters can create submissions and receive the
-created submission response. Submission list/detail views, images, destructive
-actions, AI edits, newsletter assembly, style rules, schedule configuration, and
-recurring-message management are staff-only. Authorized SLC viewers can read the
-SLC calendar feed with submitter PII redacted.
+created submission response. Submission list/detail views, submission updates,
+added schedule requests, images, destructive actions, AI edits, newsletter reads
+and assembly, style rules, schedule configuration, and recurring-message
+management are staff-only. Authorized SLC viewers can read the SLC calendar feed
+with submitter PII redacted.
 
 **Authentication model:** Role assignment comes from a trusted auth boundary.
 The backend rejects client-controlled `X-User-Role` headers. Staff and SLC roles
@@ -227,8 +228,8 @@ database-backed `DataDictionary` table or automated drift-control process.
 
 | Role | Can Create | Can Read | Can Edit | Can Delete | Can Export |
 |------|-----------|---------|---------|-----------|-----------|
-| Public | Submissions | Created submission response and public allowed values | Limited submission fields when the submission ID is known | No staff-gated deletes | No staff-gated exports |
-| SLC | SLC event submissions | Redacted SLC calendar feed | Same limited public submission fields | No staff-gated deletes | No staff-gated exports |
+| Public | Submissions | Created submission response and public allowed values | No submission records | No staff-gated deletes | No staff-gated exports |
+| SLC | SLC event submissions | Redacted SLC calendar feed | No submission records | No staff-gated deletes | No staff-gated exports |
 | Staff | All submissions, newsletters, recurring messages, style rules, and schedule records | All submissions and configuration | All editorial, newsletter, recurring-message, style-rule, and schedule workflows | Staff-gated destructive endpoints | All newsletters |
 
 **Note:** There is no admin role. The current role model is still perimeter

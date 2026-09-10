@@ -90,13 +90,18 @@ async def list_newsletters(
     status: str | None = None,
     limit: int = 20,
     db: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
 ):
     """List newsletters."""
     return await newsletter_service.list_newsletters(db, newsletter_type, status, limit)
 
 
 @router.get("/{newsletter_id}", response_model=NewsletterDetailResponse)
-async def get_newsletter(newsletter_id: str, db: AsyncSession = Depends(get_db)):
+async def get_newsletter(
+    newsletter_id: str,
+    db: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
+):
     """Get a newsletter with all its items."""
     newsletter = await newsletter_service.get_newsletter(db, newsletter_id)
     if not newsletter:
