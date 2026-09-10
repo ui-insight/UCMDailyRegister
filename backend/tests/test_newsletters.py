@@ -42,7 +42,7 @@ class TestNewsletterCRUD:
             headers=staff_headers,
         )
 
-        resp = await client.get("/api/v1/newsletters")
+        resp = await client.get("/api/v1/newsletters", headers=staff_headers)
         assert resp.status_code == 200
         assert len(resp.json()) == 2
 
@@ -60,7 +60,10 @@ class TestNewsletterCRUD:
             headers=staff_headers,
         )
 
-        resp = await client.get("/api/v1/newsletters?newsletter_type=myui")
+        resp = await client.get(
+            "/api/v1/newsletters?newsletter_type=myui",
+            headers=staff_headers,
+        )
         assert resp.status_code == 200
         nls = resp.json()
         assert len(nls) == 1
@@ -74,7 +77,7 @@ class TestNewsletterCRUD:
         )
         nl_id = create_resp.json()["Id"]
 
-        resp = await client.get(f"/api/v1/newsletters/{nl_id}")
+        resp = await client.get(f"/api/v1/newsletters/{nl_id}", headers=staff_headers)
         assert resp.status_code == 200
         body = resp.json()
         assert body["Id"] == nl_id
@@ -108,7 +111,7 @@ class TestNewsletterCRUD:
         resp = await client.delete(f"/api/v1/newsletters/{nl_id}", headers=staff_headers)
         assert resp.status_code == 204
 
-        resp = await client.get(f"/api/v1/newsletters/{nl_id}")
+        resp = await client.get(f"/api/v1/newsletters/{nl_id}", headers=staff_headers)
         assert resp.status_code == 404
 
 
@@ -205,7 +208,10 @@ class TestNewsletterItems:
         )
         assert resp.status_code == 404
 
-        detail_resp = await client.get(f"/api/v1/newsletters/{owner_id}")
+        detail_resp = await client.get(
+            f"/api/v1/newsletters/{owner_id}",
+            headers=staff_headers,
+        )
         assert detail_resp.status_code == 200
         assert detail_resp.json()["Items"][0]["Final_Headline"] == "Original headline"
 
@@ -245,7 +251,10 @@ class TestNewsletterItems:
         )
         assert resp.status_code == 404
 
-        detail_resp = await client.get(f"/api/v1/newsletters/{owner_id}")
+        detail_resp = await client.get(
+            f"/api/v1/newsletters/{owner_id}",
+            headers=staff_headers,
+        )
         assert detail_resp.status_code == 200
         assert [item["Id"] for item in detail_resp.json()["Items"]] == [item_id]
 
@@ -308,7 +317,10 @@ class TestNewsletterItems:
         )
         assert delete_resp.status_code == 404
 
-        detail_resp = await client.get(f"/api/v1/newsletters/{owner_id}")
+        detail_resp = await client.get(
+            f"/api/v1/newsletters/{owner_id}",
+            headers=staff_headers,
+        )
         assert detail_resp.status_code == 200
         external_items = detail_resp.json()["External_Items"]
         assert [item["Id"] for item in external_items] == [item_id]
@@ -350,6 +362,7 @@ class TestNewsletterItems:
         await client.patch(
             f"/api/v1/submissions/{recurring_id}",
             json={"Status": "approved"},
+            headers=staff_headers,
         )
 
         one_off_resp = await client.post(
@@ -363,6 +376,7 @@ class TestNewsletterItems:
         await client.patch(
             f"/api/v1/submissions/{one_off_id}",
             json={"Status": "approved"},
+            headers=staff_headers,
         )
 
         assemble_resp = await client.post(
@@ -407,6 +421,7 @@ class TestNewsletterItems:
             await client.patch(
                 f"/api/v1/submissions/{job_ids[-1]}",
                 json={"Status": "approved"},
+                headers=staff_headers,
             )
 
         await db.execute(
@@ -469,6 +484,7 @@ class TestNewsletterItems:
         await client.patch(
             f"/api/v1/submissions/{submission_id}",
             json={"Status": "approved"},
+            headers=staff_headers,
         )
 
         assemble_resp = await client.post(
@@ -520,6 +536,7 @@ class TestNewsletterItems:
         await client.patch(
             f"/api/v1/submissions/{submission_id}",
             json={"Status": "approved"},
+            headers=staff_headers,
         )
 
         assemble_resp = await client.post(
@@ -849,7 +866,10 @@ class TestCalendarEventEndpoints:
         assert body["Source_Type"] == "calendar_event"
         assert body["Final_Headline"] == "Accessibility Workshop"
 
-        detail_resp = await client.get(f"/api/v1/newsletters/{nl_id}")
+        detail_resp = await client.get(
+            f"/api/v1/newsletters/{nl_id}",
+            headers=staff_headers,
+        )
         assert detail_resp.status_code == 200
         detail = detail_resp.json()
         assert len(detail["External_Items"]) == 1
@@ -1035,7 +1055,10 @@ class TestJobPostingEndpoints:
         )
         assert body["Location"] is None
 
-        detail_resp = await client.get(f"/api/v1/newsletters/{nl_id}")
+        detail_resp = await client.get(
+            f"/api/v1/newsletters/{nl_id}",
+            headers=staff_headers,
+        )
         assert detail_resp.status_code == 200
         detail = detail_resp.json()
         assert len(detail["External_Items"]) == 1

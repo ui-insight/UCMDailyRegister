@@ -23,7 +23,7 @@ matches `TRUSTED_ROLE_HEADER_SECRET`. Client-supplied `X-User-Role` is rejected.
 | POST   | `/api/v1/submissions`                         | Create a new submission              |
 | GET    | `/api/v1/submissions`                         | List submissions (with filters)      |
 | GET    | `/api/v1/submissions/{id}`                    | Get a single submission              |
-| PATCH  | `/api/v1/submissions/{id}`                    | Update a submission                  |
+| PATCH  | `/api/v1/submissions/{id}`                    | Update a submission (staff)          |
 | DELETE | `/api/v1/submissions/{id}`                    | Delete a submission                  |
 
 ### Submission Links
@@ -37,7 +37,7 @@ matches `TRUSTED_ROLE_HEADER_SECRET`. Client-supplied `X-User-Role` is rejected.
 
 | Method | Path                                                              | Description                          |
 |--------|-------------------------------------------------------------------|--------------------------------------|
-| POST   | `/api/v1/submissions/{id}/schedule`                               | Add a schedule request               |
+| POST   | `/api/v1/submissions/{id}/schedule`                               | Add a schedule request (staff)       |
 | DELETE | `/api/v1/submissions/{id}/schedule/{schedule_id}`                 | Remove a schedule request            |
 | POST   | `/api/v1/submissions/{id}/schedule/{schedule_id}/skip`            | Skip a recurring occurrence (staff)  |
 | POST   | `/api/v1/submissions/{id}/schedule/{schedule_id}/reschedule`      | Move a recurring occurrence (staff)  |
@@ -70,8 +70,8 @@ The edit response includes `AI_Provider` and `AI_Model` fields so the UI can dis
 | Method | Path                                                  | Description                            |
 |--------|-------------------------------------------------------|----------------------------------------|
 | POST   | `/api/v1/newsletters`                                 | Create a new newsletter issue          |
-| GET    | `/api/v1/newsletters`                                 | List newsletters (with filters)        |
-| GET    | `/api/v1/newsletters/{id}`                            | Get a newsletter with items            |
+| GET    | `/api/v1/newsletters`                                 | List newsletters with filters (staff)  |
+| GET    | `/api/v1/newsletters/{id}`                            | Get a newsletter with items (staff)    |
 | PATCH  | `/api/v1/newsletters/{id}/status?status=...`          | Update newsletter status               |
 | DELETE | `/api/v1/newsletters/{id}`                            | Delete a newsletter                    |
 

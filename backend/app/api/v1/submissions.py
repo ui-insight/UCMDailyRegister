@@ -244,7 +244,7 @@ async def update_submission(
     submission_id: str,
     data: SubmissionUpdate,
     db: AsyncSession = Depends(get_db),
-    submission_role: SubmitterRole = Depends(get_submitter_role),
+    submission_role: SubmitterRole = Depends(require_staff),
 ):
     if data.Category and not await allowed_value_service.is_submission_category_allowed(
         db, data.Category, submission_role
@@ -309,7 +309,7 @@ async def add_schedule_request(
     submission_id: str,
     data: ScheduleRequestCreate,
     db: AsyncSession = Depends(get_db),
-    submission_role: SubmitterRole = Depends(get_submitter_role),
+    submission_role: SubmitterRole = Depends(require_staff),
 ):
     submission = await submission_service.get_submission(db, submission_id)
     if not submission:
