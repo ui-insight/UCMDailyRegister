@@ -1,0 +1,232 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/ui-insight/UCMDailyRegister/main/docs/governance/enterprise-ai-framework/evidence.schema.json",
+  "title": "UCM Daily Register Enterprise AI Framework Evidence Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "project",
+    "framework",
+    "ingestion",
+    "status_values",
+    "requirements"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schema_version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "slug",
+        "name",
+        "repository",
+        "issue_tracker",
+        "evidence_label"
+      ],
+      "properties": {
+        "slug": { "type": "string" },
+        "name": { "type": "string" },
+        "repository": { "type": "string", "format": "uri" },
+        "issue_tracker": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "owner",
+            "repo",
+            "parent_issue",
+            "evidence_query_url"
+          ],
+          "properties": {
+            "type": { "const": "github" },
+            "owner": { "type": "string" },
+            "repo": { "type": "string" },
+            "parent_issue": { "$ref": "#/$defs/github_issue" },
+            "evidence_query_url": { "type": "string", "format": "uri" }
+          }
+        },
+        "evidence_label": { "type": "string" }
+      }
+    },
+    "framework": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "version",
+        "source_url",
+        "source_status",
+        "published_at"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "version": { "type": "string" },
+        "source_url": { "type": "string", "format": "uri" },
+        "source_status": {
+          "enum": ["discussion_draft", "published", "superseded"]
+        },
+        "published_at": { "type": "string", "format": "date" }
+      }
+    },
+    "ingestion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "canonical_manifest_path",
+        "raw_manifest_url",
+        "schema_path",
+        "primary_key",
+        "refresh_strategy",
+        "github_status_source"
+      ],
+      "properties": {
+        "canonical_manifest_path": { "type": "string" },
+        "raw_manifest_url": { "type": "string", "format": "uri" },
+        "schema_path": { "type": "string" },
+        "primary_key": { "type": "string" },
+        "refresh_strategy": { "type": "string" },
+        "github_status_source": { "type": "string" }
+      }
+    },
+    "status_values": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/status_definition" },
+      "minItems": 1
+    },
+    "requirements": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/requirement" },
+      "minItems": 1
+    }
+  },
+  "$defs": {
+    "github_issue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["number", "url", "state"],
+      "properties": {
+        "number": { "type": "integer", "minimum": 1 },
+        "url": { "type": "string", "format": "uri" },
+        "state": { "enum": ["open", "closed"] }
+      }
+    },
+    "status_definition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "meaning"],
+      "properties": {
+        "status": {
+          "enum": [
+            "not_started",
+            "aligned",
+            "partially_aligned",
+            "gap",
+            "not_applicable",
+            "needs_decision"
+          ]
+        },
+        "meaning": { "type": "string" }
+      }
+    },
+    "assertion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "summary", "validated_at", "validated_by"],
+      "properties": {
+        "status": {
+          "enum": [
+            "not_started",
+            "aligned",
+            "partially_aligned",
+            "gap",
+            "not_applicable",
+            "needs_decision"
+          ]
+        },
+        "summary": { "type": "string" },
+        "validated_at": {
+          "type": ["string", "null"],
+          "format": "date"
+        },
+        "validated_by": { "type": ["string", "null"] }
+      }
+    },
+    "evidence_source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "label"],
+      "properties": {
+        "type": {
+          "enum": [
+            "repo_file",
+            "repo_directory",
+            "github_issue",
+            "github_query",
+            "external_url",
+            "command",
+            "manual_artifact"
+          ]
+        },
+        "label": { "type": "string" },
+        "path": { "type": "string" },
+        "url": { "type": "string" },
+        "command": { "type": "string" },
+        "notes": { "type": "string" }
+      }
+    },
+    "requirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "title",
+        "category",
+        "aispeg_standard_ids",
+        "requirement_summary",
+        "current_assertion",
+        "github_issue",
+        "evidence_sources",
+        "required_evidence",
+        "blockers",
+        "tags"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "aispeg_standard_ids": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "requirement_summary": { "type": "string" },
+        "current_assertion": { "$ref": "#/$defs/assertion" },
+        "github_issue": { "$ref": "#/$defs/github_issue" },
+        "evidence_sources": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/evidence_source" }
+        },
+        "required_evidence": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "blockers": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}
