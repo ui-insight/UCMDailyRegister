@@ -46,6 +46,8 @@ nav:
   - UI Branding: branding.md
   - API Reference: api-reference.md
   - Deployment: deployment.md
+  - Decisions:
+      - ADR-001 Entra SSO: adr/001-entra-sso.md
   - GitHub Enterprise Migration: github-enterprise-migration.md
   - Data Governance: data-governance.md
   - Enterprise AI Framework:

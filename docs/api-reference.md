@@ -4,10 +4,33 @@ All endpoints are prefixed with `/api/v1`. Responses use JSON. Errors return sta
 
 ## Authorization
 
-Public requests have no role headers. Staff and SLC access must come from the
-trusted auth boundary: the reverse proxy injects `X-Trusted-User-Role` and
-`X-Trusted-Auth-Secret`, and the backend accepts the role only when the secret
-matches `TRUSTED_ROLE_HEADER_SECRET`. Client-supplied `X-User-Role` is rejected.
+Public requests carry no credentials. Staff, SLC, and Event Services access
+reaches the API one of two ways, selected by `AUTH_PROVIDER`:
+
+- **Session token** (`AUTH_PROVIDER=oidc`): after Microsoft Entra sign-in the
+  backend mints a signed session token; the client sends it as
+  `Authorization: Bearer <token>`. An invalid or expired token is a `401`.
+- **Trusted auth boundary** (`AUTH_PROVIDER=header`): the reverse proxy injects
+  `X-Trusted-User-Role` and `X-Trusted-Auth-Secret`, and the backend accepts
+  the role only when the secret matches `TRUSTED_ROLE_HEADER_SECRET`.
+
+A bearer token wins when both are present. Client-supplied `X-User-Role` is
+rejected.
+
+## Auth
+
+| Method | Path                      | Description |
+|--------|---------------------------|-------------|
+| GET    | `/api/v1/auth/config`     | `{ "sso_enabled": bool }`. Unauthenticated; the landing page reads it. |
+| GET    | `/api/v1/auth/me`         | The signed-in identity `{ subject, name, role }`. Requires a bearer token. |
+| GET    | `/api/v1/auth/sso/login`  | Redirects the browser to Microsoft Entra. `oidc` only. |
+| GET    | `/api/v1/auth/callback`   | Entra reply URL. Mints a session token and redirects to the SPA's `/sso/callback` with it in the URL fragment, or with `#error=<reason>`. `oidc` only. |
+| GET    | `/api/v1/auth/logout`     | Redirects through Entra's end-session endpoint so both sessions end. `oidc` only. |
+
+Callback `error` reasons: `not_authorized` (signed in, but in no mapped App
+Role), `unavailable` (directory lookup failed; retry), `misconfigured` (Graph
+refused; needs an administrator), `no_account` (no email claim),
+`sign_in_failed` (Entra rejected the exchange).
 
 ## Health
 
