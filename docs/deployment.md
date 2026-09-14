@@ -273,11 +273,27 @@ CORS_ORIGINS=https://ucmnews.insight.uidaho.edu
 # Frontend build context
 VITE_APP_ENV=production
 
-# Trusted auth boundary
+# Authentication: header (prototype proxy role) or oidc (Entra sign-in)
+AUTH_PROVIDER=header
+
+# Trusted auth boundary (AUTH_PROVIDER=header)
 TRUSTED_ROLE_HEADER_SECRET=
 # Prototype deployments can assert one role for all proxied API traffic.
 # Leave blank for public-only behavior; set to "staff" to expose editor tools.
 TRUSTED_ROLE_HEADER_ROLE=
+
+# Microsoft Entra SSO (AUTH_PROVIDER=oidc) — see "Single Sign-On" below
+SECRET_KEY=
+SESSION_COOKIE_SECRET=
+ENTRA_CLIENT_ID=
+ENTRA_CLIENT_SECRET=
+ENTRA_METADATA_URL=https://login.microsoftonline.com/<tenant-id>/v2.0/.well-known/openid-configuration
+ENTRA_REDIRECT_URI=https://ucmnews.insight.uidaho.edu/api/v1/auth/callback
+OIDC_POST_LOGIN_REDIRECT=https://ucmnews.insight.uidaho.edu/sso/callback
+OIDC_POST_LOGOUT_REDIRECT=https://ucmnews.insight.uidaho.edu/
+ENTRA_GROUP_STAFF=
+ENTRA_GROUP_SLC=
+ENTRA_GROUP_OPS=
 ```
 
 ### Prototype Staff Access
@@ -304,10 +320,66 @@ development, set `DEV_TRUSTED_ROLE` / `DEV_TRUSTED_SECRET` in
 `frontend/.env.local` and the matching `TRUSTED_ROLE_HEADER_SECRET` in
 `backend/.env`; the Vite proxy injects the headers.
 
-For a non-prototype production deployment, leave `TRUSTED_ROLE_HEADER_ROLE`
-blank in the app container and have the campus auth gateway or reverse proxy
-decide the real user role, strip any client-supplied trusted headers, and then
-inject the trusted headers server-side.
+This mode is the prototype boundary: everyone who can reach the URL gets the
+asserted role. Production should run on Single Sign-On instead.
+
+### Single Sign-On (Microsoft Entra ID)
+
+With `AUTH_PROVIDER=oidc`, users sign in with their University account. The
+backend runs the OIDC authorization-code flow as a **Web (confidential)**
+client, reads the user's Entra App Roles, and mints this application's own
+session token, which the browser presents as a bearer token on every request.
+Anonymous submitters are unaffected: `/submit` and the public API stay open.
+
+The design mirrors the campus-services-maintenance application (its ADR-004),
+which OIT has already reviewed. See `docs/adr/001-entra-sso.md`.
+
+**What to request from OIT** (one registration, or one per environment):
+
+| Item | Value |
+|---|---|
+| Registration type | Web (confidential) client |
+| Reply URLs | `https://ucmnews-dev.insight.uidaho.edu/api/v1/auth/callback` and `https://ucmnews.insight.uidaho.edu/api/v1/auth/callback` |
+| Front-channel logout / post-logout URL | `https://ucmnews.insight.uidaho.edu/` (and the dev host) |
+| App Roles | three roles whose *names* you then put in `ENTRA_GROUP_STAFF` / `_SLC` / `_OPS` |
+| Scopes | `openid email profile` (the default; no admin consent) |
+
+If OIT provisions Entra **security groups** instead of App Roles, set
+`OIDC_GROUP_SOURCE=graph` and put the group display names in the same
+`ENTRA_GROUP_*` variables. That path calls Microsoft Graph during sign-in and
+needs the delegated `GroupMember.Read.All` scope, which is an admin-consent
+request.
+
+**Enabling it on a deployed environment:**
+
+1. Generate two distinct secrets:
+   `python -c "import secrets; print(secrets.token_urlsafe(32))"` for
+   `SECRET_KEY` and again for `SESSION_COOKIE_SECRET`.
+2. Fill the `ENTRA_*` / `OIDC_*` values in the environment file. The redirect
+   URLs must be the public `https://` hostname; the backend refuses to boot
+   in production otherwise.
+3. Set `AUTH_PROVIDER=oidc` and blank `TRUSTED_ROLE_HEADER_ROLE`.
+4. `./deploy.sh <dev|prod>`. The script adds two smoke checks under `oidc`:
+   `/api/v1/auth/config` reports `sso_enabled: true`, and
+   `/api/v1/auth/sso/login` redirects to `login.microsoftonline.com`.
+5. Sign in as one person per role and confirm each lands on the right view.
+
+Rollback is `AUTH_PROVIDER=header` and a redeploy; there is no database
+migration to reverse.
+
+**Operational notes:**
+
+- The client secret OIT issues expires **24 months** after issue. Sign-in stops
+  the day it lapses. Record the rotation date here when the secret is
+  delivered: _not yet issued_.
+- A role revoked in Entra takes effect at the user's next sign-in; an
+  outstanding session token stays valid until it expires
+  (`ACCESS_TOKEN_EXPIRE_MINUTES`, default 8 hours).
+- Signing out goes through Entra's `end_session_endpoint` so the next person at
+  a shared computer is not silently signed in as the last one.
+- Under `oidc`, the nginx container still forwards `X-Trusted-*` headers with
+  whatever `TRUSTED_ROLE_HEADER_ROLE` is set to. Leave it blank; a bearer
+  token always wins over the header anyway.
 
 ### Nginx Proxy Timeouts
 

@@ -43,9 +43,12 @@ The following are **out of scope**:
 
 ### Authentication
 
-The application uses a header-based role system (`X-User-Role`) that relies on the reverse proxy and network controls to set the header correctly. There is no application-level token verification.
+The application supports two authentication modes, selected by `AUTH_PROVIDER`:
 
-**Known limitation:** This model is appropriate for an internal tool behind university network controls but would not be suitable for a publicly exposed application without additional authentication hardening (JWT, OAuth, or SAML integration).
+- **`oidc`** (intended for production): users sign in through Microsoft Entra ID using the Web (confidential) OIDC flow. The backend exchanges the authorization code server-side, maps the user's Entra App Roles to an application role, and mints its own signed (HS256) session token that the browser presents as a bearer token. The Entra token never reaches the browser. See `docs/adr/001-entra-sso.md`.
+- **`header`** (the prototype boundary): the reverse proxy injects `X-Trusted-User-Role` together with a shared secret in `X-Trusted-Auth-Secret`; the backend accepts the role only when the secret matches. Client-supplied `X-User-Role` is rejected.
+
+**Known limitation:** under `header` mode everyone who can reach the deployment receives the role the proxy asserts. That is appropriate only for prototype testing behind university network controls; production deployments should run `oidc`.
 
 ### Data Protection
 

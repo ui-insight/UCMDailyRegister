@@ -22,6 +22,20 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# authlib keeps the OIDC `state` between the login redirect and the callback
+# in Starlette's signed session cookie, so SSO cannot work without this.
+# Added only when SSO is the configured login, so the trusted-header
+# deployment carries no session cookie at all.
+if settings.auth_provider == "oidc":
+    from starlette.middleware.sessions import SessionMiddleware
+
+    app.add_middleware(
+        SessionMiddleware,
+        secret_key=settings.session_cookie_secret_key,
+        https_only=settings.is_production,
+        same_site="lax",
+    )
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,

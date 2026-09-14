@@ -109,6 +109,33 @@ smoke_check_trusted_role() {
   echo "Skipping ${label}: TRUSTED_ROLE_HEADER_ROLE/SECRET not configured"
 }
 
+smoke_check_sso() {
+  local provider
+  provider="$(env_file_value AUTH_PROVIDER)"
+
+  if [[ "$provider" != "oidc" ]]; then
+    echo "Skipping SSO checks: AUTH_PROVIDER is '${provider:-header}'"
+    return
+  fi
+
+  echo "Checking SSO config: ${BASE_URL}/api/v1/auth/config"
+  retry 12 2 sh -c "curl -fsS '${BASE_URL}/api/v1/auth/config' | grep -q '\"sso_enabled\":true'"
+
+  # The login route must answer with a redirect to Microsoft. A 500 here
+  # usually means the discovery document could not be fetched from the
+  # container, and every user would see it before anything is logged.
+  echo "Checking SSO login redirect: ${BASE_URL}/api/v1/auth/sso/login"
+  local location
+  location="$(curl -sS -o /dev/null -w '%{redirect_url}' "${BASE_URL}/api/v1/auth/sso/login")"
+  case "$location" in
+    https://login.microsoftonline.com/*) ;;
+    *)
+      echo "SSO login did not redirect to Microsoft (got: '${location}')" >&2
+      return 1
+      ;;
+  esac
+}
+
 echo "Deploying ${ENVIRONMENT} with project ${PROJECT_NAME}"
 "${COMPOSE[@]}" up -d --build
 
@@ -124,6 +151,7 @@ smoke_check "SPA route" "${BASE_URL}/dashboard"
 smoke_check "health API" "${BASE_URL}/api/v1/health"
 smoke_check "settings API" "${BASE_URL}/api/v1/settings/ai"
 smoke_check_trusted_role "submissions API" "${BASE_URL}/api/v1/submissions/?limit=1"
+smoke_check_sso
 
 echo "Deployment checks passed for ${ENVIRONMENT}"
 echo "Public URL: ${PUBLIC_URL}"

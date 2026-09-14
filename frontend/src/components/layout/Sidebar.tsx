@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { SSO_LOGOUT_URL } from '../../api/auth';
+import { clearToken } from '../../auth/tokenStore';
+import { useIdentity } from '../../auth/useAuth';
 import { getBrowserFeedbackContext } from '../../utils/feedback';
 import { getSubmitterRole } from '../../utils/submitterRole';
 import FeedbackDialog from './FeedbackDialog';
@@ -37,6 +40,7 @@ const ROLE_LABEL: Record<'public' | 'staff' | 'slc' | 'ops', string> = {
 
 export default function Sidebar() {
   const location = useLocation();
+  const identity = useIdentity();
   const role = getSubmitterRole();
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const { toast, showToast, dismissToast } = useToast();
@@ -64,12 +68,30 @@ export default function Sidebar() {
           <p className="mt-1 text-sm font-medium text-white">
             {ROLE_LABEL[role]}
           </p>
-          <NavLink
-            to="/"
-            className="mt-2 inline-flex text-xs font-medium text-ui-gold-300 hover:text-ui-gold-200"
-          >
-            Switch mode
-          </NavLink>
+          {identity ? (
+            <>
+              <p className="mt-1 truncate text-xs text-gray-400" title={identity.subject}>
+                {identity.name}
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  clearToken();
+                  window.location.assign(SSO_LOGOUT_URL);
+                }}
+                className="mt-2 inline-flex text-xs font-medium text-ui-gold-300 hover:text-ui-gold-200"
+              >
+                Sign out
+              </button>
+            </>
+          ) : (
+            <NavLink
+              to="/"
+              className="mt-2 inline-flex text-xs font-medium text-ui-gold-300 hover:text-ui-gold-200"
+            >
+              Switch mode
+            </NavLink>
+          )}
           <button
             type="button"
             onClick={() => setFeedbackOpen(true)}

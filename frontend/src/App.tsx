@@ -15,28 +15,33 @@ import SLCDigestPage from './pages/SLCDigestPage';
 import OpsTriagePage from './pages/OpsTriagePage';
 import DataGovernancePage from './pages/DataGovernancePage';
 import FeedbackPage from './pages/FeedbackPage';
+import SsoCallbackPage, { SSO_CALLBACK_PATH } from './pages/SsoCallbackPage';
+import RequireRole from './auth/RequireRole';
 
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route element={<AppShell />}>
-          <Route path="/home" element={<Navigate to="/dashboard" replace />} />
-          <Route path="/submit" element={<SubmitPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/edit/:id" element={<EditPage />} />
-          <Route path="/builder" element={<BuilderPage />} />
-          <Route path="/recurring-messages" element={<RecurringMessagesPage />} />
-          <Route path="/slc-calendar" element={<SLCCalendarPage />} />
-          <Route path="/slc-triage" element={<SLCTriagePage />} />
-          <Route path="/slc-digest" element={<SLCDigestPage />} />
-          <Route path="/submit-slc-event" element={<SLCEventSubmitPage />} />
-          <Route path="/ops-triage" element={<OpsTriagePage />} />
-          <Route path="/style-rules" element={<StyleRulesPage />} />
-          <Route path="/feedback" element={<FeedbackPage />} />
-          <Route path="/data-governance" element={<DataGovernancePage />} />
-          <Route path="/settings" element={<SettingsPage />} />
+        <Route path={SSO_CALLBACK_PATH} element={<SsoCallbackPage />} />
+        <Route element={<RequireRole />}>
+          <Route element={<AppShell />}>
+            <Route path="/home" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/submit" element={<SubmitPage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/edit/:id" element={<EditPage />} />
+            <Route path="/builder" element={<BuilderPage />} />
+            <Route path="/recurring-messages" element={<RecurringMessagesPage />} />
+            <Route path="/slc-calendar" element={<SLCCalendarPage />} />
+            <Route path="/slc-triage" element={<SLCTriagePage />} />
+            <Route path="/slc-digest" element={<SLCDigestPage />} />
+            <Route path="/submit-slc-event" element={<SLCEventSubmitPage />} />
+            <Route path="/ops-triage" element={<OpsTriagePage />} />
+            <Route path="/style-rules" element={<StyleRulesPage />} />
+            <Route path="/feedback" element={<FeedbackPage />} />
+            <Route path="/data-governance" element={<DataGovernancePage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+          </Route>
         </Route>
       </Routes>
     </BrowserRouter>

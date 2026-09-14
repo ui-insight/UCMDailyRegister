@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from app.api.v1.auth import router as auth_router
 from app.api.v1.health import router as health_router
 from app.api.v1.submissions import router as submissions_router
 from app.api.v1.style_rules import router as style_rules_router
@@ -13,10 +14,18 @@ from app.api.v1.settings import router as settings_router
 from app.api.v1.feedback import router as feedback_router
 from app.api.v1.slc_events import router as slc_events_router
 from app.api.v1.ops_events import router as ops_events_router
+from app.config import settings
 
 router = APIRouter(prefix="/api/v1")
 
 router.include_router(health_router)
+router.include_router(auth_router)
+if settings.auth_provider == "oidc":
+    # Imported lazily so a trusted-header deployment never imports authlib.
+    # app.main adds the SessionMiddleware this needs under the same condition.
+    from app.api.v1.sso import router as sso_router
+
+    router.include_router(sso_router)
 router.include_router(submissions_router)
 router.include_router(style_rules_router)
 router.include_router(ai_edits_router)

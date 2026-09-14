@@ -1,9 +1,17 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { SSO_LOGIN_URL, SSO_LOGOUT_URL } from '../api/auth';
+import { clearToken } from '../auth/tokenStore';
+import { useIdentity, useSsoEnabled } from '../auth/useAuth';
 import FeedbackDialog from '../components/layout/FeedbackDialog';
 import { Toast, useToast } from '../components/common';
 import { getBrowserFeedbackContext } from '../utils/feedback';
-import { getSubmitterRole, setSubmitterRole, type SubmitterRole } from '../utils/submitterRole';
+import {
+  getSubmitterRole,
+  roleMayOpen,
+  setSubmitterRole,
+  type SubmitterRole,
+} from '../utils/submitterRole';
 
 type RoleOption = {
   role: SubmitterRole;
@@ -47,12 +55,32 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const { toast, showToast, dismissToast } = useToast();
+  const ssoEnabled = useSsoEnabled();
+  const identity = useIdentity();
   const role = getSubmitterRole();
   const feedbackContext = getBrowserFeedbackContext(role, '/');
 
   const handleSelect = (role: SubmitterRole, target: string) => {
-    setSubmitterRole(role);
-    navigate(target);
+    // Submitter view is open to everyone under every deployment.
+    if (role === 'public' || ssoEnabled !== true) {
+      setSubmitterRole(role);
+      navigate(target);
+      return;
+    }
+    // SSO deployment: a signed-in user with a permitted role goes straight
+    // in; anyone else is handed to Microsoft. The backend decides the role
+    // on the way back, so the card clicked is only a hint about where to land.
+    if (identity && roleMayOpen(identity.role, target)) {
+      setSubmitterRole(identity.role);
+      navigate(target);
+      return;
+    }
+    window.location.assign(SSO_LOGIN_URL);
+  };
+
+  const handleSignOut = () => {
+    clearToken();
+    window.location.assign(SSO_LOGOUT_URL);
   };
 
   return (
@@ -82,6 +110,25 @@ export default function LandingPage() {
         <p className="mt-3 text-sm text-ui-silver">
           Pick the workspace that matches what you're doing today.
         </p>
+        {ssoEnabled === true && (
+          <p className="mt-3 text-sm text-ui-silver" data-testid="sign-in-status">
+            {identity ? (
+              <>
+                Signed in as <span className="font-medium text-ui-black">{identity.name}</span>
+                {' · '}
+                <button
+                  type="button"
+                  onClick={handleSignOut}
+                  className="font-medium text-ui-clearwater-700 underline-offset-2 hover:underline"
+                >
+                  Sign out
+                </button>
+              </>
+            ) : (
+              'Staff, SLC, and Event Services views require your University sign-in.'
+            )}
+          </p>
+        )}
 
         <ul className="mt-10 divide-y divide-gray-200 border-y border-gray-200">
           {ROLES.map((r) => (

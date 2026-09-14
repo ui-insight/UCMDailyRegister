@@ -1,6 +1,14 @@
+import { clearToken, getToken } from '../auth/tokenStore';
 import { getSubmitterRoleHeaders } from '../utils/submitterRole';
 
 const BASE_URL = '/api/v1';
+
+/** Bearer header for the SSO session token, when one is held. Under the
+ * trusted-header deployment there is no token and this is empty. */
+function getAuthHeaders(): HeadersInit {
+  const token = getToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
 
 export function formatApiError(detail: unknown): string {
   if (typeof detail === 'string') {
@@ -49,6 +57,7 @@ export async function apiFetch<T>(
       headers: {
         'Content-Type': 'application/json',
         ...getSubmitterRoleHeaders(),
+        ...getAuthHeaders(),
         ...options?.headers,
       },
       ...options,
@@ -62,6 +71,12 @@ export async function apiFetch<T>(
     );
   }
   if (!res.ok) {
+    if (res.status === 401 && getToken()) {
+      // The backend refused our session token (expired, or SECRET_KEY was
+      // rotated). Drop it so the app falls back to signed-out and the
+      // landing page offers sign-in again, rather than 401-ing forever.
+      clearToken();
+    }
     const error = await res.json().catch(() => ({ detail: res.statusText }));
     throw new Error(formatApiError(error.detail ?? error));
   }
