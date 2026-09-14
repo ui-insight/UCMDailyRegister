@@ -148,7 +148,16 @@ async def sso_callback(request: Request) -> RedirectResponse:
     try:
         token = await oauth.entra.authorize_access_token(request)
     except OAuthError:
+        # Mismatched state, a replayed or expired code, a refused client.
         logger.warning("Entra rejected the sign-in exchange", exc_info=True)
+        return _error_redirect(ERROR_SIGN_IN_FAILED)
+    except Exception:
+        # authlib raises its own JOSE errors (bad ID-token signature, a
+        # stale JWKS after key rotation) and httpx errors (discovery or token
+        # endpoint unreachable) outside the OAuthError hierarchy. Every one of
+        # these lands on a person mid-sign-in, and a raw 500 gives them
+        # FastAPI's plain-text body with no way back.
+        logger.exception("Sign-in exchange with Entra failed")
         return _error_redirect(ERROR_SIGN_IN_FAILED)
 
     userinfo = token.get("userinfo") or {}

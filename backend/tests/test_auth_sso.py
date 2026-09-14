@@ -279,6 +279,11 @@ class TestSsoCallback:
         location = await self._callback(sso_app, OAuthError("bad"))
         assert _fragment(location) == {"error": "sign_in_failed"}
 
+    async def test_non_oauth_exchange_failure_is_sign_in_failed(self, sso_app):
+        """A bad ID-token signature or unreachable IdP must not be a 500."""
+        location = await self._callback(sso_app, RuntimeError("bad_signature"))
+        assert _fragment(location) == {"error": "sign_in_failed"}
+
     async def test_graph_outage_is_unavailable(self, sso_app, monkeypatch):
         app, sso = sso_app
         monkeypatch.setattr(sso.settings, "oidc_group_source", "graph")
