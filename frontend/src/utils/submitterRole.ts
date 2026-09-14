@@ -1,3 +1,5 @@
+import { getIdentity } from '../auth/tokenStore';
+
 export type SubmitterRole = 'public' | 'staff' | 'slc' | 'ops';
 
 const STORAGE_KEY = 'ucm_submitter_role';
@@ -48,9 +50,55 @@ function inferRoleFromPath(
   return preferredRole;
 }
 
+/** Route prefixes each role may open. `staff` passes every gate, matching
+ * `require_staff_or_*` on the backend. */
+export function roleMayOpen(role: SubmitterRole, pathname: string): boolean {
+  const normalizedPath = pathname.toLowerCase();
+  if (role === 'staff') return true;
+  if (STAFF_ONLY_ROUTE_PREFIXES.some((prefix) => matchesRoutePrefix(normalizedPath, prefix))) {
+    return false;
+  }
+  if (SLC_ROUTE_PREFIXES.some((prefix) => matchesRoutePrefix(normalizedPath, prefix))) {
+    return role === 'slc';
+  }
+  if (OPS_ROUTE_PREFIXES.some((prefix) => matchesRoutePrefix(normalizedPath, prefix))) {
+    return role === 'ops';
+  }
+  return true;
+}
+
+/** Whether a path needs a signed-in role at all (vs. open to submitters). */
+export function pathRequiresRole(pathname: string): boolean {
+  const normalizedPath = pathname.toLowerCase();
+  return [...STAFF_ONLY_ROUTE_PREFIXES, ...SLC_ROUTE_PREFIXES, ...OPS_ROUTE_PREFIXES]
+    .some((prefix) => matchesRoutePrefix(normalizedPath, prefix));
+}
+
+/** Where a signed-in role lands after sign-in. */
+export function homeForRole(role: SubmitterRole): string {
+  switch (role) {
+    case 'staff':
+      return '/dashboard';
+    case 'slc':
+      return '/slc-calendar';
+    case 'ops':
+      return '/ops-triage';
+    default:
+      return '/submit';
+  }
+}
+
 export function getSubmitterRole(): SubmitterRole {
   if (typeof window === 'undefined') {
     return 'public';
+  }
+
+  // A signed-in identity is authoritative: the backend verified it. The
+  // URL/localStorage heuristic below only exists for the trusted-header
+  // deployment, where the browser never learns its role any other way.
+  const identity = getIdentity();
+  if (identity) {
+    return identity.role;
   }
 
   const queryRole = parseRole(new URLSearchParams(window.location.search).get('role'));
