@@ -1,6 +1,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useIdentity, useSsoEnabled } from './useAuth';
 import { pathRequiresRole, roleMayOpen } from '../utils/submitterRole';
+import { loginUrlFor } from './loginUrl';
 
 /**
  * Route guard for the role-gated pages. Only active when the deployment
@@ -23,7 +24,7 @@ export default function RequireRole() {
   }
 
   if (!identity || !roleMayOpen(identity.role, location.pathname)) {
-    return <Navigate to="/" replace state={{ from: location.pathname }} />;
+    return <Navigate to={loginUrlFor(location.pathname)} replace />;
   }
 
   return <Outlet />;

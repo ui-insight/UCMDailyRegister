@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SSO_LOGIN_URL, SSO_LOGOUT_URL } from '../api/auth';
+import { SSO_LOGOUT_URL } from '../api/auth';
 import { clearToken } from '../auth/tokenStore';
 import { useIdentity, useSsoEnabled } from '../auth/useAuth';
 import FeedbackDialog from '../components/layout/FeedbackDialog';
+import { loginUrlFor } from '../auth/loginUrl';
 import { Toast, useToast } from '../components/common';
 import { getBrowserFeedbackContext } from '../utils/feedback';
 import {
@@ -68,14 +69,14 @@ export default function LandingPage() {
       return;
     }
     // SSO deployment: a signed-in user with a permitted role goes straight
-    // in; anyone else is handed to Microsoft. The backend decides the role
+    // in; anyone else goes to the sign-in page. The backend decides the role
     // on the way back, so the card clicked is only a hint about where to land.
     if (identity && roleMayOpen(identity.role, target)) {
       setSubmitterRole(identity.role);
       navigate(target);
       return;
     }
-    window.location.assign(SSO_LOGIN_URL);
+    navigate(loginUrlFor(target));
   };
 
   const handleSignOut = () => {

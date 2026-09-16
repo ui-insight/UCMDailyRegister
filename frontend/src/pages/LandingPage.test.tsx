@@ -1,12 +1,17 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getAuthConfig } from '../api/auth';
 import { clearToken, setToken } from '../auth/tokenStore';
 import { resetSsoEnabledCache } from '../auth/useAuth';
 import RequireRole from '../auth/RequireRole';
 import LandingPage from './LandingPage';
+
+function ShowLocation({ label }: { label: string }) {
+  const location = useLocation();
+  return <p>{label}: {location.pathname}{location.search}</p>;
+}
 
 vi.mock('../api/auth', async () => {
   const actual = await vi.importActual<typeof import('../api/auth')>('../api/auth');
@@ -30,6 +35,7 @@ function renderApp(initialPath = '/') {
     <MemoryRouter initialEntries={[initialPath]}>
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<ShowLocation label="login" />} />
         <Route element={<RequireRole />}>
           <Route path="/submit" element={<p>submit page</p>} />
           <Route path="/dashboard" element={<p>dashboard page</p>} />
@@ -83,11 +89,12 @@ describe('LandingPage', () => {
       getAuthConfigMock.mockResolvedValue({ sso_enabled: true });
     });
 
-    it('sends an anonymous visitor to Entra when choosing Staff view', async () => {
+    it('sends an anonymous visitor to the login page, remembering the view', async () => {
       renderApp();
       await screen.findByTestId('sign-in-status');
       await userEvent.click(screen.getByRole('button', { name: /Staff view/ }));
-      expect(assignSpy).toHaveBeenCalledWith('/api/v1/auth/sso/login');
+      expect(screen.getByText(/^login:/)).toHaveTextContent('/login?next=%2Fdashboard');
+      expect(assignSpy).not.toHaveBeenCalled();
     });
 
     it('still lets an anonymous visitor into Submitter view', async () => {
@@ -107,12 +114,12 @@ describe('LandingPage', () => {
       expect(screen.getByText('slc page')).toBeInTheDocument();
     });
 
-    it('re-prompts sign-in when a signed-in user picks a view they may not open', async () => {
+    it('sends a signed-in user to the login page for a view they may not open', async () => {
       setToken(fakeJwt({ sub: 's@uidaho.edu', name: 'Sam', role: 'slc', exp: future }));
       renderApp();
       await screen.findByText('Sam');
       await userEvent.click(screen.getByRole('button', { name: /Staff view/ }));
-      expect(assignSpy).toHaveBeenCalledWith('/api/v1/auth/sso/login');
+      expect(screen.getByText(/^login:/)).toHaveTextContent('/login?next=%2Fdashboard');
     });
 
     it('signs out through the backend so the Entra session ends too', async () => {
@@ -126,14 +133,15 @@ describe('LandingPage', () => {
     it('guards a deep link to a staff page for an anonymous visitor', async () => {
       renderApp('/dashboard');
       // Before the config answers, RequireRole renders the page; once SSO is
-      // known to be on and there is no identity, it redirects to the landing page.
-      await waitFor(() => expect(screen.getByText('Choose your view')).toBeInTheDocument());
+      // known to be on and there is no identity, it redirects to sign-in.
+      await waitFor(() => expect(screen.getByText(/^login:/)).toBeInTheDocument());
+      expect(screen.getByText(/^login:/)).toHaveTextContent('/login?next=%2Fdashboard');
     });
 
     it('guards a deep link to a staff page for an SLC member', async () => {
       setToken(fakeJwt({ sub: 's@uidaho.edu', name: 'Sam', role: 'slc', exp: future }));
       renderApp('/dashboard');
-      await waitFor(() => expect(screen.getByText('Choose your view')).toBeInTheDocument());
+      await waitFor(() => expect(screen.getByText(/^login:/)).toBeInTheDocument());
     });
 
     it('lets a staff member through a deep link', async () => {

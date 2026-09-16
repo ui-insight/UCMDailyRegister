@@ -16,6 +16,8 @@ import OpsTriagePage from './pages/OpsTriagePage';
 import DataGovernancePage from './pages/DataGovernancePage';
 import FeedbackPage from './pages/FeedbackPage';
 import SsoCallbackPage, { SSO_CALLBACK_PATH } from './pages/SsoCallbackPage';
+import LoginPage from './pages/LoginPage';
+import { LOGIN_PATH } from './auth/loginUrl';
 import RequireRole from './auth/RequireRole';
 
 export default function App() {
@@ -23,6 +25,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path={LOGIN_PATH} element={<LoginPage />} />
         <Route path={SSO_CALLBACK_PATH} element={<SsoCallbackPage />} />
         <Route element={<RequireRole />}>
           <Route element={<AppShell />}>

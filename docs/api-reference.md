@@ -23,8 +23,8 @@ rejected.
 |--------|---------------------------|-------------|
 | GET    | `/api/v1/auth/config`     | `{ "sso_enabled": bool }`. Unauthenticated; the landing page reads it. |
 | GET    | `/api/v1/auth/me`         | The signed-in identity `{ subject, name, role }`. Requires a bearer token. |
-| GET    | `/api/v1/auth/sso/login`  | Redirects the browser to Microsoft Entra. `oidc` only. |
-| GET    | `/api/v1/auth/callback`   | Entra reply URL. Mints a session token and redirects to the SPA's `/sso/callback` with it in the URL fragment, or with `#error=<reason>`. `oidc` only. |
+| GET    | `/api/v1/auth/sso/login`  | Redirects the browser to Microsoft Entra. Optional `login_hint=<email>` pre-fills Microsoft's form (otherwise the account picker is forced); optional `next=<in-app path>` is remembered and returned in the callback fragment. `oidc` only. |
+| GET    | `/api/v1/auth/callback`   | Entra reply URL. Mints a session token and redirects to the SPA's `/sso/callback` with it in the URL fragment (plus `next` if one was given), or with `#error=<reason>`. `oidc` only. |
 | GET    | `/api/v1/auth/logout`     | Redirects through Entra's end-session endpoint so both sessions end. `oidc` only. |
 
 Callback `error` reasons: `not_authorized` (signed in, but in no mapped App

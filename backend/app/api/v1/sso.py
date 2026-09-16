@@ -21,7 +21,7 @@ from urllib.parse import urlencode
 
 from authlib.integrations.base_client import OAuthError
 from authlib.integrations.starlette_client import OAuth
-from fastapi import APIRouter, Request, status
+from fastapi import APIRouter, Query, Request, status
 from starlette.responses import RedirectResponse
 
 from app.auth.entra_roles import map_groups_to_role
@@ -51,6 +51,19 @@ oauth.register(
 # This tenant appends the address to display names - "Greg Fizzell
 # (gfizzell@uidaho.edu)" - which would otherwise be shown on every screen.
 _TRAILING_EMAIL = re.compile(r"\s*\([^)]*@[^)]*\)\s*$")
+
+# The login page offers an optional email field whose only job is to
+# pre-fill Microsoft's sign-in form. Anything that is not shaped like an
+# address is dropped rather than forwarded, so the field cannot be used to
+# smuggle arbitrary text into the Entra redirect.
+_LOGIN_HINT = re.compile(r"^[^\s@/\\]{1,64}@[^\s@/\\]{1,255}$")
+LOGIN_HINT_MAX_LENGTH = 320
+
+# Where the SPA should land after sign-in. Kept in the session alongside
+# authlib's OIDC state, and only ever an in-app path: an absolute URL here
+# would turn the callback into an open redirect.
+_NEXT_SESSION_KEY = "sso_next"
+_SAFE_NEXT = re.compile(r"^/(?![/\\])[^\s]*$")
 
 
 def _sanitize_display_name(raw: object) -> str:
@@ -103,17 +116,45 @@ async def _resolve_group_names(userinfo: dict, token: dict) -> list[object]:
     return list(await fetch_group_names(access_token))
 
 
+def _sanitize_login_hint(raw: str | None) -> str | None:
+    if not raw:
+        return None
+    hint = raw.strip()
+    if len(hint) > LOGIN_HINT_MAX_LENGTH or not _LOGIN_HINT.match(hint):
+        return None
+    return hint
+
+
+def _sanitize_next(raw: str | None) -> str | None:
+    if not raw:
+        return None
+    candidate = raw.strip()
+    return candidate if _SAFE_NEXT.match(candidate) else None
+
+
 @router.get("/sso/login", name="sso_login")
-async def sso_login(request: Request) -> RedirectResponse:
+async def sso_login(
+    request: Request,
+    login_hint: str | None = Query(None, max_length=LOGIN_HINT_MAX_LENGTH),
+    next: str | None = Query(None, max_length=2048),
+) -> RedirectResponse:
     """Begin sign-in by redirecting the browser to Microsoft Entra.
 
-    `prompt=select_account` forces the account picker every time. Without it,
-    Entra silently reuses its own still-valid session cookie, so the next
-    person at a shared office computer is signed in as the last one.
+    `login_hint`, when the login page collected one, pre-fills Microsoft's
+    form with that address so the user skips the account picker. Without it,
+    `prompt=select_account` forces the picker every time: otherwise Entra
+    silently reuses its own still-valid session cookie, and the next person
+    at a shared office computer is signed in as the last one. With a hint,
+    Entra prompts whenever the hinted account is not the one signed in, which
+    covers the same case.
+
+    `next` is the in-app path to land on afterwards; it rides the session so
+    the callback can honour it without trusting anything from the URL.
     """
-    return await oauth.entra.authorize_redirect(
-        request, settings.entra_redirect_uri, prompt="select_account"
-    )
+    hint = _sanitize_login_hint(login_hint)
+    request.session[_NEXT_SESSION_KEY] = _sanitize_next(next)
+    params: dict[str, str] = {"login_hint": hint} if hint else {"prompt": "select_account"}
+    return await oauth.entra.authorize_redirect(request, settings.entra_redirect_uri, **params)
 
 
 @router.get("/logout", name="sso_logout")
@@ -199,7 +240,11 @@ async def sso_callback(request: Request) -> RedirectResponse:
     # The fragment is never sent to a server, so the token stays out of
     # access logs, browser history, and the Referer header. The frontend
     # callback page reads it client-side and clears the address bar.
-    fragment = urlencode({"access_token": session_token})
+    fragment_params = {"access_token": session_token}
+    next_path = _sanitize_next(request.session.pop(_NEXT_SESSION_KEY, None))
+    if next_path:
+        fragment_params["next"] = next_path
+    fragment = urlencode(fragment_params)
     return RedirectResponse(
         f"{settings.oidc_post_login_redirect}#{fragment}",
         status_code=status.HTTP_302_FOUND,
