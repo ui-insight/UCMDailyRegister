@@ -64,7 +64,7 @@ describe('LoginPage', () => {
 
   it('forwards the email as a login hint and the destination as next', async () => {
     renderLogin('/login?next=%2Fslc-calendar');
-    await userEvent.type(await screen.findByLabelText('University email'), 'jdoe@uidaho.edu');
+    await userEvent.type(await screen.findByLabelText(/University email/), 'jdoe@uidaho.edu');
     await userEvent.click(screen.getByRole('button', { name: /Continue with Microsoft/ }));
     expect(assignSpy).toHaveBeenCalledWith(
       '/api/v1/auth/sso/login?login_hint=jdoe%40uidaho.edu&next=%2Fslc-calendar',
@@ -73,7 +73,7 @@ describe('LoginPage', () => {
 
   it('refuses to forward something that is not an email', async () => {
     renderLogin();
-    await userEvent.type(await screen.findByLabelText('University email'), 'jdoe');
+    await userEvent.type(await screen.findByLabelText(/University email/), 'jdoe');
     await userEvent.click(screen.getByRole('button', { name: /Continue with Microsoft/ }));
     expect(assignSpy).not.toHaveBeenCalled();
     expect(screen.getByRole('status')).toHaveTextContent(/does not look like an email/);
@@ -81,7 +81,7 @@ describe('LoginPage', () => {
 
   it('nudges on a non-University domain but continues on the second try', async () => {
     renderLogin();
-    await userEvent.type(await screen.findByLabelText('University email'), 'me@gmail.com');
+    await userEvent.type(await screen.findByLabelText(/University email/), 'me@gmail.com');
     const button = screen.getByRole('button', { name: /Continue with Microsoft/ });
     await userEvent.click(button);
     expect(assignSpy).not.toHaveBeenCalled();
@@ -106,7 +106,7 @@ describe('LoginPage', () => {
     setToken(fakeJwt({ sub: 's@uidaho.edu', name: 'Sam', role: 'staff', exp: future }));
     renderLogin('/login?next=%2Fslc-calendar');
     expect(await screen.findByText('Sam')).toBeInTheDocument();
-    expect(screen.queryByLabelText('University email')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/University email/)).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Continue' }));
     expect(screen.getByText('slc page')).toBeInTheDocument();
