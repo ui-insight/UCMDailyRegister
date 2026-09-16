@@ -9,6 +9,8 @@ import pytest
 from authlib.integrations.base_client import OAuthError
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
+from starlette.responses import RedirectResponse
+from starlette.middleware.sessions import SessionMiddleware
 
 from app.api import deps as auth_deps
 from app.auth import entra_roles, session_tokens
@@ -216,6 +218,9 @@ def sso_app(monkeypatch: pytest.MonkeyPatch):
 
     app = FastAPI()
     app.include_router(sso.router, prefix="/api/v1")
+    # app.main adds this under oidc; the login route stores `next` in the
+    # session and the callback reads it back.
+    app.add_middleware(SessionMiddleware, secret_key="test-session-secret")
     return app, sso
 
 
@@ -314,6 +319,73 @@ class TestSsoCallback:
             sso_app, {"userinfo": {"email": "x@uidaho.edu"}, "access_token": "at"}
         )
         assert decode_session_token(_fragment(location)["access_token"]).role == "ops"
+
+
+@pytest.mark.asyncio
+class TestSsoLogin:
+    """The login route forwards a sanitized email hint and remembers `next`."""
+
+    async def _login(self, sso_app, query: str = "") -> tuple[dict, AsyncClient]:
+        app, sso = sso_app
+        captured: dict = {}
+
+        async def fake_redirect(request, redirect_uri, **params):
+            captured.update(params)
+            captured["redirect_uri"] = redirect_uri
+            captured["session_next"] = request.session.get("sso_next")
+            return RedirectResponse("https://login.microsoftonline.com/x", status_code=302)
+
+        sso.oauth.entra.authorize_redirect = fake_redirect
+        client = AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
+        resp = await client.get(f"/api/v1/auth/sso/login{query}")
+        assert resp.status_code == 302
+        return captured, client
+
+    async def test_no_hint_forces_account_picker(self, sso_app):
+        captured, _ = await self._login(sso_app)
+        assert captured["prompt"] == "select_account"
+        assert "login_hint" not in captured
+        assert captured["redirect_uri"] == OIDC_ENV["entra_redirect_uri"]
+
+    async def test_email_hint_is_forwarded_instead_of_prompt(self, sso_app):
+        captured, _ = await self._login(sso_app, "?login_hint=jdoe%40uidaho.edu")
+        assert captured["login_hint"] == "jdoe@uidaho.edu"
+        assert "prompt" not in captured
+
+    @pytest.mark.parametrize(
+        "raw",
+        ["not-an-email", "a%20b%40x.edu", "x%40y%2Fz", "%40uidaho.edu", "a%40"],
+    )
+    async def test_malformed_hint_is_dropped(self, sso_app, raw):
+        captured, _ = await self._login(sso_app, f"?login_hint={raw}")
+        assert "login_hint" not in captured
+        assert captured["prompt"] == "select_account"
+
+    async def test_next_path_is_kept_in_session(self, sso_app):
+        captured, _ = await self._login(sso_app, "?next=%2Fslc-calendar")
+        assert captured["session_next"] == "/slc-calendar"
+
+    @pytest.mark.parametrize(
+        "raw", ["https%3A%2F%2Fevil.example", "%2F%2Fevil.example", "%2F%5Cevil", "dashboard"]
+    )
+    async def test_unsafe_next_is_dropped(self, sso_app, raw):
+        captured, _ = await self._login(sso_app, f"?next={raw}")
+        assert captured["session_next"] is None
+
+    async def test_next_rides_through_to_callback_fragment(self, sso_app):
+        app, sso = sso_app
+        _, client = await self._login(sso_app, "?next=%2Fops-triage")
+        sso.oauth.entra.authorize_access_token = AsyncMock(
+            return_value={"userinfo": {"email": "o@uidaho.edu", "roles": ["Event-Services"]}}
+        )
+        resp = await client.get("/api/v1/auth/callback?code=x&state=y")
+        fragment = _fragment(resp.headers["location"])
+        assert fragment["next"] == "/ops-triage"
+        assert "access_token" in fragment
+
+        # Consumed: a second sign-in in the same session does not inherit it.
+        resp = await client.get("/api/v1/auth/callback?code=x&state=y")
+        assert "next" not in _fragment(resp.headers["location"])
 
 
 @pytest.mark.asyncio
