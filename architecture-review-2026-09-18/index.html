@@ -1,0 +1,1292 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="AI-assisted newsletter production for the University of Idaho">
+      
+      
+      
+      
+        <link rel="prev" href="../reliability-plan-for-product-owners-2026-09-18/">
+      
+      
+        <link rel="next" href="../data-model/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Technical Findings - UCM Daily Register</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#architecture-and-production-readiness-review-september-18-2026" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="UCM Daily Register" class="md-header__button md-logo" aria-label="UCM Daily Register" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            UCM Daily Register
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Technical Findings
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/ui-insight/UCMDailyRegister" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ui-insight/UCMDailyRegister
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="UCM Daily Register" class="md-nav__button md-logo" aria-label="UCM Daily Register" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    UCM Daily Register
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ui-insight/UCMDailyRegister" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ui-insight/UCMDailyRegister
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reliability Review
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reliability Review
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reliability-plan-for-product-owners-2026-09-18/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    For Editors and Product Owners
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Technical Findings
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Technical Findings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#judgment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Judgment
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scope-and-evidence" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scope and evidence
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#are-problems-recurring" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Are problems recurring?
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#where-structure-is-failing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Where structure is failing
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Where structure is failing">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-editorial-authority-is-distributed-across-views-and-copies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Editorial authority is distributed across views and copies
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-links-are-content-but-their-representations-are-independent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Links are content, but their representations are independent
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-editorial-policy-has-multiple-authorities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Editorial policy has multiple authorities
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-content-dates-and-publication-dates-need-separate-meanings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Content dates and publication dates need separate meanings
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udm-alignment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UDM Alignment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ai-editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../branding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Branding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisions
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Decisions
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adr/001-entra-sso/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-001 Entra SSO
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../github-enterprise-migration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GitHub Enterprise Migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-governance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Governance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_13" >
+        
+          
+          <label class="md-nav__link" for="__nav_13" id="__nav_13_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enterprise AI Framework
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_13">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Enterprise AI Framework
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../governance/enterprise-ai-framework/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../governance/enterprise-ai-framework/approved-stack-evidence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Approved Stack Evidence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../backup-and-recovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backup & Recovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../audit-logging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Audit Logging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="architecture-and-production-readiness-review-september-18-2026">Architecture and production-readiness review — September 18, 2026<a class="headerlink" href="#architecture-and-production-readiness-review-september-18-2026" title="Permanent link">&para;</a></h1>
+<p>For editors and product owners, see the <a href="../reliability-plan-for-product-owners-2026-09-18/">plain-language findings and proposed remediation plan</a>.</p>
+<h2 id="judgment">Judgment<a class="headerlink" href="#judgment" title="Permanent link">&para;</a></h2>
+<p>The application has a suitable technical foundation and has made real progress, but it is not yet a demonstrated dependable production platform. Repeated feedback exposes weak ownership of editorial content, inconsistent editorial policy, and incomplete verification across the full publishing workflow. The appropriate response is a focused reliability and architecture phase within the existing React/FastAPI/PostgreSQL application.</p>
+<p>Keep the modular monolith. Neither a rewrite nor a microservice migration is justified by this review. Traffic capacity is not the immediate problem: preserving an editor's decisions and producing a correct newsletter are.</p>
+<h2 id="scope-and-evidence">Scope and evidence<a class="headerlink" href="#scope-and-evidence" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Reviewed the September 15 reports filed as GitHub issues #373–389 and earlier feedback/issue history. Checked current issue states, including previously closed issues covering the same themes.</li>
+<li>Reviewed local checkout <code>d4d4712</code> and fetched/reviewed the difference through current <code>origin/main</code>, <code>7631fbc</code> (September 16). The newer change is the sign-in experience; it does not change the editorial/export findings below.</li>
+<li>Reviewed repository history beginning February 13, 2026: approximately seven months of development.</li>
+<li>Inspected nonsecret runtime configuration and style-rule fingerprints in development and production. Both use MindRouter with <code>openai/gpt-oss-120b</code>. Both have all 99 seed rules, active, with text matching the reviewed repository. Neither runtime implements the newer <code>auth_provider</code> setting. Production frontend reports <code>TRUSTED_ROLE_HEADER_ROLE=staff</code>.</li>
+<li>Reproduced hyperlink loss by generating a DOCX from synthetic linked content and inspecting its XML/relationships: anchor text remained, but no hyperlink element or destination remained.</li>
+<li>Reproduced selection of older final text by executing the actual version-selection function with two chronological final versions. This proves the selection defect; database row ordering itself is unspecified.</li>
+<li>All 196 frontend tests in the local checkout passed. Latest main GitHub CI passed. Local backend pytest collection was blocked by a missing installed <code>jwt</code> dependency; no local backend-suite pass is claimed.</li>
+<li>This was not a live-model quality benchmark, load test, penetration test, restore exercise, or complete infrastructure audit. Missing operational evidence below is not proof that the corresponding infrastructure is absent. No application fixes or deployment changes were made.</li>
+</ul>
+<h2 id="are-problems-recurring">Are problems recurring?<a class="headerlink" href="#are-problems-recurring" title="Permanent link">&para;</a></h2>
+<p>Yes. Thirteen new issues concern AI editorial behavior; four concern saved content, Jobs output, sorting, and hyperlinks. Earlier issues for most of these themes were closed during July and August. However, distinguish repeated symptoms from proven regressions: a new report can expose an old gap, a different interaction, an undeployed fix, or a changed requirement.</p>
+<table>
+<thead>
+<tr>
+<th>Theme</th>
+<th>Earlier issues</th>
+<th>New issues</th>
+<th>Interpretation</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Event ordering, complete sentences, acronyms, months</td>
+<td>#194, #228, #232, #300, #324</td>
+<td>#373, #381, #383</td>
+<td>Repeated requirements after several correction passes</td>
+</tr>
+<tr>
+<td>Meaning, audience, recurrence, factual invention</td>
+<td>#277, #300, #305, #312, #313, #322</td>
+<td>#375, #377–380, #382, #385</td>
+<td>Related failures to preserve source meaning, with additional protected fact types</td>
+</tr>
+<tr>
+<td>Headline repeats lead</td>
+<td>#276</td>
+<td>#376</td>
+<td>Direct follow-up to an implemented requirement</td>
+</tr>
+<tr>
+<td>Relative dates and weekday conflicts</td>
+<td>#306, #325</td>
+<td>#374, #384</td>
+<td>Recurrence mixed with editorial-policy changes</td>
+</tr>
+<tr>
+<td>Saved editorial work disappears</td>
+<td>#64, #193, #198</td>
+<td>#386</td>
+<td>Persistent ambiguity about which content version is authoritative</td>
+</tr>
+<tr>
+<td>Jobs treated as articles</td>
+<td>#197, #281, #299, #304</td>
+<td>#387</td>
+<td>Repeated mismatch between structured listings and article editing</td>
+</tr>
+<tr>
+<td>Hyperlinks across editing and publication</td>
+<td>#202, #227, #309, #326</td>
+<td>#389</td>
+<td>Repeated integrity failures across representations; export loss is confirmed</td>
+</tr>
+<tr>
+<td>Earliest actionable date determines ordering</td>
+<td>#274</td>
+<td>#388</td>
+<td>New ordering capability, not a demonstrated sorting regression</td>
+</tr>
+</tbody>
+</table>
+<p>The July 17 feedback digest already documented original-content loss, repeated style complaints, Jobs requirements, link editing, and scope confusion. These are foundational expectations. The March stakeholder feedback also expected the editor's final text to be the text published.</p>
+<p>The currently matching rule databases rule out missing or stale seed text as the current explanation for these reports. They do not prove what prompt/model/configuration was used when each report was filed. Future diagnostic records need that provenance.</p>
+<h2 id="where-structure-is-failing">Where structure is failing<a class="headerlink" href="#where-structure-is-failing" title="Permanent link">&para;</a></h2>
+<h3 id="1-editorial-authority-is-distributed-across-views-and-copies">1. Editorial authority is distributed across views and copies<a class="headerlink" href="#1-editorial-authority-is-distributed-across-views-and-copies" title="Permanent link">&para;</a></h3>
+<p>The Editor chooses the latest version from a chronologically ordered API result. Builder's <code>_get_best_text</code> instead chooses the first version of the preferred type. The ORM relationship has no defined ordering. Thus the same submission can produce different content depending on which module reads it.</p>
+<p>Existing newsletter items also contain copied headline/body text without a source revision identifier. Reassembly deliberately leaves that text alone, protecting manual Builder edits but hiding later upstream corrections. Automatically overwriting all Builder items would introduce another data-loss problem.</p>
+<p>AI completion unconditionally sets a submission to <code>ai_edited</code> after waiting for its model call. A human approval during that wait can therefore be superseded by an older operation. Revision checks and explicit transition rules are missing.</p>
+<p><strong>Deepening opportunity:</strong> concentrate revision selection, staff edits, approval, and edition snapshots in one editorial-content module. Its implementation should own precedence and conflict detection so callers do not reimplement them. Record which revision is approved for which newsletter, and identify edition overrides and upstream changes explicitly. This improves locality and gives tests a meaningful interface: approved content survives every scheduling and publication transition.</p>
+<p>Evidence: <code>backend/app/services/newsletter_service.py:361,451</code>; <code>backend/app/models/submission.py:91</code>; <code>backend/app/models/newsletter.py:73</code>; <code>frontend/src/pages/EditPage.tsx:89</code>; <code>backend/app/api/v1/ai_edits.py:147,253,330</code>.</p>
+<h3 id="2-links-are-content-but-their-representations-are-independent">2. Links are content, but their representations are independent<a class="headerlink" href="#2-links-are-content-but-their-representations-are-independent" title="Permanent link">&para;</a></h3>
+<p>The application uses inline HTML, mutable submission-link rows, editor link arrays, and copied newsletter bodies. These can diverge across revisions. Word export extracts link text and paints it blue/underlined but discards the destination. Git blame shows that implementation dates to the initial February 13 pipeline, rather than a recent regression. Its docstring even claims URLs are appended when the implementation does not do so.</p>
+<p><strong>Deepening opportunity:</strong> make text and its attached links one versioned content module, with rendering adapters for editor, Builder and DOCX. The test interface must verify destinations and anchor associations in the final artifact, not just whether a preview displays underlining. This also protects job application links.</p>
+<p>Evidence: <code>backend/app/utils/export.py:97</code>; <code>backend/app/api/v1/ai_edits.py:340</code>; <code>backend/app/services/ai/editor.py:690</code>; <code>frontend/src/pages/EditPage.tsx:95</code>.</p>
+<h3 id="3-editorial-policy-has-multiple-authorities">3. Editorial policy has multiple authorities<a class="headerlink" href="#3-editorial-policy-has-multiple-authorities" title="Permanent link">&para;</a></h3>
+<p>Database rules, seed JSON, migrations, hard-coded prompts, and deterministic validators all shape the same behavior. For example, the prompt requires a complete event sentence but provides an event-detail fragment as its example. First-person rewriting can substitute an organization name, while new feedback prohibits inventing the speaker.</p>
+<p>This is not merely a lack of prompt engineering. The system needs an explicit hierarchy: preserve source facts and editorial intent, apply approved transformations, enforce mechanically checkable formatting, and flag unresolved ambiguity.</p>
+<p>The pipeline has already evolved usefully: it performs deterministic checks, a bounded repair attempt, and reports remaining findings. Existing production-derived fixtures test bad output, successful repair, provider failure, and a stubborn model. Those are valuable tests, but their providers return prescribed answers. They do not establish that the actual deployed model follows the full editorial policy.</p>
+<p><strong>Deepening opportunity:</strong> concentrate policy precedence and validation in an editorial-policy module; retain the real provider seam and its multiple adapters. Record rule/prompt/model versions, then maintain a reviewed evaluation set measuring factual preservation, dates, links, audience, Jobs formatting, and editing effort. Run model evaluations separately from deterministic unit tests and compare releases on the same cases.</p>
+<p>Evidence: <code>backend/app/services/ai/prompts.py:62,75,94</code>; <code>backend/app/services/ai/editor.py:549</code>; <code>backend/tests/test_issue_300_production_fixtures.py:20,138</code>.</p>
+<h3 id="4-content-dates-and-publication-dates-need-separate-meanings">4. Content dates and publication dates need separate meanings<a class="headerlink" href="#4-content-dates-and-publication-dates-need-separate-meanings" title="Permanent link">&para;</a></h3>
+<p>The prompt refers to publication date without receiving explicit publication/current-date/timezone context in its user prompt. Validators use <code>date.today()</code>. Upcoming event dates, registration deadlines, publication schedules, and recurring occurrences are different domain facts; prose alone is an unreliable basis for sorting them.</p>
+<p>Three decisions should precede implementation:</p>
+<ol>
+<li>
+<h1 id="374-requests-replacing-relative-dates-325-requests-preserving-both-relative-wording-and-explicit-dates-define-reference-date-timezone-and-source-precedence">374 requests replacing relative dates; #325 requests preserving both relative wording and explicit dates. Define reference date, timezone, and source precedence.<a class="headerlink" href="#374-requests-replacing-relative-dates-325-requests-preserving-both-relative-wording-and-explicit-dates-define-reference-date-timezone-and-source-precedence" title="Permanent link">&para;</a></h1>
+</li>
+<li>
+<h1 id="384-requests-preserving-contradictory-source-weekdaydate-values-for-staff-review-distinguish-this-from-deriving-a-missing-weekday-from-a-known-date-under-306">384 requests preserving contradictory source weekday/date values for staff review. Distinguish this from deriving a missing weekday from a known date under #306.<a class="headerlink" href="#384-requests-preserving-contradictory-source-weekdaydate-values-for-staff-review-distinguish-this-from-deriving-a-missing-weekday-from-a-known-date-under-306" title="Permanent link">&para;</a></h1>
+</li>
+<li>
+<h1 id="387-requests-visible-job-titles-while-299-intentionally-removes-a-separate-published-headline-editor-visibility-and-published-formatting-need-distinct-rules">387 requests visible job titles, while #299 intentionally removes a separate published headline. Editor visibility and published formatting need distinct rules.<a class="headerlink" href="#387-requests-visible-job-titles-while-299-intentionally-removes-a-separate-published-headline-editor-visibility-and-published-formatting-need-distinct-rules" title="Permanent link">&para;</a></h1>
+</li>
+</ol>
+<p><strong>Deepening opportunity:</strong> give verified content facts and publication scheduling separate ownership. Treat article copy, structured Jobs listings and imported calendar entries as distinct content types with shared publication mechanisms. Do not infer newsletter audience eligibility from the publication channel.</p>
+<p>Evidence: <code>backend/app/services/ai/prompts.py:86,127</code>; <code>backend/app/services/ai/editor.py:490,557</code>; <code>backend/app/models/submission.py:61</code>; <code>backend/app/services/newsletter_service.py:319,375</code>.</p>
+<h2 id="what-has-evolved-correctly">What has evolved correctly<a class="headerlink" href="#what-has-evolved-correctly" title="Permanent link">&para;</a></h2>
+<ul>
+<li>The React/FastAPI/PostgreSQL architecture fits the workload and remains understandable.</li>
+<li>Provider adapters provide a useful seam with multiple actual implementations.</li>
+<li>Original content is preserved on finalization; final text and approval status are saved together.</li>
+<li>Seeding no longer overwrites staff-edited rules by default, addressing the earlier #195 failure.</li>
+<li>Imported Jobs have deterministic structured formatting.</li>
+<li>Alembic migrations, migration-drift CI, PostgreSQL smoke checks, server-side role dependencies, upload validation and frontend workflow tests are substantial improvements.</li>
+</ul>
+<p>The problem is incomplete consolidation around the domain rules those improvements revealed. Moving more functions into files would not by itself fix this. A deep module earns its place by keeping an important rule consistent across callers.</p>
+<h2 id="production-dependability-and-scale">Production dependability and scale<a class="headerlink" href="#production-dependability-and-scale" title="Permanent link">&para;</a></h2>
+<p><strong>Authentication requires a verified deployment, not just merged code.</strong> Production currently stamps staff at the proxy and lacks the newer SSO configuration. This establishes no application-level distinction between individual visitors reaching that proxy; upstream network restrictions were not audited. Before an SSO rollout, address two code-derived hazards: bearer tokens are accepted in header mode even though startup checks for signing-secret strength and the default secret are skipped there, and trusted-header roles remain accepted in OIDC mode. JWT signature verification still runs, but the public default signing secret makes the first combination unsafe. That is a repository deployment hazard, not a claim of an active exploit against the older production runtime.</p>
+<p><strong>AI work is process-local.</strong> The job dictionary, semaphore, and FastAPI background tasks lose state on restart and do not work reliably across multiple workers. Results have no eviction. Persist job state, bound the backlog, recover interrupted work, and check the input revision before applying results. A small durable worker arrangement is sufficient; a broad distributed architecture is unnecessary.</p>
+<p><strong>CI does not yet enforce the strongest available tests.</strong> The frontend CI job lints and builds but never runs Vitest. Backend tests primarily use SQLite; PostgreSQL CI verifies migrations and performs smoke checks. Add frontend tests to CI, then a few complete submission-to-DOCX and concurrent-edit scenarios. Green CI is useful evidence within its actual scope.</p>
+<p><strong>Operations need proof.</strong> Backup and recovery documentation gives useful procedures and target RTO/RPO values, but this review did not verify a successful restore, alert delivery, or named operational coverage. Reconsider whether losing 24 hours of submissions or waiting four hours near a publication deadline is acceptable. Feedback notifications are still disabled in production.</p>
+<p><strong>Builds and capacity need bounded improvements.</strong> Backend dependencies have lower bounds without a resolved lockfile; rebuilding an old commit can change its dependencies. Record deployed commit, immutable image, schema revision and policy version. Some filtering/assembly loads broad candidate sets and eagerly fetches edit history; measure with realistic retained history and optimize those paths. No current load result justifies a claim that the system is slow, or that a new database/stack is needed.</p>
+<p>Evidence: <code>backend/app/api/deps.py:26,73,76</code>; <code>backend/app/config.py:153</code>; <code>backend/app/auth/session_tokens.py:35</code>; <code>backend/app/api/v1/ai_edits.py:51,228</code>; <code>.github/workflows/ci.yml:72</code>; <code>backend/tests/conftest.py:19</code>; <code>backend/pyproject.toml:6</code>; <code>backend/app/services/submission_service.py:186</code>; <code>docs/backup-and-recovery.md</code>.</p>
+<h2 id="documentation-and-scope">Documentation and scope<a class="headerlink" href="#documentation-and-scope" title="Permanent link">&para;</a></h2>
+<p>Documentation is substantial but not a reliable current domain map. The architecture service inventory omits several newer systems. It still describes a Compose database container although PostgreSQL is external. README says 37 seeded rules; the actual count is 99. PRODUCT.md lists three audiences and omits Ops. There is no CONTEXT.md and only one ADR, for authentication.</p>
+<p>The application now covers newsletter production, leadership-calendar intelligence, and event-services triage/classification. These can remain in one deployment, but should have explicit owners, vocabularies, access rules, and module interfaces. Their expansion does not establish that the core newsletter workflow is ready. The earlier feedback already questioned SLC/calendar scope.</p>
+<p>Update documentation around source submission, AI draft, staff working revision, approval, edition snapshot, actionable date, audience versus channel, standing policy, and feedback disposition. Record the contentious decisions, rather than relying on successive issue bodies to define the product.</p>
+<h2 id="recommended-sequence-and-release-evidence">Recommended sequence and release evidence<a class="headerlink" href="#recommended-sequence-and-release-evidence" title="Permanent link">&para;</a></h2>
+<ol>
+<li><strong>Protect editorial work and access first:</strong> fix final-version selection and real DOCX links; resolve authentication defaults and verify the deployment cutover. Preserve a manual editorial path when AI is unavailable.</li>
+<li><strong>Consolidate content ownership:</strong> explicit revisions, approval transitions, link snapshots, conflict checks, edition overrides and upstream-change indication. Use #386/#389 as end-to-end acceptance cases.</li>
+<li><strong>Resolve policy and evaluate:</strong> agree date and Jobs semantics; consolidate contradictory instructions; benchmark the deployed model against reviewed source-fidelity cases. Treat #373–385 as one policy/evaluation programme with individually traceable reports.</li>
+<li><strong>Make release and recovery repeatable:</strong> durable AI jobs, frontend CI, PostgreSQL workflow checks, immutable releases, actual restore/alert exercises, and deployment fingerprints.</li>
+<li><strong>Refresh domain documentation and scope:</strong> establish ownership of newsletter, SLC and Ops modules; stage additional expansion against evidence that the core workflow is dependable.</li>
+</ol>
+<p>Before calling the application dependable production, demonstrate that two editors cannot silently overwrite each other; a restart does not lose AI job state; the selected approved revision reaches Builder and Word unchanged except for deliberate edition edits; every published link retains its destination; anonymous/SLC/Ops/staff access behaves correctly; and a real backup restores within an editorially acceptable deadline. Close the feedback loop with editor acceptance on the deployed build, recording report → issue → implementation → deployment → retest.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
