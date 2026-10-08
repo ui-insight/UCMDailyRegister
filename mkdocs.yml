@@ -40,6 +40,9 @@ markdown_extensions:
 nav:
   - Home: index.md
   - Architecture: architecture.md
+  - Reliability Review:
+      - For Editors and Product Owners: reliability-plan-for-product-owners-2026-09-18.md
+      - Technical Findings: architecture-review-2026-09-18.md
   - Data Model: data-model.md
   - UDM Alignment: udm-alignment.md
   - AI Editing: ai-editing.md
