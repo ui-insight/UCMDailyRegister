@@ -11,10 +11,15 @@ AllowedValue table rather than hard-coded enums, keeping the vocabulary
 extensible without code changes. The Flags and Changes_Made columns store
 structured JSON produced by the AI pipeline (e.g., style-rule violations
 detected, diff summaries).
+
+Created_At is set by the application with microsecond precision so the
+history reads in order; a database-side now() is second-resolution on SQLite
+and one shared value per transaction on PostgreSQL. Which revision is
+approved is never inferred from it: see Submission.Approved_Version_Id.
 """
 
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
@@ -47,9 +52,12 @@ class EditVersion(Base):
     AI_Model: Mapped[str | None] = mapped_column(sa.String(100), nullable=True)
     Editor_Instructions: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
     Created_At: Mapped[datetime] = mapped_column(
-        sa.DateTime, nullable=False, server_default=sa.func.now()
+        sa.DateTime,
+        nullable=False,
+        default=lambda: datetime.now(UTC).replace(tzinfo=None),
+        server_default=sa.func.now(),
     )
 
     Submission_Rel: Mapped["Submission"] = relationship(
-        back_populates="Edit_Versions", lazy="selectin"
+        back_populates="Edit_Versions", lazy="selectin", foreign_keys=[Submission_Id]
     )

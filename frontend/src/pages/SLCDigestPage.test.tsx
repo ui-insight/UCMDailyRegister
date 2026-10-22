@@ -44,6 +44,8 @@ function makeSubmission(overrides: Partial<Submission> = {}): Submission {
     Status: 'approved',
     Show_In_SLC_Calendar: true,
     Event_Classification: 'strategic',
+    Approved_Version_Id: null,
+    Working_Version_Id: null,
     Created_At: '2026-09-01T00:00:00Z',
     Updated_At: '2026-09-01T00:00:00Z',
     Links: [],

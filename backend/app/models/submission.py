@@ -21,6 +21,12 @@ in the Senior Leadership Council calendar (Show_In_SLC_Calendar) and optionally
 classified as a Strategic or Signature Event (Event_Classification). SLC-only
 events use Target_Newsletter = "none"; events that are both newsletter-facing
 and SLC-visible keep their newsletter target and carry the SLC flag alongside.
+
+Approved_Version_Id names the one EditVersion staff approved for publication.
+Version timestamps cannot order revisions reliably (several can share one
+transaction's time), so approval is an explicit pointer rather than "the
+newest final". Which revision each caller should use is decided in
+app.services.editorial_content, never by callers scanning Edit_Versions.
 """
 
 import uuid
@@ -75,6 +81,16 @@ class Submission(Base):
         sa.Boolean, nullable=False, default=False, server_default=sa.false()
     )
     Event_Classification: Mapped[str | None] = mapped_column(sa.String(50), nullable=True)
+    Approved_Version_Id: Mapped[str | None] = mapped_column(
+        sa.String(36),
+        sa.ForeignKey(
+            "edit_versions.Id",
+            name="fk_submissions_Approved_Version_Id",
+            use_alter=True,
+            ondelete="SET NULL",
+        ),
+        nullable=True,
+    )
     Created_At: Mapped[datetime] = mapped_column(
         sa.DateTime, nullable=False, server_default=sa.func.now()
     )
@@ -89,8 +105,26 @@ class Submission(Base):
         back_populates="Submission_Rel", cascade="all, delete-orphan", lazy="selectin"
     )
     Edit_Versions: Mapped[list["EditVersion"]] = relationship(
-        back_populates="Submission_Rel", cascade="all, delete-orphan", lazy="selectin"
+        back_populates="Submission_Rel",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        foreign_keys="EditVersion.Submission_Id",
     )
+
+    @property
+    def Working_Version_Id(self) -> str | None:
+        """The revision the Editor opens; see editorial_content.working_revision.
+
+        None when Edit_Versions was not loaded (a just-created submission has
+        no versions); async sessions cannot lazy-load it here.
+        """
+        from app.services.editorial_content import working_revision
+
+        if "Edit_Versions" in sa.inspect(self).unloaded:
+            return None
+
+        version = working_revision(self)
+        return version.Id if version else None
 
 
 class SubmissionLink(Base):

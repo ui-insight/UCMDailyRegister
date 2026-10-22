@@ -180,6 +180,8 @@ class SubmissionResponse(BaseModel):
     Status: str
     Show_In_SLC_Calendar: bool = False
     Event_Classification: str | None = None
+    Approved_Version_Id: str | None = None
+    Working_Version_Id: str | None = None
     Created_At: datetime
     Updated_At: datetime
     Links: list[LinkResponse]

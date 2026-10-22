@@ -48,6 +48,11 @@ const STATUS_COLORS: Record<string, string> = {
   pending_info: 'bg-status-attention-100 text-status-attention-800',
 };
 
+/** The version the backend names as the submission's working revision. */
+function workingVersion(versions: EditVersion[], submission: Submission): EditVersion | undefined {
+  return versions.find((v) => v.Id === submission.Working_Version_Id);
+}
+
 export default function EditPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -88,19 +93,19 @@ export default function EditPage() {
       try {
         const vers = await listEditVersions(id);
         setVersions(vers);
-        // If there's an AI suggested version, pre-populate editor fields
-        const aiVersion = [...vers].reverse().find((v) => v.Version_Type === 'ai_suggested');
-        const editorVersion = [...vers].reverse().find((v) => v.Version_Type === 'editor_final');
-        if (editorVersion) {
-          const editable = prepareBodyForEditing(editorVersion.Body, sub.Links);
-          setEditHeadline(editorVersion.Headline);
+        // Open the revision the backend names as authoritative; never pick
+        // one here by timestamp (see editorial_content.working_revision).
+        const working = workingVersion(vers, sub);
+        if (working?.Version_Type === 'editor_final') {
+          const editable = prepareBodyForEditing(working.Body, sub.Links);
+          setEditHeadline(working.Headline);
           setEditBody(editable.body);
           setEditLinks(editable.links);
           setFinalEditSource('saved');
           setActiveTab(preserveAILiveView ? 'ai_edit' : 'editor');
-        } else if (aiVersion) {
-          const editable = prepareBodyForEditing(aiVersion.Body, sub.Links);
-          setEditHeadline(aiVersion.Headline);
+        } else if (working?.Version_Type === 'ai_suggested') {
+          const editable = prepareBodyForEditing(working.Body, sub.Links);
+          setEditHeadline(working.Headline);
           setEditBody(editable.body);
           setEditLinks(editable.links);
           setFinalEditSource(null);
@@ -229,11 +234,10 @@ export default function EditPage() {
     setError(null);
     try {
       const aiVersion = [...versions].reverse().find((v) => v.Version_Type === 'ai_suggested');
-      const editorVersion = [...versions].reverse().find((v) => v.Version_Type === 'editor_final');
       const sourceVersion = finalEditSource === 'ai'
         ? aiVersion
-        : finalEditSource === 'saved'
-          ? editorVersion
+        : finalEditSource === 'saved' && submission
+          ? workingVersion(versions, submission)
           : undefined;
       const links = normalizedBodyLinks(editLinks, editBody);
       await saveEditorFinal(id, {

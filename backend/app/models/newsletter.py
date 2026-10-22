@@ -10,6 +10,11 @@ newsletter, records its final (possibly editor-tweaked) headline and body, and
 tracks its position within the section and its run number (how many times the
 item has appeared in previous editions).
 
+Source_Version_Id records which EditVersion an assembled item's text was
+copied from, so staff can see exactly which approved revision an edition
+carries. It is empty for items added with hand-supplied text and for items
+whose text matched no revision when tracking began.
+
 Newsletter_Type and Status values are governed by the AllowedValue table rather
 than hard-coded enums. A unique constraint on (Newsletter_Type, Publish_Date)
 prevents duplicate editions for the same day and newsletter.
@@ -83,6 +88,13 @@ class NewsletterItem(Base):
     # Set when staff move the item to a different section; re-assembly then
     # leaves the placement alone instead of re-syncing it to the category map.
     Manually_Placed: Mapped[bool] = mapped_column(sa.Boolean, nullable=False, default=False)
+    Source_Version_Id: Mapped[str | None] = mapped_column(
+        sa.String(36),
+        sa.ForeignKey(
+            "edit_versions.Id", name="fk_newsletter_items_Source_Version_Id", ondelete="SET NULL"
+        ),
+        nullable=True,
+    )
 
     Newsletter_Rel: Mapped["Newsletter"] = relationship(
         back_populates="Items", lazy="selectin"

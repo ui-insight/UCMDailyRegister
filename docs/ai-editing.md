@@ -124,6 +124,13 @@ Original  -->  AI_Suggested  -->  Editor_Final
 
 This produces a complete, auditable trail of every change made to a submission.
 
+Saving a final with **Approve** records that exact version as the submission's
+approved revision (`Approved_Version_Id`); saving a draft leaves the
+submission in review with nothing approved. The Editor reopens, and newsletter
+assembly publishes, the revision chosen by `app/services/editorial_content.py`,
+and each assembled item records the version it was copied from
+(`Source_Version_Id`).
+
 ## Provider Abstraction
 
 The LLM provider is selected at startup via the `LLM_PROVIDER` environment variable:

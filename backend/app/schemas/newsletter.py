@@ -65,6 +65,7 @@ class NewsletterItemResponse(BaseModel):
     Final_Headline: str
     Final_Body: str
     Run_Number: int
+    Source_Version_Id: str | None = None
 
     model_config = {"from_attributes": True}
 

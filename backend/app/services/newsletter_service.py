@@ -10,7 +10,7 @@ from sqlalchemy.orm import selectinload
 from app.models.newsletter import Newsletter, NewsletterExternalItem, NewsletterItem
 from app.models.section import NewsletterSection
 from app.models.submission import Submission
-from app.services import recurring_message_service, submission_service
+from app.services import editorial_content, recurring_message_service, submission_service
 
 logger = logging.getLogger(__name__)
 
@@ -372,7 +372,7 @@ async def assemble_newsletter(
                 )
             continue
 
-        headline, body = _get_best_text(sub)
+        headline, body, source_version_id = editorial_content.publishable_text(sub)
         section_items = [it for it in newsletter.Items if it.Section_Id == section.Id]
         if sub.Category == "job_opportunity":
             # Jobs are ordered newest-first. The query walks oldest-first so each
@@ -394,6 +394,7 @@ async def assemble_newsletter(
             Final_Body=body,
             Position=position,
             Run_Number=1,
+            Source_Version_Id=source_version_id,
         )
         db.add(item)
         newsletter.Items.append(item)
@@ -446,14 +447,3 @@ def get_job_postings_section_slug(newsletter_type: str) -> str:
 def get_academic_dates_section_slug() -> str:
     """Return the My UI section slug used for manually imported registrar dates."""
     return "academic-dates-and-deadlines"
-
-
-def _get_best_text(submission: Submission) -> tuple[str, str]:
-    """Get the best available headline/body from edit versions."""
-    if submission.Edit_Versions:
-        for vtype in ("editor_final", "ai_suggested", "original"):
-            for v in submission.Edit_Versions:
-                if v.Version_Type == vtype:
-                    return v.Headline, v.Body
-
-    return submission.Original_Headline, submission.Original_Body

@@ -109,6 +109,7 @@ current workflow status.
 | `Status` | AllowedValue group `Submission_Status` |
 | `Show_In_SLC_Calendar` | Staff/SLC visibility flag for leadership event review |
 | `Event_Classification` | Strategic or signature event label for the SLC calendar |
+| `Approved_Version_Id` | FK to `edit_versions.Id`: the exact revision staff approved; cleared when a later draft is saved |
 | `Created_At`, `Updated_At` | Server timestamps |
 
 Relationships: has many `submission_links`, `submission_schedule_requests`, and
@@ -145,6 +146,11 @@ Append-only editorial snapshots. The application creates an `original` version
 and one or more `ai_suggested` or `editor_final` versions rather than rewriting
 previous content in place.
 
+Which revision is authoritative is decided only in
+`app/services/editorial_content.py`: the approved revision
+(`submissions.Approved_Version_Id`), else the newest staff final, else the
+newest AI suggestion, else the original. Timestamps never decide approval.
+
 | Column | Notes |
 |---|---|
 | `Submission_Id` | FK to `submissions.Id` |
@@ -154,7 +160,7 @@ previous content in place.
 | `Flags` | JSON list of AI/rule findings for editor review |
 | `Changes_Made` | JSON list of substantive changes |
 | `AI_Provider`, `AI_Model` | Provider and model used for AI-generated versions |
-| `Created_At` | Immutable creation timestamp |
+| `Created_At` | Immutable creation timestamp, set by the application to the microsecond |
 
 ### `newsletters`
 
@@ -181,6 +187,7 @@ Placement of a submission into a newsletter issue and section.
 | `Position` | Ordering within a section |
 | `Final_Headline`, `Final_Body` | Copy as placed in the issue |
 | `Run_Number` | Which run of the item this placement represents |
+| `Source_Version_Id` | FK to `edit_versions.Id`: the revision the copy was taken from; empty for hand-added items and items assembled before tracking |
 
 ### `newsletter_external_items`
 
