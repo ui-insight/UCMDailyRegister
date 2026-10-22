@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  findMentions,
+  resolvedLinkStart,
+  unattachedLinks,
   buildLinkedBody,
   normalizedBodyLinks,
   prepareBodyForEditing,
@@ -28,6 +31,7 @@ describe('body link editing', () => {
         Url: 'mailto:nikkihodge@uidaho.edu',
         Anchor_Text: 'Nikki Hodge',
         Display_Order: 0,
+        Start: editable.body.indexOf('Nikki Hodge'),
       },
       {
         Url: 'https://example.com/study',
@@ -76,6 +80,7 @@ describe('body link editing', () => {
         Url: 'https://example.com/Inside%20UI/details',
         Anchor_Text: 'committee page',
         Display_Order: 0,
+        Start: editable.body.indexOf('committee page'),
       },
     ]);
     expect(buildLinkedBody(editable.body, editable.links)).toBe(
@@ -142,6 +147,7 @@ describe('body link editing', () => {
         Url: 'https://new.example.com',
         Anchor_Text: 'Inside U of I homepage',
         Display_Order: 0,
+        Start: editable.body.indexOf('Inside U of I homepage'),
       },
     ]);
   });
@@ -182,7 +188,63 @@ describe('body link editing', () => {
       'Reserve a seat. Sign up today.',
       [{ Url: 'https://example.com/register', Anchor_Text: 'Register now' }],
     )).toEqual([
-      { Url: 'https://example.com/register', Anchor_Text: 'Sign up today' },
+      {
+        Url: 'https://example.com/register',
+        Anchor_Text: 'Sign up today',
+        Start: 'Reserve a seat. '.length,
+      },
     ]);
+  });
+
+  it('keeps a link on the later mention when the same words appear earlier', () => {
+    const source = 'Email the Library about hours. Questions? '
+      + '<a href="mailto:library@uidaho.edu">Email the Library</a>.';
+    const editable = prepareBodyForEditing(source);
+    expect(buildLinkedBody(editable.body, editable.links)).toBe(source);
+  });
+
+  it('does not move a link when staff type the same words earlier', () => {
+    const editable = prepareBodyForEditing('Questions? <a href="https://uidaho.edu/x">Learn more</a>.');
+    const nextBody = `Learn more about the fair. ${editable.body}`;
+    const links = synchronizeLinksWithBodyChange(editable.body, nextBody, editable.links);
+    expect(buildLinkedBody(nextBody, links)).toBe(
+      'Learn more about the fair. Questions? <a href="https://uidaho.edu/x">Learn more</a>.',
+    );
+  });
+
+  it('keeps a link in place when text after it changes', () => {
+    const editable = prepareBodyForEditing('Learn more. Then <a href="https://uidaho.edu/x">Learn more</a> again.');
+    const nextBody = `${editable.body} Doors open at 6 p.m.`;
+    const links = synchronizeLinksWithBodyChange(editable.body, nextBody, editable.links);
+    expect(buildLinkedBody(nextBody, links)).toBe(
+      'Learn more. Then <a href="https://uidaho.edu/x">Learn more</a> again. Doors open at 6 p.m.',
+    );
+  });
+
+  it('links the mention staff choose', () => {
+    const body = 'The Library is open late. Email the Library with questions.';
+    const [first, second] = findMentions(body, 'the Library');
+    expect([first, second]).toEqual([0, 'The Library is open late. Email '.length]);
+    expect(buildLinkedBody(body, [
+      { Url: 'mailto:library@uidaho.edu', Anchor_Text: 'the Library', Start: second },
+    ])).toBe(
+      'The Library is open late. Email <a href="mailto:library@uidaho.edu">the Library</a> with questions.',
+    );
+  });
+
+  it('falls back to the first mention when the chosen one no longer matches', () => {
+    const body = 'Register today. More text.';
+    const link = { Url: 'https://uidaho.edu/r', Anchor_Text: 'Register', Start: 99 };
+    expect(resolvedLinkStart(body, link)).toBe(0);
+  });
+
+  it('reports links whose words are missing from the body', () => {
+    const links = [
+      { Url: 'https://uidaho.edu/r', Anchor_Text: 'Register now' },
+      { Url: 'https://uidaho.edu/x', Anchor_Text: 'event page' },
+      { Url: '', Anchor_Text: 'unused' },
+      { Url: 'mailto:', Anchor_Text: 'blank email slot' },
+    ];
+    expect(unattachedLinks('See the event page.', links)).toEqual([links[0]]);
   });
 });

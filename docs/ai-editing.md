@@ -114,6 +114,17 @@ Once the AI pipeline produces an edit, the editor reviews changes on the **AI Su
 
 All modes display flags and a changes-made summary below the comparison or editor.
 
+### Links in Live View and Final Edit
+
+Each link pairs a destination with the exact words in the body that carry it.
+A link stays on the mention it was attached to: editing other text, even
+typing the same words earlier in the body, does not move it. When the link
+words appear more than once, a picker under the link lists each mention with
+its surrounding words so staff can choose which one gets the link. If a link's
+words are no longer in the body, the link shows a warning and saving is
+blocked until the words are restored, changed, or the link is cleared, so a
+link is never dropped silently.
+
 ## Edit Version Storage
 
 Each pipeline run creates an `EditVersion` record with `Version_Type = AI_Suggested`. The original submission text is stored in a separate `Original` version. When an editor finalizes the copy, an `Editor_Final` version is created. No version is ever modified after creation.

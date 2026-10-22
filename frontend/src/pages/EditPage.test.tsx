@@ -894,7 +894,7 @@ describe('EditPage', () => {
     expect(preview).toHaveTextContent('Reserve a seat. Register now. Updated');
   });
 
-  it('does not preserve a removed CTA as hidden link metadata', async () => {
+  it('blocks a save that would silently drop a link, then saves once it is cleared', async () => {
     const user = userEvent.setup();
     getSubmissionMock.mockResolvedValue(makeSubmission({
       Working_Version_Id: 'version-1',
@@ -920,6 +920,14 @@ describe('EditPage', () => {
     const body = await screen.findByPlaceholderText('Enter body text...');
     await user.clear(body);
     await user.type(body, 'Reserve a seat.');
+    await user.tab();
+    expect(screen.getByRole('status')).toHaveTextContent("These words aren't in the body");
+    await user.click(screen.getByRole('button', { name: /save draft/i }));
+
+    expect(await screen.findByText(/Link text "Register now" isn't in the body/)).toBeInTheDocument();
+    expect(saveEditorFinalMock).not.toHaveBeenCalled();
+
+    await user.clear(screen.getAllByLabelText('URL')[0]);
     await user.click(screen.getByRole('button', { name: /save draft/i }));
 
     await waitFor(() => {
@@ -930,6 +938,100 @@ describe('EditPage', () => {
         Approve_For_Newsletter: false,
         Links: [],
       });
+    });
+  });
+
+  it('restores a removed link by retyping its words, without duplicating them (#397)', async () => {
+    const user = userEvent.setup();
+    getSubmissionMock.mockResolvedValue(makeSubmission({ Working_Version_Id: 'version-1' }));
+    listEditVersionsMock.mockResolvedValue([
+      makeVersion({
+        Version_Type: 'editor_final',
+        Headline: 'Final event headline',
+        Body: 'Reserve a seat. <a href="https://example.com/register">Register now</a>.',
+      }),
+    ]);
+
+    renderEditPage();
+
+    const body = await screen.findByPlaceholderText('Enter body text...');
+    await user.clear(body);
+    await user.type(body, 'Reserve a seat.');
+    await user.tab();
+    expect(screen.getByRole('status')).toHaveTextContent("These words aren't in the body");
+
+    await user.type(body, ' Register now.');
+    await user.tab();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /save draft/i }));
+
+    await waitFor(() => {
+      expect(saveEditorFinalMock).toHaveBeenCalledWith('submission-1', expect.objectContaining({
+        Body: 'Reserve a seat. <a href="https://example.com/register">Register now</a>.',
+        Links: [{ Url: 'https://example.com/register', Anchor_Text: 'Register now', Display_Order: 0 }],
+      }));
+    });
+  });
+
+  it('keeps a link on its mention when staff type the same words earlier', async () => {
+    const user = userEvent.setup();
+    getSubmissionMock.mockResolvedValue(makeSubmission({ Working_Version_Id: 'version-1' }));
+    listEditVersionsMock.mockResolvedValue([
+      makeVersion({
+        Version_Type: 'editor_final',
+        Headline: 'Final event headline',
+        Body: 'Questions? <a href="https://example.com/fair">Learn more</a>.',
+      }),
+    ]);
+
+    renderEditPage();
+
+    const body = await screen.findByPlaceholderText('Enter body text...');
+    await user.type(body, 'Learn more about the fair. ', {
+      initialSelectionStart: 0,
+      initialSelectionEnd: 0,
+    });
+    await user.tab();
+    await user.click(screen.getByRole('button', { name: /save draft/i }));
+
+    await waitFor(() => {
+      expect(saveEditorFinalMock).toHaveBeenCalledWith('submission-1', expect.objectContaining({
+        Body: 'Learn more about the fair. Questions? <a href="https://example.com/fair">Learn more</a>.',
+      }));
+    });
+  });
+
+  it('lets staff choose which mention of repeated words gets the link', async () => {
+    const user = userEvent.setup();
+    getSubmissionMock.mockResolvedValue(makeSubmission({ Working_Version_Id: 'version-1' }));
+    listEditVersionsMock.mockResolvedValue([
+      makeVersion({
+        Version_Type: 'editor_final',
+        Headline: 'Library hours',
+        Body: '<a href="mailto:library@uidaho.edu">The Library</a> is open late. Email the Library with questions.',
+      }),
+    ]);
+
+    renderEditPage();
+
+    const picker = await screen.findByLabelText(/These words appear 2 times/);
+    const options = within(picker).getAllByRole('option');
+    expect(options.map((option) => option.textContent)).toEqual([
+      '1st: [The Library] is open late. Email the…',
+      '2nd: …Library is open late. Email [the Library] with questions.',
+    ]);
+    expect(picker).toHaveValue('0');
+
+    await user.selectOptions(picker, options[1]);
+    expect(screen.getByRole('region', { name: 'Newsletter body preview' })).toContainHTML(
+      'Email <a',
+    );
+    await user.click(screen.getByRole('button', { name: /save draft/i }));
+
+    await waitFor(() => {
+      expect(saveEditorFinalMock).toHaveBeenCalledWith('submission-1', expect.objectContaining({
+        Body: 'The Library is open late. Email <a href="mailto:library@uidaho.edu">the Library</a> with questions.',
+      }));
     });
   });
 
