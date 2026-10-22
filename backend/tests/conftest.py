@@ -1,12 +1,14 @@
 """Shared pytest fixtures for UCM Newsletter Builder tests."""
 
 import asyncio
+import os
 from collections.abc import AsyncGenerator
 from datetime import date
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.pool import NullPool
 
 from app.api import deps as auth_deps
 from app.db.base import Base
@@ -16,11 +18,18 @@ import app.models  # noqa: F401 — register all models
 from app.models.allowed_value import AllowedValue
 
 
-# In-memory SQLite for tests
-TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+# In-memory SQLite by default; CI also runs the suite against PostgreSQL by
+# setting TEST_DATABASE_URL, since prod runs PostgreSQL and the two differ
+# (timestamps, case sensitivity, JSON, constraint enforcement).
+TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL", "sqlite+aiosqlite:///:memory:")
 TEST_TRUSTED_ROLE_SECRET = "test-trusted-role-secret"
 
-engine = create_async_engine(TEST_DATABASE_URL, connect_args={"check_same_thread": False})
+if TEST_DATABASE_URL.startswith("sqlite"):
+    engine = create_async_engine(TEST_DATABASE_URL, connect_args={"check_same_thread": False})
+else:
+    # pytest-asyncio runs each test in its own event loop; pooled asyncpg
+    # connections are bound to the loop that opened them.
+    engine = create_async_engine(TEST_DATABASE_URL, poolclass=NullPool)
 TestSession = async_sessionmaker(engine, expire_on_commit=False)
 
 

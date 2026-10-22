@@ -117,6 +117,86 @@ class TestNewsletterCRUD:
 
 @pytest.mark.asyncio
 class TestNewsletterItems:
+    @pytest.fixture
+    async def item_sections(self, db: AsyncSession):
+        db.add_all([
+            NewsletterSection(
+                Id="sec-1",
+                Newsletter_Type="tdr",
+                Name="Employee News",
+                Slug="employee-news",
+                Display_Order=1,
+                Is_Active=True,
+            ),
+            NewsletterSection(
+                Id="myui-sec",
+                Newsletter_Type="myui",
+                Name="News and Updates",
+                Slug="news-and-updates",
+                Display_Order=1,
+                Is_Active=True,
+            ),
+        ])
+        await db.commit()
+
+    async def _newsletter_and_submission(
+        self, client: AsyncClient, staff_headers: dict[str, str]
+    ) -> tuple[str, str]:
+        nl_resp = await client.post(
+            "/api/v1/newsletters", json=make_newsletter_data(), headers=staff_headers
+        )
+        sub_resp = await client.post("/api/v1/submissions/", json=make_submission_data())
+        return nl_resp.json()["Id"], sub_resp.json()["Id"]
+
+    @pytest.mark.usefixtures("item_sections")
+    @pytest.mark.parametrize(
+        ("section_id", "submission_id"),
+        [("missing-section", None), ("myui-sec", None), ("sec-1", "missing-submission")],
+    )
+    async def test_add_item_rejects_unknown_references(
+        self,
+        client: AsyncClient,
+        staff_headers: dict[str, str],
+        section_id: str,
+        submission_id: str | None,
+    ):
+        """Bad references are a 422, not a database error (PostgreSQL enforces FKs)."""
+        nl_id, sub_id = await self._newsletter_and_submission(client, staff_headers)
+        resp = await client.post(
+            f"/api/v1/newsletters/{nl_id}/items",
+            json={
+                "Submission_Id": submission_id or sub_id,
+                "Section_Id": section_id,
+                "Final_Headline": "Test headline",
+                "Final_Body": "Test body",
+            },
+            headers=staff_headers,
+        )
+        assert resp.status_code == 422
+
+    @pytest.mark.usefixtures("item_sections")
+    async def test_moving_item_to_unknown_section_is_rejected(
+        self, client: AsyncClient, staff_headers: dict[str, str]
+    ):
+        nl_id, sub_id = await self._newsletter_and_submission(client, staff_headers)
+        item = await client.post(
+            f"/api/v1/newsletters/{nl_id}/items",
+            json={
+                "Submission_Id": sub_id,
+                "Section_Id": "sec-1",
+                "Final_Headline": "Test headline",
+                "Final_Body": "Test body",
+            },
+            headers=staff_headers,
+        )
+        resp = await client.patch(
+            f"/api/v1/newsletters/{nl_id}/items/{item.json()['Id']}",
+            json={"Section_Id": "missing-section"},
+            headers=staff_headers,
+        )
+        assert resp.status_code == 422
+
+    @pytest.mark.usefixtures("item_sections")
     async def test_add_item(self, client: AsyncClient, staff_headers: dict[str, str]):
         # Create newsletter and submission
         nl_resp = await client.post(
@@ -132,7 +212,7 @@ class TestNewsletterItems:
             f"/api/v1/newsletters/{nl_id}/items",
             json={
                 "Submission_Id": sub_id,
-                "Section_Id": "fake-section-id",
+                "Section_Id": "sec-1",
                 "Position": 0,
                 "Final_Headline": "Test headline",
                 "Final_Body": "Test body",
@@ -142,6 +222,7 @@ class TestNewsletterItems:
         assert resp.status_code == 201
         assert resp.json()["Final_Headline"] == "Test headline"
 
+    @pytest.mark.usefixtures("item_sections")
     async def test_remove_item(self, client: AsyncClient, staff_headers: dict[str, str]):
         nl_resp = await client.post(
             "/api/v1/newsletters",
@@ -171,6 +252,7 @@ class TestNewsletterItems:
         )
         assert resp.status_code == 204
 
+    @pytest.mark.usefixtures("item_sections")
     async def test_update_item_rejects_wrong_newsletter_parent(
         self, client: AsyncClient, staff_headers: dict[str, str]
     ):
@@ -215,6 +297,7 @@ class TestNewsletterItems:
         assert detail_resp.status_code == 200
         assert detail_resp.json()["Items"][0]["Final_Headline"] == "Original headline"
 
+    @pytest.mark.usefixtures("item_sections")
     async def test_remove_item_rejects_wrong_newsletter_parent(
         self, client: AsyncClient, staff_headers: dict[str, str]
     ):
