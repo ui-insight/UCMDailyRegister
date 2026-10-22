@@ -160,7 +160,7 @@ The LLM provider is selected at startup via the `LLM_PROVIDER` environment varia
 |--------------|------------------------------|----------------------------|----------------------------------|
 | `claude`     | Anthropic Claude API         | claude-sonnet-4-20250514   | Cloud API, requires API key      |
 | `openai`     | OpenAI API                   | gpt-4o                     | Cloud API, requires API key      |
-| `mindrouter` | U of I MindRouter (on-prem)  | openai/gpt-oss-120b        | On-prem, OpenAI-compatible API   |
+| `mindrouter` | U of I MindRouter (on-prem)  | moonshotai/kimi-k3         | On-prem, OpenAI-compatible API   |
 
 All providers implement a common `LLMProvider` interface with two methods:
 
@@ -210,5 +210,5 @@ Key implementation details:
     LLM_PROVIDER=mindrouter
     MINDROUTER_API_KEY=mr2_...
     MINDROUTER_ENDPOINT_URL=https://mindrouter.uidaho.edu/v1/chat/completions
-    MINDROUTER_MODEL=openai/gpt-oss-120b
+    MINDROUTER_MODEL=moonshotai/kimi-k3
     ```

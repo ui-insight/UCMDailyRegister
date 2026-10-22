@@ -68,7 +68,7 @@ Use structured JSON logging for machine parseability:
   "data": {
     "submission_id": "a1b2c3d4-...",
     "provider": "mindrouter",
-    "model": "openai/gpt-oss-120b",
+    "model": "moonshotai/kimi-k3",
     "token_count": 1247,
     "duration_ms": 3200,
     "confidence": 0.87
