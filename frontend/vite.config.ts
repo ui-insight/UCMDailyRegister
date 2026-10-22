@@ -17,6 +17,9 @@ export default defineConfig(({ mode }) => {
       setupFiles: './src/test/setup.ts',
       globals: true,
       css: true,
+      // Pin the newsletter's own timezone (Moscow, Idaho) so local-date tests
+      // behave the same on a UTC CI runner as on a staff laptop.
+      env: { TZ: 'America/Los_Angeles' },
     },
     server: {
       proxy: {
