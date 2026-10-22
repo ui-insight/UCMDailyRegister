@@ -10,6 +10,10 @@ else:
 - The working revision is what the Editor opens: the approved revision,
   else the newest staff final, else the newest AI suggestion, else the
   original snapshot.
+- The staff revision is the newest staff final. A save names the staff
+  revision it was based on; if another save has landed since, it is
+  rejected as stale rather than quietly superseding newer work. AI
+  suggestions never change it.
 - An edition item's copy is a snapshot taken at assembly. When the approved
   revision later changes, the item reports an upstream change; staff either
   refresh the copy from it or keep the edition copy. Nothing is overwritten
@@ -49,6 +53,19 @@ def _newest(submission: Submission, version_type: str) -> EditVersion | None:
     return max(candidates, key=lambda v: (v.Created_At, v.Id))
 
 
+def staff_revision(submission: Submission) -> EditVersion | None:
+    """The newest staff final: what a new save must be based on."""
+    return _newest(submission, "editor_final")
+
+
+class StaleRevision(Exception):
+    """A save was based on an older staff revision than the current one."""
+
+    def __init__(self, current: EditVersion | None):
+        super().__init__("A newer staff revision was saved.")
+        self.current = current
+
+
 def working_revision(submission: Submission) -> EditVersion | None:
     """The revision the Editor should open; None when no versions exist yet."""
     approved = approved_revision(submission)
@@ -82,15 +99,24 @@ async def save_final(
     body: str,
     headline_case: str | None,
     approve: bool,
+    base_revision_id: str | None = None,
+    check_base: bool = False,
 ) -> EditVersion:
     """Record a staff final and set approval to match.
 
     Approving makes this exact revision the approved one. Saving without
     approval leaves the submission in review with nothing approved, so an
     older approval cannot be published while staff are mid-revision.
+
+    With ``check_base``, raises StaleRevision when ``base_revision_id`` is
+    not the current staff revision, saving nothing.
     """
     if "Edit_Versions" in sa.inspect(submission).unloaded:
         await session.refresh(submission, ["Edit_Versions"])
+    if check_base:
+        current = staff_revision(submission)
+        if (current.Id if current else None) != base_revision_id:
+            raise StaleRevision(current)
     if not any(v.Version_Type == "original" for v in submission.Edit_Versions):
         # Snapshot the original so the timeline is complete even for purely
         # manual edits.

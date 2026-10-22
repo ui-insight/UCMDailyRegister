@@ -69,6 +69,7 @@ export interface Submission {
   Event_Classification: EventClassification | null;
   Approved_Version_Id: string | null;
   Working_Version_Id: string | null;
+  Staff_Revision_Id: string | null;
   Created_At: string;
   Updated_At: string;
   Links: SubmissionLink[];

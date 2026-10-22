@@ -66,6 +66,8 @@ export async function saveEditorFinal(
       Anchor_Text?: string;
       Display_Order?: number;
     }>;
+    /** Staff_Revision_Id the editor loaded; a newer save makes this a 409. */
+    Base_Staff_Revision_Id?: string | null;
   },
 ): Promise<EditVersion> {
   return apiFetch<EditVersion>(`/ai-edits/${submissionId}/finalize`, {

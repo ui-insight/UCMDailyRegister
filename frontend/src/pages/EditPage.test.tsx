@@ -10,6 +10,7 @@ import {
   updateSubmission,
 } from '../api/submissions';
 import { listEditVersions, saveEditorFinal, triggerAIEdit } from '../api/aiEdits';
+import { ApiError } from '../api/client';
 import type { AIEditResponse, EditVersion } from '../types/aiEdit';
 import type { Submission } from '../types/submission';
 import EditPage from './EditPage';
@@ -72,6 +73,7 @@ function makeSubmission(overrides: Partial<Submission> = {}): Submission {
     Event_Classification: null,
     Approved_Version_Id: null,
     Working_Version_Id: null,
+    Staff_Revision_Id: null,
     Created_At: '2026-04-01T12:00:00Z',
     Updated_At: '2026-04-01T12:00:00Z',
     Links: [],
@@ -315,6 +317,7 @@ describe('EditPage', () => {
         Body: 'Editor-improved AI body.',
         Headline_Case: 'title_case',
         Approve_For_Newsletter: true,
+        Base_Staff_Revision_Id: null,
       });
     });
   });
@@ -438,6 +441,7 @@ describe('EditPage', () => {
         Body: 'Administrative specialist III, College of Engineering, Boise',
         Headline_Case: 'sentence_case',
         Approve_For_Newsletter: true,
+        Base_Staff_Revision_Id: null,
       });
     });
   });
@@ -481,6 +485,7 @@ describe('EditPage', () => {
         Body: 'Reserve a seat. <a href="https://example.com/register">Sign up today</a>.',
         Headline_Case: 'sentence_case',
         Approve_For_Newsletter: false,
+        Base_Staff_Revision_Id: null,
         Links: [
           {
             Url: 'https://example.com/register',
@@ -517,6 +522,7 @@ describe('EditPage', () => {
         Body: 'Accepted AI body.',
         Headline_Case: 'title_case',
         Approve_For_Newsletter: true,
+        Base_Staff_Revision_Id: null,
       });
     });
     expect(
@@ -563,6 +569,7 @@ describe('EditPage', () => {
         Body: 'Administrative specialist III, College of Engineering, Boise',
         Headline_Case: 'sentence_case',
         Approve_For_Newsletter: true,
+        Base_Staff_Revision_Id: null,
       });
     });
   });
@@ -625,6 +632,7 @@ describe('EditPage', () => {
         Body: 'Original body copy for the newsletter.',
         Headline_Case: undefined,
         Approve_For_Newsletter: true,
+        Base_Staff_Revision_Id: null,
       });
     });
   });
@@ -654,6 +662,7 @@ describe('EditPage', () => {
         Body: 'Manual final body.',
         Headline_Case: undefined,
         Approve_For_Newsletter: true,
+        Base_Staff_Revision_Id: null,
       });
     });
     expect(
@@ -805,6 +814,7 @@ describe('EditPage', () => {
         Body: 'Reserve a seat. <a href="mailto:events@uidaho.edu">UCM events</a>.',
         Headline_Case: 'sentence_case',
         Approve_For_Newsletter: false,
+        Base_Staff_Revision_Id: null,
         Links: [
           {
             Url: 'mailto:events@uidaho.edu',
@@ -854,6 +864,7 @@ describe('EditPage', () => {
         ),
         Headline_Case: 'sentence_case',
         Approve_For_Newsletter: false,
+        Base_Staff_Revision_Id: null,
         Links: [
           {
             Url: 'https://example.com/register',
@@ -936,6 +947,7 @@ describe('EditPage', () => {
         Body: 'Reserve a seat.',
         Headline_Case: 'sentence_case',
         Approve_For_Newsletter: false,
+        Base_Staff_Revision_Id: null,
         Links: [],
       });
     });
@@ -1035,6 +1047,100 @@ describe('EditPage', () => {
     });
   });
 
+  it('sends the staff revision the view was loaded with', async () => {
+    const user = userEvent.setup();
+    getSubmissionMock.mockResolvedValue(makeSubmission({
+      Working_Version_Id: 'version-final',
+      Staff_Revision_Id: 'version-final',
+    }));
+    listEditVersionsMock.mockResolvedValue([
+      makeVersion({ Id: 'version-final', Version_Type: 'editor_final', Body: 'Saved body.' }),
+    ]);
+
+    renderEditPage();
+    await screen.findByDisplayValue('Saved body.');
+    await user.click(screen.getByRole('button', { name: /save draft/i }));
+
+    await waitFor(() => {
+      expect(saveEditorFinalMock).toHaveBeenCalledWith('submission-1', expect.objectContaining({
+        Base_Staff_Revision_Id: 'version-final',
+      }));
+    });
+  });
+
+  describe('when someone else saved first', () => {
+    const conflict = new ApiError(409, {
+      message: 'Someone saved a newer version while you were editing.',
+      Status: 'approved',
+      Current_Revision: {
+        Id: 'version-theirs',
+        Headline: 'Their approved headline',
+        Body: 'Their approved body.',
+        Approved: true,
+      },
+    });
+
+    async function saveIntoConflict(user: ReturnType<typeof userEvent.setup>) {
+      getSubmissionMock.mockResolvedValue(makeSubmission({
+        Working_Version_Id: 'version-mine',
+        Staff_Revision_Id: 'version-mine',
+      }));
+      listEditVersionsMock.mockResolvedValue([
+        makeVersion({ Id: 'version-mine', Version_Type: 'editor_final', Body: 'My earlier body.' }),
+      ]);
+      saveEditorFinalMock.mockRejectedValueOnce(conflict);
+      renderEditPage();
+      const body = await screen.findByPlaceholderText('Enter body text...');
+      await user.clear(body);
+      await user.type(body, 'My unsaved body.');
+      await user.click(screen.getByRole('button', { name: /save draft/i }));
+      return screen.findByRole('region', { name: 'Save conflict' });
+    }
+
+    it('shows their version beside the unsaved text without losing it', async () => {
+      const user = userEvent.setup();
+      const panel = await saveIntoConflict(user);
+
+      expect(panel).toHaveTextContent('Nothing was saved');
+      expect(within(panel).getByText('Newer saved version (approved)')).toBeInTheDocument();
+      expect(within(panel).getByText('Their approved body.')).toBeInTheDocument();
+      expect(within(panel).getByText('My unsaved body.')).toBeInTheDocument();
+      expect(screen.getByPlaceholderText('Enter body text...')).toHaveValue('My unsaved body.');
+    });
+
+    it('saves the unsaved text over theirs only when asked', async () => {
+      const user = userEvent.setup();
+      const panel = await saveIntoConflict(user);
+
+      await user.click(within(panel).getByRole('button', { name: 'Save mine instead' }));
+
+      await waitFor(() => {
+        expect(saveEditorFinalMock).toHaveBeenLastCalledWith('submission-1', expect.objectContaining({
+          Body: 'My unsaved body.',
+          Base_Staff_Revision_Id: 'version-theirs',
+          Approve_For_Newsletter: false,
+        }));
+      });
+      await waitFor(() => {
+        expect(screen.queryByRole('region', { name: 'Save conflict' })).not.toBeInTheDocument();
+      });
+    });
+
+    it('discards the unsaved text and reloads their version', async () => {
+      const user = userEvent.setup();
+      const panel = await saveIntoConflict(user);
+      const loadsBefore = getSubmissionMock.mock.calls.length;
+
+      await user.click(within(panel).getByRole('button', { name: 'Discard mine and load theirs' }));
+
+      await waitFor(() => {
+        expect(getSubmissionMock.mock.calls.length).toBeGreaterThan(loadsBefore);
+      });
+      expect(screen.queryByRole('region', { name: 'Save conflict' })).not.toBeInTheDocument();
+      expect(saveEditorFinalMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it('keeps the explicit draft action distinct from approval', async () => {
     const user = userEvent.setup();
 
@@ -1050,6 +1156,7 @@ describe('EditPage', () => {
         Body: 'Original body copy for the newsletter.',
         Headline_Case: undefined,
         Approve_For_Newsletter: false,
+        Base_Staff_Revision_Id: null,
       });
     });
     expect(

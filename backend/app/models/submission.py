@@ -112,6 +112,16 @@ class Submission(Base):
     )
 
     @property
+    def Staff_Revision_Id(self) -> str | None:
+        """The newest staff final; saves send it back to detect stale views."""
+        from app.services.editorial_content import staff_revision
+
+        if "Edit_Versions" in sa.inspect(self).unloaded:
+            return None
+        version = staff_revision(self)
+        return version.Id if version else None
+
+    @property
     def Working_Version_Id(self) -> str | None:
         """The revision the Editor opens; see editorial_content.working_revision.
 

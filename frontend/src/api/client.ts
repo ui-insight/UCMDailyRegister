@@ -10,9 +10,29 @@ function getAuthHeaders(): HeadersInit {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+/** An API failure that keeps its HTTP status and structured detail. */
+export class ApiError extends Error {
+  readonly status: number;
+  readonly detail: unknown;
+
+  constructor(status: number, detail: unknown) {
+    super(formatApiError(detail));
+    this.name = 'ApiError';
+    this.status = status;
+    this.detail = detail;
+  }
+}
+
 export function formatApiError(detail: unknown): string {
   if (typeof detail === 'string') {
     return detail;
+  }
+
+  if (
+    detail && typeof detail === 'object' && !Array.isArray(detail)
+    && 'message' in detail && typeof detail.message === 'string'
+  ) {
+    return detail.message;
   }
 
   if (Array.isArray(detail)) {
@@ -78,7 +98,7 @@ export async function apiFetch<T>(
       clearToken();
     }
     const error = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(formatApiError(error.detail ?? error));
+    throw new ApiError(res.status, error.detail ?? error);
   }
   if (res.status === 204 || res.status === 205) {
     return undefined as T;

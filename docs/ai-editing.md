@@ -114,6 +114,16 @@ Once the AI pipeline produces an edit, the editor reviews changes on the **AI Su
 
 All modes display flags and a changes-made summary below the comparison or editor.
 
+### Two editors, or a slow AI edit
+
+Each save names the staff revision the editor's view was loaded with. If
+another editor saved in the meantime, nothing is saved: the Editor shows the
+newer version beside the unsaved text, and staff either load the newer version
+or deliberately save theirs over it. An AI edit that finishes after staff saved
+or approved the item keeps its suggestion in the history but leaves the status
+and approval alone; only a submission still awaiting review becomes
+"AI edited".
+
 ### Links in Live View and Final Edit
 
 Each link pairs a destination with the exact words in the body that carry it.
