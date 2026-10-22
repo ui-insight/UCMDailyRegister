@@ -127,7 +127,7 @@ The edit response includes `AI_Provider` and `AI_Model` fields so the UI can dis
 | Method | Path                                                  | Description                            |
 |--------|-------------------------------------------------------|----------------------------------------|
 | POST   | `/api/v1/newsletters/assemble`                        | Auto-assemble issue content            |
-| GET    | `/api/v1/newsletters/{id}/export`                     | Export newsletter as .docx             |
+| GET    | `/api/v1/newsletters/{id}/export`                     | Export newsletter as .docx; inline links become clickable hyperlinks (https and mailto only) |
 
 ## Recurring Messages
 
