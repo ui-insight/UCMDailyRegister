@@ -1,5 +1,5 @@
 import { apiFetch } from './client';
-import type { LinkFinding, NewsletterSection } from '../types/newsletter';
+import type { LinkFinding, NewsletterSection, UpstreamChange } from '../types/newsletter';
 
 interface NewsletterResponse {
   Id: string;
@@ -20,6 +20,8 @@ export interface NewsletterItemResponse {
   Final_Body: string;
   Run_Number: number;
   Source_Version_Id: string | null;
+  Edition_Edited: boolean;
+  Upstream_Change: UpstreamChange | null;
   Link_Findings: LinkFinding[];
 }
 
@@ -144,6 +146,28 @@ export async function updateNewsletterItem(
     method: 'PATCH',
     body: JSON.stringify(data),
   });
+}
+
+/** Replace an edition item's copy with its submission's approved revision. */
+export async function refreshNewsletterItemFromApproved(
+  newsletterId: string,
+  itemId: string,
+): Promise<NewsletterItemResponse> {
+  return apiFetch<NewsletterItemResponse>(
+    `/newsletters/${newsletterId}/items/${itemId}/refresh-from-approved`,
+    { method: 'POST' },
+  );
+}
+
+/** Keep an edition item's copy instead of its submission's newer approved revision. */
+export async function keepNewsletterItemEditionCopy(
+  newsletterId: string,
+  itemId: string,
+): Promise<NewsletterItemResponse> {
+  return apiFetch<NewsletterItemResponse>(
+    `/newsletters/${newsletterId}/items/${itemId}/keep-edition-copy`,
+    { method: 'POST' },
+  );
 }
 
 export async function listCalendarEvents(

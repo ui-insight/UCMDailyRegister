@@ -104,7 +104,9 @@ The edit response includes `AI_Provider` and `AI_Model` fields so the UI can dis
 | Method | Path                                                          | Description                      |
 |--------|---------------------------------------------------------------|----------------------------------|
 | POST   | `/api/v1/newsletters/{id}/items`                              | Add an item to the newsletter    |
-| PATCH  | `/api/v1/newsletters/{id}/items/{item_id}`                    | Update item (section, order)     |
+| PATCH  | `/api/v1/newsletters/{id}/items/{item_id}`                    | Update item (section, order, copy; changed copy sets `Edition_Edited`) |
+| POST   | `/api/v1/newsletters/{id}/items/{item_id}/refresh-from-approved` | Replace the item's copy with the submission's approved revision (409 if none) |
+| POST   | `/api/v1/newsletters/{id}/items/{item_id}/keep-edition-copy` | Keep the item's copy and stop flagging the current approved revision (409 if none) |
 | PATCH  | `/api/v1/newsletters/{id}/external-items/{item_id}`           | Update an imported external item |
 | DELETE | `/api/v1/newsletters/{id}/items/{item_id}`                    | Remove an item                   |
 | DELETE | `/api/v1/newsletters/{id}/external-items/{item_id}`           | Remove an imported external item |

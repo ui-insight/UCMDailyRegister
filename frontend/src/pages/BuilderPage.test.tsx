@@ -9,6 +9,8 @@ const newsletterApiMocks = vi.hoisted(() => ({
   addJobPosting: vi.fn(),
   assembleNewsletter: vi.fn(),
   getNewsletter: vi.fn(),
+  keepNewsletterItemEditionCopy: vi.fn(),
+  refreshNewsletterItemFromApproved: vi.fn(),
   listCalendarEvents: vi.fn(),
   listJobPostings: vi.fn(),
   listNewsletters: vi.fn(),
@@ -182,6 +184,50 @@ describe('BuilderPage staff-only sections', () => {
     expect(
       within(moveMenu).getByRole('option', { name: 'Reminders for your students' }),
     ).toHaveValue('section-student-reminders');
+  });
+
+  it.each([
+    ['Use approved copy', 'refreshNewsletterItemFromApproved', 'Edition updated to the approved copy'],
+    ['Keep edition copy', 'keepNewsletterItemEditionCopy', 'Edition copy kept'],
+  ] as const)('offers "%s" when a newer approved version differs', async (button, apiCall, toast) => {
+    const user = userEvent.setup();
+    const changedItem = {
+      ...tdrNewsletter.Items[0],
+      Final_Body: 'Edition copy edited in the Builder.',
+      Edition_Edited: true,
+      Upstream_Change: {
+        Id: 'version-2',
+        Headline: 'Registration reminder, updated',
+        Body: 'Newer approved copy. <a href="https://example.com/register">Register</a>.',
+      },
+    };
+    newsletterApiMocks.assembleNewsletter.mockResolvedValue({ ...tdrNewsletter, Items: [changedItem] });
+    newsletterApiMocks[apiCall].mockResolvedValue({ ...changedItem, Upstream_Change: null });
+    newsletterApiMocks.getNewsletter.mockResolvedValue({
+      ...tdrNewsletter,
+      Items: [{ ...changedItem, Upstream_Change: null }],
+    });
+    render(<BuilderPage />);
+
+    const publishDateInput = document.querySelector<HTMLInputElement>('input[type="date"]');
+    await user.clear(publishDateInput!);
+    await user.type(publishDateInput!, '2026-08-25');
+    await user.click(screen.getAllByRole('button', { name: 'Assemble Newsletter' })[0]);
+
+    const panel = await screen.findByRole('region', { name: 'Newer approved copy' });
+    expect(panel).toHaveTextContent('which was edited in the Builder');
+    expect(within(panel).getByText('Registration reminder, updated')).toBeInTheDocument();
+    expect(within(panel).getByRole('link', { name: 'Register' })).toBeInTheDocument();
+    expect(screen.getByText('Edited in edition')).toBeInTheDocument();
+    expect(screen.getByText('1 item has newer approved copy')).toBeInTheDocument();
+
+    await user.click(within(panel).getByRole('button', { name: button }));
+
+    expect(newsletterApiMocks[apiCall]).toHaveBeenCalledWith('tdr-newsletter-1', 'newsletter-item-1');
+    expect(await screen.findByText(toast)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByRole('region', { name: 'Newer approved copy' })).not.toBeInTheDocument();
+    });
   });
 
   it('counts items with link problems beside the export button', async () => {

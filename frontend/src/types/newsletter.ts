@@ -29,7 +29,16 @@ export interface NewsletterItem {
   Final_Body: string;
   Run_Number: number;
   Source_Version_Id: string | null;
+  Edition_Edited: boolean;
+  Upstream_Change: UpstreamChange | null;
   Link_Findings: LinkFinding[];
+}
+
+/** A newer approved revision an edition item does not reflect; mirrors UpstreamChangeResponse. */
+export interface UpstreamChange {
+  Id: string;
+  Headline: string;
+  Body: string;
 }
 
 /** A link problem to resolve before export; mirrors LinkFindingResponse. */

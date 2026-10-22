@@ -10,6 +10,10 @@ else:
 - The working revision is what the Editor opens: the approved revision,
   else the newest staff final, else the newest AI suggestion, else the
   original snapshot.
+- An edition item's copy is a snapshot taken at assembly. When the approved
+  revision later changes, the item reports an upstream change; staff either
+  refresh the copy from it or keep the edition copy. Nothing is overwritten
+  without that choice.
 
 Version timestamps are only a display order. Several versions can share a
 timestamp, so approval is recorded as a pointer, and "newest" is used only to
@@ -20,6 +24,7 @@ import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.edit_history import EditVersion
+from app.models.newsletter import NewsletterItem
 from app.models.submission import Submission
 
 # Staff work outranks AI suggestions, which outrank the untouched original.
@@ -109,3 +114,40 @@ async def save_final(
     submission.Approved_Version_Id = version.Id if approve else None
     submission.Status = "approved" if approve else "in_review"
     return version
+
+
+def upstream_change(item: NewsletterItem) -> EditVersion | None:
+    """The approved revision an item's copy does not reflect, unless staff kept theirs."""
+    state = sa.inspect(item)
+    if "Submission_Rel" in state.unloaded or item.Submission_Rel is None:
+        return None
+    if "Edit_Versions" in sa.inspect(item.Submission_Rel).unloaded:
+        return None
+    approved = approved_revision(item.Submission_Rel)
+    if approved is None or approved.Id in (item.Source_Version_Id, item.Upstream_Reviewed_Version_Id):
+        return None
+    return approved
+
+
+class NoApprovedRevision(Exception):
+    """The item's submission has no approved revision to refresh from."""
+
+
+def refresh_from_approved(item: NewsletterItem) -> None:
+    """Replace an item's copy with its submission's approved revision."""
+    approved = approved_revision(item.Submission_Rel) if item.Submission_Rel else None
+    if approved is None:
+        raise NoApprovedRevision
+    item.Final_Headline = approved.Headline
+    item.Final_Body = approved.Body
+    item.Source_Version_Id = approved.Id
+    item.Edition_Edited = False
+    item.Upstream_Reviewed_Version_Id = None
+
+
+def keep_edition_copy(item: NewsletterItem) -> None:
+    """Keep the item's copy and stop flagging the current approved revision."""
+    approved = approved_revision(item.Submission_Rel) if item.Submission_Rel else None
+    if approved is None:
+        raise NoApprovedRevision
+    item.Upstream_Reviewed_Version_Id = approved.Id
