@@ -1,12 +1,19 @@
 """Word document export for newsletters using python-docx."""
 
 import io
-import re
 from datetime import date
 
 from docx import Document
-from docx.shared import Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.opc.constants import RELATIONSHIP_TYPE
+from docx.oxml import OxmlElement
+from docx.oxml.ns import qn
+from docx.shared import Pt, RGBColor
+from docx.text.paragraph import Paragraph
+
+from app.utils.body_links import parse_body
+
+LINK_COLOR = "0056B3"
 
 
 def export_newsletter_docx(
@@ -21,7 +28,7 @@ def export_newsletter_docx(
         publish_date: The publish date
         sections: List of section dicts, each with:
             - name: Section name
-            - items: List of item dicts with 'final_headline', 'final_body'
+            - items: List of item dicts with 'Final_Headline', 'Final_Body'
 
     Returns:
         BytesIO buffer containing the .docx file
@@ -73,7 +80,6 @@ def export_newsletter_docx(
                 h_run.bold = True
                 h_run.font.size = Pt(11)
 
-            # Body — parse HTML anchor tags into hyperlinks
             _add_body_with_links(doc, body)
 
             doc.add_paragraph()  # Spacer between items
@@ -95,35 +101,42 @@ def export_newsletter_docx(
 
 
 def _add_body_with_links(doc: Document, body: str) -> None:
-    """Add body text to the document, converting HTML <a> tags to styled text.
-
-    Since python-docx doesn't natively support hyperlinks easily,
-    we render link text as blue underlined text with the URL in parentheses.
-    """
-    # Pattern to match <a href="url">text</a>
-    link_pattern = re.compile(r'<a\s+href=["\']([^"\']+)["\']>([^<]+)</a>', re.IGNORECASE)
-
+    """Add body text, turning each inline link into a clickable Word hyperlink."""
     para = doc.add_paragraph()
-    last_end = 0
-
-    for match in link_pattern.finditer(body):
-        # Add text before the link
-        if match.start() > last_end:
-            before_text = body[last_end:match.start()]
-            run = para.add_run(before_text)
+    for segment in parse_body(body):
+        if segment.href:
+            _add_hyperlink(para, segment.href, segment.text)
+        else:
+            run = para.add_run(segment.text)
             run.font.size = Pt(11)
 
-        # Add link text (blue, underlined)
-        link_text = match.group(2)
-        link_run = para.add_run(link_text)
-        link_run.font.size = Pt(11)
-        link_run.font.color.rgb = RGBColor(0x00, 0x56, 0xB3)
-        link_run.font.underline = True
 
-        last_end = match.end()
+def _add_hyperlink(paragraph: Paragraph, url: str, text: str) -> None:
+    """Append ``text`` as an external hyperlink to ``url``.
 
-    # Add remaining text after last link
-    if last_end < len(body):
-        remaining = body[last_end:]
-        run = para.add_run(remaining)
-        run.font.size = Pt(11)
+    python-docx has no hyperlink API, so this writes the w:hyperlink element
+    and its relationship directly; the destination lives in the relationship.
+    """
+    rel_id = paragraph.part.relate_to(url, RELATIONSHIP_TYPE.HYPERLINK, is_external=True)
+    hyperlink = OxmlElement("w:hyperlink")
+    hyperlink.set(qn("r:id"), rel_id)
+
+    run = OxmlElement("w:r")
+    run_props = OxmlElement("w:rPr")
+    # Child order follows the WordprocessingML schema: color, sz, u.
+    for tag, value in (("w:color", LINK_COLOR), ("w:sz", "22"), ("w:u", "single")):
+        prop = OxmlElement(tag)
+        prop.set(qn("w:val"), value)
+        run_props.append(prop)
+    run.append(run_props)
+
+    for index, line in enumerate(text.split("\n")):
+        if index:
+            run.append(OxmlElement("w:br"))
+        text_el = OxmlElement("w:t")
+        text_el.set(qn("xml:space"), "preserve")
+        text_el.text = line
+        run.append(text_el)
+
+    hyperlink.append(run)
+    paragraph._p.append(hyperlink)
