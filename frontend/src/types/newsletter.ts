@@ -29,6 +29,15 @@ export interface NewsletterItem {
   Final_Body: string;
   Run_Number: number;
   Source_Version_Id: string | null;
+  Link_Findings: LinkFinding[];
+}
+
+/** A link problem to resolve before export; mirrors LinkFindingResponse. */
+export interface LinkFinding {
+  Kind: 'unsafe_link' | 'tracking_link' | 'bare_url' | 'missing_submitted_link';
+  Text: string | null;
+  Href: string | null;
+  Suggested_Href: string | null;
 }
 
 export interface NewsletterExternalItem {
@@ -44,4 +53,5 @@ export interface NewsletterExternalItem {
   Position: number;
   Final_Headline: string;
   Final_Body: string;
+  Link_Findings: LinkFinding[];
 }

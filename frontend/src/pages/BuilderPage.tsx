@@ -26,10 +26,11 @@ import type {
   JobPostingCandidate,
   NewsletterDetailResponse,
 } from '../api/newsletters';
-import type { NewsletterSection } from '../types/newsletter';
+import type { LinkFinding, NewsletterSection } from '../types/newsletter';
 import type { RecurringMessageIssueCandidate } from '../types/recurringMessage';
 import { EmptyState, Toast, useToast } from '../components/common';
 import RichBody from '../components/editor/RichBody';
+import LinkCheck from '../components/newsletter/LinkCheck';
 import {
   buildLinkedBody,
   prepareBodyForEditing,
@@ -46,6 +47,7 @@ interface BuilderSectionItemBase {
   Position: number;
   Final_Headline: string;
   Final_Body: string;
+  Link_Findings: LinkFinding[];
 }
 
 interface SubmissionDragState {
@@ -745,6 +747,7 @@ export default function BuilderPage() {
       Position: item.Position,
       Final_Headline: item.Final_Headline,
       Final_Body: item.Final_Body,
+      Link_Findings: item.Link_Findings,
       Kind: item.Source_Type === 'job_posting'
         ? 'job_posting'
         : item.Source_Type === 'recurring_message'
@@ -771,6 +774,11 @@ export default function BuilderPage() {
       );
     }
   }
+
+  const itemsWithLinkProblems = newsletter
+    ? [...newsletter.Items, ...newsletter.External_Items]
+      .filter((item) => item.Link_Findings.length > 0).length
+    : 0;
 
   const isDropIndicatorVisible = (sectionId: string, index: number) => (
     dragState?.overSectionId === sectionId && dragState.overIndex === index
@@ -864,6 +872,16 @@ export default function BuilderPage() {
               >
                 Export Word Doc
               </a>
+              {itemsWithLinkProblems > 0 && (
+                <span
+                  role="status"
+                  className="rounded-full bg-status-warning-100 px-3 py-1 text-xs font-medium text-status-warning-800"
+                >
+                  {itemsWithLinkProblems === 1
+                    ? '1 item has a link problem'
+                    : `${itemsWithLinkProblems} items have link problems`}
+                </span>
+              )}
               <select
                 value={newsletter.Status}
                 onChange={(e) => handleStatusChange(e.target.value)}
@@ -1435,6 +1453,7 @@ export default function BuilderPage() {
                                           text={item.Final_Body}
                                           className="mt-2 max-w-[75ch] text-xs leading-5 text-gray-600"
                                         />
+                                        <LinkCheck body={item.Final_Body} findings={item.Link_Findings} />
                                         {item.Kind === 'submission' && item.Run_Number > 1 && (
                                           <span className="text-xs text-ui-gold-600 mt-1 inline-block">
                                             Run #{item.Run_Number}
