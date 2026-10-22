@@ -115,6 +115,13 @@ npm test
 !!! tip "Test Database"
     Tests use an in-memory SQLite database by default. No setup is required beyond installing dependencies.
 
+    Production runs PostgreSQL, which enforces foreign keys and stores timestamps differently, so CI also runs the whole suite against PostgreSQL. To do the same locally, point `TEST_DATABASE_URL` at an empty database (the suite creates and drops every table):
+
+    ```bash
+    docker run -d --rm --name ucm-test-pg -e POSTGRES_PASSWORD=pg -e POSTGRES_DB=ucmnews_test -p 55433:5432 postgres:16-alpine
+    TEST_DATABASE_URL=postgresql+asyncpg://postgres:pg@127.0.0.1:55433/ucmnews_test pytest
+    ```
+
 ## Adding a New API Resource
 
 When adding a new resource (e.g., `Comment`):

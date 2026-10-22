@@ -28,7 +28,7 @@ jobs:
         run: pytest
 
   backend-postgres:
-    name: Backend Postgres Smoke
+    name: Backend Postgres
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -68,6 +68,14 @@ jobs:
           fi
       - name: PostgreSQL smoke test
         run: python tests/postgres_smoke.py
+      - name: Create test database
+        env:
+          PGPASSWORD: postgres
+        run: psql -h 127.0.0.1 -U postgres -c "CREATE DATABASE ucmnews_test"
+      - name: Pytest on PostgreSQL
+        env:
+          TEST_DATABASE_URL: postgresql+asyncpg://postgres:postgres@127.0.0.1:5432/ucmnews_test
+        run: pytest
 
   frontend:
     name: Frontend

@@ -9,7 +9,9 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, require_staff
+from app.models.newsletter import Newsletter
 from app.models.section import NewsletterSection
+from app.models.submission import Submission
 from app.services import (
     calendar_event_service,
     job_posting_service,
@@ -137,6 +139,13 @@ async def delete_newsletter(
 # --- Items ---
 
 
+async def _require_section_for(db: AsyncSession, newsletter: Newsletter, section_id: str) -> None:
+    """Reject a section that does not exist or belongs to the other newsletter."""
+    section = await db.get(NewsletterSection, section_id)
+    if section is None or section.Newsletter_Type != newsletter.Newsletter_Type:
+        raise HTTPException(status_code=422, detail="Section not found for this newsletter")
+
+
 @router.post("/{newsletter_id}/items", response_model=NewsletterItemResponse, status_code=201)
 async def add_item(
     newsletter_id: str,
@@ -148,6 +157,9 @@ async def add_item(
     newsletter = await newsletter_service.get_newsletter(db, newsletter_id)
     if not newsletter:
         raise HTTPException(status_code=404, detail="Newsletter not found")
+    await _require_section_for(db, newsletter, data.Section_Id)
+    if await db.get(Submission, data.Submission_Id) is None:
+        raise HTTPException(status_code=422, detail="Submission not found")
     item = await newsletter_service.add_item(
         db,
         newsletter_id=newsletter_id,
@@ -488,6 +500,11 @@ async def update_item(
 ):
     """Update a newsletter item."""
     update_data = data.model_dump(exclude_unset=True)
+    if data.Section_Id is not None:
+        newsletter = await db.get(Newsletter, newsletter_id)
+        if newsletter is None:
+            raise HTTPException(status_code=404, detail="Item not found")
+        await _require_section_for(db, newsletter, data.Section_Id)
     item = await newsletter_service.update_item(db, newsletter_id, item_id, **update_data)
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
