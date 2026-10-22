@@ -1,17 +1,57 @@
+import { findMentions, resolvedLinkStart } from '../../utils/bodyLinks';
+
 export interface LinkEntry {
   Url: string;
   Anchor_Text: string;
+  /** Offset of the chosen mention in `body`; see EditableBodyLink.Start. */
+  Start?: number;
 }
 
 interface Props {
   links: LinkEntry[];
   onChange: (links: LinkEntry[]) => void;
   onAnchorCommit?: (index: number, previousValue: string, nextValue: string) => void;
+  /**
+   * The plain body these links attach to. When given, each link shows where
+   * its words are and, if they appear more than once, which mention to link.
+   */
+  body?: string;
+  onMentionChange?: (index: number, start: number) => void;
   label?: string;
   description?: string;
 }
 
 const MAX_LINKS = 3;
+const CONTEXT_CHARS = 28;
+const ORDINALS = ['1st', '2nd', '3rd'];
+
+function ordinal(n: number): string {
+  return ORDINALS[n - 1] ?? `${n}th`;
+}
+
+/** "…words before [linked words] words after…" for one mention. */
+function mentionContext(body: string, start: number, length: number): string {
+  const from = Math.max(0, start - CONTEXT_CHARS);
+  const to = Math.min(body.length, start + length + CONTEXT_CHARS);
+  const clean = (text: string) => text.replace(/\s+/g, ' ');
+  let before = body.slice(from, start);
+  let after = body.slice(start + length, to);
+  // Show whole words only at the cut edges.
+  if (from > 0 && !/\s/.test(body[from - 1])) before = before.replace(/^\S*/, '');
+  if (to < body.length && !/\s/.test(body[to])) after = after.replace(/\S*$/, '');
+  return [
+    from > 0 ? '…' : '',
+    clean(before).trimStart(),
+    `[${clean(body.slice(start, start + length))}]`,
+    clean(after).trimEnd(),
+    to < body.length ? '…' : '',
+  ].join('');
+}
+
+function hasDestination(url: string): boolean {
+  const trimmed = url.trim();
+  return Boolean(trimmed) && trimmed !== 'mailto:';
+}
 
 function ensureSlots(links: LinkEntry[]): LinkEntry[] {
   const slots = [...links];
@@ -25,6 +65,8 @@ export default function LinkEditor({
   links,
   onChange,
   onAnchorCommit,
+  body,
+  onMentionChange,
   label = 'Links to Embed',
   description = `Add up to ${MAX_LINKS} web URLs or email addresses to embed in your announcement.`,
 }: Props) {
@@ -138,6 +180,14 @@ export default function LinkEditor({
                   />
                 </div>
               </div>
+              {body !== undefined && link.Anchor_Text.trim() && (
+                <LinkPlacement
+                  index={index}
+                  body={body}
+                  link={link}
+                  onMentionChange={onMentionChange}
+                />
+              )}
               {emailMode && (
                 <p className="text-[11px] text-gray-400 mt-1.5">
                   For individual email addresses, use the person's name as the link text. For general addresses, the email address itself is fine.
@@ -147,6 +197,60 @@ export default function LinkEditor({
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function LinkPlacement({
+  index,
+  body,
+  link,
+  onMentionChange,
+}: {
+  index: number;
+  body: string;
+  link: LinkEntry;
+  onMentionChange?: (index: number, start: number) => void;
+}) {
+  const words = link.Anchor_Text.trim();
+  const mentions = findMentions(body, words);
+  const current = resolvedLinkStart(body, link);
+
+  if (mentions.length === 0) {
+    return hasDestination(link.Url) ? (
+      <p role="status" className="mt-2 text-xs text-status-warning-800">
+        These words aren&apos;t in the body, so this link can&apos;t be saved. Add them to the body,
+        or change them to words that are there.
+      </p>
+    ) : null;
+  }
+
+  if (mentions.length === 1) {
+    return (
+      <p className="mt-2 text-[11px] text-gray-500">
+        Linked text: {mentionContext(body, mentions[0], words.length)}
+      </p>
+    );
+  }
+
+  const selectId = `submission-link-${index}-mention`;
+  return (
+    <div className="mt-2">
+      <label htmlFor={selectId} className="block text-xs text-gray-500 mb-1">
+        These words appear {mentions.length} times. Which one gets the link?
+      </label>
+      <select
+        id={selectId}
+        value={current ?? mentions[0]}
+        onChange={(e) => onMentionChange?.(index, Number(e.target.value))}
+        className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
+      >
+        {mentions.map((start, mentionIndex) => (
+          <option key={start} value={start}>
+            {ordinal(mentionIndex + 1)}: {mentionContext(body, start, words.length)}
+          </option>
+        ))}
+      </select>
     </div>
   );
 }

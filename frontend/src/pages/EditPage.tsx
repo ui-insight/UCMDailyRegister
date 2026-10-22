@@ -24,10 +24,11 @@ import LinkEditor, { type LinkEntry } from '../components/submission/LinkEditor'
 import { getSubmitterRole } from '../utils/submitterRole';
 import {
   buildLinkedBody,
+  commitLinkLabel,
   normalizedBodyLinks,
   prepareBodyForEditing,
-  synchronizeBodyWithLinkLabel,
   synchronizeLinksWithBodyChange,
+  unattachedLinks,
 } from '../utils/bodyLinks';
 import { buildEditorScheduleRequest } from '../utils/editorSchedule';
 import { Button, SegmentedToggle, Toast, useToast } from '../components/common';
@@ -217,19 +218,36 @@ export default function EditPage() {
   };
 
   const handleLinkAnchorCommit = (
-    _index: number,
+    index: number,
     previousValue: string,
     nextValue: string,
   ) => {
-    setEditBody((body) => synchronizeBodyWithLinkLabel(
-      body,
-      previousValue,
-      nextValue,
-    ));
+    const link = editLinks[index] ?? { Url: '', Anchor_Text: '' };
+    const result = commitLinkLabel(editBody, { ...link, Anchor_Text: previousValue }, nextValue);
+    setEditBody(result.body);
+    setEditLinks((links) => links.map((candidate, candidateIndex) => (
+      candidateIndex === index ? { ...candidate, Start: result.link.Start } : candidate
+    )));
+  };
+
+  const handleLinkMentionChange = (index: number, start: number) => {
+    setEditLinks((links) => links.map((link, linkIndex) => (
+      linkIndex === index ? { ...link, Start: start } : link
+    )));
   };
 
   const handleFinalize = async (approveForNewsletter: boolean) => {
     if (!id) return;
+    const missing = unattachedLinks(editBody, editLinks);
+    if (missing.length) {
+      // Saving would silently drop these links and their destinations.
+      const words = missing.map((link) => `"${link.Anchor_Text.trim() || link.Url.trim()}"`).join(', ');
+      setError(
+        `Link text ${words} isn't in the body, so the link would be lost. `
+          + 'Add the words to the body, change the link text, or clear the link.',
+      );
+      return;
+    }
     setFinalizationAction(approveForNewsletter ? 'approve' : 'draft');
     setError(null);
     try {
@@ -245,8 +263,15 @@ export default function EditPage() {
         Body: buildLinkedBody(editBody, links),
         Headline_Case: sourceVersion?.Headline_Case || undefined,
         Approve_For_Newsletter: approveForNewsletter,
+        // Start is editor state; the saved body already records each link's place.
         ...((submission?.Links.length ?? 0) > 0 || links.length > 0
-          ? { Links: links }
+          ? {
+            Links: links.map(({ Url, Anchor_Text, Display_Order }) => ({
+              Url,
+              Anchor_Text,
+              Display_Order,
+            })),
+          }
           : {}),
       });
       showToast(
@@ -516,6 +541,8 @@ export default function EditPage() {
           links={editLinks}
           onChange={setEditLinks}
           onAnchorCommit={handleLinkAnchorCommit}
+          body={editBody}
+          onMentionChange={handleLinkMentionChange}
           label="Links and CTA text"
           description="Link text stays readable in the body while its destination is edited here. Add a secure web URL or an email address."
         />
