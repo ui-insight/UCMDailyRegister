@@ -9,8 +9,15 @@ from docx.oxml.ns import qn
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.newsletter import NewsletterExternalItem
 from app.models.section import NewsletterSection
-from app.utils.body_links import BodySegment, is_safe_destination, parse_body
+from app.utils.body_links import (
+    BodySegment,
+    LinkFinding,
+    check_body,
+    is_safe_destination,
+    parse_body,
+)
 from app.utils.export import export_newsletter_docx
 from tests.conftest import make_submission_data
 
@@ -185,3 +192,97 @@ async def test_approved_link_reaches_the_exported_word_file(
     ]
     # The earlier, informational mention stays plain text.
     assert ("Email the Library about extended hours. Questions? ", None) in runs
+
+
+PROOFPOINT = "https://urldefense.com/v3/__https://www.eventbrite.com/e/tapas__;!!JYXjzlvb!abc$"
+
+
+class TestCheckBody:
+    def test_clean_body_has_no_findings(self):
+        assert check_body('Visit <a href="https://uidaho.edu">the site</a>.') == []
+
+    def test_unsafe_link(self):
+        assert check_body('Go <a href="http://example.com">here</a>') == [
+            LinkFinding("unsafe_link", "here", "http://example.com")
+        ]
+
+    def test_tracking_link_suggests_the_real_destination(self):
+        (finding,) = check_body(f'<a href="{PROOFPOINT}">Buy tickets</a>')
+        assert finding.Kind == "tracking_link"
+        assert finding.Suggested_Href == "https://www.eventbrite.com/e/tapas"
+
+    def test_bare_url_written_as_text(self):
+        assert check_body("Details at https://uidaho.edu/fair.") == [
+            LinkFinding("bare_url", Href="https://uidaho.edu/fair")
+        ]
+
+    def test_linked_url_is_not_reported_as_bare(self):
+        assert check_body('<a href="https://uidaho.edu">https://uidaho.edu</a>') == []
+
+    def test_missing_submitted_link(self):
+        findings = check_body(
+            'See <a href="https://uidaho.edu/a">A</a>.',
+            ["https://uidaho.edu/a/", "https://uidaho.edu/b"],
+        )
+        assert findings == [LinkFinding("missing_submitted_link", Href="https://uidaho.edu/b")]
+
+    def test_submitted_link_matches_its_wrapped_form(self):
+        body = f'<a href="{PROOFPOINT}">Buy tickets</a>'
+        kinds = [f.Kind for f in check_body(body, ["https://www.eventbrite.com/e/tapas"])]
+        assert kinds == ["tracking_link"]
+
+
+@pytest.mark.asyncio
+async def test_builder_items_carry_link_findings(
+    client: AsyncClient, db: AsyncSession, staff_headers: dict[str, str]
+):
+    section = NewsletterSection(
+        Newsletter_Type="tdr", Name="Employee News", Slug="employee-news", Display_Order=1, Is_Active=True
+    )
+    db.add(section)
+    await db.commit()
+
+    resp = await client.post(
+        "/api/v1/submissions/",
+        json=make_submission_data(
+            Schedule_Requests=[{"Requested_Date": "2026-11-02"}],
+            Links=[{"Url": "https://uidaho.edu/register", "Anchor_Text": "Register"}],
+        ),
+        headers=staff_headers,
+    )
+    submission_id = resp.json()["Id"]
+    await client.post(
+        f"/api/v1/ai-edits/{submission_id}/finalize",
+        json={
+            "Headline": "Fair",
+            "Body": f'<a href="{PROOFPOINT}">Buy tickets</a> today.',
+            "Approve_For_Newsletter": True,
+        },
+        headers=staff_headers,
+    )
+    resp = await client.post(
+        "/api/v1/newsletters/assemble",
+        json={"Newsletter_Type": "tdr", "Publish_Date": "2026-11-02"},
+        headers=staff_headers,
+    )
+    newsletter_id = resp.json()["Id"]
+    db.add(
+        NewsletterExternalItem(
+            Newsletter_Id=newsletter_id,
+            Section_Id=section.Id,
+            Source_Type="calendar_event",
+            Source_Id="evt-1",
+            Final_Headline="Concert",
+            Final_Body="Tickets at https://uitickets.evenue.net/concert",
+        )
+    )
+    await db.commit()
+
+    detail = (await client.get(f"/api/v1/newsletters/{newsletter_id}", headers=staff_headers)).json()
+    (item,) = detail["Items"]
+    assert [f["Kind"] for f in item["Link_Findings"]] == ["tracking_link", "missing_submitted_link"]
+    assert item["Link_Findings"][0]["Suggested_Href"] == "https://www.eventbrite.com/e/tapas"
+    (external,) = detail["External_Items"]
+    assert external["Link_Findings"] == [
+        {"Kind": "bare_url", "Text": None, "Href": "https://uitickets.evenue.net/concert", "Suggested_Href": None}
+    ]

@@ -13,6 +13,15 @@ export interface EditableBodyLink {
 const EMAIL_ADDRESS_PATTERN = /^[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?(?:\.[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?)+$/i;
 const ANCHOR_PATTERN = /<a\s+href=["']([^"']+)["'][^>]*>([^<]+)<\/a>/gi;
 
+/** Every inline link in a stored body, in order, with whether it will be clickable. */
+export function listBodyLinks(body: string): Array<{ text: string; href: string; safe: boolean }> {
+  return [...body.matchAll(ANCHOR_PATTERN)].map((match) => ({
+    text: match[2],
+    href: match[1],
+    safe: isSafeLinkDestination(match[1]),
+  }));
+}
+
 export function normalizeEditableLinkUrl(value: string): string {
   const trimmed = value.trim();
   if (EMAIL_ADDRESS_PATTERN.test(trimmed)) return `mailto:${trimmed}`;

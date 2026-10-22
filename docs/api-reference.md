@@ -129,6 +129,8 @@ The edit response includes `AI_Provider` and `AI_Model` fields so the UI can dis
 | POST   | `/api/v1/newsletters/assemble`                        | Auto-assemble issue content            |
 | GET    | `/api/v1/newsletters/{id}/export`                     | Export newsletter as .docx; inline links become clickable hyperlinks (https and mailto only) |
 
+Newsletter items and external items in newsletter responses include `Link_Findings`: link problems to resolve before export (`unsafe_link`, `tracking_link` with the real `Suggested_Href`, `bare_url`, `missing_submitted_link`). The Builder lists each item's links and these findings, and counts affected items beside **Export Word Doc**.
+
 ## Recurring Messages
 
 These endpoints are staff-only and manage centrally maintained editorial content that can be scheduled independently of public submissions.

@@ -13,8 +13,12 @@ reader.
 
 import html
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
+from typing import Literal
 from urllib.parse import urlsplit
+
+from app.utils.hyperlinks import URL_PATTERN, unwrap_tracking_url
 
 _ANCHOR = re.compile(
     r"""<a\b[^>]*?\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))[^>]*>(.*?)</a\s*>""",
@@ -27,6 +31,20 @@ _EMAIL = re.compile(
     r"(?:\.[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?)+$",
     re.IGNORECASE,
 )
+
+
+LinkFindingKind = Literal["unsafe_link", "tracking_link", "bare_url", "missing_submitted_link"]
+
+
+@dataclass(frozen=True)
+class LinkFinding:
+    """A link problem staff should resolve before a newsletter is exported."""
+
+    Kind: LinkFindingKind
+    Text: str | None = None
+    Href: str | None = None
+    # For tracking links: the real destination behind the wrapper.
+    Suggested_Href: str | None = None
 
 
 @dataclass(frozen=True)
@@ -72,3 +90,43 @@ def parse_body(body: str) -> list[BodySegment]:
     if last_end < len(body):
         segments.append(BodySegment(_plain(body[last_end:])))
     return [segment for segment in segments if segment.text]
+
+
+def _canonical(url: str) -> str:
+    return unwrap_tracking_url(url.strip()).rstrip("/").lower()
+
+
+def check_body(body: str, submitted_urls: Iterable[str] = ()) -> list[LinkFinding]:
+    """Find link problems in a body: what export would drop, misdirect or expose.
+
+    - unsafe_link: an anchor whose destination is not https or mailto, so it
+      exports as plain words.
+    - tracking_link: a destination wrapped by an email security gateway
+      (Proofpoint, Safe Links, ...); readers would bounce through it.
+    - bare_url: a web address written out as text instead of linked words.
+    - missing_submitted_link: a link the submitter supplied that no longer
+      appears in the body.
+    """
+    findings: list[LinkFinding] = []
+    linked: set[str] = set()
+    for match in _ANCHOR.finditer(body):
+        raw_href = next(group for group in match.groups()[:3] if group is not None)
+        href = html.unescape(raw_href).strip()
+        words = _INNER_TAG.sub("", match.group(4))
+        if not is_safe_destination(href):
+            findings.append(LinkFinding("unsafe_link", words, href))
+            continue
+        linked.add(_canonical(href))
+        real = unwrap_tracking_url(href)
+        if real != href:
+            findings.append(LinkFinding("tracking_link", words, href, real))
+
+    for segment in parse_body(body):
+        if segment.href is None:
+            for url in URL_PATTERN.finditer(segment.text):
+                findings.append(LinkFinding("bare_url", Href=url.group(0).rstrip(".,;:")))
+
+    for url in submitted_urls:
+        if url and _canonical(url) not in linked:
+            findings.append(LinkFinding("missing_submitted_link", Href=url))
+    return findings

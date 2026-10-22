@@ -1,5 +1,5 @@
 import { apiFetch } from './client';
-import type { NewsletterSection } from '../types/newsletter';
+import type { LinkFinding, NewsletterSection } from '../types/newsletter';
 
 interface NewsletterResponse {
   Id: string;
@@ -19,6 +19,8 @@ export interface NewsletterItemResponse {
   Final_Headline: string;
   Final_Body: string;
   Run_Number: number;
+  Source_Version_Id: string | null;
+  Link_Findings: LinkFinding[];
 }
 
 export interface NewsletterExternalItemResponse {
@@ -34,6 +36,7 @@ export interface NewsletterExternalItemResponse {
   Position: number;
   Final_Headline: string;
   Final_Body: string;
+  Link_Findings: LinkFinding[];
 }
 
 export interface CalendarEventCandidate {

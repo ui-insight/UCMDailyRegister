@@ -28,6 +28,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
+from app.utils.body_links import LinkFinding, check_body
 
 if TYPE_CHECKING:
     from app.models.section import NewsletterSection
@@ -102,6 +103,16 @@ class NewsletterItem(Base):
     Submission_Rel: Mapped["Submission"] = relationship(lazy="selectin")
     Section_Rel: Mapped["NewsletterSection"] = relationship(lazy="selectin")
 
+    @property
+    def Link_Findings(self) -> list[LinkFinding]:
+        """Link problems in this item's copy, including submitted links it lost."""
+        submitted: list[str] = []
+        state = sa.inspect(self)
+        if "Submission_Rel" not in state.unloaded and self.Submission_Rel is not None:
+            if "Links" not in sa.inspect(self.Submission_Rel).unloaded:
+                submitted = [link.Url for link in self.Submission_Rel.Links]
+        return check_body(self.Final_Body, submitted)
+
 
 class NewsletterExternalItem(Base):
     """A placed non-submission item imported from an external source such as a calendar."""
@@ -131,3 +142,8 @@ class NewsletterExternalItem(Base):
         back_populates="External_Items", lazy="selectin"
     )
     Section_Rel: Mapped["NewsletterSection"] = relationship(lazy="selectin")
+
+    @property
+    def Link_Findings(self) -> list[LinkFinding]:
+        """Link problems in this item's copy."""
+        return check_body(self.Final_Body)

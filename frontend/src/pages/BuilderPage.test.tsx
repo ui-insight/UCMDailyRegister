@@ -106,6 +106,7 @@ const tdrNewsletter = {
       Position: 0,
       Final_Headline: 'Registration reminder',
       Final_Body: 'Please remind students to register. This is the complete approved entry. <a href="https://example.com/register">Review registration details</a>.',
+      Link_Findings: [],
       Run_Number: 1,
     },
   ],
@@ -124,6 +125,7 @@ const academicDateItem = {
   Position: 0,
   Final_Headline: 'Wednesday, Sept. 2 — Register, add or wait list without permission',
   Final_Body: 'Full-term deadline.',
+  Link_Findings: [],
 };
 
 beforeEach(() => {
@@ -182,6 +184,31 @@ describe('BuilderPage staff-only sections', () => {
     ).toHaveValue('section-student-reminders');
   });
 
+  it('counts items with link problems beside the export button', async () => {
+    const user = userEvent.setup();
+    newsletterApiMocks.assembleNewsletter.mockResolvedValue({
+      ...tdrNewsletter,
+      Items: [{
+        ...tdrNewsletter.Items[0],
+        Link_Findings: [{
+          Kind: 'bare_url',
+          Text: null,
+          Href: 'https://example.com/raw',
+          Suggested_Href: null,
+        }],
+      }],
+    });
+    render(<BuilderPage />);
+
+    const publishDateInput = document.querySelector<HTMLInputElement>('input[type="date"]');
+    await user.clear(publishDateInput!);
+    await user.type(publishDateInput!, '2026-08-25');
+    await user.click(screen.getAllByRole('button', { name: 'Assemble Newsletter' })[0]);
+
+    expect(await screen.findByText('1 item has a link problem')).toBeInTheDocument();
+    expect(screen.getByText(/Web address written out as text: https:\/\/example\.com\/raw/)).toBeInTheDocument();
+  });
+
   it('shows the full approved entry and saves manual edits in place', async () => {
     const user = userEvent.setup();
     newsletterApiMocks.getNewsletter.mockResolvedValue(tdrNewsletter);
@@ -189,6 +216,7 @@ describe('BuilderPage staff-only sections', () => {
       ...tdrNewsletter.Items[0],
       Final_Headline: 'Updated registration reminder',
       Final_Body: 'Updated approved copy. <a href="https://example.com/register">Review registration details</a>.',
+      Link_Findings: [],
     });
     render(<BuilderPage />);
 

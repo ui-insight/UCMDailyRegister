@@ -1,6 +1,7 @@
 """Pydantic schemas for newsletters, sections, and schedule."""
 
 from datetime import date, datetime, time
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -56,6 +57,15 @@ class NewsletterItemUpdate(BaseModel):
     Run_Number: int | None = None
 
 
+class LinkFindingResponse(BaseModel):
+    Kind: Literal["unsafe_link", "tracking_link", "bare_url", "missing_submitted_link"]
+    Text: str | None = None
+    Href: str | None = None
+    Suggested_Href: str | None = None
+
+    model_config = {"from_attributes": True}
+
+
 class NewsletterItemResponse(BaseModel):
     Id: str
     Newsletter_Id: str
@@ -66,6 +76,7 @@ class NewsletterItemResponse(BaseModel):
     Final_Body: str
     Run_Number: int
     Source_Version_Id: str | None = None
+    Link_Findings: list[LinkFindingResponse] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
 
@@ -95,6 +106,7 @@ class NewsletterExternalItemResponse(BaseModel):
     Position: int
     Final_Headline: str
     Final_Body: str
+    Link_Findings: list[LinkFindingResponse] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
 
