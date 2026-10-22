@@ -42,7 +42,7 @@ cd frontend && npm run lint
 ## Architecture
 
 - **Data Model:** Uses `PascalCase_With_Underscores` column naming (UDM convention shared with VERASUnlimited)
-- **Controlled Vocabularies:** All enums stored in `AllowedValue` table, not hard-coded
+- **Controlled Vocabularies:** Governed pick lists use `AllowedValue`; code-validated exceptions are listed in `docs/governance/reference-data.md`
 - **Service Layer:** API routes delegate to service functions in `app/services/`
 - **AI Pipeline:** Style rules loaded from DB → injected into LLM system prompt → structured JSON response → diff generation
 
@@ -133,3 +133,13 @@ Use `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, and `won
 ### Domain docs
 
 This is a single-context repository using root `CONTEXT.md` and `docs/adr/` when present. See `docs/agents/domain.md`.
+
+## Governance maintenance
+
+Use synthetic data in tests and agent prompts. Do not copy production content,
+PII, tokens or secrets into coding assistants or CI. Follow the handling rules
+in `docs/governance/decisions.md`. Schema/vocabulary changes must update the
+canonical `frontend/src/data/governance-catalog.json` metadata, generated docs
+(`python scripts/check_governance.py --write`), and evidence where relevant.
+Run `python scripts/check_governance.py` before merging. The catalog is provisional
+until Data Owner review; no automatic retention/disposal job is approved.

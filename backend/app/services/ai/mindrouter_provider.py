@@ -83,8 +83,7 @@ class MindRouterProvider(LLMProvider):
 
         async with httpx.AsyncClient(timeout=LLM_TIMEOUT) as client:
             logger.info(
-                "MindRouter request to %s (model=%s, %d+%d chars)",
-                self.endpoint_url,
+                "MindRouter request (model=%s, %d+%d chars)",
                 self.model,
                 len(system_prompt),
                 len(user_prompt),

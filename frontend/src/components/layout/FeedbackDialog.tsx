@@ -145,6 +145,8 @@ export default function FeedbackDialog({
           <p className="rounded-md bg-gray-50 px-3 py-2 text-xs text-gray-500">
             We include page route, app mode, environment, browser, and viewport. We do not
             include submission text, submitter records, or editorial notes automatically.
+            Your report and optional contact email are stored for staff review. Do not paste
+            sensitive information, credentials, or private submission content here.
           </p>
 
           {error && (

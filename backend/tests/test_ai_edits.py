@@ -53,7 +53,7 @@ class FailingProvider:
         raise NotImplementedError
 
     async def complete_json(self, *args, **kwargs):
-        raise RuntimeError("provider unavailable")
+        raise RuntimeError("provider unavailable private-marker@example.test secret-marker")
 
 
 class ProperNounProvider:
@@ -779,6 +779,7 @@ class TestAIEditTasks:
         db: AsyncSession,
         staff_headers: dict[str, str],
         monkeypatch: pytest.MonkeyPatch,
+        caplog,
     ):
         monkeypatch.setattr(
             "app.api.v1.ai_edits.get_llm_provider",
@@ -801,7 +802,10 @@ class TestAIEditTasks:
         task = await wait_for_task(client, resp.json()["Task_Id"], staff_headers)
         assert task["Status"] == "failed"
         assert task["Result"] is None
-        assert "provider unavailable" in task["Error_Message"]
+        assert "AI editing failed" in task["Error_Message"]
+        assert "private-marker" not in task["Error_Message"]
+        assert "secret-marker" not in caplog.text
+        assert "RuntimeError" in caplog.text
 
         versions = (
             await db.execute(

@@ -11,8 +11,8 @@ over in the URL fragment - see `sso_callback`.
 
 Mirrors campus-services-maintenance's `app/api/v1/sso.py` (ADR-004 there),
 which OIT has already reviewed. This app has no user table: the role is
-resolved from Entra on every sign-in and carried in the token, so nothing is
-persisted here.
+resolved from Entra on every sign-in and carried in the token, so no identity row is
+stored in the database. The browser persists the app token in localStorage.
 """
 
 import logging
@@ -190,7 +190,7 @@ async def sso_callback(request: Request) -> RedirectResponse:
         token = await oauth.entra.authorize_access_token(request)
     except OAuthError:
         # Mismatched state, a replayed or expired code, a refused client.
-        logger.warning("Entra rejected the sign-in exchange", exc_info=True)
+        logger.warning("Entra rejected the sign-in exchange")
         return _error_redirect(ERROR_SIGN_IN_FAILED)
     except Exception:
         # authlib raises its own JOSE errors (bad ID-token signature, a
@@ -198,7 +198,7 @@ async def sso_callback(request: Request) -> RedirectResponse:
         # endpoint unreachable) outside the OAuthError hierarchy. Every one of
         # these lands on a person mid-sign-in, and a raw 500 gives them
         # FastAPI's plain-text body with no way back.
-        logger.exception("Sign-in exchange with Entra failed")
+        logger.error("Sign-in exchange with Entra failed")
         return _error_redirect(ERROR_SIGN_IN_FAILED)
 
     userinfo = token.get("userinfo") or {}
@@ -217,25 +217,23 @@ async def sso_callback(request: Request) -> RedirectResponse:
         # Graph understood us and said no. Permanent, affects everyone, and
         # fixed by an administrator - so it must not borrow the outage copy
         # that tells the reader to wait.
-        logger.exception(
-            "Graph refused group membership for %s - check that the app registration "
-            "has consent for GroupMember.Read.All",
-            subject,
+        logger.error(
+            "Graph refused group membership; check consent for GroupMember.Read.All"
         )
         return _error_redirect(ERROR_MISCONFIGURED)
     except GraphGroupLookupError:
         # Deliberately *not* "not authorized": failing to read membership is
         # an outage, and telling the user they lack access would send every
         # one of them chasing their own account instead of the incident.
-        logger.exception("Could not read group membership for %s", subject)
+        logger.error("Could not read group membership")
         return _error_redirect(ERROR_UNAVAILABLE)
 
     role = map_groups_to_role(group_names)
     if role is None:
-        logger.info("Sign-in refused for %s: no configured role matched", subject)
+        logger.info("Sign-in refused: no configured role matched")
         return _error_redirect(ERROR_NOT_AUTHORIZED)
 
-    logger.info("Sign-in for %s as %s", subject, role)
+    logger.info("Sign-in succeeded role=%s", role)
     session_token = create_session_token(subject=subject, role=role, name=name)
     # The fragment is never sent to a server, so the token stays out of
     # access logs, browser history, and the Referer header. The frontend

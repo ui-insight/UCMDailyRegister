@@ -504,8 +504,8 @@ class AIEditor:
                 max_tokens=3000,
             )
         except Exception as e:
-            logger.error(f"LLM call failed for submission {submission.Id}: {e}")
-            raise AIEditError(f"AI editing failed: {str(e)}") from e
+            logger.error("LLM call failed submission_id=%s error_type=%s", submission.Id, type(e).__name__)
+            raise AIEditError("AI editing failed. Try again or contact the maintainer.") from e
 
         edited_headline = ai_result.get("edited_headline", submission.Original_Headline)
         edited_body = ai_result.get("edited_body", submission.Original_Body)
@@ -581,9 +581,9 @@ class AIEditor:
                 )
             except Exception as error:
                 logger.warning(
-                    "Compliance repair failed for submission %s: %s",
+                    "Compliance repair failed submission_id=%s error_type=%s",
                     submission.Id,
-                    error,
+                    type(error).__name__,
                 )
             else:
                 edited_headline = repair_result.get(

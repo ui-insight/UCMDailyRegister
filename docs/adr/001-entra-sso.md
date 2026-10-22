@@ -43,9 +43,9 @@ browser; the app mints its **own HS256 session token** carrying `sub`, `name`,
 and `role`, and hands it to the SPA in the URL **fragment**, which is never
 sent to a server. The SPA presents it as a bearer token thereafter.
 
-`get_submitter_role` in `app/api/deps.py` reads the bearer token *ahead of*
-the trusted header. That is the only behavioral change on the request path:
-every `require_staff` / `require_staff_or_slc` / `require_staff_or_ops`
+`get_submitter_role` in `app/api/deps.py` accepts only the active mode's credential:
+bearer tokens under `oidc`, trusted headers under `header`.
+Every `require_staff` / `require_staff_or_slc` / `require_staff_or_ops`
 dependency and every router is untouched. A token that is present but invalid
 is a **401, never a fall-through to `public`** — an expired staff session must
 surface as "sign in again", not as a silent downgrade that turns the next save
@@ -60,8 +60,9 @@ without signing in, so the refusal costs them nothing. The Graph
 provisions security groups instead.
 
 **No user table.** The role is resolved from Entra on every sign-in and
-carried in the token. Nothing about a person is persisted, so there is no
-migration, and rollback is a config change.
+carried in the token. No identity row is stored in the database, but the app JWT persists identifiable
+subject/name/role claims in browser localStorage. The OIDC flow also uses a signed
+state cookie. There is no identity-table migration; rollback is a config change.
 
 On the frontend, the landing page's four cards become the sign-in entry:
 Submitter view stays open; the other three hand an anonymous visitor to

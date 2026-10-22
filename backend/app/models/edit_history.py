@@ -6,9 +6,9 @@ snapshot: the original text as submitted, one or more AI-suggested revisions,
 and the final editor-approved version. This immutable audit trail lets editors
 compare drafts, revert to earlier versions, and review what the AI changed.
 
-Version_Type, Headline_Case, and AI_Provider values are governed by the
-AllowedValue table rather than hard-coded enums, keeping the vocabulary
-extensible without code changes. The Flags and Changes_Made columns store
+Version_Type and Headline_Case map to AllowedValue vocabularies. AI_Provider
+identifies a code-configured provider; it is not currently a seeded AllowedValue
+group. Changes to the provider set require code and governance review. The Flags and Changes_Made columns store
 structured JSON produced by the AI pipeline (e.g., style-rule violations
 detected, diff summaries).
 

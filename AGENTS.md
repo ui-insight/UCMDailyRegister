@@ -8,7 +8,7 @@ AI-assisted newsletter production pipeline for the University of Idaho's Univers
 
 - **Backend:** FastAPI + SQLAlchemy 2.0 (async) + SQLite (dev) / PostgreSQL (prod)
 - **Frontend:** React + TypeScript + TailwindCSS + Vite
-- **AI:** Abstracted LLM provider (Codex + OpenAI), switchable via `LLM_PROVIDER` env var
+- **AI:** Abstracted LLM provider (Claude + OpenAI + MindRouter), switchable via `LLM_PROVIDER` env var
 - **Docs:** MkDocs Material → GitHub Pages
 
 ## Quick Start
@@ -42,7 +42,7 @@ cd frontend && npm run lint
 ## Architecture
 
 - **Data Model:** Uses `PascalCase_With_Underscores` column naming (UDM convention shared with VERASUnlimited)
-- **Controlled Vocabularies:** All enums stored in `AllowedValue` table, not hard-coded
+- **Controlled Vocabularies:** Governed pick lists use `AllowedValue`; code-validated exceptions are listed in `docs/governance/reference-data.md`
 - **Service Layer:** API routes delegate to service functions in `app/services/`
 - **AI Pipeline:** Style rules loaded from DB → injected into LLM system prompt → structured JSON response → diff generation
 
@@ -103,13 +103,14 @@ Map it to host port <PORT>. Use 10.x.x.x address space.
 
 - **frontend** (nginx) — the only container with a host port mapping (`HOST_PORT`). Serves the React build and proxies `/api/` to the backend.
 - **backend** (uvicorn) — internal only, port 8001 on the Docker network.
-- **db** (postgres:16) — internal only, port 5432 on the Docker network.
+- **database** — external PostgreSQL on `insight-db-net`; not a Compose service.
+  `DATABASE_URL` must identify the approved environment database.
 
 ### Quick deploy
 
 ```bash
 # On the remote server
-HOST_PORT=9280 POSTGRES_PASSWORD=<secure> ANTHROPIC_API_KEY=<key> \
+HOST_PORT=9280 DATABASE_URL=<approved-postgres-url> ANTHROPIC_API_KEY=<key> \
   docker compose up -d --build
 ```
 
@@ -118,3 +119,13 @@ Set `HOST_PORT=9290` for dev.
 ## Environment Variables
 
 See `.env.example` for all configuration options.
+
+## Governance maintenance
+
+Use synthetic data in tests and agent prompts. Do not copy production content,
+PII, tokens or secrets into coding assistants or CI. Follow the handling rules
+in `docs/governance/decisions.md`. Schema/vocabulary changes must update the
+canonical `frontend/src/data/governance-catalog.json` metadata, generated docs
+(`python scripts/check_governance.py --write`), and evidence where relevant.
+Run `python scripts/check_governance.py` before merging. The catalog is provisional
+until Data Owner review; no automatic retention/disposal job is approved.

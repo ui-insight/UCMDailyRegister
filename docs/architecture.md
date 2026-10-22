@@ -100,10 +100,23 @@ UCMDailyRegister-App/
     nginx.conf         # Production reverse proxy config
     vite.config.ts
   docs/                # MkDocs documentation (this site)
-  docker-compose.yml   # Three-service stack (frontend, backend, db)
+  docker-compose.yml   # Two-service stack (frontend/backend) targeting external PostgreSQL
   .env.example         # Environment variable template
   mkdocs.yml           # Documentation site config
 ```
 
 !!! tip "Async Everywhere"
     All database operations use SQLAlchemy's async engine and `AsyncSession`. Route handlers are `async def` and service functions are awaited throughout.
+
+## Identity and governance boundaries
+
+Entra OIDC and prototype trusted-header modes are selected by `AUTH_PROVIDER`;
+each accepts only its own credential. The browser persists app identity claims
+in a signed JWT in localStorage. See [ADR-001](adr/001-entra-sso.md).
+
+The domain includes newsletter production, SLC calendar triage, Event Services
+ops needs assessment, and product feedback. Harvested events have independent
+SLC/ops review states; MindRouter ops classification is separate from newsletter
+AI provider selection. See [Data governance](data-governance.md) for trust
+boundaries and [Data dictionary](governance/data-dictionary.md) for the complete
+model surface, source systems and provisional handling.

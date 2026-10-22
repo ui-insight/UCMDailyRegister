@@ -106,7 +106,7 @@ def _parse_suggestions(payload: dict, need_codes: list[str]) -> list[NeedSuggest
         if need not in allowed:
             # Vocabulary drift is a prompt problem, not a harvest problem:
             # drop the unknown code but leave a trace in the logs.
-            logger.warning("Ops classifier suggested unknown need %r; dropped", need)
+            logger.warning("Ops classifier suggested an unknown need; dropped")
             continue
         if confidence not in CONFIDENCE_LEVELS:
             raise ValueError(f"Classifier confidence {confidence!r} is not a level")

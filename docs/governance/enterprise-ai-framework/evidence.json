@@ -1,6 +1,6 @@
 {
   "$schema": "./evidence.schema.json",
-  "schema_version": "1.0.0",
+  "schema_version": "1.1.0",
   "project": {
     "slug": "ucm-daily-register",
     "name": "UCM Daily Register",
@@ -65,13 +65,16 @@
       "id": "OIT-EAI-STACK",
       "title": "Approved technology stack alignment",
       "category": "approved_technology_stack",
-      "aispeg_standard_ids": ["i-1", "i-7"],
+      "aispeg_standard_ids": [
+        "i-1",
+        "i-7"
+      ],
       "requirement_summary": "Validate UCM Daily Register against the approved stack, including FastAPI, React/Vite/TypeScript, PostgreSQL, SQLAlchemy/Alembic, Python and JavaScript tooling, testing, CI/CD, GitOps, source control, auth, secrets, observability, and AI gateway/model choices.",
       "current_assertion": {
         "status": "partially_aligned",
-        "summary": "Core application runtime choices are close to the draft stack: FastAPI/Uvicorn, React/Vite/TypeScript, SQLAlchemy/Alembic, pytest, Vitest, PostgreSQL for deployed environments, Docker, and GitHub Actions are present. Gaps or decisions remain for uv, Pyright, Biome, Azure Pipelines, ArgoCD/Kustomize, Entra ID, 1Password Connect, full observability, and approved model/gateway evidence.",
-        "validated_at": "2026-05-05",
-        "validated_by": "Codex"
+        "summary": "FastAPI/Uvicorn, React/Vite/TypeScript, SQLAlchemy/Alembic, pytest, Vitest, Compose and GitHub Actions are present. Entra OIDC is implemented alongside header mode. Approved deployment tooling, secrets integration, full observability and model/gateway decisions remain unverified.",
+        "validated_at": "2026-10-22",
+        "validated_by": "Codex repository review; institutional approval not asserted"
       },
       "github_issue": {
         "number": 171,
@@ -79,11 +82,36 @@
         "state": "open"
       },
       "evidence_sources": [
-        { "type": "repo_file", "label": "Approved stack evidence matrix", "path": "docs/governance/enterprise-ai-framework/approved-stack-evidence.md" },
-        { "type": "repo_file", "label": "Backend dependency manifest", "path": "backend/pyproject.toml" },
-        { "type": "repo_file", "label": "Frontend dependency manifest", "path": "frontend/package.json" },
-        { "type": "repo_directory", "label": "GitHub Actions workflows", "path": ".github/workflows" },
-        { "type": "repo_file", "label": "Docker Compose deployment", "path": "docker-compose.yml" }
+        {
+          "type": "repo_file",
+          "label": "Approved stack evidence matrix",
+          "path": "docs/governance/enterprise-ai-framework/approved-stack-evidence.md"
+        },
+        {
+          "type": "repo_file",
+          "label": "Backend dependency manifest",
+          "path": "backend/pyproject.toml"
+        },
+        {
+          "type": "repo_file",
+          "label": "Frontend dependency manifest",
+          "path": "frontend/package.json"
+        },
+        {
+          "type": "repo_directory",
+          "label": "GitHub Actions workflows",
+          "path": ".github/workflows"
+        },
+        {
+          "type": "repo_file",
+          "label": "Docker Compose deployment",
+          "path": "docker-compose.yml"
+        },
+        {
+          "type": "repo_file",
+          "label": "Governance decisions and unverified environment evidence",
+          "path": "docs/governance/decisions.md"
+        }
       ],
       "required_evidence": [
         "Approved-stack matrix with one row per OIT stack item",
@@ -91,19 +119,27 @@
         "Exception or follow-up links for any deviations"
       ],
       "blockers": [],
-      "tags": ["deployment", "code-quality", "documentation"]
+      "tags": [
+        "deployment",
+        "code-quality",
+        "documentation"
+      ]
     },
     {
       "id": "OIT-EAI-AUTH",
       "title": "Microsoft Entra ID OIDC production authentication",
       "category": "authentication",
-      "aispeg_standard_ids": ["i-1", "i-2", "i-4"],
+      "aispeg_standard_ids": [
+        "i-1",
+        "i-2",
+        "i-4"
+      ],
       "requirement_summary": "Production authentication must use Microsoft Entra ID through OAuth2/OIDC, with applications designed to be auth-provider-agnostic and without custom production auth.",
       "current_assertion": {
-        "status": "gap",
-        "summary": "The repository documents and implements a trusted reverse-proxy header boundary using X-Trusted-User-Role and X-Trusted-Auth-Secret. There is no direct Microsoft Entra ID/OIDC token validation, app registration evidence, or group/claim mapping yet.",
-        "validated_at": "2026-05-05",
-        "validated_by": "Codex"
+        "status": "partially_aligned",
+        "summary": "Entra confidential-client OIDC, claim/Graph role mapping, signed app sessions and authorization tests are implemented. Header prototype mode remains the default. Live enablement, registration/consent, role assignments and institutional approval require per-environment evidence; no production alignment is asserted.",
+        "validated_at": "2026-10-22",
+        "validated_by": "Codex repository review; institutional approval not asserted"
       },
       "github_issue": {
         "number": 172,
@@ -111,10 +147,41 @@
         "state": "open"
       },
       "evidence_sources": [
-        { "type": "repo_file", "label": "Security policy authentication section", "path": "SECURITY.md" },
-        { "type": "repo_file", "label": "API dependency trusted role logic", "path": "backend/app/api/deps.py" },
-        { "type": "repo_file", "label": "Deployment trusted auth boundary notes", "path": "docs/deployment.md" },
-        { "type": "repo_file", "label": "Authorization tests", "path": "backend/tests/test_authorization.py" }
+        {
+          "type": "repo_file",
+          "label": "Security policy authentication section",
+          "path": "SECURITY.md"
+        },
+        {
+          "type": "repo_file",
+          "label": "API dependency trusted role logic",
+          "path": "backend/app/api/deps.py"
+        },
+        {
+          "type": "repo_file",
+          "label": "Deployment trusted auth boundary notes",
+          "path": "docs/deployment.md"
+        },
+        {
+          "type": "repo_file",
+          "label": "Authorization tests",
+          "path": "backend/tests/test_authorization.py"
+        },
+        {
+          "type": "repo_file",
+          "label": "Governance decisions and unverified environment evidence",
+          "path": "docs/governance/decisions.md"
+        },
+        {
+          "type": "repo_file",
+          "label": "Entra implementation and tests",
+          "path": "backend/app/api/v1/sso.py"
+        },
+        {
+          "type": "repo_file",
+          "label": "SSO tests",
+          "path": "backend/tests/test_auth_sso.py"
+        }
       ],
       "required_evidence": [
         "OIDC adapter implementation and tests or approved exception",
@@ -125,19 +192,26 @@
       "blockers": [
         "OIT decision on Entra app registration ownership, group names, and trusted gateway claim contract"
       ],
-      "tags": ["security", "integration", "deployment"]
+      "tags": [
+        "security",
+        "integration",
+        "deployment"
+      ]
     },
     {
       "id": "OIT-EAI-CICD",
       "title": "Azure Pipelines, ArgoCD, and Kustomize deployment path",
       "category": "cicd_gitops",
-      "aispeg_standard_ids": ["i-5", "i-8"],
+      "aispeg_standard_ids": [
+        "i-5",
+        "i-8"
+      ],
       "requirement_summary": "Hosted deployments should use Azure Pipelines, ArgoCD, Kustomize, OIT-provisioned namespaces, and no direct cluster access in test or production.",
       "current_assertion": {
         "status": "gap",
         "summary": "The repository has GitHub Actions CI and Docker Compose deployment documentation for the openera host. It does not contain Azure Pipelines, ArgoCD application definitions, Kustomize overlays, or OIT namespace/RBAC evidence.",
-        "validated_at": "2026-05-05",
-        "validated_by": "Codex"
+        "validated_at": "2026-10-22",
+        "validated_by": "Codex repository review; institutional approval not asserted"
       },
       "github_issue": {
         "number": 173,
@@ -145,10 +219,31 @@
         "state": "open"
       },
       "evidence_sources": [
-        { "type": "repo_file", "label": "Deployment guide", "path": "docs/deployment.md" },
-        { "type": "repo_file", "label": "Docker Compose deployment file", "path": "docker-compose.yml" },
-        { "type": "repo_file", "label": "Deploy script", "path": "deploy.sh" },
-        { "type": "repo_directory", "label": "GitHub Actions workflows", "path": ".github/workflows" }
+        {
+          "type": "repo_file",
+          "label": "Deployment guide",
+          "path": "docs/deployment.md"
+        },
+        {
+          "type": "repo_file",
+          "label": "Docker Compose deployment file",
+          "path": "docker-compose.yml"
+        },
+        {
+          "type": "repo_file",
+          "label": "Deploy script",
+          "path": "deploy.sh"
+        },
+        {
+          "type": "repo_directory",
+          "label": "GitHub Actions workflows",
+          "path": ".github/workflows"
+        },
+        {
+          "type": "repo_file",
+          "label": "Governance decisions and unverified environment evidence",
+          "path": "docs/governance/decisions.md"
+        }
       ],
       "required_evidence": [
         "Azure Pipeline YAML or deployment repository link",
@@ -160,19 +255,26 @@
         "OIT namespace provisioning",
         "OIT decision on GitHub Actions/GitHub Enterprise approval for this application"
       ],
-      "tags": ["deployment", "integration", "documentation"]
+      "tags": [
+        "deployment",
+        "integration",
+        "documentation"
+      ]
     },
     {
       "id": "OIT-EAI-SECRETS",
       "title": "1Password Connect runtime secrets",
       "category": "secrets_management",
-      "aispeg_standard_ids": ["i-4", "i-5"],
+      "aispeg_standard_ids": [
+        "i-4",
+        "i-5"
+      ],
       "requirement_summary": "Credentials must come from the secrets vault at runtime, with nothing hardcoded in code or container images.",
       "current_assertion": {
         "status": "partially_aligned",
         "summary": "Secrets are configured through runtime environment variables and the repository includes an env template without secret values. There is no 1Password Connect runtime injection evidence or OIT vault ownership record yet.",
-        "validated_at": "2026-05-05",
-        "validated_by": "Codex"
+        "validated_at": "2026-10-22",
+        "validated_by": "Codex repository review; institutional approval not asserted"
       },
       "github_issue": {
         "number": 174,
@@ -180,10 +282,31 @@
         "state": "open"
       },
       "evidence_sources": [
-        { "type": "repo_file", "label": "Environment variable template", "path": ".env.example" },
-        { "type": "repo_file", "label": "Backend settings", "path": "backend/app/config.py" },
-        { "type": "repo_file", "label": "Docker Compose runtime env", "path": "docker-compose.yml" },
-        { "type": "repo_file", "label": "Security policy secrets section", "path": "SECURITY.md" }
+        {
+          "type": "repo_file",
+          "label": "Environment variable template",
+          "path": ".env.example"
+        },
+        {
+          "type": "repo_file",
+          "label": "Backend settings",
+          "path": "backend/app/config.py"
+        },
+        {
+          "type": "repo_file",
+          "label": "Docker Compose runtime env",
+          "path": "docker-compose.yml"
+        },
+        {
+          "type": "repo_file",
+          "label": "Security policy secrets section",
+          "path": "SECURITY.md"
+        },
+        {
+          "type": "repo_file",
+          "label": "Governance decisions and unverified environment evidence",
+          "path": "docs/governance/decisions.md"
+        }
       ],
       "required_evidence": [
         "Runtime secret inventory",
@@ -194,19 +317,25 @@
       "blockers": [
         "OIT decision on exact 1Password Connect pattern and vault ownership"
       ],
-      "tags": ["security", "deployment", "documentation"]
+      "tags": [
+        "security",
+        "deployment",
+        "documentation"
+      ]
     },
     {
       "id": "OIT-EAI-OBSERVABILITY",
       "title": "OpenTelemetry, Prometheus, Jaeger, and Splunk observability",
       "category": "observability",
-      "aispeg_standard_ids": ["i-10"],
+      "aispeg_standard_ids": [
+        "i-10"
+      ],
       "requirement_summary": "All four observability components are required, with Splunk deployed first and ownership assigned before production.",
       "current_assertion": {
-        "status": "gap",
-        "summary": "The repository has health endpoints, Docker health checks, deployment smoke checks, and an audit logging and monitoring plan. It does not yet implement or document hosted OpenTelemetry, Prometheus, Jaeger, or Splunk integration evidence.",
-        "validated_at": "2026-05-05",
-        "validated_by": "Codex"
+        "status": "partially_aligned",
+        "summary": "Health/readiness probes, deployment smoke checks, minimized JSON diagnostics and bounded Compose stdout logs are configured. Hosted OpenTelemetry/Prometheus/Jaeger/Splunk, time-based retention, alerts and complete access auditing remain unverified.",
+        "validated_at": "2026-10-22",
+        "validated_by": "Codex repository review; institutional approval not asserted"
       },
       "github_issue": {
         "number": 175,
@@ -214,10 +343,31 @@
         "state": "open"
       },
       "evidence_sources": [
-        { "type": "repo_file", "label": "Audit logging and monitoring plan", "path": "docs/audit-logging.md" },
-        { "type": "repo_file", "label": "Docker Compose health checks", "path": "docker-compose.yml" },
-        { "type": "repo_file", "label": "Deployment smoke checks", "path": "deploy.sh" },
-        { "type": "repo_file", "label": "Health API route", "path": "backend/app/api/v1/health.py" }
+        {
+          "type": "repo_file",
+          "label": "Audit logging and monitoring plan",
+          "path": "docs/audit-logging.md"
+        },
+        {
+          "type": "repo_file",
+          "label": "Docker Compose health checks",
+          "path": "docker-compose.yml"
+        },
+        {
+          "type": "repo_file",
+          "label": "Deployment smoke checks",
+          "path": "deploy.sh"
+        },
+        {
+          "type": "repo_file",
+          "label": "Health API route",
+          "path": "backend/app/api/v1/health.py"
+        },
+        {
+          "type": "repo_file",
+          "label": "Governance decisions and unverified environment evidence",
+          "path": "docs/governance/decisions.md"
+        }
       ],
       "required_evidence": [
         "Instrumentation PRs and config",
@@ -231,19 +381,26 @@
         "Splunk index ownership",
         "Collector deployment pattern"
       ],
-      "tags": ["deployment", "security", "integration"]
+      "tags": [
+        "deployment",
+        "security",
+        "integration"
+      ]
     },
     {
       "id": "OIT-EAI-DATA-CLASSIFICATION",
       "title": "APM 30.11 data classification and regulated-data inventory",
       "category": "data_classification",
-      "aispeg_standard_ids": ["i-3", "i-4"],
+      "aispeg_standard_ids": [
+        "i-3",
+        "i-4"
+      ],
       "requirement_summary": "Use APM 30.11 Low/Moderate/High classification, classify mixed datasets at the highest level present, and classify prompt/completion logs with the underlying data.",
       "current_assertion": {
         "status": "partially_aligned",
-        "summary": "The repository documents Public, Internal, and Confidential data classes, PII inventory, AI prompt data handling, and FERPA considerations. It still needs an explicit APM 30.11 mapping for each module, prompt/completion logs, uploads, and mixed datasets.",
-        "validated_at": "2026-05-05",
-        "validated_by": "Codex"
+        "summary": "A complete provisional 19-table/197-column catalog records handling labels, PII risk, stewardship roles, lineage and retention categories and drives UI/docs with drift checks. Identity/browser/feedback and both AI workflows are inventoried. Approved APM 30.11 mapping, named Data Owner acceptance and retention/disposal authorization remain pending.",
+        "validated_at": "2026-10-22",
+        "validated_by": "Codex repository review; institutional approval not asserted"
       },
       "github_issue": {
         "number": 176,
@@ -251,10 +408,41 @@
         "state": "open"
       },
       "evidence_sources": [
-        { "type": "repo_file", "label": "Data governance and privacy", "path": "docs/data-governance.md" },
-        { "type": "repo_file", "label": "Security policy data protection section", "path": "SECURITY.md" },
-        { "type": "repo_file", "label": "AI editing data flow", "path": "docs/ai-editing.md" },
-        { "type": "repo_file", "label": "Data model documentation", "path": "docs/data-model.md" }
+        {
+          "type": "repo_file",
+          "label": "Data governance and privacy",
+          "path": "docs/data-governance.md"
+        },
+        {
+          "type": "repo_file",
+          "label": "Security policy data protection section",
+          "path": "SECURITY.md"
+        },
+        {
+          "type": "repo_file",
+          "label": "AI editing data flow",
+          "path": "docs/ai-editing.md"
+        },
+        {
+          "type": "repo_file",
+          "label": "Data model documentation",
+          "path": "docs/data-model.md"
+        },
+        {
+          "type": "repo_file",
+          "label": "Governance decisions and unverified environment evidence",
+          "path": "docs/governance/decisions.md"
+        },
+        {
+          "type": "repo_file",
+          "label": "Canonical provisional column catalog",
+          "path": "frontend/src/data/governance-catalog.json"
+        },
+        {
+          "type": "repo_file",
+          "label": "Governance drift validation",
+          "path": "scripts/check_governance.py"
+        }
       ],
       "required_evidence": [
         "Module-level APM 30.11 classification table",
@@ -265,19 +453,27 @@
       "blockers": [
         "Security review of whether submitter PII and incidental submitter-note PII require Moderate classification"
       ],
-      "tags": ["security", "data-governance", "ai-pipeline"]
+      "tags": [
+        "security",
+        "data-governance",
+        "ai-pipeline"
+      ]
     },
     {
       "id": "OIT-EAI-DEPLOYMENT-ARTIFACTS",
       "title": "Required deployment artifacts",
       "category": "deployment_artifacts",
-      "aispeg_standard_ids": ["i-1", "i-3", "i-6"],
+      "aispeg_standard_ids": [
+        "i-1",
+        "i-3",
+        "i-6"
+      ],
       "requirement_summary": "The project should keep repeatable deployment artifacts, runtime configuration references, environment documentation, SBOMs, backup/recovery procedures, and validation evidence.",
       "current_assertion": {
         "status": "partially_aligned",
-        "summary": "The repository includes Dockerfiles, docker-compose.yml, deploy.sh, MkDocs deployment docs, backup/recovery docs, SBOMs, Alembic migrations, health checks, and smoke checks. It still needs OIT-hosted deployment artifacts and formal runbook/ownership sign-off.",
-        "validated_at": "2026-05-05",
-        "validated_by": "Codex"
+        "summary": "Dockerfiles, Compose, deployment script, Alembic, health/readiness checks and revised backup/recovery procedures exist. Paired restore results, installed backup/expiry jobs, OIT-hosted artifacts and named operational sign-off are not verified. Historical SBOMs are not current release inventories.",
+        "validated_at": "2026-10-22",
+        "validated_by": "Codex repository review; institutional approval not asserted"
       },
       "github_issue": {
         "number": 177,
@@ -285,14 +481,51 @@
         "state": "open"
       },
       "evidence_sources": [
-        { "type": "repo_file", "label": "Backend Dockerfile", "path": "backend/Dockerfile" },
-        { "type": "repo_file", "label": "Frontend Dockerfile", "path": "frontend/Dockerfile" },
-        { "type": "repo_file", "label": "Docker Compose deployment", "path": "docker-compose.yml" },
-        { "type": "repo_file", "label": "Deployment script", "path": "deploy.sh" },
-        { "type": "repo_file", "label": "Deployment guide", "path": "docs/deployment.md" },
-        { "type": "repo_file", "label": "Backup and recovery guide", "path": "docs/backup-and-recovery.md" },
-        { "type": "repo_directory", "label": "SBOM artifacts", "path": "sbom" },
-        { "type": "repo_directory", "label": "Alembic migrations", "path": "backend/alembic" }
+        {
+          "type": "repo_file",
+          "label": "Backend Dockerfile",
+          "path": "backend/Dockerfile"
+        },
+        {
+          "type": "repo_file",
+          "label": "Frontend Dockerfile",
+          "path": "frontend/Dockerfile"
+        },
+        {
+          "type": "repo_file",
+          "label": "Docker Compose deployment",
+          "path": "docker-compose.yml"
+        },
+        {
+          "type": "repo_file",
+          "label": "Deployment script",
+          "path": "deploy.sh"
+        },
+        {
+          "type": "repo_file",
+          "label": "Deployment guide",
+          "path": "docs/deployment.md"
+        },
+        {
+          "type": "repo_file",
+          "label": "Backup and recovery guide",
+          "path": "docs/backup-and-recovery.md"
+        },
+        {
+          "type": "repo_directory",
+          "label": "SBOM artifacts",
+          "path": "sbom"
+        },
+        {
+          "type": "repo_directory",
+          "label": "Alembic migrations",
+          "path": "backend/alembic"
+        },
+        {
+          "type": "repo_file",
+          "label": "Governance decisions and unverified environment evidence",
+          "path": "docs/governance/decisions.md"
+        }
       ],
       "required_evidence": [
         "Container build and deployment artifacts",
@@ -304,19 +537,27 @@
       "blockers": [
         "OIT decision on target deployment platform and required deployment repository structure"
       ],
-      "tags": ["deployment", "operations", "documentation"]
+      "tags": [
+        "deployment",
+        "operations",
+        "documentation"
+      ]
     },
     {
       "id": "OIT-EAI-MODEL-GATEWAY",
       "title": "AI model gateway, approved model, and registry evidence",
       "category": "ai_model_gateway",
-      "aispeg_standard_ids": ["i-3", "i-4", "i-8"],
+      "aispeg_standard_ids": [
+        "i-3",
+        "i-4",
+        "i-8"
+      ],
       "requirement_summary": "AI model calls should use the approved gateway and models, with registry evidence for model selection, data classification, and exception handling.",
       "current_assertion": {
         "status": "needs_decision",
-        "summary": "The application supports Anthropic, OpenAI, and University of Idaho MindRouter through a provider abstraction. Deployment docs recommend MindRouter for on-prem use, but the approved model list, mandatory gateway path, and exception posture for external providers are not yet recorded.",
-        "validated_at": "2026-05-05",
-        "validated_by": "Codex"
+        "summary": "Newsletter editing supports Anthropic/OpenAI/MindRouter; ops classification uses an independently configured MindRouter provider. Inputs, repair calls and persisted outputs are documented. Approved endpoint/model list, contracts, mandatory gateway and external-provider exceptions are pending; on-campus routing is not inferred from configurable URLs.",
+        "validated_at": "2026-10-22",
+        "validated_by": "Codex repository review; institutional approval not asserted"
       },
       "github_issue": {
         "number": 178,
@@ -324,10 +565,31 @@
         "state": "open"
       },
       "evidence_sources": [
-        { "type": "repo_file", "label": "AI editing provider abstraction docs", "path": "docs/ai-editing.md" },
-        { "type": "repo_file", "label": "AI provider factory", "path": "backend/app/services/ai/factory.py" },
-        { "type": "repo_file", "label": "MindRouter provider", "path": "backend/app/services/ai/mindrouter_provider.py" },
-        { "type": "repo_file", "label": "Backend settings model defaults", "path": "backend/app/config.py" }
+        {
+          "type": "repo_file",
+          "label": "AI editing provider abstraction docs",
+          "path": "docs/ai-editing.md"
+        },
+        {
+          "type": "repo_file",
+          "label": "AI provider factory",
+          "path": "backend/app/services/ai/factory.py"
+        },
+        {
+          "type": "repo_file",
+          "label": "MindRouter provider",
+          "path": "backend/app/services/ai/mindrouter_provider.py"
+        },
+        {
+          "type": "repo_file",
+          "label": "Backend settings model defaults",
+          "path": "backend/app/config.py"
+        },
+        {
+          "type": "repo_file",
+          "label": "Governance decisions and unverified environment evidence",
+          "path": "docs/governance/decisions.md"
+        }
       ],
       "required_evidence": [
         "Approved model registry entry or mapping",
@@ -338,19 +600,27 @@
       "blockers": [
         "OIT and MindRouter owner decision on approved models and external provider exception path"
       ],
-      "tags": ["ai-pipeline", "security", "integration"]
+      "tags": [
+        "ai-pipeline",
+        "security",
+        "integration"
+      ]
     },
     {
       "id": "OIT-EAI-AUDITABILITY",
       "title": "Auditability for model calls, data access, and deployments",
       "category": "auditability",
-      "aispeg_standard_ids": ["i-3", "i-4", "i-10"],
+      "aispeg_standard_ids": [
+        "i-3",
+        "i-4",
+        "i-10"
+      ],
       "requirement_summary": "Model calls, sensitive data access, configuration changes, and deployments should be auditable without logging protected content.",
       "current_assertion": {
         "status": "partially_aligned",
-        "summary": "AI editing creates immutable EditVersion records and the audit logging plan defines event types and PII redaction rules. Structured production audit logging for model calls, staff data access, configuration changes, and deployment events is not yet implemented end to end.",
-        "validated_at": "2026-05-05",
-        "validated_by": "Codex"
+        "summary": "EditVersion and issue version references provide editorial provenance. Content-minimized structured diagnostics and log-size limits are configured. End-to-end actor/access/model-call/config/deployment audit events, central storage/review and time-based retention remain incomplete.",
+        "validated_at": "2026-10-22",
+        "validated_by": "Codex repository review; institutional approval not asserted"
       },
       "github_issue": {
         "number": 179,
@@ -358,10 +628,41 @@
         "state": "open"
       },
       "evidence_sources": [
-        { "type": "repo_file", "label": "Audit logging and monitoring plan", "path": "docs/audit-logging.md" },
-        { "type": "repo_file", "label": "AI editing edit-version docs", "path": "docs/ai-editing.md" },
-        { "type": "repo_file", "label": "Edit history model", "path": "backend/app/models/edit_history.py" },
-        { "type": "repo_file", "label": "Deployment script smoke checks", "path": "deploy.sh" }
+        {
+          "type": "repo_file",
+          "label": "Audit logging and monitoring plan",
+          "path": "docs/audit-logging.md"
+        },
+        {
+          "type": "repo_file",
+          "label": "AI editing edit-version docs",
+          "path": "docs/ai-editing.md"
+        },
+        {
+          "type": "repo_file",
+          "label": "Edit history model",
+          "path": "backend/app/models/edit_history.py"
+        },
+        {
+          "type": "repo_file",
+          "label": "Deployment script smoke checks",
+          "path": "deploy.sh"
+        },
+        {
+          "type": "repo_file",
+          "label": "Governance decisions and unverified environment evidence",
+          "path": "docs/governance/decisions.md"
+        },
+        {
+          "type": "repo_file",
+          "label": "Canonical provisional column catalog",
+          "path": "frontend/src/data/governance-catalog.json"
+        },
+        {
+          "type": "repo_file",
+          "label": "Governance drift validation",
+          "path": "scripts/check_governance.py"
+        }
       ],
       "required_evidence": [
         "Structured application logging implementation",
@@ -373,19 +674,26 @@
       "blockers": [
         "Observability platform and log destination decision"
       ],
-      "tags": ["security", "observability", "ai-pipeline"]
+      "tags": [
+        "security",
+        "observability",
+        "ai-pipeline"
+      ]
     },
     {
       "id": "OIT-EAI-POSTGRES",
       "title": "PostgreSQL hosting standard and extensions",
       "category": "database",
-      "aispeg_standard_ids": ["i-3", "i-5"],
+      "aispeg_standard_ids": [
+        "i-3",
+        "i-5"
+      ],
       "requirement_summary": "Hosted database posture should use the approved PostgreSQL deployment pattern and required extensions where applicable.",
       "current_assertion": {
         "status": "partially_aligned",
-        "summary": "Deployed environments use an external PostgreSQL database on insight-db-net and CI includes a PostgreSQL 16 smoke job with Alembic migrations. Local development defaults to SQLite, and there is no evidence yet for pgvector, pgaudit, pgsodium, or an OIT-managed PostgreSQL topology decision.",
-        "validated_at": "2026-05-05",
-        "validated_by": "Codex"
+        "summary": "Compose expects external PostgreSQL on insight-db-net; CI uses PostgreSQL 16 migrations, Alembic drift checks and tests. Local defaults use SQLite. Live hosting topology, required extension applicability and completed backup/restore evidence remain unverified.",
+        "validated_at": "2026-10-22",
+        "validated_by": "Codex repository review; institutional approval not asserted"
       },
       "github_issue": {
         "number": 180,
@@ -393,11 +701,36 @@
         "state": "open"
       },
       "evidence_sources": [
-        { "type": "repo_file", "label": "Deployment database topology", "path": "docs/deployment.md" },
-        { "type": "repo_file", "label": "Docker Compose external Postgres network", "path": "docker-compose.yml" },
-        { "type": "repo_file", "label": "Backend database engine", "path": "backend/app/db/engine.py" },
-        { "type": "repo_file", "label": "Alembic config", "path": "backend/alembic.ini" },
-        { "type": "repo_file", "label": "PostgreSQL CI smoke test", "path": "backend/tests/postgres_smoke.py" }
+        {
+          "type": "repo_file",
+          "label": "Deployment database topology",
+          "path": "docs/deployment.md"
+        },
+        {
+          "type": "repo_file",
+          "label": "Docker Compose external Postgres network",
+          "path": "docker-compose.yml"
+        },
+        {
+          "type": "repo_file",
+          "label": "Backend database engine",
+          "path": "backend/app/db/engine.py"
+        },
+        {
+          "type": "repo_file",
+          "label": "Alembic config",
+          "path": "backend/alembic.ini"
+        },
+        {
+          "type": "repo_file",
+          "label": "PostgreSQL CI smoke test",
+          "path": "backend/tests/postgres_smoke.py"
+        },
+        {
+          "type": "repo_file",
+          "label": "Governance decisions and unverified environment evidence",
+          "path": "docs/governance/decisions.md"
+        }
       ],
       "required_evidence": [
         "Production PostgreSQL hosting decision",
@@ -408,19 +741,26 @@
       "blockers": [
         "OIT database-hosting decision and extension applicability review"
       ],
-      "tags": ["database", "deployment", "security"]
+      "tags": [
+        "database",
+        "deployment",
+        "security"
+      ]
     },
     {
       "id": "OIT-EAI-SOURCE-CONTROL",
       "title": "Source-control and GitHub Actions approval",
       "category": "source_control",
-      "aispeg_standard_ids": ["i-5", "i-8"],
+      "aispeg_standard_ids": [
+        "i-5",
+        "i-8"
+      ],
       "requirement_summary": "Source-control and CI systems must be approved for the project and preserve review, branch protection, and deployment traceability.",
       "current_assertion": {
         "status": "needs_decision",
         "summary": "The project is hosted in GitHub under ui-insight/UCMDailyRegister and uses GitHub Actions for backend, PostgreSQL smoke, frontend, and docs workflows. The OIT draft appears to prefer Azure DevOps/Azure Pipelines or a formal GitHub approval/exception, which has not been recorded for this repo.",
-        "validated_at": "2026-05-05",
-        "validated_by": "Codex"
+        "validated_at": "2026-10-22",
+        "validated_by": "Codex repository review; institutional approval not asserted"
       },
       "github_issue": {
         "number": 181,
@@ -428,9 +768,26 @@
         "state": "open"
       },
       "evidence_sources": [
-        { "type": "repo_directory", "label": "GitHub Actions workflows", "path": ".github/workflows" },
-        { "type": "repo_file", "label": "Contributing branch and PR guidance", "path": "docs/contributing.md" },
-        { "type": "external_url", "label": "GitHub repository", "url": "https://github.com/ui-insight/UCMDailyRegister" }
+        {
+          "type": "repo_directory",
+          "label": "GitHub Actions workflows",
+          "path": ".github/workflows"
+        },
+        {
+          "type": "repo_file",
+          "label": "Contributing branch and PR guidance",
+          "path": "docs/contributing.md"
+        },
+        {
+          "type": "external_url",
+          "label": "GitHub repository",
+          "url": "https://github.com/ui-insight/UCMDailyRegister"
+        },
+        {
+          "type": "repo_file",
+          "label": "Governance decisions and unverified environment evidence",
+          "path": "docs/governance/decisions.md"
+        }
       ],
       "required_evidence": [
         "Approved source-control decision",
@@ -441,19 +798,26 @@
       "blockers": [
         "OIT decision on GitHub/GitHub Actions approval for this project"
       ],
-      "tags": ["source-control", "ci", "governance"]
+      "tags": [
+        "source-control",
+        "ci",
+        "governance"
+      ]
     },
     {
       "id": "OIT-EAI-OWNERSHIP",
       "title": "Application ownership and long-term support",
       "category": "ownership",
-      "aispeg_standard_ids": ["i-6", "i-8"],
+      "aispeg_standard_ids": [
+        "i-6",
+        "i-8"
+      ],
       "requirement_summary": "The application must have named business and technical owners, support expectations, security reporting, and long-term maintenance posture.",
       "current_assertion": {
         "status": "partially_aligned",
-        "summary": "The repository documents UCM as the business context, IIDS/security reporting paths, deployment host details, backup/recovery, and incident response. Named business owner, named technical owner, and long-term support commitments are not yet captured as formal evidence.",
-        "validated_at": "2026-05-05",
-        "validated_by": "Codex"
+        "summary": "A decision register defines accountable business, technical, data and operational roles, review cadence, evidence templates and escalation responsibilities. Named owner acceptance, funding/support commitments and formal sign-off remain pending.",
+        "validated_at": "2026-10-22",
+        "validated_by": "Codex repository review; institutional approval not asserted"
       },
       "github_issue": {
         "number": 182,
@@ -461,10 +825,31 @@
         "state": "open"
       },
       "evidence_sources": [
-        { "type": "repo_file", "label": "Project README", "path": "README.md" },
-        { "type": "repo_file", "label": "Security policy", "path": "SECURITY.md" },
-        { "type": "repo_file", "label": "Backup and recovery guide", "path": "docs/backup-and-recovery.md" },
-        { "type": "repo_file", "label": "Deployment guide target server", "path": "docs/deployment.md" }
+        {
+          "type": "repo_file",
+          "label": "Project README",
+          "path": "README.md"
+        },
+        {
+          "type": "repo_file",
+          "label": "Security policy",
+          "path": "SECURITY.md"
+        },
+        {
+          "type": "repo_file",
+          "label": "Backup and recovery guide",
+          "path": "docs/backup-and-recovery.md"
+        },
+        {
+          "type": "repo_file",
+          "label": "Deployment guide target server",
+          "path": "docs/deployment.md"
+        },
+        {
+          "type": "repo_file",
+          "label": "Governance decisions and unverified environment evidence",
+          "path": "docs/governance/decisions.md"
+        }
       ],
       "required_evidence": [
         "Named business owner",
@@ -476,19 +861,26 @@
       "blockers": [
         "Confirm formal owner names and support expectations with UCM and IIDS"
       ],
-      "tags": ["ownership", "operations", "documentation"]
+      "tags": [
+        "ownership",
+        "operations",
+        "documentation"
+      ]
     },
     {
       "id": "OIT-EAI-DEVTEST-DATA",
       "title": "Dev/test data policy and synthetic-data evidence",
       "category": "non_production_data",
-      "aispeg_standard_ids": ["i-3", "i-4"],
+      "aispeg_standard_ids": [
+        "i-3",
+        "i-4"
+      ],
       "requirement_summary": "Development and test environments must avoid unapproved production data and document synthetic, scrubbed, or minimized datasets.",
       "current_assertion": {
         "status": "partially_aligned",
-        "summary": "Tests use in-memory SQLite and repository seed JSON for controlled vocabularies, style rules, schedules, and sections. The docs identify PII and retention risks, but there is no explicit policy for copying production submissions, uploaded images, submitter notes, or prompt/completion data into dev/test environments.",
-        "validated_at": "2026-05-05",
-        "validated_by": "Codex"
+        "summary": "Project rules require synthetic/approved seeds and prohibit ordinary production copies in dev/test/CI. Real restore exercises require isolated production-grade controls, disabled outbound processing and teardown. Institutional ratification, approved scrub exceptions and execution evidence remain pending.",
+        "validated_at": "2026-10-22",
+        "validated_by": "Codex repository review; institutional approval not asserted"
       },
       "github_issue": {
         "number": 183,
@@ -496,11 +888,36 @@
         "state": "open"
       },
       "evidence_sources": [
-        { "type": "repo_directory", "label": "Backend tests", "path": "backend/tests" },
-        { "type": "repo_directory", "label": "Frontend tests", "path": "frontend/src" },
-        { "type": "repo_directory", "label": "Seed data", "path": "backend/data" },
-        { "type": "repo_file", "label": "Data governance PII inventory", "path": "docs/data-governance.md" },
-        { "type": "repo_file", "label": "Pytest configuration", "path": "pytest.ini" }
+        {
+          "type": "repo_directory",
+          "label": "Backend tests",
+          "path": "backend/tests"
+        },
+        {
+          "type": "repo_directory",
+          "label": "Frontend tests",
+          "path": "frontend/src"
+        },
+        {
+          "type": "repo_directory",
+          "label": "Seed data",
+          "path": "backend/data"
+        },
+        {
+          "type": "repo_file",
+          "label": "Data governance PII inventory",
+          "path": "docs/data-governance.md"
+        },
+        {
+          "type": "repo_file",
+          "label": "Pytest configuration",
+          "path": "pytest.ini"
+        },
+        {
+          "type": "repo_file",
+          "label": "Governance decisions and unverified environment evidence",
+          "path": "docs/governance/decisions.md"
+        }
       ],
       "required_evidence": [
         "Non-production data policy",
@@ -511,19 +928,26 @@
       "blockers": [
         "Policy decision on whether production submissions or uploads may be used outside production"
       ],
-      "tags": ["data-governance", "testing", "security"]
+      "tags": [
+        "data-governance",
+        "testing",
+        "security"
+      ]
     },
     {
       "id": "OIT-EAI-LOCAL-AI-TOOLS",
       "title": "Local AI tooling policy for development and CI",
       "category": "local_ai_tooling",
-      "aispeg_standard_ids": ["i-4", "i-8"],
+      "aispeg_standard_ids": [
+        "i-4",
+        "i-8"
+      ],
       "requirement_summary": "Developers and CI workflows must follow policy for local AI tools, especially around prompts, code, secrets, protected data, and generated artifacts.",
       "current_assertion": {
-        "status": "needs_decision",
-        "summary": "The repository contains agent conventions, but no project-specific local AI tooling policy for real submissions, submitter notes, secrets, prompt/completion content, or CI usage. A policy decision and documentation are needed before making a compliance assertion.",
-        "validated_at": "2026-05-05",
-        "validated_by": "Codex"
+        "status": "partially_aligned",
+        "summary": "Project handling rules prohibit secrets, production content, personal information, tokens and dumps in coding-assistant or CI prompts; source and synthetic fixtures are permitted. Institutional ratification, exceptions and training/review evidence remain pending.",
+        "validated_at": "2026-10-22",
+        "validated_by": "Codex repository review; institutional approval not asserted"
       },
       "github_issue": {
         "number": 184,
@@ -531,9 +955,26 @@
         "state": "open"
       },
       "evidence_sources": [
-        { "type": "repo_file", "label": "Agent conventions", "path": "CLAUDE.md" },
-        { "type": "repo_file", "label": "Data governance prompt data discussion", "path": "docs/data-governance.md" },
-        { "type": "repo_file", "label": "Security policy external data transmission", "path": "SECURITY.md" }
+        {
+          "type": "repo_file",
+          "label": "Agent conventions",
+          "path": "CLAUDE.md"
+        },
+        {
+          "type": "repo_file",
+          "label": "Data governance prompt data discussion",
+          "path": "docs/data-governance.md"
+        },
+        {
+          "type": "repo_file",
+          "label": "Security policy external data transmission",
+          "path": "SECURITY.md"
+        },
+        {
+          "type": "repo_file",
+          "label": "Governance decisions and unverified environment evidence",
+          "path": "docs/governance/decisions.md"
+        }
       ],
       "required_evidence": [
         "Permitted and prohibited local AI tool uses",
@@ -544,19 +985,26 @@
       "blockers": [
         "OIT or project owner decision on local AI tool policy for this application"
       ],
-      "tags": ["ai-policy", "security", "governance"]
+      "tags": [
+        "ai-policy",
+        "security",
+        "governance"
+      ]
     },
     {
       "id": "OIT-EAI-INTAKE-APPROVALS",
       "title": "OIT intake, EAR, VASA, namespace, and gateway access",
       "category": "formal_intake",
-      "aispeg_standard_ids": ["i-6", "i-8"],
+      "aispeg_standard_ids": [
+        "i-6",
+        "i-8"
+      ],
       "requirement_summary": "Formal OIT intake and approval artifacts should be tracked, including EAR, VASA, namespace request, gateway access, production auth, and exception approvals.",
       "current_assertion": {
         "status": "gap",
         "summary": "No OIT intake, EAR, VASA, namespace, gateway access, or formal exception artifacts were found in the repository. These may exist outside the repo, but they are not linked as evidence yet.",
-        "validated_at": "2026-05-05",
-        "validated_by": "Codex"
+        "validated_at": "2026-10-22",
+        "validated_by": "Codex repository review; institutional approval not asserted"
       },
       "github_issue": {
         "number": 185,
@@ -564,9 +1012,26 @@
         "state": "open"
       },
       "evidence_sources": [
-        { "type": "repo_file", "label": "Deployment guide target server", "path": "docs/deployment.md" },
-        { "type": "github_issue", "label": "Parent standards tracker", "url": "https://github.com/ui-insight/UCMDailyRegister/issues/170" },
-        { "type": "manual_artifact", "label": "OIT intake, EAR, VASA, namespace, and gateway access artifacts", "notes": "Manual artifacts should be linked from the GitHub issue without exposing sensitive content." }
+        {
+          "type": "repo_file",
+          "label": "Deployment guide target server",
+          "path": "docs/deployment.md"
+        },
+        {
+          "type": "github_issue",
+          "label": "Parent standards tracker",
+          "url": "https://github.com/ui-insight/UCMDailyRegister/issues/170"
+        },
+        {
+          "type": "manual_artifact",
+          "label": "OIT intake, EAR, VASA, namespace, and gateway access artifacts",
+          "notes": "Manual artifacts should be linked from the GitHub issue without exposing sensitive content."
+        },
+        {
+          "type": "repo_file",
+          "label": "Governance decisions and unverified environment evidence",
+          "path": "docs/governance/decisions.md"
+        }
       ],
       "required_evidence": [
         "OIT intake record",
@@ -578,7 +1043,12 @@
       "blockers": [
         "Locate or file formal OIT intake artifacts and record non-sensitive references"
       ],
-      "tags": ["governance", "deployment", "security"]
+      "tags": [
+        "governance",
+        "deployment",
+        "security"
+      ]
     }
-  ]
+  ],
+  "review_context": "Repository-only review on 2026-10-22 of b7d893b1209ead93ad08dd2daae36fe7c953cff6 plus the uncommitted audit remediation. Rebind to the merged release commit/digest before using as deployment evidence. Live issue states, environment enablement, institutional approvals and the current external framework revision were not verified."
 }

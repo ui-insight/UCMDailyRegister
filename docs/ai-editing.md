@@ -212,3 +212,25 @@ Key implementation details:
     MINDROUTER_ENDPOINT_URL=https://mindrouter.uidaho.edu/v1/chat/completions
     MINDROUTER_MODEL=moonshotai/kimi-k3
     ```
+
+## Governance and the separate ops classifier
+
+Newsletter prompts include original copy, submitter notes, provided URLs/anchor
+text, category and staff instructions with active style rules. A repair pass may
+resend the original prompt, generated draft and findings. Dedicated contact
+columns are not inserted, but personal information embedded in free text/links
+is not automatically sanitized. The selected provider is controlled by
+`LLM_PROVIDER`; the default configuration is Claude, while deployment examples
+prefer MindRouter. Provider selection does not establish approved routing.
+
+Event Services uses a separate MindRouter classifier after a harvest. It reads
+event title, up to 4,000 description characters, location and category, then
+stores needs, confidence, rationale and staff verdicts. It uses `OPS_CLASSIFIER_*`
+with endpoint/key fallbacks to `MINDROUTER_*`, independent of newsletter provider
+selection. The content hash tracks assessed source text; per-assessment model and
+prompt version identifiers are not currently persisted.
+
+See [Data governance](data-governance.md) for the complete sharing/processor
+inventory and [Governance decisions](governance/decisions.md) for pending
+model, gateway, contract and classification approvals. No blanket vendor
+residency, zero-retention or legal-compliance claim is inferred from the code.

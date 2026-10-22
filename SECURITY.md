@@ -52,7 +52,7 @@ The application supports two authentication modes, selected by `AUTH_PROVIDER`:
 
 ### Data Protection
 
-- **PII minimization:** Only submitter name and email are collected. These are not included in AI prompts or published newsletters.
+- **Personal data:** Submission contacts/notes, feedback reports and browser context, and sign-in identity/session claims are processed. Dedicated submitter contact columns are not automatically inserted into AI prompts or published copy; free text, links, images and AI outputs may still contain personal information. See the complete governance inventory.
 - **Secrets:** API keys and database credentials are managed via environment variables, never committed to the repository.
 - **CORS:** Configurable allowed origins via `CORS_ORIGINS` environment variable.
 - **Input validation:** All API inputs validated via Pydantic schemas before processing.
@@ -61,16 +61,16 @@ The application supports two authentication modes, selected by `AUTH_PROVIDER`:
 
 ### External Data Transmission
 
-Content sent to external LLM providers (Anthropic, OpenAI) is limited to submission headlines, bodies, and notes. No PII fields (name, email) are included in prompts. See [Data Governance](docs/data-governance.md) for details.
+Newsletter editing sends headline/body, submitter notes, links and editor instructions with active rules. A repair pass may also send the draft and findings. Dedicated name/email columns are excluded, but embedded personal information is not automatically sanitized. See [Data Governance](docs/data-governance.md) for details.
 
-The on-premises MindRouter provider keeps all data within University of Idaho infrastructure.
+Ops event classification separately sends event title/description/location/category through a configured MindRouter provider. Endpoint/model approval and actual routing must be verified; configurable URLs do not by themselves establish campus-only processing or residency. Processor contracts and institutional approvals remain pending evidence.
 
 ### File Uploads
 
 - Restricted to image formats (JPEG, PNG, GIF, WebP)
 - Maximum file size: 10 MB
 - Files renamed to UUID on upload (original filename discarded)
-- Stored on a dedicated Docker volume, not served directly by the application
+- Stored on a dedicated Docker volume; image reads/writes use staff-gated API endpoints
 
 ## Dependency Management
 
@@ -108,3 +108,21 @@ See `sbom/README.md` for the latest vulnerability audit results.
 | DATABASE_URL | Environment variable | On credential change |
 
 Secrets are injected at container startup via environment variables. They are never logged, committed, or exposed via API responses.
+
+## Operational governance
+
+App session JWTs persist email/username subject, display name and role in browser
+localStorage until sign-out or expiry cleanup on a subsequent load; there is no
+user table or per-token revocation store. OIDC state uses a signed cookie. Do not
+confuse token expiry with remote browser erasure.
+
+Application log messages exclude identities, full URLs and external exception
+text. Docker runs content-minimized JSON diagnostics with bounded log sizes.
+Central time-based retention, campus ingress logging and complete actor/access
+auditing still require deployed evidence. See [Audit logging](docs/audit-logging.md).
+
+No automatic data purge is approved or enabled. Follow the proposed
+[retention design](docs/governance/retention.md) and owner decision register.
+Use synthetic data in development/CI/AI tools; protected restore exercises require
+isolation and production controls. Historical March SBOMs do not attest to the
+current runtime; generate release-bound inventories and scans before promotion.

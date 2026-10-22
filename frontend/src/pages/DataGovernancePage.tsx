@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import catalog from '../data/governance-catalog.json';
 
 type DataClassification = 'Public' | 'Internal' | 'Confidential' | 'Restricted';
 type ExtensionStatus = 'UDM-derived pattern' | 'Communications extension' | 'Operational support';
@@ -18,6 +19,8 @@ interface GovernanceTable {
   description: string;
   steward: string;
   columns: GovernanceColumn[];
+  retentionCategory: string;
+  sourceSystem: string;
 }
 
 const CLASSIFICATION_STYLES: Record<DataClassification, string> = {
@@ -33,305 +36,7 @@ const STATUS_STYLES: Record<ExtensionStatus, string> = {
   'Operational support': 'bg-status-muted-100 text-status-muted-800',
 };
 
-function col(
-  name: string,
-  description: string,
-  classification: DataClassification = 'Internal',
-  pii = false,
-  allowedValueGroup?: string,
-): GovernanceColumn {
-  return { name, description, classification, pii, allowedValueGroup };
-}
-
-const GOVERNANCE_TABLES: GovernanceTable[] = [
-  {
-    name: 'allowed_values',
-    area: 'Controlled vocabularies',
-    status: 'UDM-derived pattern',
-    steward: 'UCM operations',
-    description: 'Central governed value list for categorical fields, adapted from OpenERA AllowedValues.',
-    columns: [
-      col('Id', 'UUID primary key.', 'Internal'),
-      col('Value_Group', 'Vocabulary family used by API, forms, and settings.', 'Public'),
-      col('Code', 'Machine-readable value within the group.', 'Public'),
-      col('Label', 'Human-readable value shown in the user interface.', 'Public'),
-      col('Display_Order', 'Sort order for menus and settings views.', 'Public'),
-      col('Is_Active', 'Soft-disable flag for values that should no longer be selected.', 'Internal'),
-      col('Visibility_Role', 'Public or staff visibility scope for submission categories.', 'Internal'),
-      col('Description', 'Steward-facing explanation of the value.', 'Public'),
-    ],
-  },
-  {
-    name: 'submissions',
-    area: 'Content intake',
-    status: 'Communications extension',
-    steward: 'UCM editorial staff',
-    description: 'Submitted newsletter or SLC event content with workflow, submitter, image, and routing metadata.',
-    columns: [
-      col('Id', 'UUID primary key.', 'Internal'),
-      col('Category', 'Content category code.', 'Public', false, 'Submission_Category'),
-      col('Target_Newsletter', 'Publication routing code: TDR, My UI, both, or SLC-only none.', 'Public', false, 'Target_Newsletter'),
-      col('Original_Headline', 'Submitted headline text.', 'Public'),
-      col('Original_Body', 'Submitted body text.', 'Public'),
-      col('Submitter_Name', 'Submitter contact name.', 'Confidential', true),
-      col('Submitter_Email', 'Submitter contact email.', 'Confidential', true),
-      col('Submitter_Notes', 'Free-text instructions from submitter; may contain incidental PII.', 'Confidential', true),
-      col('Assigned_Editor', 'Staff owner for editorial follow-up.', 'Internal', true),
-      col('Editorial_Notes', 'Staff-only editorial notes; may contain incidental PII.', 'Internal', true),
-      col('Has_Image', 'Whether an uploaded image is attached.', 'Public'),
-      col('Image_Path', 'Server-side image path using UUID naming.', 'Internal'),
-      col('Survey_End_Date', 'Optional survey close date used for survey handling.', 'Public'),
-      col('Status', 'Editorial workflow state.', 'Internal', false, 'Submission_Status'),
-      col('Show_In_SLC_Calendar', 'Whether the submission appears in the SLC calendar feed.', 'Internal'),
-      col('Event_Classification', 'Strategic or signature event label for SLC visibility.', 'Internal'),
-      col('Created_At', 'Server creation timestamp.', 'Internal'),
-      col('Updated_At', 'Server update timestamp.', 'Internal'),
-    ],
-  },
-  {
-    name: 'submission_links',
-    area: 'Content intake',
-    status: 'Communications extension',
-    steward: 'UCM editorial staff',
-    description: 'Normalized hyperlinks attached to submitted content.',
-    columns: [
-      col('Id', 'UUID primary key.', 'Internal'),
-      col('Submission_Id', 'Foreign key to submissions.', 'Internal'),
-      col('Url', 'Destination URL supplied with the submission.', 'Public'),
-      col('Anchor_Text', 'Optional display text for the link.', 'Public'),
-      col('Display_Order', 'Ordering of links inside the submission.', 'Public'),
-    ],
-  },
-  {
-    name: 'submission_schedule_requests',
-    area: 'Content scheduling',
-    status: 'Communications extension',
-    steward: 'UCM editorial staff',
-    description: 'Requested run dates, recurrence settings, flexibility notes, and skipped occurrence dates.',
-    columns: [
-      col('Id', 'UUID primary key.', 'Internal'),
-      col('Submission_Id', 'Foreign key to submissions.', 'Internal'),
-      col('Requested_Date', 'Primary requested publication date.', 'Public'),
-      col('Second_Requested_Date', 'Secondary requested date when an item targets both newsletters.', 'Public'),
-      col('Repeat_Count', 'Legacy number of requested runs.', 'Internal'),
-      col('Repeat_Note', 'Legacy free-text repeat instructions.', 'Confidential', true),
-      col('Is_Flexible', 'Whether editors may choose an alternate date.', 'Internal'),
-      col('Flexible_Deadline', 'Latest acceptable date or flexibility note.', 'Confidential', true),
-      col('Recurrence_Type', 'Recurrence rule type for repeated runs.', 'Internal'),
-      col('Recurrence_Interval', 'Interval for recurring requests.', 'Internal'),
-      col('Recurrence_End_Date', 'End date for recurrence expansion.', 'Internal'),
-      col('Excluded_Dates', 'JSON list of skipped or rescheduled occurrence dates.', 'Internal'),
-    ],
-  },
-  {
-    name: 'edit_versions',
-    area: 'Editorial history',
-    status: 'Communications extension',
-    steward: 'UCM editorial staff',
-    description: 'Append-only snapshots of original, AI-suggested, and editor-final copy.',
-    columns: [
-      col('Id', 'UUID primary key.', 'Internal'),
-      col('Submission_Id', 'Foreign key to submissions.', 'Internal'),
-      col('Version_Type', 'Editing stage represented by the snapshot.', 'Internal', false, 'Version_Type'),
-      col('Headline', 'Headline text at this version.', 'Public'),
-      col('Body', 'Body text at this version.', 'Public'),
-      col('Headline_Case', 'Headline casing policy applied to this version.', 'Internal', false, 'Headline_Case'),
-      col('Flags', 'JSON list of AI or rule findings.', 'Internal'),
-      col('Changes_Made', 'JSON list of generated or editor-facing change summaries.', 'Internal'),
-      col('AI_Provider', 'LLM provider used for AI-generated versions.', 'Internal'),
-      col('AI_Model', 'LLM model used for AI-generated versions.', 'Internal'),
-      col('Editor_Instructions', 'Free-text editor instructions passed into an edit run.', 'Internal'),
-      col('Created_At', 'Immutable version creation timestamp.', 'Internal'),
-    ],
-  },
-  {
-    name: 'newsletters',
-    area: 'Newsletter assembly',
-    status: 'Communications extension',
-    steward: 'UCM editorial staff',
-    description: 'Dated editions of The Daily Register or My UI.',
-    columns: [
-      col('Id', 'UUID primary key.', 'Internal'),
-      col('Newsletter_Type', 'Publication code.', 'Public', false, 'Newsletter_Type'),
-      col('Publish_Date', 'Issue date.', 'Public'),
-      col('Status', 'Issue lifecycle state.', 'Internal', false, 'Newsletter_Status'),
-      col('Created_At', 'Server creation timestamp.', 'Internal'),
-      col('Updated_At', 'Server update timestamp.', 'Internal'),
-    ],
-  },
-  {
-    name: 'newsletter_items',
-    area: 'Newsletter assembly',
-    status: 'Communications extension',
-    steward: 'UCM editorial staff',
-    description: 'Placement of a finalized submission into a newsletter issue and section.',
-    columns: [
-      col('Id', 'UUID primary key.', 'Internal'),
-      col('Newsletter_Id', 'Foreign key to newsletters.', 'Internal'),
-      col('Submission_Id', 'Foreign key to submissions.', 'Internal'),
-      col('Section_Id', 'Foreign key to newsletter_sections.', 'Internal'),
-      col('Position', 'Ordering within the section.', 'Public'),
-      col('Final_Headline', 'Final published headline.', 'Public'),
-      col('Final_Body', 'Final published body.', 'Public'),
-      col('Run_Number', 'Occurrence number for repeated publication.', 'Internal'),
-    ],
-  },
-  {
-    name: 'newsletter_external_items',
-    area: 'Newsletter assembly',
-    status: 'Communications extension',
-    steward: 'UCM editorial staff',
-    description: 'Placement of imported calendar, job, or other external content into a newsletter issue.',
-    columns: [
-      col('Id', 'UUID primary key.', 'Internal'),
-      col('Newsletter_Id', 'Foreign key to newsletters.', 'Internal'),
-      col('Section_Id', 'Foreign key to newsletter_sections.', 'Internal'),
-      col('Source_Type', 'External source category, such as calendar_event or job_posting.', 'Public'),
-      col('Source_Id', 'Source-system identifier.', 'Internal'),
-      col('Source_Url', 'Source-system URL.', 'Public'),
-      col('Event_Start', 'Event start timestamp where applicable.', 'Public'),
-      col('Event_End', 'Event end timestamp where applicable.', 'Public'),
-      col('Location', 'Event location where applicable.', 'Public'),
-      col('Position', 'Ordering within the section.', 'Public'),
-      col('Final_Headline', 'Final published headline.', 'Public'),
-      col('Final_Body', 'Final published body.', 'Public'),
-    ],
-  },
-  {
-    name: 'newsletter_sections',
-    area: 'Newsletter assembly',
-    status: 'Communications extension',
-    steward: 'UCM editorial staff',
-    description: 'Governed section taxonomy and layout requirements for each newsletter type.',
-    columns: [
-      col('Id', 'UUID primary key.', 'Internal'),
-      col('Newsletter_Type', 'Publication code.', 'Public', false, 'Newsletter_Type'),
-      col('Name', 'Human-readable section name.', 'Public'),
-      col('Slug', 'Machine-readable section identifier.', 'Public'),
-      col('Display_Order', 'Default section order.', 'Public'),
-      col('Description', 'Section purpose.', 'Public'),
-      col('Requires_Image', 'Whether items in the section need an image.', 'Internal'),
-      col('Image_Dimensions', 'Expected image dimensions.', 'Internal'),
-      col('Is_Active', 'Soft-retirement flag.', 'Internal'),
-    ],
-  },
-  {
-    name: 'recurring_messages',
-    area: 'Recurring editorial content',
-    status: 'Communications extension',
-    steward: 'UCM editorial staff',
-    description: 'Staff-managed reusable copy surfaced on a configured cadence.',
-    columns: [
-      col('Id', 'UUID primary key.', 'Internal'),
-      col('Newsletter_Type', 'Publication code.', 'Public', false, 'Newsletter_Type'),
-      col('Section_Id', 'Foreign key to newsletter_sections.', 'Internal'),
-      col('Headline', 'Reusable message headline.', 'Public'),
-      col('Body', 'Reusable message body.', 'Public'),
-      col('Start_Date', 'First eligible publish date.', 'Internal'),
-      col('Recurrence_Type', 'Recurrence rule type.', 'Internal'),
-      col('Recurrence_Interval', 'Interval for recurring messages.', 'Internal'),
-      col('End_Date', 'Optional final eligible date.', 'Internal'),
-      col('Excluded_Dates', 'JSON list of skipped dates.', 'Internal'),
-      col('Is_Active', 'Soft-disable flag.', 'Internal'),
-      col('Created_At', 'Server creation timestamp.', 'Internal'),
-      col('Updated_At', 'Server update timestamp.', 'Internal'),
-    ],
-  },
-  {
-    name: 'recurring_message_issue_overrides',
-    area: 'Recurring editorial content',
-    status: 'Communications extension',
-    steward: 'UCM editorial staff',
-    description: 'Issue-specific exceptions, currently used to preserve skipped recurring messages.',
-    columns: [
-      col('Id', 'UUID primary key.', 'Internal'),
-      col('Recurring_Message_Id', 'Foreign key to recurring_messages.', 'Internal'),
-      col('Newsletter_Id', 'Foreign key to newsletters.', 'Internal'),
-      col('Override_Action', 'Issue-level action, currently skip.', 'Internal'),
-      col('Created_At', 'Server creation timestamp.', 'Internal'),
-    ],
-  },
-  {
-    name: 'style_rules',
-    area: 'AI editorial policy',
-    status: 'Communications extension',
-    steward: 'UCM editorial staff',
-    description: 'Database-managed style rules injected into the AI editing system prompt.',
-    columns: [
-      col('Id', 'UUID primary key.', 'Internal'),
-      col('Rule_Set', 'Shared, TDR, or My UI rule scope.', 'Internal', false, 'Rule_Set'),
-      col('Category', 'Editorial rule category.', 'Internal'),
-      col('Rule_Key', 'Machine-readable rule key.', 'Internal'),
-      col('Rule_Text', 'Natural-language editing instruction.', 'Internal'),
-      col('Is_Active', 'Whether future AI edits should use the rule.', 'Internal'),
-      col('Severity', 'Rule severity for editor attention.', 'Internal', false, 'Severity'),
-    ],
-  },
-  {
-    name: 'schedule_configs',
-    area: 'Publication schedule',
-    status: 'Communications extension',
-    steward: 'UCM editorial staff',
-    description: 'Publication cadence and submission deadline rules by newsletter type and schedule mode.',
-    columns: [
-      col('Id', 'UUID primary key.', 'Internal'),
-      col('Newsletter_Type', 'Publication code.', 'Public', false, 'Newsletter_Type'),
-      col('Mode', 'Academic year, summer, or winter break schedule mode.', 'Internal', false, 'Schedule_Mode'),
-      col('Submission_Deadline_Description', 'Human-readable deadline rule.', 'Public'),
-      col('Deadline_Day_Of_Week', 'Deadline weekday used in calculations.', 'Internal'),
-      col('Deadline_Time', 'Deadline time used in calculations.', 'Internal'),
-      col('Publish_Day_Of_Week', 'Publish weekday where applicable.', 'Internal'),
-      col('Is_Daily', 'Whether the mode publishes every weekday.', 'Internal'),
-      col('Active_Start_Month', 'Month when this mode starts.', 'Internal'),
-      col('Active_End_Month', 'Month when this mode ends.', 'Internal'),
-      col('Holiday_Shift_Enabled', 'Whether holiday-aware shifting applies.', 'Internal'),
-    ],
-  },
-  {
-    name: 'blackout_dates',
-    area: 'Publication schedule',
-    status: 'Communications extension',
-    steward: 'UCM editorial staff',
-    description: 'Dates when one or all newsletters should not publish.',
-    columns: [
-      col('Id', 'UUID primary key.', 'Internal'),
-      col('Blackout_Date', 'Suppressed publication date.', 'Public'),
-      col('Newsletter_Type', 'Optional publication scope; null applies broadly.', 'Public', false, 'Newsletter_Type'),
-      col('Description', 'Reason for the blackout.', 'Public'),
-      col('Is_Active', 'Soft-disable flag.', 'Internal'),
-    ],
-  },
-  {
-    name: 'schedule_mode_overrides',
-    area: 'Publication schedule',
-    status: 'Communications extension',
-    steward: 'UCM editorial staff',
-    description: 'Manual date-range override that forces a newsletter into a configured schedule mode.',
-    columns: [
-      col('Id', 'UUID primary key.', 'Internal'),
-      col('Newsletter_Type', 'Publication code.', 'Public', false, 'Newsletter_Type'),
-      col('Override_Mode', 'Schedule mode to apply during the range.', 'Internal', false, 'Schedule_Mode'),
-      col('Start_Date', 'Inclusive override start date.', 'Internal'),
-      col('End_Date', 'Inclusive override end date.', 'Internal'),
-      col('Description', 'Reason for the override.', 'Internal'),
-      col('Created_At', 'Server creation timestamp.', 'Internal'),
-    ],
-  },
-  {
-    name: 'custom_publish_dates',
-    area: 'Publication schedule',
-    status: 'Communications extension',
-    steward: 'UCM editorial staff',
-    description: 'Ad hoc publish dates used during winter break or other non-standard schedules.',
-    columns: [
-      col('Id', 'UUID primary key.', 'Internal'),
-      col('Newsletter_Type', 'Publication code.', 'Public', false, 'Newsletter_Type'),
-      col('Publish_Date', 'Manual issue date.', 'Public'),
-      col('Description', 'Reason for the custom publish date.', 'Internal'),
-      col('Created_At', 'Server creation timestamp.', 'Internal'),
-    ],
-  },
-];
+const GOVERNANCE_TABLES = catalog.tables as GovernanceTable[];
 
 function getTableClassification(table: GovernanceTable): DataClassification {
   if (table.columns.some((column) => column.classification === 'Restricted')) return 'Restricted';
@@ -407,6 +112,11 @@ export default function DataGovernancePage() {
       <header>
         <h1 className="text-2xl font-bold text-gray-900">Data Governance</h1>
       </header>
+
+      <p className="text-sm text-gray-600">
+        Catalog reviewed {catalog.reviewedAt}. Classifications are provisional pending Data Owner review.
+        PII flags include incidental personal information in free text.
+      </p>
 
       <section className="rounded-lg bg-white p-4 shadow">
         <div className="flex flex-wrap items-center gap-3">
@@ -503,6 +213,9 @@ export default function DataGovernancePage() {
 
                 {isExpanded && (
                   <div className="border-t border-gray-100">
+                    <p className="px-5 py-3 text-xs text-gray-500">
+                      Steward: {table.steward} · Source: {table.sourceSystem} · Retention: {table.retentionCategory}
+                    </p>
                     {filteredColumns.length === 0 ? (
                       <div className="px-5 py-4 text-sm text-gray-400">No columns match the current filters.</div>
                     ) : (

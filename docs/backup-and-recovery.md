@@ -1,252 +1,142 @@
-# Backup, Disaster Recovery & Incident Response
+# Backup, recovery and incident response
 
-## Infrastructure Overview
+Reviewed October 22, 2026. **This is an operating procedure, not proof that jobs
+are installed or that a recovery target was achieved.** Record installation,
+access/encryption controls, latest successful backup and measured restore results
+in [Governance decisions](governance/decisions.md). Proposed RPO: 24 hours;
+proposed RTO: four hours. Both require a restore exercise.
 
-| Component | Location | Data at Risk |
-|-----------|----------|-------------|
-| PostgreSQL database | External instance on `insight-db-net` Docker network | All submissions, newsletters, edit history, configuration |
-| File uploads | Docker volume (`uploads`) on openera server | Submitted images |
-| Application containers | Docker Compose on openera server | Stateless (rebuilt from source) |
-| Environment secrets | `.env` / `.env.prod` files on server | API keys, database credentials |
+## Topology and protected copies
 
----
+Compose contains frontend nginx and backend uvicorn. PostgreSQL is external on
+`insight-db-net`; application uploads are in the `uploads` volume. Identify the
+actual volume with `docker volume inspect`/Compose configuration rather than
+assuming its name. Environment files contain secrets and require separately
+controlled encrypted backups. Source recovery comes from the repository plus
+release/image metadata.
 
-## Backup Strategy
+Treat all DB/upload backups as containing personal information. Keep encrypted,
+access-controlled off-host copies and separate keys. Never copy real backups into
+ordinary development, CI or an unapproved test environment.
 
-### PostgreSQL Database
+## Paired, versioned backup procedure
 
-**Tool:** `pg_dump` (logical backups)
+Run this procedure from an approved backup agent with credentials supplied outside
+command history. Configure service files or a managed credential mechanism for
+PostgreSQL; do not put passwords in a command line. Confirm source DB identity
+and the upload source mount before every installation.
 
-**Schedule:** Daily automated backups via cron on the database host.
+1. Pause application writes (stop backend or enable an upstream maintenance page)
+   while taking the pair. Merely starting a DB dump and rsync at different times
+   does not guarantee consistency between referenced uploads and database rows.
+2. Create a new restricted timestamped directory, e.g.
+   `/backups/ucmnews/prod/2026-10-22T020000Z/`, using `umask 077` and a directory
+   name that is never reused. Keep prod and dev separate.
+3. Run `pg_dump --format=custom --file=<new-directory>/database.dump <service-db>`.
+   Copy the upload volume into `<new-directory>/uploads/` with `rsync -a`.
+   Neither command should overwrite the previous recovery point.
+4. Record the backup timestamp, database identity, application commit/image
+   digests, Alembic revision, upload volume identity, file count and checksums in
+   a restricted manifest. Do not include secrets. Confirm both operations
+   succeeded before declaring a recovery point complete and resuming writes.
+5. Encrypt/replicate the pair to the approved off-host store, verify checksums,
+   and record success/failure and alert destination. Encrypt environment-file
+   backups separately; protect encryption keys away from the backup data.
 
-```bash
-# Example cron entry (run as postgres user or with appropriate credentials)
-0 2 * * * pg_dump -Fc -f /backups/ucm_newsletter_$(date +\%Y\%m\%d).dump ucm_newsletter
-0 2 * * * pg_dump -Fc -f /backups/ucm_newsletter_dev_$(date +\%Y\%m\%d).dump ucm_newsletter_dev
-```
+The earlier single-directory rsync example is retired: it neither preserved
+historical upload snapshots nor expired deleted files. For larger datasets use a
+reviewed snapshot/consistent online backup design rather than extending downtime
+without agreement.
 
-**Retention:**
+Proposed tiers are daily 30 days, weekly 90 days and monthly one year. Until the
+Data Owner approves them they are planning values. Implement tier labels and
+expiry on complete recovery-point directories/pairs, not ad hoc removal of files
+inside them. A retained weekly/monthly pair can outlive the daily tier. Holds and
+backup retention extensions require recorded owner authorization. Monitor failed
+backups, missing pairs, off-host replication and expiry failures.
 
-| Backup Type | Frequency | Retention |
-|-------------|-----------|-----------|
-| Daily | Every night at 02:00 | 30 days |
-| Weekly | Sunday 02:00 | 90 days |
-| Monthly | 1st of month | 1 year |
+## Restore exercise and data loss
 
-**Verification:** Restore a backup to a test database monthly to confirm integrity.
+Use an isolated, approved recovery environment for a monthly exercise and before
+significant schema/storage changes. Disable public ingress and outbound AI or
+feedback work; never expose the restored DB through the normal dev host. Protect
+real restore data with production controls and teardown after verification.
 
-```bash
-# Verify backup integrity
-pg_restore --list /backups/ucm_newsletter_YYYYMMDD.dump
+1. Preserve current database/uploads and failure evidence before any replacement.
+   Do not start with `dropdb` against the affected production database.
+2. Select a complete, verified DB/upload pair and its matching release. Restore
+   the dump to a **new** isolated database. `pg_restore --list` only checks archive
+   readability; it does not demonstrate a usable restore.
+3. Restore uploads into a **new** volume/directory. Verify checksums and DB image
+   references. Set correct ownership; do not copy over a live volume blindly.
+4. Start the matching application release with migrations reviewed for that exact
+   source/target revision. Prevent the normal entrypoint from automatically
+   migrating to a different revision before compatibility has been checked.
+5. Verify schema revision, record counts, issue snapshots and provenance,
+   reference data, uploaded-image readability, role isolation, and a synthetic
+   create/edit/export cycle. Use approved credentials for staff tests. Verify
+   disposed/held data handling before reconnecting restored data to users.
+6. Record measured data loss and recovery duration, backup/release revisions,
+   tests, reviewer, deviations and corrective work. Cut traffic over only after
+   owner acceptance. Securely remove test copies and temporary credentials.
 
-# Test restore to temporary database
-createdb ucm_newsletter_restore_test
-pg_restore -d ucm_newsletter_restore_test /backups/ucm_newsletter_YYYYMMDD.dump
-# Run smoke tests against restored database, then drop it
-dropdb ucm_newsletter_restore_test
-```
+A restore record must include the actual date/operator, pair identifier, checksum
+results, expected/actual RPO and RTO, checks passed/failed, decision and teardown.
+No completed exercise is claimed by this repository update.
 
-### File Uploads (Images)
+## Container recovery and release rollback
 
-**Strategy:** Sync the Docker volume to a backup location.
+For a stateless container failure, inspect `docker compose -p ucmnews-prod ps`
+and minimized logs, then restart the failed service. Rebuilding is a release
+operation, because the backend entrypoint runs Alembic and seeds data.
 
-```bash
-# Rsync upload volume to backup directory
-0 3 * * * rsync -a /var/lib/docker/volumes/ucmnews-prod_uploads/_data/ /backups/uploads/
-```
+For a bad deployment:
 
-**Retention:** Same schedule as database backups.
+1. Pause writes/traffic as needed; capture the deployed commit/image digests and
+   current Alembic revision, then create a fresh paired recovery point.
+2. Compare the current and target migration chains **before starting the older
+   release**. Check whether the previous code can run on the current schema.
+3. If compatible, deploy the known-good immutable image/revision and verify.
+   If incompatible, prefer a forward fix or restore a paired backup into a new
+   DB/volume. A downgrade is permitted only after reviewing and testing that
+   exact migration path, data-loss implications and rollback plan on an isolated
+   copy. Never assume `alembic downgrade -1` reverses an entire release.
+4. Recheck health, readiness, role-specific workflows and source/archive
+   integrity before reopening traffic. Record the result and any data loss.
 
-### Environment Files
+## Health checks
 
-**Strategy:** Encrypted backup of `.env.prod` and `.env` files.
-
-```bash
-# Encrypt and store environment files
-gpg --symmetric --cipher-algo AES256 -o /backups/env_prod_$(date +%Y%m%d).gpg .env.prod
-```
-
-**Storage:** Keep encrypted copies in a separate location from the application server.
-
-### Application Source
-
-**Strategy:** The application is stateless and rebuilt from the Git repository. No application-level backup is needed beyond the GitHub repository itself.
-
----
-
-## Recovery Objectives
-
-| Metric | Target | Rationale |
-|--------|--------|-----------|
-| **RTO** (Recovery Time Objective) | 4 hours | Newsletter is daily; a same-day recovery is acceptable |
-| **RPO** (Recovery Point Objective) | 24 hours | Daily backups; at most one day of submissions could be lost |
-
----
-
-## Disaster Recovery Procedures
-
-### Scenario 1: Application Container Failure
-
-**Symptoms:** Frontend or backend container stops responding.
-
-**Recovery:**
-
-```bash
-ssh devops@openera.insight.uidaho.edu
-cd /path/to/UCMDailyRegister-App
-
-# Check container status
-docker compose -p ucmnews-prod ps
-
-# Restart failed containers
-docker compose -p ucmnews-prod restart
-
-# If restart fails, rebuild
-./deploy.sh prod
-```
-
-**Time estimate:** 5-15 minutes.
-
-### Scenario 2: Database Corruption or Data Loss
-
-**Symptoms:** Application errors referencing database, missing data.
-
-**Recovery:**
+Run against the relevant host (prod shown):
 
 ```bash
-# 1. Stop the application to prevent further writes
-docker compose -p ucmnews-prod stop backend
-
-# 2. Identify the most recent good backup
-ls -lt /backups/ucm_newsletter_*.dump | head -5
-
-# 3. Restore from backup
-dropdb ucm_newsletter  # CAUTION: destroys current database
-createdb ucm_newsletter
-pg_restore -d ucm_newsletter /backups/ucm_newsletter_YYYYMMDD.dump
-
-# 4. Run any pending Alembic migrations
-docker compose -p ucmnews-prod run --rm backend alembic upgrade head
-
-# 5. Restart the application
-docker compose -p ucmnews-prod start backend
-
-# 6. Verify with smoke tests
-curl -f http://127.0.0.1:9280/api/v1/settings/ai
+curl --fail --silent --show-error https://ucmnews.insight.uidaho.edu/api/v1/health
+curl --fail --silent --show-error https://ucmnews.insight.uidaho.edu/api/v1/readyz
 ```
 
-**Time estimate:** 30-60 minutes.
+`/health` checks process liveness only. `/readyz` executes database queries and
+checks load-bearing reference tables; it does not prove every workflow is healthy.
+Importing the engine does not test connectivity. `/settings/ai` is currently
+public metadata, not a database health probe. Inspect backup success daily;
+check disk/capacity and log rotation weekly; perform and record restore exercises
+monthly. The backend Compose healthcheck already uses `/readyz`.
 
-### Scenario 3: Server Failure (Full Rebuild)
+## Incident response
 
-**Symptoms:** openera server is unreachable or requires OS reinstall.
+| Severity | Working response target | Examples |
+| --- | --- | --- |
+| Critical | Immediate, within one hour | Suspected data breach, data loss, complete outage |
+| High | Within four hours | Editorial pipeline/export unavailable |
+| Medium | Within one business day | Degraded import or performance |
+| Low | Within one week | Minor display or documentation problem |
 
-**Recovery:**
+These are proposed support targets pending named owner acceptance. Contact the
+technical/operations owner and UCM sponsor through the established escalation
+process; security incidents also go to the University's Information Security
+Office. See repository `SECURITY.md` for the reporting
+process; do not include raw personal data in ordinary issue reports.
 
-1. Provision new server or restore from infrastructure backup
-2. Install Docker and Docker Compose
-3. Clone the repository: `git clone https://github.com/ui-insight/UCMDailyRegister`
-4. Restore `.env.prod` from encrypted backup
-5. Restore database from backup (see Scenario 2)
-6. Restore uploads from backup: `rsync /backups/uploads/ /path/to/uploads/`
-7. Deploy: `./deploy.sh prod`
-8. Verify: run full smoke test suite
-
-**Time estimate:** 2-4 hours (depends on infrastructure provisioning).
-
-### Scenario 4: Deployment Rollback
-
-**Symptoms:** New deployment introduces a regression.
-
-**Recovery:**
-
-```bash
-ssh devops@openera.insight.uidaho.edu
-cd /path/to/UCMDailyRegister-App
-
-# 1. Check the previous working commit
-git log --oneline -10
-
-# 2. Roll back to the previous version
-git checkout <previous-commit-hash>
-
-# 3. Rebuild and deploy
-./deploy.sh prod
-
-# 4. If database migrations need reverting
-docker compose -p ucmnews-prod run --rm backend alembic downgrade -1
-```
-
-**Time estimate:** 15-30 minutes.
-
----
-
-## Incident Response Procedure
-
-### Severity Classification
-
-| Severity | Definition | Response Time | Examples |
-|----------|-----------|---------------|---------|
-| **Critical** | System down, data breach, or data loss | Immediate (within 1 hour) | Database compromise, PII exposure, complete outage |
-| **High** | Major functionality broken | Within 4 hours | AI editing pipeline down, newsletter export broken |
-| **Medium** | Degraded functionality | Within 1 business day | Slow performance, calendar import failing |
-| **Low** | Minor issue | Within 1 week | UI cosmetic bug, non-critical feature request |
-
-### Escalation Contacts
-
-| Role | Contact | Responsibility |
-|------|---------|---------------|
-| Primary on-call | IIDS development team | First response, initial triage |
-| System administrator | devops@openera | Server/infrastructure issues |
-| Security officer | iids-security@uidaho.edu | Data breach or security incidents |
-| UCM stakeholders | UCM editorial team | Communication about service impact |
-
-### Incident Response Steps
-
-1. **Detect:** Alert from monitoring, user report, or smoke test failure
-2. **Triage:** Classify severity, identify affected components
-3. **Contain:** Isolate the issue (stop affected containers, revoke compromised credentials)
-4. **Communicate:** Notify stakeholders based on severity
-5. **Resolve:** Apply fix, restore from backup, or roll back deployment
-6. **Verify:** Run smoke tests, confirm functionality restored
-7. **Post-mortem:** Document root cause, timeline, and preventive measures (for High/Critical)
-
-### Post-Incident Review Template
-
-```markdown
-## Incident Report: [Title]
-- **Date:** YYYY-MM-DD
-- **Severity:** Critical / High / Medium
-- **Duration:** Start time → Resolution time
-- **Impact:** What was affected and for how long
-
-### Timeline
-- HH:MM — Issue detected
-- HH:MM — Triage and containment
-- HH:MM — Resolution applied
-- HH:MM — Service restored
-
-### Root Cause
-[Description]
-
-### Resolution
-[What was done to fix it]
-
-### Prevention
-[What changes will prevent recurrence]
-```
-
----
-
-## Monitoring Checklist
-
-Until full observability is implemented, use these manual checks:
-
-| Check | Command | Frequency |
-|-------|---------|-----------|
-| Containers running | `docker compose -p ucmnews-prod ps` | Daily |
-| Frontend responds | `curl -f https://ucmnews.insight.uidaho.edu/` | Daily |
-| API health | `curl -f https://ucmnews.insight.uidaho.edu/api/v1/settings/ai` | Daily |
-| Database connectivity | `docker compose -p ucmnews-prod exec backend python -c "from app.db.engine import engine"` | Weekly |
-| Disk usage | `df -h` on server | Weekly |
-| Backup exists | `ls -lt /backups/ucm_newsletter_*.dump | head -1` | Daily |
+Detect → triage → contain → notify authorized responders → preserve minimized
+evidence → repair/restore → verify → review. For High/Critical incidents record a
+restricted timeline, impact, affected systems, containment, root cause, measured
+recovery, decision owner and prevention work. Named on-call coverage and verified
+contact references remain in the governance decision register.

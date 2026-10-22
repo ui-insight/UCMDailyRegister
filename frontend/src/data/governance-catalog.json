@@ -1,0 +1,1421 @@
+{
+  "schemaVersion": "1.0.0",
+  "reviewedAt": "2026-10-22",
+  "reviewStatus": "provisional; owner classification approval pending",
+  "tables": [
+    {
+      "name": "allowed_values",
+      "area": "Controlled vocabularies",
+      "status": "UDM-derived pattern",
+      "steward": "UCM operations",
+      "description": "Central governed value list for categorical fields, adapted from OpenERA AllowedValues.",
+      "columns": [
+        {
+          "name": "Id",
+          "description": "UUID primary key.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Value_Group",
+          "description": "Vocabulary family used by API, forms, and settings.",
+          "classification": "Public",
+          "pii": false
+        },
+        {
+          "name": "Code",
+          "description": "Machine-readable value within the group.",
+          "classification": "Public",
+          "pii": false
+        },
+        {
+          "name": "Label",
+          "description": "Human-readable value shown in the user interface.",
+          "classification": "Public",
+          "pii": false
+        },
+        {
+          "name": "Display_Order",
+          "description": "Sort order for menus and settings views.",
+          "classification": "Public",
+          "pii": false
+        },
+        {
+          "name": "Is_Active",
+          "description": "Soft-disable flag for values that should no longer be selected.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Visibility_Role",
+          "description": "Public or staff visibility scope for submission categories.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Description",
+          "description": "Steward-facing explanation of the value.",
+          "classification": "Public",
+          "pii": false
+        }
+      ],
+      "retentionCategory": "configuration",
+      "sourceSystem": "staff / system"
+    },
+    {
+      "name": "blackout_dates",
+      "area": "Publication schedule",
+      "status": "Communications extension",
+      "steward": "UCM editorial staff",
+      "description": "Dates when one or all newsletters should not publish.",
+      "columns": [
+        {
+          "name": "Id",
+          "description": "UUID primary key.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Blackout_Date",
+          "description": "Suppressed publication date.",
+          "classification": "Public",
+          "pii": false
+        },
+        {
+          "name": "Newsletter_Type",
+          "description": "Optional publication scope; null applies broadly.",
+          "classification": "Public",
+          "pii": false,
+          "allowedValueGroup": "Newsletter_Type"
+        },
+        {
+          "name": "Description",
+          "description": "Reason for the blackout.",
+          "classification": "Public",
+          "pii": false
+        },
+        {
+          "name": "Is_Active",
+          "description": "Soft-disable flag.",
+          "classification": "Internal",
+          "pii": false
+        }
+      ],
+      "retentionCategory": "configuration",
+      "sourceSystem": "staff / system"
+    },
+    {
+      "name": "custom_publish_dates",
+      "area": "Publication schedule",
+      "status": "Communications extension",
+      "steward": "UCM editorial staff",
+      "description": "Ad hoc publish dates used during winter break or other non-standard schedules.",
+      "columns": [
+        {
+          "name": "Id",
+          "description": "UUID primary key.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Newsletter_Type",
+          "description": "Publication code.",
+          "classification": "Public",
+          "pii": false,
+          "allowedValueGroup": "Newsletter_Type"
+        },
+        {
+          "name": "Publish_Date",
+          "description": "Manual issue date.",
+          "classification": "Public",
+          "pii": false
+        },
+        {
+          "name": "Description",
+          "description": "Reason for the custom publish date.",
+          "classification": "Internal",
+          "pii": true
+        },
+        {
+          "name": "Created_At",
+          "description": "Server creation timestamp.",
+          "classification": "Internal",
+          "pii": false
+        }
+      ],
+      "retentionCategory": "configuration",
+      "sourceSystem": "staff / system"
+    },
+    {
+      "name": "edit_versions",
+      "area": "Editorial history",
+      "status": "Communications extension",
+      "steward": "UCM editorial staff",
+      "description": "Append-only snapshots of original, AI-suggested, and editor-final copy.",
+      "columns": [
+        {
+          "name": "Id",
+          "description": "UUID primary key.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Submission_Id",
+          "description": "Foreign key to submissions.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Version_Type",
+          "description": "Editing stage represented by the snapshot.",
+          "classification": "Internal",
+          "pii": false,
+          "allowedValueGroup": "Version_Type"
+        },
+        {
+          "name": "Headline",
+          "description": "Headline text at this version.",
+          "classification": "Internal",
+          "pii": true
+        },
+        {
+          "name": "Body",
+          "description": "Body text at this version.",
+          "classification": "Internal",
+          "pii": true
+        },
+        {
+          "name": "Headline_Case",
+          "description": "Headline casing policy applied to this version.",
+          "classification": "Internal",
+          "pii": false,
+          "allowedValueGroup": "Headline_Case"
+        },
+        {
+          "name": "Flags",
+          "description": "JSON list of AI or rule findings.",
+          "classification": "Internal",
+          "pii": true
+        },
+        {
+          "name": "Changes_Made",
+          "description": "JSON list of generated or editor-facing change summaries.",
+          "classification": "Internal",
+          "pii": true
+        },
+        {
+          "name": "AI_Provider",
+          "description": "LLM provider used for AI-generated versions.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "AI_Model",
+          "description": "LLM model used for AI-generated versions.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Editor_Instructions",
+          "description": "Free-text editor instructions passed into an edit run.",
+          "classification": "Confidential",
+          "pii": true
+        },
+        {
+          "name": "Created_At",
+          "description": "Immutable version creation timestamp.",
+          "classification": "Internal",
+          "pii": false
+        }
+      ],
+      "retentionCategory": "submission_source",
+      "sourceSystem": "AI / staff"
+    },
+    {
+      "name": "harvested_events",
+      "area": "Event triage",
+      "status": "Communications extension",
+      "steward": "UCM and Event Services",
+      "description": "External calendar occurrences with independent SLC and ops review lenses.",
+      "columns": [
+        {
+          "name": "Id",
+          "description": "UUID primary key.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Source_Type",
+          "description": "External feed source family.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Source_Id",
+          "description": "External event-occurrence identifier.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Series_Id",
+          "description": "External repeating-series identifier.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Source_Url",
+          "description": "External source link; may include query parameters.",
+          "classification": "Internal",
+          "pii": true
+        },
+        {
+          "name": "Title",
+          "description": "Upstream public event title; can name people.",
+          "classification": "Internal",
+          "pii": true
+        },
+        {
+          "name": "Description",
+          "description": "Upstream event details; can include personal contact information.",
+          "classification": "Internal",
+          "pii": true
+        },
+        {
+          "name": "Location",
+          "description": "Upstream event venue or location.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Event_Start",
+          "description": "Event start timestamp.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Event_End",
+          "description": "Optional event end timestamp.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "All_Day",
+          "description": "All-day occurrence indicator.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Category_Path",
+          "description": "Upstream category hierarchy.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Is_Canceled",
+          "description": "Upstream cancellation marker.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Content_Hash",
+          "description": "Hash of source content used to detect upstream changes.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "SLC_Review_Status",
+          "description": "Independent SLC triage state.",
+          "classification": "Internal",
+          "pii": false,
+          "allowedValueGroup": "SLC_Review_Status"
+        },
+        {
+          "name": "Ops_Review_Status",
+          "description": "Independent Event Services triage state.",
+          "classification": "Internal",
+          "pii": false,
+          "allowedValueGroup": "Ops_Review_Status"
+        },
+        {
+          "name": "Ops_Assessed_Content_Hash",
+          "description": "Content hash used for current ops assessment.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Upstream_Changed_At",
+          "description": "Time source changed after SLC flagging; cleared by SLC acknowledgment.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Ops_Upstream_Changed_At",
+          "description": "Time source changed after ops review; cleared independently by ops.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Promoted_Submission_Id",
+          "description": "SLC-only submission created by promotion; cleared if submission is deleted.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "First_Seen_At",
+          "description": "First harvest timestamp.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Last_Seen_At",
+          "description": "Most recent observation timestamp.",
+          "classification": "Internal",
+          "pii": false
+        }
+      ],
+      "retentionCategory": "external_working",
+      "sourceSystem": "Trumba / staff"
+    },
+    {
+      "name": "newsletter_external_items",
+      "area": "Newsletter assembly",
+      "status": "Communications extension",
+      "steward": "UCM editorial staff",
+      "description": "Placement of imported calendar, job, or other external content into a newsletter issue.",
+      "columns": [
+        {
+          "name": "Id",
+          "description": "UUID primary key.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Newsletter_Id",
+          "description": "Foreign key to newsletters.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Section_Id",
+          "description": "Foreign key to newsletter_sections.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Source_Type",
+          "description": "External source category, such as calendar_event or job_posting.",
+          "classification": "Public",
+          "pii": false
+        },
+        {
+          "name": "Source_Id",
+          "description": "Source-system identifier.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Source_Url",
+          "description": "Source-system URL.",
+          "classification": "Public",
+          "pii": true
+        },
+        {
+          "name": "Event_Start",
+          "description": "Event start timestamp where applicable.",
+          "classification": "Public",
+          "pii": false
+        },
+        {
+          "name": "Event_End",
+          "description": "Event end timestamp where applicable.",
+          "classification": "Public",
+          "pii": false
+        },
+        {
+          "name": "Location",
+          "description": "Event location where applicable.",
+          "classification": "Public",
+          "pii": false
+        },
+        {
+          "name": "Position",
+          "description": "Ordering within the section.",
+          "classification": "Public",
+          "pii": false
+        },
+        {
+          "name": "Final_Headline",
+          "description": "Final published headline.",
+          "classification": "Internal",
+          "pii": true
+        },
+        {
+          "name": "Final_Body",
+          "description": "Final published body.",
+          "classification": "Internal",
+          "pii": true
+        }
+      ],
+      "retentionCategory": "publication_archive",
+      "sourceSystem": "staff / system"
+    },
+    {
+      "name": "newsletter_items",
+      "area": "Newsletter assembly",
+      "status": "Communications extension",
+      "steward": "UCM editorial staff",
+      "description": "Placement of a finalized submission into a newsletter issue and section.",
+      "columns": [
+        {
+          "name": "Id",
+          "description": "UUID primary key.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Newsletter_Id",
+          "description": "Foreign key to newsletters.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Submission_Id",
+          "description": "Foreign key to submissions.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Section_Id",
+          "description": "Foreign key to newsletter_sections.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Position",
+          "description": "Ordering within the section.",
+          "classification": "Public",
+          "pii": false
+        },
+        {
+          "name": "Final_Headline",
+          "description": "Final published headline.",
+          "classification": "Internal",
+          "pii": true
+        },
+        {
+          "name": "Final_Body",
+          "description": "Final published body.",
+          "classification": "Internal",
+          "pii": true
+        },
+        {
+          "name": "Run_Number",
+          "description": "Occurrence number for repeated publication.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Manually_Placed",
+          "description": "Staff changed section placement; automatic reassembly preserves it.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Source_Version_Id",
+          "description": "Edit-version reference from which issue copy was assembled.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Edition_Edited",
+          "description": "Staff changed issue copy; reassembly preserves the edition override.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Upstream_Reviewed_Version_Id",
+          "description": "Approved revision reviewed and intentionally not applied to this issue.",
+          "classification": "Internal",
+          "pii": false
+        }
+      ],
+      "retentionCategory": "publication_archive",
+      "sourceSystem": "staff / system"
+    },
+    {
+      "name": "newsletter_sections",
+      "area": "Newsletter assembly",
+      "status": "Communications extension",
+      "steward": "UCM editorial staff",
+      "description": "Governed section taxonomy and layout requirements for each newsletter type.",
+      "columns": [
+        {
+          "name": "Id",
+          "description": "UUID primary key.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Newsletter_Type",
+          "description": "Publication code.",
+          "classification": "Public",
+          "pii": false,
+          "allowedValueGroup": "Newsletter_Type"
+        },
+        {
+          "name": "Name",
+          "description": "Human-readable section name.",
+          "classification": "Public",
+          "pii": false
+        },
+        {
+          "name": "Slug",
+          "description": "Machine-readable section identifier.",
+          "classification": "Public",
+          "pii": false
+        },
+        {
+          "name": "Display_Order",
+          "description": "Default section order.",
+          "classification": "Public",
+          "pii": false
+        },
+        {
+          "name": "Description",
+          "description": "Section purpose.",
+          "classification": "Public",
+          "pii": false
+        },
+        {
+          "name": "Requires_Image",
+          "description": "Whether items in the section need an image.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Image_Dimensions",
+          "description": "Expected image dimensions.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Is_Active",
+          "description": "Soft-retirement flag.",
+          "classification": "Internal",
+          "pii": false
+        }
+      ],
+      "retentionCategory": "configuration",
+      "sourceSystem": "staff / system"
+    },
+    {
+      "name": "newsletters",
+      "area": "Newsletter assembly",
+      "status": "Communications extension",
+      "steward": "UCM editorial staff",
+      "description": "Dated editions of The Daily Register or My UI.",
+      "columns": [
+        {
+          "name": "Id",
+          "description": "UUID primary key.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Newsletter_Type",
+          "description": "Publication code.",
+          "classification": "Public",
+          "pii": false,
+          "allowedValueGroup": "Newsletter_Type"
+        },
+        {
+          "name": "Publish_Date",
+          "description": "Issue date.",
+          "classification": "Public",
+          "pii": false
+        },
+        {
+          "name": "Status",
+          "description": "Issue lifecycle state.",
+          "classification": "Internal",
+          "pii": false,
+          "allowedValueGroup": "Newsletter_Status"
+        },
+        {
+          "name": "Created_At",
+          "description": "Server creation timestamp.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Updated_At",
+          "description": "Server update timestamp.",
+          "classification": "Internal",
+          "pii": false
+        }
+      ],
+      "retentionCategory": "publication_archive",
+      "sourceSystem": "staff / system"
+    },
+    {
+      "name": "ops_need_assessments",
+      "area": "Event operations",
+      "status": "Communications extension",
+      "steward": "Event Services",
+      "description": "AI-suggested needs and staff verdicts for a harvested event.",
+      "columns": [
+        {
+          "name": "Id",
+          "description": "UUID primary key.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Harvested_Event_Id",
+          "description": "Parent harvested event reference; assessment cascades on event deletion.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Need",
+          "description": "Operational service code.",
+          "classification": "Internal",
+          "pii": false,
+          "allowedValueGroup": "Ops_Need_Type"
+        },
+        {
+          "name": "Confidence",
+          "description": "AI confidence code; null for staff-added needs.",
+          "classification": "Internal",
+          "pii": false,
+          "allowedValueGroup": "Ops_Need_Confidence"
+        },
+        {
+          "name": "Rationale",
+          "description": "Model or staff explanation; can quote source content and contain personal information.",
+          "classification": "Internal",
+          "pii": true
+        },
+        {
+          "name": "Verdict",
+          "description": "Staff judgment of the suggested need.",
+          "classification": "Internal",
+          "pii": false,
+          "allowedValueGroup": "Ops_Need_Verdict"
+        },
+        {
+          "name": "Source",
+          "description": "AI or staff origin of the assessment.",
+          "classification": "Internal",
+          "pii": false,
+          "allowedValueGroup": "Ops_Need_Source"
+        },
+        {
+          "name": "Created_At",
+          "description": "Record creation timestamp.",
+          "classification": "Internal",
+          "pii": false
+        }
+      ],
+      "retentionCategory": "external_working",
+      "sourceSystem": "AI / staff"
+    },
+    {
+      "name": "product_feedback",
+      "area": "Product support",
+      "status": "Operational support",
+      "steward": "UCM product support",
+      "description": "User reports and diagnostic context; only staff review the queue.",
+      "columns": [
+        {
+          "name": "Id",
+          "description": "UUID primary key.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Feedback_Type",
+          "description": "Reported bug or product idea.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Summary",
+          "description": "User-entered short report summary; can contain incidental personal information.",
+          "classification": "Confidential",
+          "pii": true
+        },
+        {
+          "name": "Details",
+          "description": "User-entered report text; can contain incidental sensitive information.",
+          "classification": "Confidential",
+          "pii": true
+        },
+        {
+          "name": "Contact_Email",
+          "description": "Optional reporter email for follow-up.",
+          "classification": "Confidential",
+          "pii": true
+        },
+        {
+          "name": "Submitter_Role",
+          "description": "Client-reported UI role; not an authenticated actor identity.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Route",
+          "description": "Reported page route; free text from client, potentially identifying.",
+          "classification": "Internal",
+          "pii": true
+        },
+        {
+          "name": "App_Environment",
+          "description": "Client-reported deployment label.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Host",
+          "description": "Client-reported host; operational context.",
+          "classification": "Internal",
+          "pii": true
+        },
+        {
+          "name": "Browser",
+          "description": "Client-reported user agent.",
+          "classification": "Internal",
+          "pii": true
+        },
+        {
+          "name": "Viewport",
+          "description": "Reported viewport dimensions.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Status",
+          "description": "Product-feedback workflow status.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "GitHub_URL",
+          "description": "Optional engineering issue reference; review sharing permissions.",
+          "classification": "Internal",
+          "pii": true
+        },
+        {
+          "name": "Notification_Status",
+          "description": "Pending, disabled, failed or sent delivery state.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Notification_Attempts",
+          "description": "Number of attempted notification deliveries.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Notification_Sent_At",
+          "description": "Latest successful delivery time, if any.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Notification_Last_Error",
+          "description": "Exception class for latest delivery failure; older releases could store arbitrary error text.",
+          "classification": "Confidential",
+          "pii": true
+        },
+        {
+          "name": "Created_At",
+          "description": "Record creation timestamp.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Updated_At",
+          "description": "Most recent record update timestamp.",
+          "classification": "Internal",
+          "pii": false
+        }
+      ],
+      "retentionCategory": "feedback",
+      "sourceSystem": "user / browser"
+    },
+    {
+      "name": "recurring_message_issue_overrides",
+      "area": "Recurring editorial content",
+      "status": "Communications extension",
+      "steward": "UCM editorial staff",
+      "description": "Issue-specific exceptions, currently used to preserve skipped recurring messages.",
+      "columns": [
+        {
+          "name": "Id",
+          "description": "UUID primary key.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Recurring_Message_Id",
+          "description": "Foreign key to recurring_messages.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Newsletter_Id",
+          "description": "Foreign key to newsletters.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Override_Action",
+          "description": "Issue-level action, currently skip.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Created_At",
+          "description": "Server creation timestamp.",
+          "classification": "Internal",
+          "pii": false
+        }
+      ],
+      "retentionCategory": "configuration",
+      "sourceSystem": "staff / system"
+    },
+    {
+      "name": "recurring_messages",
+      "area": "Recurring editorial content",
+      "status": "Communications extension",
+      "steward": "UCM editorial staff",
+      "description": "Staff-managed reusable copy surfaced on a configured cadence.",
+      "columns": [
+        {
+          "name": "Id",
+          "description": "UUID primary key.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Newsletter_Type",
+          "description": "Publication code.",
+          "classification": "Public",
+          "pii": false,
+          "allowedValueGroup": "Newsletter_Type"
+        },
+        {
+          "name": "Section_Id",
+          "description": "Foreign key to newsletter_sections.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Headline",
+          "description": "Reusable message headline.",
+          "classification": "Internal",
+          "pii": true
+        },
+        {
+          "name": "Body",
+          "description": "Reusable message body.",
+          "classification": "Internal",
+          "pii": true
+        },
+        {
+          "name": "Start_Date",
+          "description": "First eligible publish date.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Recurrence_Type",
+          "description": "Recurrence rule type.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Recurrence_Interval",
+          "description": "Interval for recurring messages.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "End_Date",
+          "description": "Optional final eligible date.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Excluded_Dates",
+          "description": "JSON list of skipped dates.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Is_Active",
+          "description": "Soft-disable flag.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Created_At",
+          "description": "Server creation timestamp.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Updated_At",
+          "description": "Server update timestamp.",
+          "classification": "Internal",
+          "pii": false
+        }
+      ],
+      "retentionCategory": "configuration",
+      "sourceSystem": "staff / system"
+    },
+    {
+      "name": "schedule_configs",
+      "area": "Publication schedule",
+      "status": "Communications extension",
+      "steward": "UCM editorial staff",
+      "description": "Publication cadence and submission deadline rules by newsletter type and schedule mode.",
+      "columns": [
+        {
+          "name": "Id",
+          "description": "UUID primary key.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Newsletter_Type",
+          "description": "Publication code.",
+          "classification": "Public",
+          "pii": false,
+          "allowedValueGroup": "Newsletter_Type"
+        },
+        {
+          "name": "Mode",
+          "description": "Academic year, summer, or winter break schedule mode.",
+          "classification": "Internal",
+          "pii": false,
+          "allowedValueGroup": "Schedule_Mode"
+        },
+        {
+          "name": "Submission_Deadline_Description",
+          "description": "Human-readable deadline rule.",
+          "classification": "Public",
+          "pii": false
+        },
+        {
+          "name": "Deadline_Day_Of_Week",
+          "description": "Deadline weekday used in calculations.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Deadline_Time",
+          "description": "Deadline time used in calculations.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Publish_Day_Of_Week",
+          "description": "Publish weekday where applicable.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Is_Daily",
+          "description": "Whether the mode publishes every weekday.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Active_Start_Month",
+          "description": "Month when this mode starts.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Active_End_Month",
+          "description": "Month when this mode ends.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Holiday_Shift_Enabled",
+          "description": "Whether holiday-aware shifting applies.",
+          "classification": "Internal",
+          "pii": false
+        }
+      ],
+      "retentionCategory": "configuration",
+      "sourceSystem": "staff / system"
+    },
+    {
+      "name": "schedule_mode_overrides",
+      "area": "Publication schedule",
+      "status": "Communications extension",
+      "steward": "UCM editorial staff",
+      "description": "Manual date-range override that forces a newsletter into a configured schedule mode.",
+      "columns": [
+        {
+          "name": "Id",
+          "description": "UUID primary key.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Newsletter_Type",
+          "description": "Publication code.",
+          "classification": "Public",
+          "pii": false,
+          "allowedValueGroup": "Newsletter_Type"
+        },
+        {
+          "name": "Override_Mode",
+          "description": "Schedule mode to apply during the range.",
+          "classification": "Internal",
+          "pii": false,
+          "allowedValueGroup": "Schedule_Mode"
+        },
+        {
+          "name": "Start_Date",
+          "description": "Inclusive override start date.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "End_Date",
+          "description": "Inclusive override end date.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Description",
+          "description": "Reason for the override.",
+          "classification": "Internal",
+          "pii": true
+        },
+        {
+          "name": "Created_At",
+          "description": "Server creation timestamp.",
+          "classification": "Internal",
+          "pii": false
+        }
+      ],
+      "retentionCategory": "configuration",
+      "sourceSystem": "staff / system"
+    },
+    {
+      "name": "style_rules",
+      "area": "AI editorial policy",
+      "status": "Communications extension",
+      "steward": "UCM editorial staff",
+      "description": "Database-managed style rules injected into the AI editing system prompt.",
+      "columns": [
+        {
+          "name": "Id",
+          "description": "UUID primary key.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Rule_Set",
+          "description": "Shared, TDR, or My UI rule scope.",
+          "classification": "Internal",
+          "pii": false,
+          "allowedValueGroup": "Rule_Set"
+        },
+        {
+          "name": "Category",
+          "description": "Editorial rule category.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Rule_Key",
+          "description": "Machine-readable rule key.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Rule_Text",
+          "description": "Natural-language editing instruction.",
+          "classification": "Internal",
+          "pii": true
+        },
+        {
+          "name": "Is_Active",
+          "description": "Whether future AI edits should use the rule.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Severity",
+          "description": "Rule severity for editor attention.",
+          "classification": "Internal",
+          "pii": false,
+          "allowedValueGroup": "Severity"
+        }
+      ],
+      "retentionCategory": "configuration",
+      "sourceSystem": "staff / system"
+    },
+    {
+      "name": "submission_links",
+      "area": "Content intake",
+      "status": "Communications extension",
+      "steward": "UCM editorial staff",
+      "description": "Normalized hyperlinks attached to submitted content.",
+      "columns": [
+        {
+          "name": "Id",
+          "description": "UUID primary key.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Submission_Id",
+          "description": "Foreign key to submissions.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Url",
+          "description": "Destination URL supplied with the submission.",
+          "classification": "Internal",
+          "pii": true
+        },
+        {
+          "name": "Anchor_Text",
+          "description": "Optional display text for the link.",
+          "classification": "Internal",
+          "pii": true
+        },
+        {
+          "name": "Display_Order",
+          "description": "Ordering of links inside the submission.",
+          "classification": "Public",
+          "pii": false
+        }
+      ],
+      "retentionCategory": "submission_source",
+      "sourceSystem": "submitter / staff"
+    },
+    {
+      "name": "submission_schedule_requests",
+      "area": "Content scheduling",
+      "status": "Communications extension",
+      "steward": "UCM editorial staff",
+      "description": "Requested run dates, recurrence settings, flexibility notes, and skipped occurrence dates.",
+      "columns": [
+        {
+          "name": "Id",
+          "description": "UUID primary key.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Submission_Id",
+          "description": "Foreign key to submissions.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Requested_Date",
+          "description": "Primary requested publication date.",
+          "classification": "Public",
+          "pii": false
+        },
+        {
+          "name": "Second_Requested_Date",
+          "description": "Secondary requested date when an item targets both newsletters.",
+          "classification": "Public",
+          "pii": false
+        },
+        {
+          "name": "Repeat_Count",
+          "description": "Legacy number of requested runs.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Repeat_Note",
+          "description": "Legacy free-text repeat instructions.",
+          "classification": "Confidential",
+          "pii": true
+        },
+        {
+          "name": "Is_Flexible",
+          "description": "Whether editors may choose an alternate date.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Flexible_Deadline",
+          "description": "Optional text describing the latest flexible publication deadline.",
+          "classification": "Confidential",
+          "pii": true
+        },
+        {
+          "name": "Recurrence_Type",
+          "description": "Recurrence rule type for repeated runs.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Recurrence_Interval",
+          "description": "Interval for recurring requests.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Recurrence_End_Date",
+          "description": "End date for recurrence expansion.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Excluded_Dates",
+          "description": "JSON list of skipped or rescheduled occurrence dates.",
+          "classification": "Internal",
+          "pii": false
+        }
+      ],
+      "retentionCategory": "submission_source",
+      "sourceSystem": "submitter / staff"
+    },
+    {
+      "name": "submissions",
+      "area": "Content intake",
+      "status": "Communications extension",
+      "steward": "UCM editorial staff",
+      "description": "Submitted newsletter or SLC event content with workflow, submitter, image, and routing metadata.",
+      "columns": [
+        {
+          "name": "Id",
+          "description": "UUID primary key.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Category",
+          "description": "Content category code.",
+          "classification": "Public",
+          "pii": false,
+          "allowedValueGroup": "Submission_Category"
+        },
+        {
+          "name": "Target_Newsletter",
+          "description": "Publication routing code: TDR, My UI, both, or SLC-only none.",
+          "classification": "Public",
+          "pii": false,
+          "allowedValueGroup": "Target_Newsletter"
+        },
+        {
+          "name": "Original_Headline",
+          "description": "Submitted headline text.",
+          "classification": "Internal",
+          "pii": true
+        },
+        {
+          "name": "Original_Body",
+          "description": "Submitted body text.",
+          "classification": "Internal",
+          "pii": true
+        },
+        {
+          "name": "Submitter_Name",
+          "description": "Submitter contact name.",
+          "classification": "Confidential",
+          "pii": true
+        },
+        {
+          "name": "Submitter_Email",
+          "description": "Submitter contact email.",
+          "classification": "Confidential",
+          "pii": true
+        },
+        {
+          "name": "Submitter_Notes",
+          "description": "Free-text instructions from submitter; may contain incidental PII.",
+          "classification": "Confidential",
+          "pii": true
+        },
+        {
+          "name": "Assigned_Editor",
+          "description": "Staff owner for editorial follow-up.",
+          "classification": "Internal",
+          "pii": true
+        },
+        {
+          "name": "Editorial_Notes",
+          "description": "Staff-only editorial notes; may contain incidental PII.",
+          "classification": "Confidential",
+          "pii": true
+        },
+        {
+          "name": "Has_Image",
+          "description": "Whether an uploaded image is attached.",
+          "classification": "Public",
+          "pii": false
+        },
+        {
+          "name": "Image_Path",
+          "description": "Server-side image path using UUID naming.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Survey_End_Date",
+          "description": "Optional survey close date used for survey handling.",
+          "classification": "Public",
+          "pii": false
+        },
+        {
+          "name": "Status",
+          "description": "Editorial workflow state.",
+          "classification": "Internal",
+          "pii": false,
+          "allowedValueGroup": "Submission_Status"
+        },
+        {
+          "name": "Show_In_SLC_Calendar",
+          "description": "Whether the submission appears in the SLC calendar feed.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Event_Classification",
+          "description": "Strategic or signature event label for SLC visibility.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Approved_Version_Id",
+          "description": "Explicit approved edit-version reference; cleared when a later draft is saved.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Created_At",
+          "description": "Server creation timestamp.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Updated_At",
+          "description": "Server update timestamp.",
+          "classification": "Internal",
+          "pii": false
+        }
+      ],
+      "retentionCategory": "submission_source",
+      "sourceSystem": "submitter / staff"
+    }
+  ]
+}

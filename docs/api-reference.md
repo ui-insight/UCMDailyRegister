@@ -249,3 +249,52 @@ The settings endpoint returns read-only configuration data for the frontend Sett
     - `active_model` -- the model string for the active provider
     - `endpoint_url` -- present only when provider is `mindrouter`
     - `providers[*].configured` -- `true` if the API key environment variable is set (non-empty)
+
+## Feedback
+
+Public `POST /api/v1/feedback` captures a report and returns its created record.
+The reported role and browser context are client-provided diagnostic data, not a
+verified actor identity. The notifier is disabled.
+
+Staff-only routes:
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/api/v1/feedback` | Review reports |
+| GET | `/api/v1/feedback/summary` | Queue/delivery counts |
+| PATCH | `/api/v1/feedback/{id}` | Review status and issue reference |
+| POST | `/api/v1/feedback/{id}/notification/retry` | Retry configured delivery adapter |
+| GET | `/api/v1/feedback/{id}/github-export` | Prepare Markdown; does not publish an issue |
+
+Review/redact report content before opening a prefilled GitHub URL; URL parameters
+already share the content with GitHub. See [Data governance](data-governance.md).
+
+## Harvested events and SLC triage
+
+Staff or SLC role required. These are separate from the PII-redacted submission
+calendar feed (`GET /submissions/?slc_calendar_only=true`).
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| POST | `/api/v1/slc/harvest` | Upsert Trumba events and queue background ops assessment |
+| GET | `/api/v1/slc/harvested-events` | Paginated source occurrences |
+| PATCH | `/api/v1/slc/harvested-events/{id}` | SLC review; flagging promotes a submission |
+| POST | `/api/v1/slc/harvested-events/{id}/acknowledge-upstream` | Clear SLC change marker |
+
+## Event Services ops triage
+
+Staff or ops role required. Ops and SLC states and acknowledgment markers are
+independent. AI suggestions are advisory; staff confirm or reject them.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| GET | `/api/v1/ops/harvested-events` | Paginated events, assessments and needs filters |
+| PATCH | `/api/v1/ops/harvested-events/{id}` | Review/dismiss/restore ops state |
+| POST | `/api/v1/ops/harvested-events/{id}/acknowledge-upstream` | Clear ops change marker |
+| POST | `/api/v1/ops/harvested-events/{id}/needs` | Add a staff-origin confirmed need |
+| PATCH | `/api/v1/ops/harvested-events/{id}/needs/{need}` | Confirm/reject a suggestion |
+| DELETE | `/api/v1/ops/harvested-events/{id}/needs/{need}` | Remove a staff-origin need |
+
+Sections, schedule GETs and AI settings are public metadata today. Schedule
+mutations are staff-only. The full dataset/role matrix is maintained in
+[Data governance](data-governance.md).

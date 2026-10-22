@@ -53,6 +53,13 @@ nav:
       - ADR-001 Entra SSO: adr/001-entra-sso.md
   - GitHub Enterprise Migration: github-enterprise-migration.md
   - Data Governance: data-governance.md
+  - Governance Artifacts:
+      - Data Dictionary: governance/data-dictionary.md
+      - Bootstrap Reference Inventory: governance/reference-data.md
+      - Retention and Disposal: governance/retention.md
+      - Decisions and Ownership: governance/decisions.md
+      - Audit Remediation: governance/remediation-2026-10-22.md
+  - Documentation and Governance Audit: documentation-governance-audit-2026-10-22.md
   - Enterprise AI Framework:
       - Overview: governance/enterprise-ai-framework/index.md
       - Approved Stack Evidence: governance/enterprise-ai-framework/approved-stack-evidence.md

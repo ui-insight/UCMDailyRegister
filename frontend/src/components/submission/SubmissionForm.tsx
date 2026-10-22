@@ -1,3 +1,4 @@
+import PrivacyNotice from './PrivacyNotice';
 import { useEffect, useRef, useState } from 'react';
 import { listAllowedValues } from '../../api/allowedValues';
 import type { SubmissionCategory, TargetNewsletter, SubmissionCreate } from '../../types/submission';
@@ -931,6 +932,8 @@ export default function SubmissionForm() {
           </div>
         </div>
       </div>
+
+      <PrivacyNotice />
 
       <div className="flex justify-end">
         <button

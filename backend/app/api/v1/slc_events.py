@@ -39,8 +39,8 @@ async def _classify_pending_in_background() -> None:
     try:
         async with async_session_factory() as session:
             await classify_pending_ops_events(session)
-    except Exception:
-        logger.exception("Background ops classification failed")
+    except Exception as exc:
+        logger.error("Background ops classification failed error_type=%s", type(exc).__name__)
 
 
 def _to_response(event: HarvestedEvent) -> HarvestedEventResponse:

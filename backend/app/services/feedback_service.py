@@ -15,7 +15,6 @@ from app.services.feedback_notifications import (
 
 
 logger = logging.getLogger(__name__)
-MAX_NOTIFICATION_ERROR_LENGTH = 2000
 
 
 async def create_feedback(
@@ -54,11 +53,11 @@ async def attempt_feedback_notification(
         await notifier.send(payload)
     except Exception as exc:  # transport adapters define their own exception types
         feedback.Notification_Status = "failed"
-        feedback.Notification_Last_Error = str(exc)[:MAX_NOTIFICATION_ERROR_LENGTH]
-        logger.exception(
-            "Feedback notification failed feedback_id=%s notifier=%s",
+        feedback.Notification_Last_Error = type(exc).__name__
+        logger.error(
+            "Feedback notification failed feedback_id=%s error_type=%s",
             feedback.Id,
-            notifier.name,
+            type(exc).__name__,
         )
     else:
         feedback.Notification_Status = "sent"

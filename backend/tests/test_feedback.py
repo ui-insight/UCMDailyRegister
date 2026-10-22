@@ -112,7 +112,7 @@ class TestProductFeedback:
         assert created["Notification_Status"] == "failed"
         assert created["Notification_Attempts"] == 1
         assert created["Notification_Sent_At"] is None
-        assert created["Notification_Last_Error"] == "Test notification channel unavailable"
+        assert created["Notification_Last_Error"] == "RuntimeError"
         assert "Private details" not in created["Notification_Last_Error"]
 
         list_resp = await client.get("/api/v1/feedback", headers=staff_headers)

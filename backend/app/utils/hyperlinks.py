@@ -73,7 +73,7 @@ def unwrap_tracking_url(url: str) -> str:
             after_prefix = url.split("/v3/__", 1)[1]
             original = after_prefix.split("__", 1)[0]
             if original.startswith("http"):
-                logger.info("Unwrapped Proofpoint v3 URL: %s → %s", url, original)
+                logger.info("Unwrapped Proofpoint v3 URL")
                 return original
 
         # Proofpoint URLDefense v2
@@ -89,7 +89,7 @@ def unwrap_tracking_url(url: str) -> str:
                     encoded,
                 ).replace("_", "/")
                 if original.startswith("http"):
-                    logger.info("Unwrapped Proofpoint v2 URL: %s → %s", url, original)
+                    logger.info("Unwrapped Proofpoint v2 URL")
                     return original
 
         # Microsoft Safe Links
@@ -97,7 +97,7 @@ def unwrap_tracking_url(url: str) -> str:
             params = parse_qs(parsed.query)
             if "url" in params:
                 original = unquote(params["url"][0])
-                logger.info("Unwrapped Microsoft Safe Links URL: %s → %s", url, original)
+                logger.info("Unwrapped Microsoft Safe Links URL")
                 return original
 
         # Mimecast
@@ -109,7 +109,7 @@ def unwrap_tracking_url(url: str) -> str:
                 # Mimecast sometimes URL-encodes the destination
                 original = unquote(encoded_part)
                 if original.startswith("http"):
-                    logger.info("Unwrapped Mimecast URL: %s → %s", url, original)
+                    logger.info("Unwrapped Mimecast URL")
                     return original
 
         # Barracuda
@@ -117,11 +117,11 @@ def unwrap_tracking_url(url: str) -> str:
             params = parse_qs(parsed.query)
             if "a" in params:
                 original = unquote(params["a"][0])
-                logger.info("Unwrapped Barracuda URL: %s → %s", url, original)
+                logger.info("Unwrapped Barracuda URL")
                 return original
 
     except Exception:
-        logger.warning("Failed to unwrap tracking URL: %s", url, exc_info=True)
+        logger.warning("Failed to unwrap tracking URL")
 
     return url
 

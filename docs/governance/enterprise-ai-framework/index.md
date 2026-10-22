@@ -72,3 +72,21 @@ The parent tracking issue is
 
 AISPEG ingestion is tracked in
 [#258](https://github.com/ui-insight/AISPEG/issues/258).
+
+## Validation and freshness
+
+`python scripts/check_governance.py` checks JSON Schema with URI/date formats,
+type-specific source fields, repository file/directory existence, unique
+requirement IDs and assertion reviews no more than 180 days old. CI runs it on
+PRs. The schema alone cannot enforce unique requirement IDs; use the checker.
+
+Each repository review describes its revision/working-tree scope in
+`review_context`. Bind that scope to the merged release commit/digest before
+claiming deployed enablement. Institutional approval, live issue state and
+framework-source freshness require independent verification. Review at least
+quarterly, and update assertions whenever relevant code or policy changes.
+
+Manifest version 1.1.0 adds `review_context` scope metadata and strengthens source
+validation. Refresh both manifest and schema together. Existing source types and
+requirement IDs are preserved; unique IDs and date freshness are checker rules
+rather than JSON Schema constraints.

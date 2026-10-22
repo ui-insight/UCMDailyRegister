@@ -5,7 +5,7 @@ AI-assisted newsletter production pipeline for the University of Idaho's Univers
 ## Features
 
 - **Submission Intake** — Web form for community members to submit announcements, events, job postings, and news items
-- **AI-Assisted Editing** — Automated style editing using Claude or OpenAI with AP style and U of I style guide enforcement
+- **AI-Assisted Editing** — Automated style editing using Claude, OpenAI, or MindRouter with AP style and U of I style guide enforcement
 - **Editorial Review** — Word-level diff viewer, flag system, accept/reject/modify workflow
 - **Newsletter Assembly** — Auto-populate newsletters from approved submissions, organized by section
 - **Recurring Message Library** — Staff-managed reusable editorial content with cadence rules and issue-level skip/restore controls
@@ -18,7 +18,7 @@ AI-assisted newsletter production pipeline for the University of Idaho's Univers
 |-------|-----------|
 | Backend | FastAPI, SQLAlchemy 2.0 (async), Pydantic v2 |
 | Frontend | React 19, TypeScript, TailwindCSS, Vite |
-| AI | Claude (Anthropic) / OpenAI, switchable via env var |
+| AI | Claude (Anthropic) / OpenAI / MindRouter, switchable via env var |
 | Database | SQLite (local dev) / PostgreSQL via `insight-db` for Docker deployments |
 | Docs | MkDocs Material → GitHub Pages |
 
@@ -30,7 +30,7 @@ AI-assisted newsletter production pipeline for the University of Idaho's Univers
 cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-cp ../.env.example ../.env  # Edit with your API keys
+cp ../.env.example .env  # Edit with your API keys
 alembic upgrade head
 python -m app.db.seed
 uvicorn app.main:app --port 8001 --reload
@@ -69,6 +69,9 @@ the app network and `insight-db-net`.
 |----------|-------------|
 | [Architecture](docs/architecture.md) | System design and data flow |
 | [Data Model](docs/data-model.md) | Entity definitions and relationships |
+| [Data Governance](docs/data-governance.md) | Privacy, access and AI processing |
+| [Data Dictionary](docs/governance/data-dictionary.md) | Complete catalog and handling metadata |
+| [Governance Decisions](docs/governance/decisions.md) | Owners, approvals and remaining evidence |
 | [AI Editing](docs/ai-editing.md) | LLM pipeline and prompt design |
 | [API Reference](docs/api-reference.md) | REST endpoint documentation |
 | [Deployment](docs/deployment.md) | Local, Docker, and production setup |
@@ -85,17 +88,16 @@ the app network and `insight-db-net`.
 | Newsletter | A dated issue of TDR or My UI |
 | NewsletterItem | Places a submission into a newsletter section at a position |
 | RecurringMessage | Centrally managed editorial content that appears on a cadence |
-| NewsletterSection | Section definitions per newsletter type (9 TDR, 5 My UI) |
-| StyleRule | Editorial rules loaded into LLM prompts (37 seeded rules) |
+| NewsletterSection | Section definitions per newsletter type (see generated reference inventory) |
+| StyleRule | Editorial rules loaded into LLM prompts (see generated reference inventory) |
 | ScheduleConfig | Academic year and summer deadline configurations |
 | AllowedValue | Controlled vocabularies for all categorical fields |
 
 ### Seed Data
 
-- **14** newsletter sections (9 TDR + 5 My UI)
-- **37** editorial style rules (shared + newsletter-specific)
-- **4** schedule configurations (academic + summer for each newsletter)
-- **10** AllowedValue groups with controlled vocabulary codes
+See the [generated bootstrap reference inventory](docs/governance/reference-data.md)
+for current section, style-rule, schedule and vocabulary counts. Seeds are not a
+production data inventory.
 
 ## API Endpoints
 

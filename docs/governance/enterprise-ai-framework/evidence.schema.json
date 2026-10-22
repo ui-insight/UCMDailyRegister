@@ -31,9 +31,16 @@
         "evidence_label"
       ],
       "properties": {
-        "slug": { "type": "string" },
-        "name": { "type": "string" },
-        "repository": { "type": "string", "format": "uri" },
+        "slug": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "repository": {
+          "type": "string",
+          "format": "uri"
+        },
         "issue_tracker": {
           "type": "object",
           "additionalProperties": false,
@@ -45,14 +52,27 @@
             "evidence_query_url"
           ],
           "properties": {
-            "type": { "const": "github" },
-            "owner": { "type": "string" },
-            "repo": { "type": "string" },
-            "parent_issue": { "$ref": "#/$defs/github_issue" },
-            "evidence_query_url": { "type": "string", "format": "uri" }
+            "type": {
+              "const": "github"
+            },
+            "owner": {
+              "type": "string"
+            },
+            "repo": {
+              "type": "string"
+            },
+            "parent_issue": {
+              "$ref": "#/$defs/github_issue"
+            },
+            "evidence_query_url": {
+              "type": "string",
+              "format": "uri"
+            }
           }
         },
-        "evidence_label": { "type": "string" }
+        "evidence_label": {
+          "type": "string"
+        }
       }
     },
     "framework": {
@@ -67,14 +87,30 @@
         "published_at"
       ],
       "properties": {
-        "id": { "type": "string" },
-        "title": { "type": "string" },
-        "version": { "type": "string" },
-        "source_url": { "type": "string", "format": "uri" },
-        "source_status": {
-          "enum": ["discussion_draft", "published", "superseded"]
+        "id": {
+          "type": "string"
         },
-        "published_at": { "type": "string", "format": "date" }
+        "title": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "source_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "source_status": {
+          "enum": [
+            "discussion_draft",
+            "published",
+            "superseded"
+          ]
+        },
+        "published_at": {
+          "type": "string",
+          "format": "date"
+        }
       }
     },
     "ingestion": {
@@ -89,40 +125,79 @@
         "github_status_source"
       ],
       "properties": {
-        "canonical_manifest_path": { "type": "string" },
-        "raw_manifest_url": { "type": "string", "format": "uri" },
-        "schema_path": { "type": "string" },
-        "primary_key": { "type": "string" },
-        "refresh_strategy": { "type": "string" },
-        "github_status_source": { "type": "string" }
+        "canonical_manifest_path": {
+          "type": "string"
+        },
+        "raw_manifest_url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "schema_path": {
+          "type": "string"
+        },
+        "primary_key": {
+          "type": "string"
+        },
+        "refresh_strategy": {
+          "type": "string"
+        },
+        "github_status_source": {
+          "type": "string"
+        }
       }
     },
     "status_values": {
       "type": "array",
-      "items": { "$ref": "#/$defs/status_definition" },
+      "items": {
+        "$ref": "#/$defs/status_definition"
+      },
       "minItems": 1
     },
     "requirements": {
       "type": "array",
-      "items": { "$ref": "#/$defs/requirement" },
+      "items": {
+        "$ref": "#/$defs/requirement"
+      },
       "minItems": 1
+    },
+    "review_context": {
+      "type": "string",
+      "minLength": 1
     }
   },
   "$defs": {
     "github_issue": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["number", "url", "state"],
+      "required": [
+        "number",
+        "url",
+        "state"
+      ],
       "properties": {
-        "number": { "type": "integer", "minimum": 1 },
-        "url": { "type": "string", "format": "uri" },
-        "state": { "enum": ["open", "closed"] }
+        "number": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "state": {
+          "enum": [
+            "open",
+            "closed"
+          ]
+        }
       }
     },
     "status_definition": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["status", "meaning"],
+      "required": [
+        "status",
+        "meaning"
+      ],
       "properties": {
         "status": {
           "enum": [
@@ -134,13 +209,20 @@
             "needs_decision"
           ]
         },
-        "meaning": { "type": "string" }
+        "meaning": {
+          "type": "string"
+        }
       }
     },
     "assertion": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["status", "summary", "validated_at", "validated_by"],
+      "required": [
+        "status",
+        "summary",
+        "validated_at",
+        "validated_by"
+      ],
       "properties": {
         "status": {
           "enum": [
@@ -152,18 +234,31 @@
             "needs_decision"
           ]
         },
-        "summary": { "type": "string" },
+        "summary": {
+          "type": "string"
+        },
         "validated_at": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "format": "date"
         },
-        "validated_by": { "type": ["string", "null"] }
+        "validated_by": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       }
     },
     "evidence_source": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["type", "label"],
+      "required": [
+        "type",
+        "label"
+      ],
       "properties": {
         "type": {
           "enum": [
@@ -176,12 +271,103 @@
             "manual_artifact"
           ]
         },
-        "label": { "type": "string" },
-        "path": { "type": "string" },
-        "url": { "type": "string" },
-        "command": { "type": "string" },
-        "notes": { "type": "string" }
-      }
+        "label": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "command": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": [
+                  "repo_file",
+                  "repo_directory"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "path"
+            ],
+            "properties": {
+              "path": {
+                "minLength": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "enum": [
+                  "github_issue",
+                  "github_query",
+                  "external_url"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "url"
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "command"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "command"
+            ],
+            "properties": {
+              "command": {
+                "minLength": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "type": {
+                "const": "manual_artifact"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "notes"
+            ],
+            "properties": {
+              "notes": {
+                "minLength": 1
+              }
+            }
+          }
+        }
+      ]
     },
     "requirement": {
       "type": "object",
@@ -200,31 +386,53 @@
         "tags"
       ],
       "properties": {
-        "id": { "type": "string" },
-        "title": { "type": "string" },
-        "category": { "type": "string" },
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string"
+        },
         "aispeg_standard_ids": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
-        "requirement_summary": { "type": "string" },
-        "current_assertion": { "$ref": "#/$defs/assertion" },
-        "github_issue": { "$ref": "#/$defs/github_issue" },
+        "requirement_summary": {
+          "type": "string"
+        },
+        "current_assertion": {
+          "$ref": "#/$defs/assertion"
+        },
+        "github_issue": {
+          "$ref": "#/$defs/github_issue"
+        },
         "evidence_sources": {
           "type": "array",
-          "items": { "$ref": "#/$defs/evidence_source" }
+          "items": {
+            "$ref": "#/$defs/evidence_source"
+          }
         },
         "required_evidence": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
         "blockers": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
         "tags": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         }
       }
     }

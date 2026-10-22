@@ -1,3 +1,4 @@
+import PrivacyNotice from '../components/submission/PrivacyNotice';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createSubmission } from '../api/submissions';
@@ -186,6 +187,7 @@ export default function SLCEventSubmitPage() {
         onSubmit={handleSubmit}
         className="bg-white rounded-lg shadow p-6 space-y-5"
       >
+        <PrivacyNotice slcOnly />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">

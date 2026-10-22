@@ -1,5 +1,13 @@
 # Software Bill of Materials (SBOM)
 
+**Historical snapshots, not a current release attestation.** Reviewed October 22,
+2026: these March artifacts omit newer dependencies including Authlib,
+itsdangerous and PyJWT. Counts and vulnerability results below describe the dated
+snapshots only. Do not use them as proof of present dependency safety or license
+clearance. Generate and bind new SBOMs/scans to the release commit and image
+digests before promotion. Actual release generation remains pending.
+
+
 Generated: 2026-03-31
 Format: CycloneDX JSON (v1.6)
 
@@ -14,7 +22,8 @@ Format: CycloneDX JSON (v1.6)
 
 ## License Summary
 
-All dependencies use OSI-approved or permissive licenses compatible with internal university use.
+The original snapshot recorded the following license inventory; current release
+compatibility requires review of the actual generated inventory.
 
 ### Backend Licenses
 - MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, MPL-2.0, PSF-2.0, Python-2.0, LGPLv2+, MIT-CMU
@@ -50,7 +59,8 @@ All dependencies use OSI-approved or permissive licenses compatible with interna
 | picomatch | high | GHSA-3v7f-55p6-f55p, GHSA-c2c7-rcm5-vvqj (Injection/ReDoS) | `npm audit fix` |
 | rollup | high | GHSA-mw96-cpmx-2vgc (Path Traversal) | `npm audit fix` |
 
-**6 vulnerabilities total (2 moderate, 4 high).** All fixable via `npm audit fix`. These are build-time dependencies (ESLint, Vite/Rollup) — they do not ship in the production nginx container, but should still be patched.
+**Historical result: 6 vulnerabilities (2 moderate, 4 high).** Do not apply the
+historical repair claims without a current scan and review. These are build-time dependencies (ESLint, Vite/Rollup) — they do not ship in the production nginx container, but should still be patched.
 
 ## Regeneration
 
@@ -69,3 +79,15 @@ npm audit
 ```
 
 Recommended cadence: regenerate before each production deployment and monthly during active development.
+
+## Release binding and disposition
+
+Generate the backend inventory from the **actual built runtime environment** using
+`cyclonedx-py environment` and the frontend inventory from the committed lockfile.
+Store generator version, timestamp, source commit, lockfile hash where applicable,
+and final container digest alongside each artifact. Run vulnerability scans on
+the same release environment/images; keep results, exceptions and reviewer/date
+with release evidence. Never copy an unrelated local virtualenv snapshot over a
+production SBOM and label it current. The repository CI does not yet build and
+attest immutable production images, so release inventory/digest verification is
+an explicit outstanding operation in the governance decision register.

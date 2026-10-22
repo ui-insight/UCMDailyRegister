@@ -25,7 +25,7 @@ source .venv/bin/activate   # macOS/Linux
 pip install -e ".[dev]"
 
 # Configure environment
-cp .env.example .env
+cp ../.env.example .env
 # Edit .env with your settings (see below)
 
 # Apply migrations and seed reference data
@@ -33,7 +33,7 @@ alembic upgrade head
 python -m app.db.seed
 
 # Start the dev server
-uvicorn app.main:app --port 8001 --reload
+uvicorn app.main:app --port 8001 --reload --no-access-log --log-config logging.json
 ```
 
 ### Frontend
@@ -125,8 +125,9 @@ Seeding runs automatically on every backend container start via
 `backend/docker-entrypoint.sh`. No manual step required. The entrypoint
 runs in order: `alembic upgrade head` → `python -m app.db.seed` → `uvicorn`.
 
-Seeding is idempotent — it updates existing records where appropriate and
-skips rows that already exist.
+Seeding is idempotent and preserves existing staff-edited records by default.
+`SEED_OVERWRITE=1` deliberately resets governed seed-backed configuration; review
+and back up changes before using it.
 
 ### Local development
 
@@ -158,7 +159,7 @@ Start both servers in separate terminals:
 **Terminal 1 -- Backend:**
 ```bash
 cd backend && source .venv/bin/activate
-uvicorn app.main:app --port 8001 --reload
+uvicorn app.main:app --port 8001 --reload --no-access-log --log-config logging.json
 ```
 
 **Terminal 2 -- Frontend:**
@@ -502,3 +503,18 @@ here because the deploy host already runs both environments' containers.
     - **Secrets** -- load API keys from environment variables, not committed `.env` files
     - **Migrations** -- migrations and seeding run automatically in the backend container entrypoint on every start
     - **Backups** -- the `pgdata` Docker volume should be backed up regularly
+
+## Release evidence
+
+Before production promotion, run `python scripts/check_governance.py` and the
+strict documentation build. Record commit/image digests, per-role sign-in checks,
+AI endpoint/model approvals, backup/expiry installation and a paired restore
+exercise in [Governance decisions](governance/decisions.md). Local tests are not
+proof of deployed configuration. Follow [Backup and recovery](backup-and-recovery.md)
+for migration-compatible rollback; do not start old code before checking schema
+compatibility. Docker stdout uses bounded rotation and minimized JSON; campus
+ingress logging and time-based retention still need verification.
+
+Generate SBOMs and vulnerability reports from the actual release environment,
+not an unrelated developer virtualenv. Historical files under `sbom/` remain dated
+reference artifacts until a release-bound replacement is collected.

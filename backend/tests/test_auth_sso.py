@@ -302,6 +302,21 @@ class TestSsoCallback:
         assert identity.name == "Greg Fizzell"
         assert identity.role == "slc"
 
+    @pytest.mark.parametrize("token", [
+        {"userinfo": {"email": "private-marker@example.test", "roles": ["UCM-Staff"]}},
+        {"userinfo": {"email": "private-marker@example.test", "roles": []}},
+        RuntimeError("private-marker@example.test token=secret-marker"),
+        OAuthError("private-marker@example.test token=secret-marker"),
+    ])
+    async def test_callback_diagnostics_exclude_identity_and_exception(self, sso_app, caplog, token):
+        with caplog.at_level(20, logger="app.api.v1.sso"):
+            await self._callback(sso_app, token)
+        records = [record for record in caplog.records if record.name == "app.api.v1.sso"]
+        assert records
+        assert all("private-marker" not in record.getMessage() for record in records)
+        assert all("secret-marker" not in record.getMessage() for record in records)
+        assert all(record.exc_info is None for record in records)
+
     async def test_reads_roles_from_token_when_not_on_userinfo(self, sso_app):
         location = await self._callback(
             sso_app,

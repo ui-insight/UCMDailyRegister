@@ -179,13 +179,13 @@ async def classify_pending_ops_events(
                 need_codes=need_codes,
             )
         except httpx.HTTPError as exc:
-            logger.error("Ops classifier unreachable; aborting run: %s", exc)
+            logger.error("Ops classifier unreachable error_type=%s", type(exc).__name__)
             break
         except ValueError as exc:
             logger.warning(
-                "Ops classifier returned malformed output for event %s: %s",
+                "Ops classifier returned malformed output event_id=%s error_type=%s",
                 event.Id,
-                exc,
+                type(exc).__name__,
             )
             summary.failed += 1
             continue

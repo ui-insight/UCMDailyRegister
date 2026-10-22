@@ -38,7 +38,10 @@ governed applications.
 | Publication schedule | `schedule_configs`, `blackout_dates`, `schedule_mode_overrides`, `custom_publish_dates` | Academic-year, summer, winter-break, blackout, and ad hoc publish rules |
 | AI editing policy | `style_rules` | Database-managed editorial rules injected into LLM prompts |
 
-The current ORM surface has 16 tables.
+The current ORM surface has 19 tables. The generated
+[data dictionary](governance/data-dictionary.md) validates every column against
+model declarations and is the complete inventory; the sections below explain
+the main relationships.
 
 ## Relationship Diagram
 
@@ -57,6 +60,9 @@ erDiagram
     NEWSLETTER_SECTIONS ||--o{ RECURRING_MESSAGES : owns
     RECURRING_MESSAGES ||--o{ RECURRING_MESSAGE_ISSUE_OVERRIDES : overridden_by
     NEWSLETTERS ||--o{ RECURRING_MESSAGE_ISSUE_OVERRIDES : records
+
+    HARVESTED_EVENTS ||--o{ OPS_NEED_ASSESSMENTS : assessed_as
+    SUBMISSIONS |o--o{ HARVESTED_EVENTS : promoted_from
 
     ALLOWED_VALUES {
         string Id PK
@@ -160,6 +166,7 @@ newest AI suggestion, else the original. Timestamps never decide approval.
 | `Flags` | JSON list of AI/rule findings for editor review |
 | `Changes_Made` | JSON list of substantive changes |
 | `AI_Provider`, `AI_Model` | Provider and model used for AI-generated versions |
+| `Editor_Instructions` | Staff instruction text for the edit; may contain incidental personal information |
 | `Created_At` | Immutable creation timestamp, set by the application to the microsecond |
 
 ### `newsletters`
@@ -187,6 +194,7 @@ Placement of a submission into a newsletter issue and section.
 | `Position` | Ordering within a section |
 | `Final_Headline`, `Final_Body` | Copy as placed in the issue |
 | `Run_Number` | Which run of the item this placement represents |
+| `Manually_Placed` | Staff changed section placement; reassembly preserves it |
 | `Source_Version_Id` | FK to `edit_versions.Id`: the revision the copy was taken from; empty for hand-added items and items assembled before tracking |
 | `Edition_Edited` | Staff changed this item's copy in the Builder; reassembly never overwrites it |
 | `Upstream_Reviewed_Version_Id` | FK to `edit_versions.Id`: a newer approved revision staff reviewed and chose not to apply |
@@ -323,28 +331,27 @@ dates rather than relying on a regular cadence.
 
 Unique constraint: `(Newsletter_Type, Publish_Date)`.
 
-## Controlled Vocabularies
+## Operational extension tables
 
-Bootstrap AllowedValues live in
-`backend/data/allowed_values/allowed_values.json`. The current seed file
-contains 10 value groups and 41 values.
+- `harvested_events`: Trumba occurrences keyed by source type/id, with independent
+  SLC and ops triage status, source content hashes, change acknowledgment markers
+  and promoted submission provenance.
+- `ops_need_assessments`: one need per harvested event, with confidence, rationale,
+  AI/staff source and staff verdict. Child rows cascade when their event is deleted.
+  Model/prompt identifiers are not stored per assessment today; this remains a
+  provenance gap for auditability.
+- `product_feedback`: contact email, free-text report and client-provided browser
+  context plus staff triage/GitHub references and disabled notification delivery
+  state. Reported UI role is not a verified actor identity.
 
-| Value Group | Codes |
-|---|---|
-| `Submission_Category` | `faculty_staff`, `student`, `job_opportunity`, `kudos`, `in_memoriam`, `employee_announcement`, `survey`, `news_release`, `ucm_feature_story` |
-| `Newsletter_Type` | `tdr`, `myui` |
-| `Target_Newsletter` | `tdr`, `myui`, `both` |
-| `Submission_Status` | `new`, `ai_edited`, `in_review`, `approved`, `scheduled`, `published`, `rejected`, `pending_info` |
-| `Newsletter_Status` | `draft`, `in_progress`, `ready_for_review`, `submitted`, `published` |
-| `Version_Type` | `original`, `ai_suggested`, `editor_final` |
-| `Headline_Case` | `sentence_case`, `title_case` |
-| `Rule_Set` | `shared`, `tdr`, `myui` |
-| `Severity` | `error`, `warning`, `info` |
-| `Schedule_Mode` | `academic_year`, `summer`, `winter_break` |
+See the [data dictionary](governance/data-dictionary.md) for all columns.
 
-Live deployments can contain additional runtime-created AllowedValue or
-StyleRule records. Treat the seed file as the bootstrap baseline and the live
-database as mutable operational state.
+## Controlled vocabularies
+
+The [generated reference inventory](governance/reference-data.md) lists all current
+seed groups/codes and documents code-governed exceptions. Live deployments can
+contain runtime additions; seeds are a bootstrap baseline. Review runtime changes
+back into seed/catalog metadata rather than automatically overwriting production.
 
 ## Derived and JSON Fields
 
@@ -356,21 +363,15 @@ database as mutable operational state.
 | `Occurrence_Dates` | API response only | Derived by recurrence service; not stored as a column |
 | `Run_Number` | `newsletter_items` | Calculated when assembling an issue based on prior placements |
 
-## Current Governance Gaps
+## Governance maintenance
 
-The schema is documented at the table level, but the application does not yet
-have OpenERA-style persisted column-level catalog coverage. The frontend now
-includes a staff-facing **Data Governance** tab with a static interactive catalog
-for the current ORM surface, but the missing durable governance artifacts are:
+The versioned catalog in `frontend/src/data/governance-catalog.json` drives the
+staff page and generated dictionary. `scripts/check_governance.py` compares every
+mapped column and vocabulary reference and checks generated pages in CI. This is
+a file-backed catalog; it is not a database `DataDictionary` table.
 
-- A machine-readable data dictionary with column descriptions, classifications,
-  retention categories, and PII flags.
-- Automated drift checks that compare ORM metadata to a catalog JSON.
-- A formal lifecycle/status transition matrix for submissions and newsletters.
-- A vocabulary sync process from runtime AllowedValue additions back into seed
-  data and the portfolio governance registry.
-- First-class vocabulary governance for SLC-only values currently represented in
-  application code, such as `slc_event`, `none`, `strategic`, and `signature`.
-
-See [UDM Alignment](udm-alignment.md) for how this application aligns with and
-extends the UDM-derived portfolio standard.
+Classifications and retention categories are provisional pending owner review.
+See [Governance decisions](governance/decisions.md) and
+[Retention and disposal](governance/retention.md) for unresolved approval,
+archive/disposal, lifecycle transition, runtime vocabulary reconciliation and
+production evidence requirements. No automatic purge is implemented.
