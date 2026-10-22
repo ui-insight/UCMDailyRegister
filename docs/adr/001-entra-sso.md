@@ -105,6 +105,8 @@ a follow-up should turn the warning into a refusal.
   the last one. `prompt=select_account` on every sign-in and a sign-out that
   goes through Entra's `end_session_endpoint` address both halves.
 - While both paths coexist, a deployment could run `oidc` with
-  `TRUSTED_ROLE_HEADER_ROLE=staff` still set. The bearer token wins when
-  present, but an anonymous visitor would still get staff from the header. The
-  deployment doc says to blank it; the follow-up hardening should refuse it.
+  `TRUSTED_ROLE_HEADER_ROLE=staff` still set, or run `header` with the default
+  `SECRET_KEY`. Each mode therefore honors only its own credential: `oidc`
+  ignores the trusted headers, so an anonymous visitor stays public, and
+  `header` ignores bearer tokens, so a token signed with the public default
+  key grants nothing.

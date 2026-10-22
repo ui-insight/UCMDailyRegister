@@ -32,7 +32,14 @@ async def get_current_identity(
     expired is a 401, never a fall-through to "public": an expired staff
     session must surface as "sign in again", not as a silent downgrade that
     turns the next save into a 403.
+
+    Tokens count only under AUTH_PROVIDER=oidc. Header mode skips the
+    SECRET_KEY strength checks, so a header-mode deployment usually still
+    signs with the public default key; honoring tokens there would let
+    anyone mint a staff session.
     """
+    if settings.auth_provider != "oidc":
+        return None
     token = _bearer_token(authorization)
     if token is None:
         return None
@@ -57,12 +64,12 @@ async def get_submitter_role(
     x_trusted_user_role: str | None = Header(None, alias="X-Trusted-User-Role"),
     x_trusted_auth_secret: str | None = Header(None, alias="X-Trusted-Auth-Secret"),
 ) -> SubmitterRole:
-    """Resolve the caller's role from whichever auth path presented one.
+    """Resolve the caller's role from the active AUTH_PROVIDER's credential.
 
-    A session token minted by SSO wins over the proxy header, so a signed-in
-    SLC member on a prototype deployment that still stamps every request as
-    staff is treated as SLC. Neither path present means an anonymous
-    submitter.
+    Each mode accepts only its own credential: header mode the proxy-asserted
+    role, oidc mode the SSO session token. Under oidc a proxy that still
+    stamps every request as staff must not grant staff to anonymous
+    visitors. No credential means an anonymous submitter.
     """
     if x_user_role:
         raise HTTPException(
@@ -73,7 +80,7 @@ async def get_submitter_role(
     if identity is not None:
         return cast(SubmitterRole, identity.role)
 
-    if x_trusted_user_role:
+    if settings.auth_provider == "header" and x_trusted_user_role:
         if not settings.trusted_role_header_secret:
             raise HTTPException(status_code=403, detail="Trusted role headers are not configured.")
         if x_trusted_auth_secret != settings.trusted_role_header_secret:
