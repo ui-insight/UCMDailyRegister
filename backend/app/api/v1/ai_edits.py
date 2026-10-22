@@ -16,6 +16,7 @@ from app.api.deps import get_db, require_staff
 from app.db.engine import async_session_factory
 from app.models.submission import Submission, SubmissionLink
 from app.models.edit_history import EditVersion
+from app.services import editorial_content
 from app.services.ai.factory import get_llm_provider
 from app.services.ai.editor import AIEditor, AIEditError, EditResult
 from app.schemas.ai_edit import (
@@ -253,7 +254,7 @@ async def list_edit_versions(
     result = await session.execute(
         sa.select(EditVersion)
         .where(EditVersion.Submission_Id == submission_id)
-        .order_by(EditVersion.Created_At)
+        .order_by(EditVersion.Created_At, EditVersion.Id)
     )
     versions = result.scalars().all()
     if not versions:
@@ -290,13 +291,11 @@ async def save_editor_final(
 ):
     """Save the editor's final version of a submission.
 
-    This creates an 'editor_final' EditVersion and updates the submission status
-    to either in review or approved in the same transaction.
-    The submitted Original_Headline/Original_Body are never modified — the
-    edited text lives in the version history, and newsletter assembly prefers
-    the 'editor_final' version via _get_best_text.
+    Creates an 'editor_final' EditVersion and, in the same transaction, either
+    approves that exact revision or leaves the submission in review with
+    nothing approved (see editorial_content.save_final). The submitted
+    Original_Headline/Original_Body are never modified.
     """
-    # Verify submission exists
     result = await session.execute(
         sa.select(Submission).where(Submission.Id == submission_id)
     )
@@ -309,33 +308,14 @@ async def save_editor_final(
             detail="Headline is required for non-Jobs submissions",
         )
 
-    # Snapshot the original into the version history if no AI edit did so yet,
-    # so the timeline is complete even for purely manual edits
-    existing_original = await session.execute(
-        sa.select(EditVersion).where(
-            EditVersion.Submission_Id == submission_id,
-            EditVersion.Version_Type == "original",
-        )
+    version = await editorial_content.save_final(
+        session,
+        submission,
+        headline="" if submission.Category == "job_opportunity" else data.Headline.strip(),
+        body=data.Body,
+        headline_case=data.Headline_Case,
+        approve=data.Approve_For_Newsletter,
     )
-    if not existing_original.scalar_one_or_none():
-        session.add(
-            EditVersion(
-                Submission_Id=submission_id,
-                Version_Type="original",
-                Headline=submission.Original_Headline,
-                Body=submission.Original_Body,
-            )
-        )
-
-    # Create final version
-    version = EditVersion(
-        Submission_Id=submission_id,
-        Version_Type="editor_final",
-        Headline="" if submission.Category == "job_opportunity" else data.Headline.strip(),
-        Body=data.Body,
-        Headline_Case=data.Headline_Case,
-    )
-    session.add(version)
 
     if data.Links is not None:
         await session.execute(
@@ -353,7 +333,6 @@ async def save_editor_final(
                 )
             )
 
-    submission.Status = "approved" if data.Approve_For_Newsletter else "in_review"
     await session.commit()
     await session.refresh(version)
     return version

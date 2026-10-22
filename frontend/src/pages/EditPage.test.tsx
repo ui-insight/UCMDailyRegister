@@ -70,6 +70,8 @@ function makeSubmission(overrides: Partial<Submission> = {}): Submission {
     Status: 'in_review',
     Show_In_SLC_Calendar: false,
     Event_Classification: null,
+    Approved_Version_Id: null,
+    Working_Version_Id: null,
     Created_At: '2026-04-01T12:00:00Z',
     Updated_At: '2026-04-01T12:00:00Z',
     Links: [],
@@ -207,7 +209,8 @@ describe('EditPage', () => {
     expect(listEditVersionsMock).toHaveBeenCalledWith('submission-1');
   });
 
-  it('prefers the latest editor final version when one exists', async () => {
+  it('opens the working revision the backend names', async () => {
+    getSubmissionMock.mockResolvedValue(makeSubmission({ Working_Version_Id: 'version-final' }));
     listEditVersionsMock.mockResolvedValue([
       makeVersion({
         Id: 'version-ai',
@@ -227,6 +230,35 @@ describe('EditPage', () => {
 
     expect(await screen.findByDisplayValue('Final editor headline')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Final editor body.')).toBeInTheDocument();
+  });
+
+  it('opens the approved revision even when a newer final exists', async () => {
+    getSubmissionMock.mockResolvedValue(makeSubmission({
+      Status: 'approved',
+      Approved_Version_Id: 'version-approved',
+      Working_Version_Id: 'version-approved',
+    }));
+    listEditVersionsMock.mockResolvedValue([
+      makeVersion({
+        Id: 'version-approved',
+        Version_Type: 'editor_final',
+        Headline: 'Approved headline',
+        Body: 'Approved body.',
+        Created_At: '2026-04-01T13:00:00Z',
+      }),
+      makeVersion({
+        Id: 'version-later',
+        Version_Type: 'editor_final',
+        Headline: 'Later headline',
+        Body: 'Later body.',
+        Created_At: '2026-04-01T13:00:00Z',
+      }),
+    ]);
+
+    renderEditPage();
+
+    expect(await screen.findByDisplayValue('Approved headline')).toBeInTheDocument();
+    expect(screen.queryByDisplayValue('Later body.')).not.toBeInTheDocument();
   });
 
   it('runs an AI edit and displays the returned suggestion', async () => {
@@ -253,6 +285,7 @@ describe('EditPage', () => {
 
   it('edits and approves an AI suggestion directly from Live View', async () => {
     const user = userEvent.setup();
+    getSubmissionMock.mockResolvedValue(makeSubmission({ Working_Version_Id: 'version-1' }));
     listEditVersionsMock.mockResolvedValue([
       makeVersion({
         Headline: 'AI working headline',
@@ -288,6 +321,7 @@ describe('EditPage', () => {
 
   it('keeps Live View changes when continuing to Final Edit', async () => {
     const user = userEvent.setup();
+    getSubmissionMock.mockResolvedValue(makeSubmission({ Working_Version_Id: 'version-1' }));
     listEditVersionsMock.mockResolvedValue([
       makeVersion({
         Headline: 'AI working headline',
@@ -324,6 +358,9 @@ describe('EditPage', () => {
       Headline: 'AI working headline',
       Body: 'Draft revised in Live View.',
     });
+    getSubmissionMock
+      .mockResolvedValueOnce(makeSubmission({ Working_Version_Id: 'version-1' }))
+      .mockResolvedValueOnce(makeSubmission({ Working_Version_Id: 'version-final' }));
     listEditVersionsMock
       .mockResolvedValueOnce([aiVersion])
       .mockResolvedValueOnce([aiVersion, savedDraft]);
@@ -345,6 +382,7 @@ describe('EditPage', () => {
 
   it('does not overwrite a saved draft when switching to Live View', async () => {
     const user = userEvent.setup();
+    getSubmissionMock.mockResolvedValue(makeSubmission({ Working_Version_Id: 'version-final' }));
     listEditVersionsMock.mockResolvedValue([
       makeVersion({
         Headline: 'AI working headline',
@@ -372,6 +410,7 @@ describe('EditPage', () => {
   it('edits and approves a body-only Jobs suggestion directly from Live View', async () => {
     const user = userEvent.setup();
     getSubmissionMock.mockResolvedValue(makeSubmission({
+      Working_Version_Id: 'version-1',
       Category: 'job_opportunity',
       Status: 'ai_edited',
     }));
@@ -406,6 +445,7 @@ describe('EditPage', () => {
   it('keeps CTA links synchronized while editing an AI suggestion in Live View', async () => {
     const user = userEvent.setup();
     getSubmissionMock.mockResolvedValue(makeSubmission({
+      Working_Version_Id: 'version-1',
       Links: [
         {
           Id: 'link-1',
@@ -459,6 +499,7 @@ describe('EditPage', () => {
       Body: 'Accepted AI body.',
       Headline_Case: 'title_case',
     });
+    getSubmissionMock.mockResolvedValue(makeSubmission({ Working_Version_Id: 'version-1' }));
     listEditVersionsMock.mockResolvedValue([aiVersion]);
 
     renderEditPage();
@@ -490,6 +531,7 @@ describe('EditPage', () => {
   it('reviews, edits and approves a body-only Jobs AI version', async () => {
     const user = userEvent.setup();
     getSubmissionMock.mockResolvedValue(makeSubmission({
+      Working_Version_Id: 'version-1',
       Category: 'job_opportunity',
       Status: 'ai_edited',
     }));
@@ -553,6 +595,7 @@ describe('EditPage', () => {
 
   it('uses the original submission when an editor bypasses an existing AI suggestion', async () => {
     const user = userEvent.setup();
+    getSubmissionMock.mockResolvedValue(makeSubmission({ Working_Version_Id: 'version-1' }));
     listEditVersionsMock.mockResolvedValue([
       makeVersion({
         Headline: 'Unreviewed AI headline',
@@ -620,6 +663,7 @@ describe('EditPage', () => {
 
   it('keeps the immutable original beside the editable final version', async () => {
     const user = userEvent.setup();
+    getSubmissionMock.mockResolvedValue(makeSubmission({ Working_Version_Id: 'version-1' }));
     listEditVersionsMock.mockResolvedValue([
       makeVersion({
         Headline: 'AI working headline',
@@ -716,6 +760,7 @@ describe('EditPage', () => {
   it('shows live CTA links while keeping destination fields separately editable', async () => {
     const user = userEvent.setup();
     getSubmissionMock.mockResolvedValue(makeSubmission({
+      Working_Version_Id: 'version-1',
       Links: [
         {
           Id: 'link-1',
@@ -774,6 +819,7 @@ describe('EditPage', () => {
   it('keeps link metadata synchronized when CTA text is edited in the body', async () => {
     const user = userEvent.setup();
     getSubmissionMock.mockResolvedValue(makeSubmission({
+      Working_Version_Id: 'version-1',
       Links: [
         {
           Id: 'link-1',
@@ -822,6 +868,7 @@ describe('EditPage', () => {
   it('updates the live link preview while body text is being typed', async () => {
     const user = userEvent.setup();
     getSubmissionMock.mockResolvedValue(makeSubmission({
+      Working_Version_Id: 'version-1',
       Links: [
         {
           Id: 'link-1',
@@ -850,6 +897,7 @@ describe('EditPage', () => {
   it('does not preserve a removed CTA as hidden link metadata', async () => {
     const user = userEvent.setup();
     getSubmissionMock.mockResolvedValue(makeSubmission({
+      Working_Version_Id: 'version-1',
       Links: [
         {
           Id: 'link-1',

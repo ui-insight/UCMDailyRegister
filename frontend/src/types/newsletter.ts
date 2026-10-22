@@ -28,6 +28,7 @@ export interface NewsletterItem {
   Final_Headline: string;
   Final_Body: string;
   Run_Number: number;
+  Source_Version_Id: string | null;
 }
 
 export interface NewsletterExternalItem {
