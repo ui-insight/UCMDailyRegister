@@ -80,7 +80,7 @@ OPENAI_MODEL=gpt-4o
 # MindRouter — University of Idaho on-prem AI (required when LLM_PROVIDER=mindrouter)
 MINDROUTER_API_KEY=mr2_...
 MINDROUTER_ENDPOINT_URL=https://mindrouter.uidaho.edu/v1/chat/completions
-MINDROUTER_MODEL=openai/gpt-oss-120b
+MINDROUTER_MODEL=moonshotai/kimi-k3
 
 # CORS (development; comma-separated origins or a JSON array)
 CORS_ORIGINS=http://localhost:5173
@@ -254,7 +254,7 @@ LLM_PROVIDER=mindrouter
 # MindRouter
 MINDROUTER_API_KEY=mr2_...
 MINDROUTER_ENDPOINT_URL=https://mindrouter.uidaho.edu/v1/chat/completions
-MINDROUTER_MODEL=openai/gpt-oss-120b
+MINDROUTER_MODEL=moonshotai/kimi-k3
 
 # Ops needs classifier (always MindRouter, independent of LLM_PROVIDER;
 # endpoint and key fall back to the MINDROUTER_* values above when unset).

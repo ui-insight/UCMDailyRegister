@@ -225,7 +225,7 @@ The settings endpoint returns read-only configuration data for the frontend Sett
     ```json
     {
       "active_provider": "mindrouter",
-      "active_model": "openai/gpt-oss-120b",
+      "active_model": "moonshotai/kimi-k3",
       "endpoint_url": "https://mindrouter.uidaho.edu/v1/chat/completions",
       "providers": {
         "claude": {
@@ -237,7 +237,7 @@ The settings endpoint returns read-only configuration data for the frontend Sett
           "configured": false
         },
         "mindrouter": {
-          "model": "openai/gpt-oss-120b",
+          "model": "moonshotai/kimi-k3",
           "endpoint_url": "https://mindrouter.uidaho.edu/v1/chat/completions",
           "configured": true
         }

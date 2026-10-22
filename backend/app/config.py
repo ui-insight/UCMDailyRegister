@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     # MindRouter (University of Idaho on-prem AI services)
     mindrouter_api_key: str = ""
     mindrouter_endpoint_url: str = "https://mindrouter.uidaho.edu/v1/chat/completions"
-    mindrouter_model: str = "openai/gpt-oss-120b"
+    mindrouter_model: str = "moonshotai/kimi-k3"
 
     # Ops needs classifier â€” always MindRouter, independent of LLM_PROVIDER.
     # Endpoint and key fall back to the MINDROUTER_* values when unset.

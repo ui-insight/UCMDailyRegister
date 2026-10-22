@@ -28,7 +28,7 @@ class MindRouterProvider(LLMProvider):
         self,
         endpoint_url: str,
         api_key: str = "",
-        model: str = "Qwen/Qwen3-32B",
+        model: str = "moonshotai/kimi-k3",
     ):
         self.endpoint_url = endpoint_url
         self.api_key = api_key
