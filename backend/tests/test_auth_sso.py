@@ -76,7 +76,13 @@ class TestSessionTokens:
 # --- bearer token in get_submitter_role -----------------------------------
 
 
+@pytest.fixture
+def oidc_mode(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(auth_deps.settings, "auth_provider", "oidc")
+
+
 @pytest.mark.asyncio
+@pytest.mark.usefixtures("oidc_mode")
 class TestBearerTokenAuthorization:
     async def test_staff_token_passes_staff_gate(self, client: AsyncClient):
         resp = await client.post(
@@ -117,9 +123,41 @@ class TestBearerTokenAuthorization:
         )
         assert resp.status_code == 403
 
+    async def test_trusted_header_alone_is_public(
+        self, client: AsyncClient, staff_headers: dict[str, str]
+    ):
+        """Under oidc a proxy still stamping 'staff' must not make visitors staff."""
+        resp = await client.get("/api/v1/submissions/", headers=staff_headers)
+        assert resp.status_code == 403
+
     async def test_no_token_and_no_header_is_public(self, client: AsyncClient):
         resp = await client.get("/api/v1/submissions/")
         assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
+class TestHeaderModeIgnoresTokens:
+    """Header mode skips SECRET_KEY checks, so tokens must carry no weight there."""
+
+    async def test_token_signed_with_default_key_is_not_staff(self, client: AsyncClient):
+        resp = await client.post(
+            "/api/v1/newsletters", json=make_newsletter_data(), headers=_bearer(_token("staff"))
+        )
+        assert resp.status_code == 403
+
+    async def test_invalid_token_is_ignored_not_401(self, client: AsyncClient):
+        resp = await client.get("/api/v1/submissions/", headers=_bearer("not-a-token"))
+        assert resp.status_code == 403
+
+    async def test_token_does_not_override_trusted_header(
+        self, client: AsyncClient, staff_headers: dict[str, str]
+    ):
+        resp = await client.post(
+            "/api/v1/newsletters",
+            json=make_newsletter_data(),
+            headers={**staff_headers, **_bearer(_token("slc"))},
+        )
+        assert resp.status_code == 201
 
 
 # --- /auth endpoints -------------------------------------------------------
@@ -152,6 +190,7 @@ class TestAuthEndpoints:
         resp = await client.get("/api/v1/auth/me", headers=staff_headers)
         assert resp.status_code == 401
 
+    @pytest.mark.usefixtures("oidc_mode")
     async def test_me_returns_identity(self, client: AsyncClient):
         resp = await client.get("/api/v1/auth/me", headers=_bearer(_token("ops")))
         assert resp.status_code == 200

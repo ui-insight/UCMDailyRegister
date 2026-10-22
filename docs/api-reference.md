@@ -14,8 +14,9 @@ reaches the API one of two ways, selected by `AUTH_PROVIDER`:
   `X-Trusted-User-Role` and `X-Trusted-Auth-Secret`, and the backend accepts
   the role only when the secret matches `TRUSTED_ROLE_HEADER_SECRET`.
 
-A bearer token wins when both are present. Client-supplied `X-User-Role` is
-rejected.
+Each mode honors only its own credential: under `header` a bearer token is
+ignored, and under `oidc` the `X-Trusted-*` headers are ignored. Client-supplied
+`X-User-Role` is rejected.
 
 ## Auth
 

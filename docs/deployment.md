@@ -378,8 +378,8 @@ migration to reverse.
 - Signing out goes through Entra's `end_session_endpoint` so the next person at
   a shared computer is not silently signed in as the last one.
 - Under `oidc`, the nginx container still forwards `X-Trusted-*` headers with
-  whatever `TRUSTED_ROLE_HEADER_ROLE` is set to. Leave it blank; a bearer
-  token always wins over the header anyway.
+  whatever `TRUSTED_ROLE_HEADER_ROLE` is set to. Leave it blank for clarity;
+  the backend ignores those headers under `oidc`, so they grant nothing.
 
 ### Nginx Proxy Timeouts
 
