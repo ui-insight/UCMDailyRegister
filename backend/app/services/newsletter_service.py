@@ -181,9 +181,55 @@ async def update_item(
     new_section_id = kwargs.get("Section_Id")
     if new_section_id is not None and new_section_id != item.Section_Id:
         item.Manually_Placed = True
+    if any(
+        kwargs.get(field) is not None and kwargs[field] != getattr(item, field)
+        for field in ("Final_Headline", "Final_Body")
+    ):
+        # Staff changed this edition's copy; reassembly and upstream
+        # refreshes only replace it when staff choose to.
+        item.Edition_Edited = True
     for key, value in kwargs.items():
         if value is not None:
             setattr(item, key, value)
+    await db.commit()
+    await db.refresh(item)
+    return item
+
+
+async def _get_item(db: AsyncSession, newsletter_id: str, item_id: str) -> NewsletterItem | None:
+    result = await db.execute(
+        sa.select(NewsletterItem).where(
+            NewsletterItem.Id == item_id,
+            NewsletterItem.Newsletter_Id == newsletter_id,
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+async def refresh_item_from_approved(
+    db: AsyncSession, newsletter_id: str, item_id: str
+) -> NewsletterItem | None:
+    """Replace an item's copy with the submission's approved revision.
+
+    Raises editorial_content.NoApprovedRevision when there is none.
+    """
+    item = await _get_item(db, newsletter_id, item_id)
+    if item is None:
+        return None
+    editorial_content.refresh_from_approved(item)
+    await db.commit()
+    await db.refresh(item)
+    return item
+
+
+async def keep_item_edition_copy(
+    db: AsyncSession, newsletter_id: str, item_id: str
+) -> NewsletterItem | None:
+    """Keep an item's copy and stop flagging its current approved revision."""
+    item = await _get_item(db, newsletter_id, item_id)
+    if item is None:
+        return None
+    editorial_content.keep_edition_copy(item)
     await db.commit()
     await db.refresh(item)
     return item

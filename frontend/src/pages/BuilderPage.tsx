@@ -13,7 +13,9 @@ import {
   removeNewsletterItem,
   reorderNewsletterItems,
   getExportUrl,
+  keepNewsletterItemEditionCopy,
   listSections,
+  refreshNewsletterItemFromApproved,
   updateNewsletterItem,
 } from '../api/newsletters';
 import {
@@ -26,7 +28,7 @@ import type {
   JobPostingCandidate,
   NewsletterDetailResponse,
 } from '../api/newsletters';
-import type { LinkFinding, NewsletterSection } from '../types/newsletter';
+import type { LinkFinding, NewsletterSection, UpstreamChange } from '../types/newsletter';
 import type { RecurringMessageIssueCandidate } from '../types/recurringMessage';
 import { EmptyState, Toast, useToast } from '../components/common';
 import RichBody from '../components/editor/RichBody';
@@ -72,7 +74,12 @@ interface NewsletterItemEditDraft {
 }
 
 type BuilderSectionItem =
-  | (BuilderSectionItemBase & { Kind: 'submission'; Run_Number: number })
+  | (BuilderSectionItemBase & {
+    Kind: 'submission';
+    Run_Number: number;
+    Edition_Edited: boolean;
+    Upstream_Change: UpstreamChange | null;
+  })
   | (BuilderSectionItemBase & {
     Kind: 'calendar_event';
     Source_Id: string;
@@ -213,6 +220,7 @@ export default function BuilderPage() {
   const [dragState, setDragState] = useState<SubmissionDragState | null>(null);
   const [itemEditDraft, setItemEditDraft] = useState<NewsletterItemEditDraft | null>(null);
   const [itemEditSaving, setItemEditSaving] = useState(false);
+  const [upstreamActionItemId, setUpstreamActionItemId] = useState<string | null>(null);
   const dragStateRef = useRef<SubmissionDragState | null>(null);
   const newsletterId = newsletter?.Id;
 
@@ -621,6 +629,25 @@ export default function BuilderPage() {
     }
   };
 
+  const handleUpstreamChoice = async (itemId: string, choice: 'refresh' | 'keep') => {
+    if (!newsletter) return;
+    setUpstreamActionItemId(itemId);
+    setError(null);
+    try {
+      if (choice === 'refresh') {
+        await refreshNewsletterItemFromApproved(newsletter.Id, itemId);
+      } else {
+        await keepNewsletterItemEditionCopy(newsletter.Id, itemId);
+      }
+      setNewsletter(await getNewsletter(newsletter.Id));
+      showToast(choice === 'refresh' ? 'Edition updated to the approved copy' : 'Edition copy kept');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update the edition copy');
+    } finally {
+      setUpstreamActionItemId(null);
+    }
+  };
+
   const togglePanel = (panel: ImportPanelKey) => {
     setPanelOpen((current) => ({
       ...current,
@@ -775,6 +802,10 @@ export default function BuilderPage() {
     }
   }
 
+  const itemsWithUpstreamChanges = newsletter
+    ? newsletter.Items.filter((item) => item.Upstream_Change).length
+    : 0;
+
   const itemsWithLinkProblems = newsletter
     ? [...newsletter.Items, ...newsletter.External_Items]
       .filter((item) => item.Link_Findings.length > 0).length
@@ -872,6 +903,13 @@ export default function BuilderPage() {
               >
                 Export Word Doc
               </a>
+              {itemsWithUpstreamChanges > 0 && (
+                <span className="rounded-full bg-status-warning-100 px-3 py-1 text-xs font-medium text-status-warning-800">
+                  {itemsWithUpstreamChanges === 1
+                    ? '1 item has newer approved copy'
+                    : `${itemsWithUpstreamChanges} items have newer approved copy`}
+                </span>
+              )}
               {itemsWithLinkProblems > 0 && (
                 <span
                   role="status"
@@ -1448,12 +1486,58 @@ export default function BuilderPage() {
                                               Academic date
                                             </span>
                                           )}
+                                          {item.Kind === 'submission' && item.Edition_Edited && (
+                                            <span className="inline-flex items-center rounded-full bg-status-muted-100 px-2 py-0.5 text-[11px] font-medium text-status-muted-800">
+                                              Edited in edition
+                                            </span>
+                                          )}
                                         </div>
                                         <RichBody
                                           text={item.Final_Body}
                                           className="mt-2 max-w-[75ch] text-xs leading-5 text-gray-600"
                                         />
                                         <LinkCheck body={item.Final_Body} findings={item.Link_Findings} />
+                                        {item.Kind === 'submission' && item.Upstream_Change && (
+                                          <section
+                                            aria-label="Newer approved copy"
+                                            className="mt-3 max-w-[75ch] rounded-md border border-status-warning-500/50 bg-status-warning-100/60 p-3"
+                                          >
+                                            <p className="text-xs font-medium text-status-warning-800">
+                                              A newer approved version differs from this edition&apos;s copy
+                                              {item.Edition_Edited ? ', which was edited in the Builder' : ''}.
+                                            </p>
+                                            <p className="mt-2 text-[11px] font-medium uppercase tracking-wide text-gray-500">
+                                              Approved now
+                                            </p>
+                                            {item.Upstream_Change.Headline && (
+                                              <p className="text-xs font-medium text-gray-900">
+                                                {item.Upstream_Change.Headline}
+                                              </p>
+                                            )}
+                                            <RichBody
+                                              text={item.Upstream_Change.Body}
+                                              className="mt-1 text-xs leading-5 text-gray-700"
+                                            />
+                                            <div className="mt-3 flex flex-wrap gap-2">
+                                              <button
+                                                type="button"
+                                                onClick={() => handleUpstreamChoice(item.Id, 'refresh')}
+                                                disabled={upstreamActionItemId === item.Id}
+                                                className="rounded-md bg-ui-gold-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-ui-gold-700 disabled:opacity-50"
+                                              >
+                                                Use approved copy
+                                              </button>
+                                              <button
+                                                type="button"
+                                                onClick={() => handleUpstreamChoice(item.Id, 'keep')}
+                                                disabled={upstreamActionItemId === item.Id}
+                                                className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                                              >
+                                                Keep edition copy
+                                              </button>
+                                            </div>
+                                          </section>
+                                        )}
                                         {item.Kind === 'submission' && item.Run_Number > 1 && (
                                           <span className="text-xs text-ui-gold-600 mt-1 inline-block">
                                             Run #{item.Run_Number}

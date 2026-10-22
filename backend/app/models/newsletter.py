@@ -15,6 +15,13 @@ copied from, so staff can see exactly which approved revision an edition
 carries. It is empty for items added with hand-supplied text and for items
 whose text matched no revision when tracking began.
 
+Edition_Edited marks copy staff changed in the Builder; reassembly never
+overwrites an item, so those edits always survive. When the submission's
+approved revision later differs from Source_Version_Id, the item reports an
+Upstream_Change so staff can deliberately refresh the copy or keep it;
+keeping records Upstream_Reviewed_Version_Id so that revision stops being
+flagged. See app.services.editorial_content.
+
 Newsletter_Type and Status values are governed by the AllowedValue table rather
 than hard-coded enums. A unique constraint on (Newsletter_Type, Publish_Date)
 prevents duplicate editions for the same day and newsletter.
@@ -31,6 +38,7 @@ from app.db.base import Base
 from app.utils.body_links import LinkFinding, check_body
 
 if TYPE_CHECKING:
+    from app.models.edit_history import EditVersion
     from app.models.section import NewsletterSection
     from app.models.submission import Submission
 
@@ -96,6 +104,18 @@ class NewsletterItem(Base):
         ),
         nullable=True,
     )
+    Edition_Edited: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=False, default=False, server_default=sa.false()
+    )
+    Upstream_Reviewed_Version_Id: Mapped[str | None] = mapped_column(
+        sa.String(36),
+        sa.ForeignKey(
+            "edit_versions.Id",
+            name="fk_newsletter_items_Upstream_Reviewed_Version_Id",
+            ondelete="SET NULL",
+        ),
+        nullable=True,
+    )
 
     Newsletter_Rel: Mapped["Newsletter"] = relationship(
         back_populates="Items", lazy="selectin"
@@ -112,6 +132,13 @@ class NewsletterItem(Base):
             if "Links" not in sa.inspect(self.Submission_Rel).unloaded:
                 submitted = [link.Url for link in self.Submission_Rel.Links]
         return check_body(self.Final_Body, submitted)
+
+    @property
+    def Upstream_Change(self) -> "EditVersion | None":
+        """The newer approved revision this edition's copy does not reflect, if any."""
+        from app.services.editorial_content import upstream_change
+
+        return upstream_change(self)
 
 
 class NewsletterExternalItem(Base):

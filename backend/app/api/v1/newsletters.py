@@ -12,6 +12,7 @@ from app.api.deps import get_db, require_staff
 from app.models.newsletter import Newsletter
 from app.models.section import NewsletterSection
 from app.models.submission import Submission
+from app.services.editorial_content import NoApprovedRevision
 from app.services import (
     calendar_event_service,
     job_posting_service,
@@ -506,6 +507,46 @@ async def update_item(
             raise HTTPException(status_code=404, detail="Item not found")
         await _require_section_for(db, newsletter, data.Section_Id)
     item = await newsletter_service.update_item(db, newsletter_id, item_id, **update_data)
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return item
+
+
+@router.post(
+    "/{newsletter_id}/items/{item_id}/refresh-from-approved",
+    response_model=NewsletterItemResponse,
+)
+async def refresh_item_from_approved(
+    newsletter_id: str,
+    item_id: str,
+    db: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
+):
+    """Replace an edition item's copy with its submission's approved revision."""
+    try:
+        item = await newsletter_service.refresh_item_from_approved(db, newsletter_id, item_id)
+    except NoApprovedRevision as exc:
+        raise HTTPException(status_code=409, detail="This submission has no approved revision.") from exc
+    if not item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    return item
+
+
+@router.post(
+    "/{newsletter_id}/items/{item_id}/keep-edition-copy",
+    response_model=NewsletterItemResponse,
+)
+async def keep_item_edition_copy(
+    newsletter_id: str,
+    item_id: str,
+    db: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
+):
+    """Keep an edition item's copy instead of its submission's newer approved revision."""
+    try:
+        item = await newsletter_service.keep_item_edition_copy(db, newsletter_id, item_id)
+    except NoApprovedRevision as exc:
+        raise HTTPException(status_code=409, detail="This submission has no approved revision.") from exc
     if not item:
         raise HTTPException(status_code=404, detail="Item not found")
     return item

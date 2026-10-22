@@ -66,6 +66,16 @@ class LinkFindingResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class UpstreamChangeResponse(BaseModel):
+    """A newer approved revision that an edition item's copy does not reflect."""
+
+    Id: str
+    Headline: str
+    Body: str
+
+    model_config = {"from_attributes": True}
+
+
 class NewsletterItemResponse(BaseModel):
     Id: str
     Newsletter_Id: str
@@ -76,6 +86,8 @@ class NewsletterItemResponse(BaseModel):
     Final_Body: str
     Run_Number: int
     Source_Version_Id: str | None = None
+    Edition_Edited: bool = False
+    Upstream_Change: UpstreamChangeResponse | None = None
     Link_Findings: list[LinkFindingResponse] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}

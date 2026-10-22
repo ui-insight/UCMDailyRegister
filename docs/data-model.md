@@ -188,6 +188,10 @@ Placement of a submission into a newsletter issue and section.
 | `Final_Headline`, `Final_Body` | Copy as placed in the issue |
 | `Run_Number` | Which run of the item this placement represents |
 | `Source_Version_Id` | FK to `edit_versions.Id`: the revision the copy was taken from; empty for hand-added items and items assembled before tracking |
+| `Edition_Edited` | Staff changed this item's copy in the Builder; reassembly never overwrites it |
+| `Upstream_Reviewed_Version_Id` | FK to `edit_versions.Id`: a newer approved revision staff reviewed and chose not to apply |
+
+Item responses add `Upstream_Change` (the approved revision's ID, headline and body) when the submission's approved revision differs from `Source_Version_Id` and has not been reviewed; the Builder offers **Use approved copy** or **Keep edition copy**.
 
 ### `newsletter_external_items`
 
