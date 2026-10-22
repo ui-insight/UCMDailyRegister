@@ -86,5 +86,7 @@ jobs:
         run: npm ci
       - name: ESLint
         run: npm run lint -- --max-warnings=0
+      - name: Vitest
+        run: npm test
       - name: Build
         run: npm run build
