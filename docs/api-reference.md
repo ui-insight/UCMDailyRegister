@@ -82,7 +82,7 @@ Each submission supports at most one image attachment.
 | POST   | `/api/v1/ai-edits/{id}/edit`                          | Trigger AI edit for a submission       |
 | GET    | `/api/v1/ai-edits/{id}/versions`                      | List all edit versions                 |
 | GET    | `/api/v1/ai-edits/{id}/versions/{version_id}`         | Get a specific edit version            |
-| POST   | `/api/v1/ai-edits/{id}/finalize`                      | Save the editor's final version        |
+| POST   | `/api/v1/ai-edits/{id}/finalize`                      | Save the editor's final version; send `Base_Staff_Revision_Id` (the submission's `Staff_Revision_Id` when loaded) and a newer staff save makes this a 409 whose `detail.Current_Revision` holds the newer text |
 
 !!! info "Edit Triggering"
     `POST /ai-edits/{id}/edit` triggers the full AI editing pipeline: pre-analysis, LLM call, post-processing, and diff generation. The response includes the edited text, confidence score, flags, embedded links, and the provider/model used.

@@ -61,6 +61,7 @@ function makeSubmission(
     Event_Classification: null,
     Approved_Version_Id: null,
     Working_Version_Id: null,
+    Staff_Revision_Id: null,
     Created_At: '2026-04-01T12:00:00Z',
     Updated_At: '2026-04-01T12:00:00Z',
     Links: [],

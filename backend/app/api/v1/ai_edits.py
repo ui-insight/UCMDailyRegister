@@ -145,7 +145,16 @@ async def _run_ai_edit(
         editor_instructions=editor_instructions,
     )
 
-    submission.Status = "ai_edited"
+    # Only a submission still awaiting review becomes AI-edited. An AI run
+    # that finishes after staff reviewed or approved the item keeps its
+    # suggestion as history but must not pull the item back out of review
+    # or assembly. A conditional update avoids acting on the status read
+    # before the (slow) model call.
+    await session.execute(
+        sa.update(Submission)
+        .where(Submission.Id == submission_id, Submission.Status.in_(("new", "ai_edited")))
+        .values(Status="ai_edited")
+    )
     await session.commit()
     await session.refresh(ai_version)
 
@@ -308,14 +317,35 @@ async def save_editor_final(
             detail="Headline is required for non-Jobs submissions",
         )
 
-    version = await editorial_content.save_final(
-        session,
-        submission,
-        headline="" if submission.Category == "job_opportunity" else data.Headline.strip(),
-        body=data.Body,
-        headline_case=data.Headline_Case,
-        approve=data.Approve_For_Newsletter,
-    )
+    try:
+        version = await editorial_content.save_final(
+            session,
+            submission,
+            headline="" if submission.Category == "job_opportunity" else data.Headline.strip(),
+            body=data.Body,
+            headline_case=data.Headline_Case,
+            approve=data.Approve_For_Newsletter,
+            base_revision_id=data.Base_Staff_Revision_Id,
+            check_base="Base_Staff_Revision_Id" in data.model_fields_set,
+        )
+    except editorial_content.StaleRevision as stale:
+        current = stale.current
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": (
+                    "Someone saved a newer version while you were editing. "
+                    "Nothing was saved; compare it with your text before saving again."
+                ),
+                "Status": submission.Status,
+                "Current_Revision": None if current is None else {
+                    "Id": current.Id,
+                    "Headline": current.Headline,
+                    "Body": current.Body,
+                    "Approved": current.Id == submission.Approved_Version_Id,
+                },
+            },
+        ) from stale
 
     if data.Links is not None:
         await session.execute(

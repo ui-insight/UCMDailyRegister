@@ -182,6 +182,7 @@ class SubmissionResponse(BaseModel):
     Event_Classification: str | None = None
     Approved_Version_Id: str | None = None
     Working_Version_Id: str | None = None
+    Staff_Revision_Id: str | None = None
     Created_At: datetime
     Updated_At: datetime
     Links: list[LinkResponse]

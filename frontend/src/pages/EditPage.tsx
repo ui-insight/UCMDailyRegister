@@ -9,6 +9,7 @@ import {
   updateSubmission,
 } from '../api/submissions';
 import { triggerAIEdit, listEditVersions, saveEditorFinal } from '../api/aiEdits';
+import { ApiError } from '../api/client';
 import type { Submission, TargetNewsletter } from '../types/submission';
 import type { AIEditResponse, EditVersion, AIFlag, TextDiff } from '../types/aiEdit';
 import DiffViewer from '../components/editor/DiffViewer';
@@ -49,6 +50,19 @@ const STATUS_COLORS: Record<string, string> = {
   pending_info: 'bg-status-attention-100 text-status-attention-800',
 };
 
+interface SaveConflict {
+  approve: boolean;
+  current: { Id: string; Headline: string; Body: string; Approved: boolean } | null;
+}
+
+/** The 409 the backend returns when a save was based on an older staff revision. */
+function saveConflictFrom(err: unknown, approve: boolean): SaveConflict | null {
+  if (!(err instanceof ApiError) || err.status !== 409) return null;
+  const detail = err.detail as { Current_Revision?: SaveConflict['current'] } | null;
+  if (!detail || typeof detail !== 'object' || !('Current_Revision' in detail)) return null;
+  return { approve, current: detail.Current_Revision ?? null };
+}
+
 /** The version the backend names as the submission's working revision. */
 function workingVersion(versions: EditVersion[], submission: Submission): EditVersion | undefined {
   return versions.find((v) => v.Id === submission.Working_Version_Id);
@@ -68,6 +82,7 @@ export default function EditPage() {
   const [finalEditSource, setFinalEditSource] = useState<FinalEditSource>(null);
   const [editorialSaving, setEditorialSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [saveConflict, setSaveConflict] = useState<SaveConflict | null>(null);
   const { toast, showToast, dismissToast } = useToast();
   const [occurrenceActionLoading, setOccurrenceActionLoading] = useState(false);
 
@@ -236,7 +251,7 @@ export default function EditPage() {
     )));
   };
 
-  const handleFinalize = async (approveForNewsletter: boolean) => {
+  const handleFinalize = async (approveForNewsletter: boolean, baseOverride?: string | null) => {
     if (!id) return;
     const missing = unattachedLinks(editBody, editLinks);
     if (missing.length) {
@@ -263,6 +278,10 @@ export default function EditPage() {
         Body: buildLinkedBody(editBody, links),
         Headline_Case: sourceVersion?.Headline_Case || undefined,
         Approve_For_Newsletter: approveForNewsletter,
+        // The staff revision this view was based on; a newer save makes this a conflict.
+        Base_Staff_Revision_Id: baseOverride !== undefined
+          ? baseOverride
+          : submission?.Staff_Revision_Id ?? null,
         // Start is editor state; the saved body already records each link's place.
         ...((submission?.Links.length ?? 0) > 0 || links.length > 0
           ? {
@@ -274,6 +293,7 @@ export default function EditPage() {
           }
           : {}),
       });
+      setSaveConflict(null);
       showToast(
         approveForNewsletter
           ? 'Final version saved and approved for newsletter'
@@ -281,6 +301,12 @@ export default function EditPage() {
       );
       await loadData(activeTab === 'ai_edit' && viewMode === 'live');
     } catch (err) {
+      const conflict = saveConflictFrom(err, approveForNewsletter);
+      if (conflict) {
+        // Keep the editor's unsaved text in place so it can be compared.
+        setSaveConflict(conflict);
+        return;
+      }
       const message = err instanceof Error
         ? err.message
         : approveForNewsletter
@@ -562,6 +588,67 @@ export default function EditPage() {
     </>
   );
 
+  const handleDiscardForNewerVersion = async () => {
+    setSaveConflict(null);
+    await loadData(activeTab === 'ai_edit' && viewMode === 'live');
+  };
+
+  const conflictPanel = saveConflict && (
+    <section
+      aria-label="Save conflict"
+      className="rounded-md border border-status-warning-500/50 bg-status-warning-100/60 p-4"
+    >
+      <p className="text-sm font-medium text-status-warning-800">
+        Someone saved a newer version while you were editing. Nothing was saved.
+      </p>
+      <p className="mt-1 text-xs text-gray-600">
+        Compare it with your text below, then keep theirs or save yours over it.
+      </p>
+      <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">
+            {saveConflict.current?.Approved ? 'Newer saved version (approved)' : 'Newer saved version'}
+          </p>
+          {saveConflict.current ? (
+            <>
+              {saveConflict.current.Headline && (
+                <p className="mt-1 text-sm font-medium text-gray-900">{saveConflict.current.Headline}</p>
+              )}
+              <RichBody text={saveConflict.current.Body} className="mt-1 text-sm leading-6 text-gray-800" />
+            </>
+          ) : (
+            <p className="mt-1 text-sm text-gray-600">Reload to see the current version.</p>
+          )}
+        </div>
+        <div>
+          <p className="text-[11px] font-medium uppercase tracking-wide text-gray-500">Your unsaved text</p>
+          {editHeadline && <p className="mt-1 text-sm font-medium text-gray-900">{editHeadline}</p>}
+          <RichBody
+            text={buildLinkedBody(editBody, editLinks)}
+            className="mt-1 text-sm leading-6 text-gray-800"
+          />
+        </div>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button
+          variant="secondary"
+          onClick={handleDiscardForNewerVersion}
+          disabled={finalizationAction !== null}
+        >
+          Discard mine and load theirs
+        </Button>
+        {saveConflict.current && (
+          <Button
+            onClick={() => handleFinalize(saveConflict.approve, saveConflict.current?.Id ?? null)}
+            disabled={finalizationAction !== null}
+          >
+            {saveConflict.approve ? 'Save and approve mine instead' : 'Save mine instead'}
+          </Button>
+        )}
+      </div>
+    </section>
+  );
+
   const finalizationControls = (
     <div className="flex flex-col gap-3 border-t border-gray-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
@@ -747,6 +834,7 @@ export default function EditPage() {
                       </p>
                     </div>
                     {editingFields}
+                    {conflictPanel}
                     {finalizationControls}
                   </section>
                 )}
@@ -822,6 +910,7 @@ export default function EditPage() {
                     </p>
                   </div>
                   {editingFields}
+                  {conflictPanel}
                   {finalizationControls}
                 </section>
               </div>

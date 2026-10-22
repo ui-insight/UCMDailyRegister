@@ -93,6 +93,10 @@ class EditorFinalCreate(BaseModel):
     Headline_Case: str | None = Field(None, pattern=r"^(sentence_case|title_case)$")
     Approve_For_Newsletter: bool = False
     Links: list[LinkCreate] | None = Field(None, max_length=3)
+    # The Staff_Revision_Id the editor's view was loaded with (null when
+    # there was none). When sent, a save is rejected with 409 if another
+    # staff save has landed since.
+    Base_Staff_Revision_Id: str | None = None
 
 
 # --- Style rules schemas ---
