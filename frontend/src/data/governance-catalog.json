@@ -1,8 +1,92 @@
 {
   "schemaVersion": "1.0.0",
-  "reviewedAt": "2026-10-22",
+  "reviewedAt": "2026-10-24",
   "reviewStatus": "provisional; owner classification approval pending",
   "tables": [
+    {
+      "name": "ai_edit_tasks",
+      "area": "Editorial work queue",
+      "status": "Operational support",
+      "steward": "UCM editorial staff / technical operations",
+      "description": "Durable staff-only AI edit requests, bounded execution state, restart interruption and committed response copies; source-level retention applies.",
+      "columns": [
+        {
+          "name": "Id",
+          "description": "Durable task UUID returned as Task_Id by the staff API.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Submission_Id",
+          "description": "Parent source submission; task copies are deleted with the source.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Newsletter_Type",
+          "description": "Publication context for this AI request.",
+          "classification": "Internal",
+          "pii": false,
+          "allowedValueGroup": "Newsletter_Type"
+        },
+        {
+          "name": "Editor_Instructions",
+          "description": "Staff-provided instructions, potentially containing unpublished copy or incidental personal data.",
+          "classification": "Confidential",
+          "pii": true
+        },
+        {
+          "name": "Status",
+          "description": "Code-validated queued, running, succeeded or failed task state.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Source_Fingerprint",
+          "description": "SHA-256 fingerprint of source copy, category, target, notes and links for stale-result checks.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Active_Key",
+          "description": "Nullable unique submission/newsletter key preventing duplicate pending work.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Run_Id",
+          "description": "Worker attempt UUID used to prevent late invalidated attempts from saving.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Result_JSON",
+          "description": "Committed AI edit response including copy, links, flags, diffs and provenance; may repeat personal data.",
+          "classification": "Confidential",
+          "pii": true
+        },
+        {
+          "name": "Error_Message",
+          "description": "Controlled application failure/retry message; external exception details are excluded.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Created_At",
+          "description": "Request acceptance timestamp in UTC.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Updated_At",
+          "description": "Latest task transition timestamp in UTC.",
+          "classification": "Internal",
+          "pii": false
+        }
+      ],
+      "retentionCategory": "submission_source",
+      "sourceSystem": "staff / AI editing pipeline"
+    },
     {
       "name": "allowed_values",
       "area": "Controlled vocabularies",

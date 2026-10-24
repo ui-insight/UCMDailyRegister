@@ -8,7 +8,7 @@ The application must not infer approval from the earlier retention table.
 
 | Category | Coverage | Proposed period / clock | Enforced today |
 | --- | --- | --- | --- |
-| submission_source | Submission contact, original copy/notes, links, requested dates, images and edit history | Two academic years after last editorial activity; owner must define year boundary and holds | No expiry job; staff can delete records, but that is not comprehensive disposal |
+| submission_source | Submission contact, original copy/notes, links, requested dates, images, edit history and durable AI task instructions/results | Two academic years after last editorial activity; owner must define year boundary and holds | No expiry job; staff deletion also removes AI task rows, but is not comprehensive disposal |
 | publication_archive | Issue and published item snapshot, including public external content | Indefinite, subject to approved records schedule | No automatic expiry |
 | external_working | Harvested occurrences and associated ops assessments | 90 days after event end (start if no end), subject to unresolved planning and promotion dependencies | No automatic expiry |
 | feedback | Contact, report content, context and notification state | Proposed 90 days after resolution; Status transition and resolution timestamp need agreement before enforcement | No automatic expiry; current model has no dedicated resolution timestamp |
@@ -33,7 +33,7 @@ python -m app.governance.retention_preview --before 2024-07-01
 ```
 
 The cutoff is midnight UTC, matching the application's naive UTC timestamps.
-The JSON result contains counts of old submissions, placements that block source
+The JSON result contains counts of old submissions, their AI task copies, placements that block source
 deletion, upload references, feedback, harvested events and assessments. It contains
 no names, email addresses, bodies, paths or record IDs. Age alone never proves
 eligibility: holds, ongoing recurrences, staff decisions, downstream references and

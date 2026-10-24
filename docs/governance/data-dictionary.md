@@ -3,11 +3,33 @@
 Generated from `frontend/src/data/governance-catalog.json`; used by the staff governance page.
 Update reviewed metadata in that file, then run `python scripts/check_governance.py --write`.
 
-Catalog review: 2026-10-22; **provisional; owner classification approval pending**.
+Catalog review: 2026-10-24; **provisional; owner classification approval pending**.
 
 Labels describe default handling, not institutional classification approval. PII flags include
 incidental personal information risk; published release decisions apply to individual content.
 Retention categories are defined in [Retention and disposal](retention.md).
+
+## `ai_edit_tasks`
+
+Durable staff-only AI edit requests, bounded execution state, restart interruption and committed response copies; source-level retention applies.
+
+Steward role: UCM editorial staff / technical operations. Source: staff / AI editing pipeline.
+Retention category: `submission_source`. Extension: Operational support.
+
+| Column | Meaning | Handling | PII risk | Vocabulary |
+| --- | --- | --- | --- | --- |
+| `Id` | Durable task UUID returned as Task_Id by the staff API. | Internal | No | — |
+| `Submission_Id` | Parent source submission; task copies are deleted with the source. | Internal | No | — |
+| `Newsletter_Type` | Publication context for this AI request. | Internal | No | Newsletter_Type |
+| `Editor_Instructions` | Staff-provided instructions, potentially containing unpublished copy or incidental personal data. | Confidential | Yes | — |
+| `Status` | Code-validated queued, running, succeeded or failed task state. | Internal | No | — |
+| `Source_Fingerprint` | SHA-256 fingerprint of source copy, category, target, notes and links for stale-result checks. | Internal | No | — |
+| `Active_Key` | Nullable unique submission/newsletter key preventing duplicate pending work. | Internal | No | — |
+| `Run_Id` | Worker attempt UUID used to prevent late invalidated attempts from saving. | Internal | No | — |
+| `Result_JSON` | Committed AI edit response including copy, links, flags, diffs and provenance; may repeat personal data. | Confidential | Yes | — |
+| `Error_Message` | Controlled application failure/retry message; external exception details are excluded. | Internal | No | — |
+| `Created_At` | Request acceptance timestamp in UTC. | Internal | No | — |
+| `Updated_At` | Latest task transition timestamp in UTC. | Internal | No | — |
 
 ## `allowed_values`
 

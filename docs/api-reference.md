@@ -80,12 +80,14 @@ Each submission supports at most one image attachment.
 | Method | Path                                                  | Description                            |
 |--------|-------------------------------------------------------|----------------------------------------|
 | POST   | `/api/v1/ai-edits/{id}/edit`                          | Trigger AI edit for a submission       |
+| GET    | `/api/v1/ai-edits/tasks/{task_id}`                    | Read durable task status and result    |
+| POST   | `/api/v1/ai-edits/tasks/{task_id}/retry`               | Retry a failed task with unchanged source; active/completed retries reuse the same task |
 | GET    | `/api/v1/ai-edits/{id}/versions`                      | List all edit versions                 |
 | GET    | `/api/v1/ai-edits/{id}/versions/{version_id}`         | Get a specific edit version            |
 | POST   | `/api/v1/ai-edits/{id}/finalize`                      | Save the editor's final version; send `Base_Staff_Revision_Id` (the submission's `Staff_Revision_Id` when loaded) and a newer staff save makes this a 409 whose `detail.Current_Revision` holds the newer text |
 
 !!! info "Edit Triggering"
-    `POST /ai-edits/{id}/edit` triggers the full AI editing pipeline: pre-analysis, LLM call, post-processing, and diff generation. The response includes the edited text, confidence score, flags, embedded links, and the provider/model used.
+    `POST /ai-edits/{id}/edit` returns 202 with a durable task ID. Poll the task endpoint for `queued`, `running`, `succeeded` or `failed`; a successful task's `Result` includes the edited text, confidence score, flags, embedded links, and provider/model used. A full queue returns 503 with `Retry-After`; different pending instructions or a changed source on retry return 409. All task endpoints require staff authorization.
 
 The edit response includes `AI_Provider` and `AI_Model` fields so the UI can display which LLM produced the suggestion.
 

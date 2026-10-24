@@ -163,12 +163,10 @@ class TestApproval:
 
 @pytest.fixture
 def background_ai_tasks(monkeypatch: pytest.MonkeyPatch):
-    from app.api.v1 import ai_edits
+    from app.services import ai_edit_service as ai_edits
 
-    ai_edits._ai_edit_tasks.clear()
     monkeypatch.setattr(ai_edits, "async_session_factory", TestSession)
     yield
-    ai_edits._ai_edit_tasks.clear()
 
 
 @pytest.mark.asyncio
@@ -192,7 +190,7 @@ class TestApprovedRevisionReachesTheWordFile:
         )
         await db.commit()
         monkeypatch.setattr(
-            "app.api.v1.ai_edits.get_llm_provider", lambda settings: SuccessfulProvider()
+            "app.services.ai_edit_service.get_llm_provider", lambda settings: SuccessfulProvider()
         )
 
         submission_id = await _create_submission(

@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.submission import Submission, SubmissionLink, SubmissionScheduleRequest
+from app.models.ai_edit_task import AIEditTask
 from app.schemas.submission import SubmissionCreate, SubmissionUpdate
 from app.services import recurrence_service, schedule_service
 
@@ -241,6 +242,8 @@ async def delete_submission(db: AsyncSession, submission_id: str) -> bool:
     submission = await get_submission(db, submission_id)
     if not submission:
         return False
+    # Explicitly handle SQLite too, where foreign-key enforcement may be off.
+    await db.execute(sa.delete(AIEditTask).where(AIEditTask.Submission_Id == submission_id))
     await db.delete(submission)
     await db.commit()
     return True

@@ -8,6 +8,7 @@ from app.governance.retention_preview import preview
 from app.models.newsletter import Newsletter, NewsletterItem
 from app.models.section import NewsletterSection
 from app.models.submission import Submission
+from app.models.ai_edit_task import AIEditTask
 
 
 async def test_inventory_preserves_sources_and_published_dependencies(db):
@@ -23,11 +24,14 @@ async def test_inventory_preserves_sources_and_published_dependencies(db):
                           Updated_At=datetime(2024, 7, 1))
     db.add_all([section, issue, old, boundary])
     await db.flush()
+    db.add(AIEditTask(Submission_Id=old.Id, Newsletter_Type='tdr', Status='failed',
+                      Source_Fingerprint='0' * 64, Editor_Instructions='Private instructions'))
     db.add(NewsletterItem(Newsletter_Id=issue.Id, Submission_Id=old.Id, Section_Id=section.Id,
                           Final_Headline='Published', Final_Body='Published copy'))
     await db.commit()
     result = await preview(db, date(2024, 7, 1))
     assert result['aged_submissions'] == 1
+    assert result['associated_ai_edit_tasks'] == 1
     assert result['aged_sources_with_issue_references'] == 1
     assert result['aged_sources_with_image_references'] == 1
     assert result['disposal_authorized'] is False

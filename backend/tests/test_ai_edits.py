@@ -1,6 +1,7 @@
 """Tests for AI edit task handling and failure behavior."""
 
 import asyncio
+import importlib
 from datetime import date
 
 import pytest
@@ -17,12 +18,10 @@ from tests.conftest import TestSession, make_submission_data
 
 @pytest.fixture(autouse=True)
 def configure_ai_edit_tasks(monkeypatch: pytest.MonkeyPatch):
-    from app.api.v1 import ai_edits
+    from app.services import ai_edit_service as ai_edits
 
-    ai_edits._ai_edit_tasks.clear()
     monkeypatch.setattr(ai_edits, "async_session_factory", TestSession)
     yield
-    ai_edits._ai_edit_tasks.clear()
 
 
 class SuccessfulProvider:
@@ -112,6 +111,26 @@ async def wait_for_task(
 
 @pytest.mark.asyncio
 class TestAIEditTasks:
+    async def test_completed_task_remains_visible_without_process_memory(
+        self, client: AsyncClient, staff_headers: dict[str, str], monkeypatch: pytest.MonkeyPatch,
+    ):
+        from app.services import ai_edit_service as ai_edits
+
+        monkeypatch.setattr(ai_edits, "get_llm_provider", lambda settings: SuccessfulProvider())
+        submission = await client.post("/api/v1/submissions/", json=make_submission_data())
+        response = await client.post(
+            f"/api/v1/ai-edits/{submission.json()['Id']}/edit",
+            json={"Newsletter_Type": "tdr"}, headers=staff_headers,
+        )
+        task_id = response.json()["Task_Id"]
+        expected = await wait_for_task(client, task_id, staff_headers)
+        # A process restart loses all module memory. The completed result must
+        # still be available from a fresh request/session against the same DB.
+        importlib.reload(ai_edits)
+        restored = await client.get(f"/api/v1/ai-edits/tasks/{task_id}", headers=staff_headers)
+        assert restored.status_code == 200
+        assert restored.json() == expected
+
     async def test_staff_ai_edit_runs_as_task_and_saves_successful_result(
         self,
         client: AsyncClient,
@@ -119,7 +138,7 @@ class TestAIEditTasks:
         monkeypatch: pytest.MonkeyPatch,
     ):
         monkeypatch.setattr(
-            "app.api.v1.ai_edits.get_llm_provider",
+            "app.services.ai_edit_service.get_llm_provider",
             lambda settings: SuccessfulProvider(),
         )
         submission_resp = await client.post(
@@ -166,7 +185,7 @@ class TestAIEditTasks:
     ):
         SuccessfulProvider.last_user_prompt = ""
         monkeypatch.setattr(
-            "app.api.v1.ai_edits.get_llm_provider",
+            "app.services.ai_edit_service.get_llm_provider",
             lambda settings: SuccessfulProvider(),
         )
         submission_resp = await client.post(
@@ -233,7 +252,7 @@ class TestAIEditTasks:
         )
         await db.commit()
         monkeypatch.setattr(
-            "app.api.v1.ai_edits.get_llm_provider",
+            "app.services.ai_edit_service.get_llm_provider",
             lambda settings: SuccessfulProvider(),
         )
         submission_resp = await client.post(
@@ -285,7 +304,7 @@ class TestAIEditTasks:
         )
         await db.commit()
         monkeypatch.setattr(
-            "app.api.v1.ai_edits.get_llm_provider",
+            "app.services.ai_edit_service.get_llm_provider",
             lambda settings: SuccessfulProvider(),
         )
         submission_resp = await client.post(
@@ -335,7 +354,7 @@ class TestAIEditTasks:
         )
         await db.commit()
         monkeypatch.setattr(
-            "app.api.v1.ai_edits.get_llm_provider",
+            "app.services.ai_edit_service.get_llm_provider",
             lambda settings: SuccessfulProvider(),
         )
         submission_resp = await client.post(
@@ -385,7 +404,7 @@ class TestAIEditTasks:
         )
         await db.commit()
         monkeypatch.setattr(
-            "app.api.v1.ai_edits.get_llm_provider",
+            "app.services.ai_edit_service.get_llm_provider",
             lambda settings: SuccessfulProvider(),
         )
         submission_resp = await client.post(
@@ -435,7 +454,7 @@ class TestAIEditTasks:
         )
         await db.commit()
         monkeypatch.setattr(
-            "app.api.v1.ai_edits.get_llm_provider",
+            "app.services.ai_edit_service.get_llm_provider",
             lambda settings: SuccessfulProvider(),
         )
         submission_resp = await client.post(
@@ -481,7 +500,7 @@ class TestAIEditTasks:
         )
         await db.commit()
         monkeypatch.setattr(
-            "app.api.v1.ai_edits.get_llm_provider",
+            "app.services.ai_edit_service.get_llm_provider",
             lambda settings: SuccessfulProvider(),
         )
         submission_resp = await client.post(
@@ -532,7 +551,7 @@ class TestAIEditTasks:
         )
         await db.commit()
         monkeypatch.setattr(
-            "app.api.v1.ai_edits.get_llm_provider",
+            "app.services.ai_edit_service.get_llm_provider",
             lambda settings: SuccessfulProvider(),
         )
         submission_resp = await client.post(
@@ -594,7 +613,7 @@ class TestAIEditTasks:
         )
         await db.commit()
         monkeypatch.setattr(
-            "app.api.v1.ai_edits.get_llm_provider",
+            "app.services.ai_edit_service.get_llm_provider",
             lambda settings: SuccessfulProvider(),
         )
         submission_resp = await client.post(
@@ -649,7 +668,7 @@ class TestAIEditTasks:
         )
         await db.commit()
         monkeypatch.setattr(
-            "app.api.v1.ai_edits.get_llm_provider",
+            "app.services.ai_edit_service.get_llm_provider",
             lambda settings: SuccessfulProvider(),
         )
         submission_resp = await client.post(
@@ -700,7 +719,7 @@ class TestAIEditTasks:
         )
         await db.commit()
         monkeypatch.setattr(
-            "app.api.v1.ai_edits.get_llm_provider",
+            "app.services.ai_edit_service.get_llm_provider",
             lambda settings: SemicolonProvider(),
         )
         submission_resp = await client.post(
@@ -747,7 +766,7 @@ class TestAIEditTasks:
         post-processing must not lowercase that name afterward.
         """
         monkeypatch.setattr(
-            "app.api.v1.ai_edits.get_llm_provider",
+            "app.services.ai_edit_service.get_llm_provider",
             lambda settings: ProperNounProvider(),
         )
         submission_resp = await client.post(
@@ -782,7 +801,7 @@ class TestAIEditTasks:
         caplog,
     ):
         monkeypatch.setattr(
-            "app.api.v1.ai_edits.get_llm_provider",
+            "app.services.ai_edit_service.get_llm_provider",
             lambda settings: FailingProvider(),
         )
         submission_resp = await client.post(
@@ -986,7 +1005,7 @@ class TestFinalizePreservesOriginal:
         monkeypatch: pytest.MonkeyPatch,
     ):
         monkeypatch.setattr(
-            "app.api.v1.ai_edits.get_llm_provider",
+            "app.services.ai_edit_service.get_llm_provider",
             lambda settings: SuccessfulProvider(),
         )
         submission_resp = await client.post(
@@ -1213,7 +1232,7 @@ class TestDeterministicPostValidation:
             )
         await db.commit()
         monkeypatch.setattr(
-            "app.api.v1.ai_edits.get_llm_provider",
+            "app.services.ai_edit_service.get_llm_provider",
             lambda settings: provider,
         )
         submission_resp = await client.post(

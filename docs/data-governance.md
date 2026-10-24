@@ -33,6 +33,7 @@ contain information beyond their intended purpose.
 | Repeat/flexibility notes | `submission_schedule_requests` | Scheduling; staff; possibly incidental personal information | Parent submission |
 | Headline/body, links, images | Submissions, versions, placements, upload volume | Editorial work; may contain contact or sensitive information embedded by users | Source vs published snapshot policies differ |
 | Editor instructions; findings and change summaries | `edit_versions` | AI/human revision context; staff; may repeat input text | Source history category |
+| AI task instructions, status, result JSON, source fingerprint and attempt ID | `ai_edit_tasks` | Durable editing/retry context; staff; results can repeat copy, links and personal data | Parent submission category; deleted with source, no independent automatic expiry |
 | Feedback email, summary/details, route, host, browser, viewport, reported role | `product_feedback` | Product support; staff; creation response returned to caller | Feedback category; reported role is client context, not verified identity |
 | Email/username subject, display name, mapped role | Entra/Graph exchange; signed app JWT; browser localStorage | Sign-in and authorization | JWT defaults to 480 minutes; browser token removed on local sign-out or next load detecting expiry |
 | OIDC state and next-path context | Signed browser session cookie; transient server memory | Bind authorization flow to browser | Starlette session cookie defaults to 14 days; verify cookie policy during deployment review |

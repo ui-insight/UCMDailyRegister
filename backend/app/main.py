@@ -6,12 +6,14 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.router import router as v1_router
 from app.config import settings
+from app.services.ai_edit_service import recover_interrupted_tasks
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Create upload directory
     os.makedirs(settings.upload_dir, exist_ok=True)
+    await recover_interrupted_tasks()
     yield
 
 

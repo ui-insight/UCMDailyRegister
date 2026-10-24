@@ -11,6 +11,7 @@ AllowedValue table provides the canonical list of permitted values for each
 group, enabling administrators to extend vocabularies without code changes.
 
 Models included:
+    AIEditTask               -- Durable AI edit state/results and safe retry attempts
     AllowedValue             -- Controlled vocabulary lookup table
     Submission               -- Content submitted for newsletter inclusion
     SubmissionLink           -- Hyperlinks attached to a submission
@@ -31,6 +32,7 @@ Models included:
 """
 
 from app.models.allowed_value import AllowedValue
+from app.models.ai_edit_task import AIEditTask
 from app.models.blackout_date import BlackoutDate
 from app.models.custom_publish_date import CustomPublishDate
 from app.models.edit_history import EditVersion
@@ -46,6 +48,7 @@ from app.models.style_rule import StyleRule
 from app.models.submission import Submission, SubmissionLink, SubmissionScheduleRequest
 
 __all__ = [
+    "AIEditTask",
     "AllowedValue",
     "BlackoutDate",
     "CustomPublishDate",

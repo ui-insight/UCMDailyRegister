@@ -6,3 +6,6 @@ __pycache__
 tests
 *.db
 .env
+.env.*
+**/.env
+**/.env.*
