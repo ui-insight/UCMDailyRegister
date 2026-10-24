@@ -398,8 +398,8 @@
       "requirement_summary": "Use APM 30.11 Low/Moderate/High classification, classify mixed datasets at the highest level present, and classify prompt/completion logs with the underlying data.",
       "current_assertion": {
         "status": "partially_aligned",
-        "summary": "A complete provisional 19-table/197-column catalog records handling labels, PII risk, stewardship roles, lineage and retention categories and drives UI/docs with drift checks. Identity/browser/feedback and both AI workflows are inventoried. Approved APM 30.11 mapping, named Data Owner acceptance and retention/disposal authorization remain pending.",
-        "validated_at": "2026-10-22",
+        "summary": "A complete provisional 20-table/209-column catalog records handling labels, PII risk, stewardship roles, lineage and retention categories and drives UI/docs with drift checks. Identity/browser/feedback and both AI workflows, including durable AI task instructions/results, are inventoried. Approved APM 30.11 mapping, named Data Owner acceptance and retention/disposal authorization remain pending.",
+        "validated_at": "2026-10-24",
         "validated_by": "Codex repository review; institutional approval not asserted"
       },
       "github_issue": {
@@ -618,8 +618,8 @@
       "requirement_summary": "Model calls, sensitive data access, configuration changes, and deployments should be auditable without logging protected content.",
       "current_assertion": {
         "status": "partially_aligned",
-        "summary": "EditVersion and issue version references provide editorial provenance. Content-minimized structured diagnostics and log-size limits are configured. End-to-end actor/access/model-call/config/deployment audit events, central storage/review and time-based retention remain incomplete.",
-        "validated_at": "2026-10-22",
+        "summary": "EditVersion and issue version references provide editorial provenance. Durable AI task state/results and atomic version commits support restart recovery; they are not a full actor/access audit trail. Content-minimized structured diagnostics and log-size limits are configured. End-to-end actor/access/model-call/config/deployment audit events, central storage/review and time-based retention remain incomplete.",
+        "validated_at": "2026-10-24",
         "validated_by": "Codex repository review; institutional approval not asserted"
       },
       "github_issue": {
@@ -662,6 +662,21 @@
           "type": "repo_file",
           "label": "Governance drift validation",
           "path": "scripts/check_governance.py"
+        },
+        {
+          "type": "repo_file",
+          "label": "Durable AI edit task model",
+          "path": "backend/app/models/ai_edit_task.py"
+        },
+        {
+          "type": "repo_file",
+          "label": "Bounded dispatcher and restart recovery",
+          "path": "backend/app/services/ai_edit_service.py"
+        },
+        {
+          "type": "repo_file",
+          "label": "Synthetic restart/retry regression checks",
+          "path": "backend/tests/test_ai_edit_recovery.py"
         }
       ],
       "required_evidence": [

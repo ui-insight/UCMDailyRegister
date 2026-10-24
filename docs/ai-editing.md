@@ -124,6 +124,37 @@ or approved the item keeps its suggestion in the history but leaves the status
 and approval alone; only a submission still awaiting review becomes
 "AI edited".
 
+### Interrupted edits and retry
+
+Accepted edits are recorded in `ai_edit_tasks` before background execution. Poll
+`GET /api/v1/ai-edits/tasks/{task_id}` for their durable status and result. A
+successful task and its edit versions commit together. Completed results remain
+available after restart; queued/running tasks are marked failed at startup with
+an interruption message. The Editor keeps polling the same task through brief
+connection/gateway failures without re-sending the edit request. Staff can run
+the edit again in the Editor, or retry
+the same task through `POST /api/v1/ai-edits/tasks/{task_id}/retry`. Retrying an
+active or successful task returns its existing state/result without another run.
+Interrupted external calls are not automatically replayed.
+
+Only one active request per submission/newsletter is admitted. Identical pending
+requests share a task ID; different instructions receive 409 until it finishes.
+Source copy, category, target, notes and links are fingerprinted when queued and
+checked before execution and before saving. A changed source fails the old task;
+reload and request a fresh edit. Newer staff copy/approval remains authoritative;
+a suggestion completed after a staff save is retained only as history.
+
+`AI_EDIT_MAX_CONCURRENCY` limits concurrent model calls (default 2), and
+`AI_EDIT_MAX_PENDING` limits queued plus running requests (default 50). A full
+queue returns 503 with `Retry-After: 5`. The current dispatcher supports the
+single-process backend used by Compose; do not add workers or replicas without
+replacing startup recovery and admission with coordinated worker leases.
+
+Task instructions and result JSON may contain unpublished copy or incidental
+personal data. They follow the parent submission's handling/retention category
+and are deleted with it. Completed task rows are not cached in process memory.
+There is no automatic task-history purge or new retention period.
+
 ### Links in Live View and Final Edit
 
 Each link pairs a destination with the exact words in the body that carry it.

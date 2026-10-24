@@ -119,13 +119,13 @@ class BlockingProvider(SuccessfulProvider):
 
 
 async def _run_ai_in_background(submission_id: str, provider: BlockingProvider, monkeypatch):
-    from app.api.v1 import ai_edits
+    from app.services import ai_edit_service as ai_edits
 
     monkeypatch.setattr(ai_edits, "get_llm_provider", lambda settings: provider)
 
     async def run():
         async with TestSession() as session:
-            return await ai_edits._run_ai_edit(session, submission_id, "tdr")
+            return await ai_edits.run_edit(session, submission_id, "tdr")
 
     task = asyncio.create_task(run())
     await asyncio.wait_for(provider.started.wait(), timeout=5)

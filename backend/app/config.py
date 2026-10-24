@@ -3,7 +3,7 @@ import logging
 from typing import Any, Literal, Self
 from urllib.parse import urlparse
 
-from pydantic import field_validator, model_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings
 
 
@@ -106,7 +106,8 @@ class Settings(BaseSettings):
     job_postings_max_pages: int = 5
     slc_trumba_feed_url: str = "https://www.trumba.com/calendars/university-of-idaho.json"
     slc_trumba_request_timeout_seconds: float = 15.0
-    ai_edit_max_concurrency: int = 2
+    ai_edit_max_concurrency: int = Field(2, ge=1, le=16)
+    ai_edit_max_pending: int = Field(50, ge=1, le=1000)
     feedback_notification_channel: Literal["disabled"] = "disabled"
 
     model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}

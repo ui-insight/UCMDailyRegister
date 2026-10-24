@@ -13,6 +13,7 @@ import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.feedback import ProductFeedback
+from app.models.ai_edit_task import AIEditTask
 from app.models.harvested_event import HarvestedEvent
 from app.models.newsletter import NewsletterItem
 from app.models.ops_need_assessment import OpsNeedAssessment
@@ -35,6 +36,7 @@ async def preview(db: AsyncSession, before: date) -> dict:
         "before": before.isoformat(),
         "disposal_authorized": False,
         "aged_submissions": await count(Submission, Submission.Id.in_(aged)),
+        "associated_ai_edit_tasks": await count(AIEditTask, AIEditTask.Submission_Id.in_(aged)),
         "aged_sources_with_issue_references": await count(
             Submission, Submission.Id.in_(aged),
             sa.exists().where(NewsletterItem.Submission_Id == Submission.Id),

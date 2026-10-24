@@ -144,7 +144,8 @@ def render_reference(seed, models):
     lines += ["", "## Code-governed exceptions", "",
               "Some discriminators are still code-validated: SLC category/routing (`slc_event`, `none`)",
               "are used by staff/import paths but absent from bootstrap allowed values; event classification",
-              "(`strategic`, `signature`), recurrence, override actions, auth roles, feedback states and AI",
+              "(`strategic`, `signature`), recurrence, override actions, auth roles, feedback states, AI task",
+              "states (`queued`, `running`, `succeeded`, `failed`) and AI",
               "provider identifiers also have code-level contracts. Do not claim all enums are DB-backed.",
               "These need explicit schema/API/seed review before adding new values. Runtime additions",
               "must be reconciled through a reviewed seed/catalog change; no automatic production sync exists.", ""]

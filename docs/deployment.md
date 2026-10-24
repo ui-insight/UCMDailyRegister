@@ -239,6 +239,12 @@ The deploy script rebuilds the stack, which triggers the backend entrypoint
 to run `alembic upgrade head` and seed reference data, and then smoke-tests
 the frontend and key API routes before returning success.
 
+AI task recovery requires migration `e9a1b3c5d7f2`. Keep the backend at one
+process/replica: startup marks unfinished tasks interrupted for staff retry.
+Set `AI_EDIT_MAX_CONCURRENCY` (default 2) and `AI_EDIT_MAX_PENDING` (default 50)
+to bound model work and queued requests. Completed task results and saved edits
+are committed together and survive restarts. See [AI editing](ai-editing.md).
+
 ### Environment File Template
 
 Create `.env.prod` (or `.env` for dev) in the project root on the server:

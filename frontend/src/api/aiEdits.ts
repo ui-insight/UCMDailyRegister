@@ -1,4 +1,4 @@
-import { apiFetch } from './client';
+import { ApiError, apiFetch } from './client';
 import type { AIEditResponse, AIEditTaskResponse, EditVersion } from '../types/aiEdit';
 
 const AI_EDIT_POLL_INTERVAL_MS = 1500;
@@ -29,8 +29,23 @@ export async function getAIEditTask(taskId: string): Promise<AIEditTaskResponse>
 }
 
 async function pollAIEditTask(taskId: string): Promise<AIEditResponse> {
+  let statusUnavailable = false;
   for (let attempt = 0; attempt < AI_EDIT_MAX_POLLS; attempt += 1) {
-    const task = await getAIEditTask(taskId);
+    let task: AIEditTaskResponse;
+    try {
+      task = await getAIEditTask(taskId);
+      statusUnavailable = false;
+    } catch (error) {
+      // A restart can briefly interrupt status reads. Keep polling the same
+      // durable ID; never repeat the POST that started the external AI work.
+      const temporary = error instanceof ApiError
+        ? [502, 503, 504].includes(error.status)
+        : error instanceof Error && error.cause instanceof Error;
+      if (!temporary) throw error;
+      statusUnavailable = true;
+      await wait(AI_EDIT_POLL_INTERVAL_MS);
+      continue;
+    }
     if (task.Status === 'succeeded' && task.Result) {
       return task.Result;
     }
@@ -40,6 +55,9 @@ async function pollAIEditTask(taskId: string): Promise<AIEditResponse> {
     await wait(AI_EDIT_POLL_INTERVAL_MS);
   }
 
+  if (statusUnavailable) {
+    throw new Error('Unable to check this AI edit right now. Reload and try again.');
+  }
   throw new Error('AI edit is still running. Try again in a moment.');
 }
 
