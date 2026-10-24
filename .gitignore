@@ -16,11 +16,6 @@ build/
 *.db
 *.sqlite3
 
-# Environment
-.env
-.env.local
-.env.production
-
 # IDE
 .vscode/
 .idea/
@@ -58,6 +53,11 @@ site/
 *.pptx
 # Exception: docs directory may have assets
 !docs/**
+
+# Keep this after the docs exception so environment files are ignored everywhere.
+.env
+.env.*
+!.env.example
 
 # macOS (after !docs/** so it wins there too)
 .DS_Store

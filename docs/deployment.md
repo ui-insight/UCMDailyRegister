@@ -243,6 +243,12 @@ the frontend and key API routes before returning success.
 
 Create `.env.prod` (or `.env` for dev) in the project root on the server:
 
+All `.env` and `.env.*` files, including `.env.prod`, are ignored by Git except
+the non-secret `.env.example` template. Never force-add environment files. Both
+Docker build contexts exclude environment files, and CI rejects tracked variants
+other than `.env.example`. Restrict server files to their owner with
+`chmod 600 .env.prod` (or `.env` for dev).
+
 ```bash
 # Database
 DATABASE_URL=postgresql+asyncpg://ucm:<password>@insight-db:5432/ucm_newsletter
