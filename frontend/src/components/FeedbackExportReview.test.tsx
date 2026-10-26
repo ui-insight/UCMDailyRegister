@@ -12,7 +12,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(getFeedbackGitHubExportPreview).mockResolvedValue({
     Title: 'Synthetic example@example.com',
-    Body: 'Call 208-555-0100 about the synthetic report.', Warnings: [],
+    Body: 'Call 208-555-0100 about the synthetic report.',
   });
   vi.mocked(prepareFeedbackGitHubExport).mockResolvedValue({
     Title: 'Reviewed issue', Body: 'Safe issue text. Reviewed by staff.',

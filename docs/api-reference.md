@@ -266,14 +266,14 @@ Staff-only routes:
 | GET | `/api/v1/feedback/summary` | Queue/delivery counts |
 | PATCH | `/api/v1/feedback/{id}` | Review status and issue reference |
 | POST | `/api/v1/feedback/{id}/notification/retry` | Retry configured delivery adapter |
-| GET | `/api/v1/feedback/{id}/github-export/preview` | Internal editable draft and advisory email/phone warnings; not a reviewed export |
+| GET | `/api/v1/feedback/{id}/github-export/preview` | Internal editable draft; not a reviewed export |
 | POST | `/api/v1/feedback/{id}/github-export` | Prepare explicitly reviewed `Title`/`Body` with `Review_Confirmed: true`; record preparation time/fingerprint |
 | GET | `/api/v1/feedback/{id}/github-export` | Retired unreviewed export; returns 410 without report text |
 
 Review/redact the complete title, body and diagnostic context before confirming.
 Only the finalized reviewed copy can be copied or opened in a prefilled GitHub
-URL. Editing the draft clears confirmation and external actions. Warnings are
-advisory and cannot identify every private detail. URL parameters already share
+URL. Editing the draft clears confirmation and external actions. The review
+form's email/phone warnings are advisory and cannot identify every private detail. URL parameters already share
 content with GitHub; no issue is automatically posted. The original report is
 unchanged. The latest preparation timestamp and artifact SHA-256 record an
 export preparation, not delivery. See [Data governance](data-governance.md).

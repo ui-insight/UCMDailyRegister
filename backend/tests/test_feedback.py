@@ -219,7 +219,6 @@ class TestProductFeedback:
         assert export_data["Title"] == "Idea: Add saved dashboard views"
         assert "## User Report" in export_data["Body"]
         assert "Contact email provided: no" in export_data["Body"]
-        assert export_data["Warnings"] == []
         prepared = await client.post(
             f"/api/v1/feedback/{feedback_id}/github-export",
             headers=staff_headers,
@@ -252,7 +251,6 @@ class TestProductFeedback:
         url = f"/api/v1/feedback/{created['Id']}/github-export"
         preview = await client.get(url + "/preview", headers=staff_headers)
         assert preview.status_code == 200
-        assert len(preview.json()["Warnings"]) == 2
         for confirmation in (False, None):
             payload = {"Title": "Reviewed issue", "Body": "Safe synthetic details."}
             if confirmation is not None:

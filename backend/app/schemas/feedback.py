@@ -81,10 +81,6 @@ class ProductFeedbackExportResponse(BaseModel):
     Body: str
 
 
-class ProductFeedbackExportPreviewResponse(ProductFeedbackExportResponse):
-    Warnings: list[str]
-
-
 class ProductFeedbackExportCreate(BaseModel):
     Title: str = Field(..., min_length=3, max_length=255)
     Body: str = Field(..., min_length=5, max_length=12000)

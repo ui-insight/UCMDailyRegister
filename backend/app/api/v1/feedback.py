@@ -7,7 +7,6 @@ from app.api.deps import get_db, require_staff
 from app.schemas.feedback import (
     ProductFeedbackCreate,
     ProductFeedbackExportCreate,
-    ProductFeedbackExportPreviewResponse,
     ProductFeedbackExportResponse,
     ProductFeedbackResponse,
     ProductFeedbackSummaryResponse,
@@ -94,7 +93,7 @@ async def retired_unreviewed_export(
     raise HTTPException(status_code=410, detail="Review the export draft before preparing public text.")
 
 
-@router.get("/{feedback_id}/github-export/preview", response_model=ProductFeedbackExportPreviewResponse)
+@router.get("/{feedback_id}/github-export/preview", response_model=ProductFeedbackExportResponse)
 async def preview_feedback_export(
     feedback_id: str,
     db: AsyncSession = Depends(get_db),
@@ -105,9 +104,7 @@ async def preview_feedback_export(
     if not feedback:
         raise HTTPException(status_code=404, detail="Feedback item not found")
     title, body = feedback_service.build_github_export_preview(feedback)
-    return ProductFeedbackExportPreviewResponse(
-        Title=title, Body=body, Warnings=feedback_service.export_warnings(title, body)
-    )
+    return ProductFeedbackExportResponse(Title=title, Body=body)
 
 
 @router.post("/{feedback_id}/github-export", response_model=ProductFeedbackExportResponse)

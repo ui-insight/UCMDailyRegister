@@ -3,7 +3,6 @@
 import hashlib
 import json
 import logging
-import re
 from datetime import datetime, timezone
 
 import sqlalchemy as sa
@@ -159,17 +158,6 @@ def build_github_export_preview(feedback: ProductFeedback) -> tuple[str, str]:
         ]
     )
     return title, body
-
-
-def export_warnings(title: str, body: str) -> list[str]:
-    """Advisory detection only; staff must also review names and unpublished copy."""
-    text = title + "\n" + body
-    warnings = []
-    if re.search(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}", text):
-        warnings.append("Possible email address. Remove personal contact details before sharing.")
-    if re.search(r"(?<!\w)(?:\+1[ .-]?)?\(?\d{3}\)?[ .-]\d{3}[ .-]\d{4}(?!\w)", text):
-        warnings.append("Possible phone number. Check whether it belongs in a public report.")
-    return warnings
 
 
 async def record_reviewed_export(

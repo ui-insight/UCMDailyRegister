@@ -19,7 +19,7 @@ export default function FeedbackExportReview({ feedbackId, onClose }: {
   useEffect(() => {
     let active = true;
     getFeedbackGitHubExportPreview(feedbackId).then((value) => {
-      if (active) setDraft({ Title: value.Title, Body: value.Body });
+      if (active) setDraft(value);
     }).catch(() => {
       if (active) setError('The export draft could not be loaded. Try again.');
     });
@@ -58,8 +58,9 @@ export default function FeedbackExportReview({ feedbackId, onClose }: {
     }
   };
   const text = draft ? `${draft.Title}\n${draft.Body}` : '';
+  // The only email/phone check: it re-runs on every edit. Advisory, not a redaction guarantee.
   const email = /[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/.test(text);
-  const phone = /(?:\+1[ .-]?)?\(?\d{3}\)?[ .-]\d{3}[ .-]\d{4}/.test(text);
+  const phone = /(?<!\w)(?:\+1[ .-]?)?\(?\d{3}\)?[ .-]\d{3}[ .-]\d{4}(?!\w)/.test(text);
 
   return (
     <section aria-labelledby="export-review-heading" className="mt-5 border-t border-gray-200 pt-5">

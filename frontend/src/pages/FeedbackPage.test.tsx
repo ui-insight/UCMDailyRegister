@@ -68,7 +68,7 @@ beforeEach(() => {
   listFeedbackMock.mockResolvedValue([makeFeedback()]);
   retryFeedbackNotificationMock.mockResolvedValue(makeFeedback());
   updateFeedbackMock.mockResolvedValue(makeFeedback());
-  getFeedbackGitHubExportPreviewMock.mockResolvedValue({ Title: 'Bug report', Body: 'Details', Warnings: [] });
+  getFeedbackGitHubExportPreviewMock.mockResolvedValue({ Title: 'Bug report', Body: 'Details' });
 });
 
 describe('FeedbackPage notification state', () => {

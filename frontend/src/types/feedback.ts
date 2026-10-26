@@ -44,10 +44,6 @@ export interface ProductFeedbackExport {
   Body: string;
 }
 
-export interface ProductFeedbackExportPreview extends ProductFeedbackExport {
-  Warnings: string[];
-}
-
 export interface ProductFeedbackExportCreate extends ProductFeedbackExport {
   Review_Confirmed: true;
 }
