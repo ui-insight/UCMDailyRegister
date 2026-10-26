@@ -1,4 +1,5 @@
 import type { SubmitterRole } from './submitterRole';
+import { getBrowserEnvironment } from './environment';
 
 export interface FeedbackContext {
   Submitter_Role: SubmitterRole;
@@ -13,7 +14,7 @@ export function getBrowserFeedbackContext(
   role: SubmitterRole,
   route: string,
 ): FeedbackContext {
-  const appEnvironment = import.meta.env.VITE_APP_ENV || import.meta.env.MODE || 'unknown';
+  const appEnvironment = getBrowserEnvironment();
 
   if (typeof window === 'undefined') {
     return {
