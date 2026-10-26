@@ -350,6 +350,44 @@ async def seed_harvested_event(db: AsyncSession, **overrides) -> HarvestedEvent:
 
 
 class TestTriageActions:
+    @pytest.mark.parametrize(
+        "all_day,end_offset,expected_days",
+        [(True, 1, 1), (True, 3, 3), (True, 0, 1), (False, 1, 2)],
+    )
+    async def test_midnight_end_has_correct_inclusive_calendar_dates(
+        self, client, slc_headers, db, all_day, end_offset, expected_days
+    ):
+        event = await seed_harvested_event(
+            db,
+            All_Day=all_day,
+            Event_Start=datetime.combine(FUTURE_DATE, time.min),
+            Event_End=datetime.combine(FUTURE_DATE + timedelta(days=end_offset), time.min),
+        )
+        response = await self.patch_status(client, slc_headers, event.Id, "flagged")
+        assert response.status_code == 200
+        calendar = await client.get(
+            "/api/v1/submissions/", headers=slc_headers,
+            params={"slc_calendar_only": "true", "date_from": FUTURE_DATE.isoformat(),
+                    "date_to": (FUTURE_DATE + timedelta(days=4)).isoformat()},
+        )
+        (promoted,) = calendar.json()["Items"]
+        assert promoted["Occurrence_Dates"] == [
+            (FUTURE_DATE + timedelta(days=i)).isoformat() for i in range(expected_days)
+        ]
+        expected_end = FUTURE_DATE + timedelta(days=expected_days - 1)
+        label = FUTURE_DATE.strftime("%-m/%-d/%Y")
+        if expected_days > 1:
+            label += f" - {expected_end.strftime('%-m/%-d/%Y')}"
+        assert f"Source date: {label}\n" in promoted["Original_Body"]
+        # Reflagging exercises refresh of the existing promoted schedule/body.
+        assert (await self.patch_status(client, slc_headers, event.Id, "flagged")).status_code == 200
+        refreshed = await client.get(
+            "/api/v1/submissions/", headers=slc_headers,
+            params={"slc_calendar_only": "true", "date_from": FUTURE_DATE.isoformat(),
+                    "date_to": (FUTURE_DATE + timedelta(days=4)).isoformat()},
+        )
+        assert refreshed.json()["Items"][0]["Occurrence_Dates"] == promoted["Occurrence_Dates"]
+
     async def patch_status(
         self, client, headers, event_id: str, status: str, classification=None
     ):

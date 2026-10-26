@@ -43,7 +43,7 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
-from datetime import date, datetime, time
+from datetime import date, datetime, time, timedelta
 
 import httpx
 import sqlalchemy as sa
@@ -486,7 +486,7 @@ async def _promote_event(
     await db.flush()
 
     start_date = event.Event_Start.date()
-    end_date = event.Event_End.date() if event.Event_End else start_date
+    end_date = _inclusive_end_date(event)
     is_range = end_date > start_date
     db.add(
         SubmissionScheduleRequest(
@@ -523,7 +523,7 @@ def _sync_promoted_submission(event: HarvestedEvent) -> None:
     if request is None:
         return
     start_date = event.Event_Start.date()
-    end_date = event.Event_End.date() if event.Event_End else start_date
+    end_date = _inclusive_end_date(event)
     is_range = end_date > start_date
     request.Requested_Date = start_date
     request.Recurrence_Type = "date_range" if is_range else "once"
@@ -540,10 +540,21 @@ async def _withdraw_promotion(db: AsyncSession, event: HarvestedEvent) -> None:
     event.Promoted_Submission_Id = None
 
 
+def _inclusive_end_date(event: HarvestedEvent) -> date:
+    """Trumba's all-day midnight end excludes that day; timed ends retain it."""
+    start = event.Event_Start.date()
+    if event.Event_End is None:
+        return start
+    end = event.Event_End.date()
+    if event.All_Day and event.Event_End.time() == time.min and end > start:
+        end -= timedelta(days=1)
+    return max(start, end)
+
+
 def _build_promoted_body(event: HarvestedEvent) -> str:
     """Render the label/value body the SLC calendar day panel expects."""
     start_date = event.Event_Start.date()
-    end_date = event.Event_End.date() if event.Event_End else start_date
+    end_date = _inclusive_end_date(event)
     source_date = start_date.strftime("%-m/%-d/%Y")
     if end_date > start_date:
         source_date = f"{source_date} - {end_date.strftime('%-m/%-d/%Y')}"
