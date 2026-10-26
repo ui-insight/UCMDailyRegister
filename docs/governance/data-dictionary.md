@@ -252,6 +252,8 @@ Retention category: `feedback`. Extension: Operational support.
 | `Viewport` | Reported viewport dimensions. | Internal | No | — |
 | `Status` | Product-feedback workflow status. | Internal | No | — |
 | `GitHub_URL` | Optional engineering issue reference; review sharing permissions. | Internal | Yes | — |
+| `GitHub_Export_Reviewed_At` | UTC time a staff-confirmed edited export was prepared; not proof an issue was posted. | Internal | No | — |
+| `GitHub_Export_SHA256` | Fingerprint of the exact reviewed export artifact; report originals remain unchanged. | Internal | No | — |
 | `Notification_Status` | Pending, disabled, failed or sent delivery state. | Internal | No | — |
 | `Notification_Attempts` | Number of attempted notification deliveries. | Internal | No | — |
 | `Notification_Sent_At` | Latest successful delivery time, if any. | Internal | No | — |

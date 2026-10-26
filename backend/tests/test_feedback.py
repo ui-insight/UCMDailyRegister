@@ -1,6 +1,8 @@
 """Tests for in-app product feedback capture and staff review."""
 
 from dataclasses import asdict
+import hashlib
+import json
 
 import pytest
 from httpx import AsyncClient
@@ -45,6 +47,17 @@ def make_feedback_payload(**overrides) -> dict:
 
 @pytest.mark.asyncio
 class TestProductFeedback:
+    async def test_raw_export_is_not_available_without_review(self, client, staff_headers):
+        created = await client.post(
+            "/api/v1/feedback",
+            json=make_feedback_payload(Details="Synthetic contact: example@example.com"),
+        )
+        response = await client.get(
+            f"/api/v1/feedback/{created.json()['Id']}/github-export", headers=staff_headers
+        )
+        assert response.status_code == 410
+        assert "example@example.com" not in response.text
+
     async def test_public_user_can_create_feedback(
         self,
         client: AsyncClient,
@@ -198,7 +211,7 @@ class TestProductFeedback:
         assert len(list_resp.json()) == 1
 
         export_resp = await client.get(
-            f"/api/v1/feedback/{feedback_id}/github-export",
+            f"/api/v1/feedback/{feedback_id}/github-export/preview",
             headers=staff_headers,
         )
         assert export_resp.status_code == 200
@@ -206,7 +219,15 @@ class TestProductFeedback:
         assert export_data["Title"] == "Idea: Add saved dashboard views"
         assert "## User Report" in export_data["Body"]
         assert "Contact email provided: no" in export_data["Body"]
-        assert "Sensitive submission body text" in export_data["Body"]
+        assert export_data["Warnings"] == []
+        prepared = await client.post(
+            f"/api/v1/feedback/{feedback_id}/github-export",
+            headers=staff_headers,
+            json={"Title": export_data["Title"], "Body": export_data["Body"],
+                  "Review_Confirmed": True},
+        )
+        assert prepared.status_code == 200
+        assert "reviewed by staff" in prepared.json()["Body"]
 
         update_resp = await client.patch(
             f"/api/v1/feedback/{feedback_id}",
@@ -219,3 +240,45 @@ class TestProductFeedback:
         assert update_resp.status_code == 200
         assert update_resp.json()["Status"] == "exported"
         assert update_resp.json()["GitHub_URL"].endswith("/999")
+
+    async def test_reviewed_export_preserves_original_and_records_exact_artifact(
+        self, client, staff_headers
+    ):
+        created = (await client.post("/api/v1/feedback", json=make_feedback_payload(
+            Summary="Synthetic contact example@example.com",
+            Details="Call 208-555-0100 or example@example.com about this synthetic report.",
+            Route="/edit/synthetic-private-reference",
+        ))).json()
+        url = f"/api/v1/feedback/{created['Id']}/github-export"
+        preview = await client.get(url + "/preview", headers=staff_headers)
+        assert preview.status_code == 200
+        assert len(preview.json()["Warnings"]) == 2
+        for confirmation in (False, None):
+            payload = {"Title": "Reviewed issue", "Body": "Safe synthetic details."}
+            if confirmation is not None:
+                payload["Review_Confirmed"] = confirmation
+            assert (await client.post(url, headers=staff_headers, json=payload)).status_code == 422
+        (before,) = (await client.get("/api/v1/feedback", headers=staff_headers)).json()
+        assert before["GitHub_Export_Reviewed_At"] is None
+        assert before["GitHub_Export_SHA256"] is None
+        payload = {"Title": "Reviewed issue", "Body": "Safe synthetic details.",
+                   "Review_Confirmed": True}
+        assert (await client.post(url, json=payload)).status_code == 403
+        assert (await client.get(url + "/preview")).status_code == 403
+        assert (await client.post("/api/v1/feedback/missing/github-export",
+                                  headers=staff_headers, json=payload)).status_code == 404
+        response = await client.post(url, headers=staff_headers, json=payload)
+        assert response.status_code == 200
+        artifact = response.json()
+        assert artifact["Title"] == payload["Title"]
+        assert artifact["Body"].startswith(payload["Body"])
+        assert "example@example.com" not in json.dumps(artifact)
+        assert "synthetic-private-reference" not in json.dumps(artifact)
+        (stored,) = (await client.get("/api/v1/feedback", headers=staff_headers)).json()
+        assert stored["Summary"] == created["Summary"]
+        assert stored["Details"] == created["Details"]
+        assert stored["Status"] == created["Status"]
+        assert stored["GitHub_Export_Reviewed_At"] is not None
+        assert stored["GitHub_Export_SHA256"] == hashlib.sha256(
+            json.dumps(artifact, sort_keys=True).encode()
+        ).hexdigest()

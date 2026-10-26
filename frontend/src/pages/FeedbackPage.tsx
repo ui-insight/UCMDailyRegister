@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import {
-  getFeedbackGitHubExport,
   listFeedback,
   retryFeedbackNotification,
   updateFeedback,
@@ -11,7 +10,7 @@ import type {
   FeedbackType,
   ProductFeedback,
 } from '../types/feedback';
-import { buildGitHubIssueUrl } from '../utils/feedback';
+import FeedbackExportReview from '../components/FeedbackExportReview';
 import { parseAPIDateTime } from '../utils/date';
 import { getSubmitterRole } from '../utils/submitterRole';
 import { Button, Card, EmptyState, Toast, useToast } from '../components/common';
@@ -69,6 +68,7 @@ export default function FeedbackPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [retryingId, setRetryingId] = useState<string | null>(null);
+  const [exportReviewId, setExportReviewId] = useState<string | null>(null);
   const { toast, showToast, dismissToast } = useToast();
 
   const loadData = useCallback(async () => {
@@ -104,18 +104,6 @@ export default function FeedbackPage() {
       await loadData();
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Failed to update feedback', 'error');
-    }
-  };
-
-  const handleCopyExport = async (item: ProductFeedback) => {
-    try {
-      const exported = await getFeedbackGitHubExport(item.Id);
-      const url = buildGitHubIssueUrl(exported.Title, exported.Body);
-      await navigator.clipboard.writeText(`${exported.Title}\n\n${exported.Body}`);
-      showToast('GitHub-ready issue text copied');
-      window.open(url, '_blank', 'noreferrer');
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : 'Failed to prepare GitHub export', 'error');
     }
   };
 
@@ -273,11 +261,16 @@ export default function FeedbackPage() {
                 <Button
                   variant="secondary"
                   size="sm"
-                  onClick={() => void handleCopyExport(selected)}
+                  onClick={() => setExportReviewId(selected.Id)}
                 >
                   Export to GitHub
                 </Button>
               </div>
+
+              {exportReviewId === selected.Id && (
+                <FeedbackExportReview key={selected.Id} feedbackId={selected.Id}
+                  onClose={() => setExportReviewId(null)} />
+              )}
 
               <div className="prose prose-sm max-w-none">
                 <p className="whitespace-pre-wrap text-sm text-gray-700">{selected.Details}</p>

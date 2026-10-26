@@ -1,13 +1,16 @@
 """Business logic for in-app product feedback."""
 
+import hashlib
+import json
 import logging
+import re
 from datetime import datetime, timezone
 
 import sqlalchemy as sa
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.feedback import ProductFeedback
-from app.schemas.feedback import ProductFeedbackCreate
+from app.schemas.feedback import ProductFeedbackCreate, ProductFeedbackExportCreate
 from app.services.feedback_notifications import (
     FeedbackNotifier,
     build_feedback_notification_payload,
@@ -133,7 +136,7 @@ async def update_feedback(
     return feedback
 
 
-def build_github_export(feedback: ProductFeedback) -> tuple[str, str]:
+def build_github_export_preview(feedback: ProductFeedback) -> tuple[str, str]:
     title_prefix = "Bug" if feedback.Feedback_Type == "bug" else "Idea"
     title = f"{title_prefix}: {feedback.Summary}"
     body = "\n".join(
@@ -153,8 +156,32 @@ def build_github_export(feedback: ProductFeedback) -> tuple[str, str]:
             f"- Viewport: {feedback.Viewport}",
             f"- Browser: {feedback.Browser}",
             f"- Contact email provided: {'yes' if feedback.Contact_Email else 'no'}",
-            "",
-            "_Imported from UCM Daily Register in-app feedback. Sensitive submission body text, submitter contact details from newsletter records, and editorial notes were not collected automatically._",
         ]
     )
     return title, body
+
+
+def export_warnings(title: str, body: str) -> list[str]:
+    """Advisory detection only; staff must also review names and unpublished copy."""
+    text = title + "\n" + body
+    warnings = []
+    if re.search(r"[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}", text):
+        warnings.append("Possible email address. Remove personal contact details before sharing.")
+    if re.search(r"(?<!\w)(?:\+1[ .-]?)?\(?\d{3}\)?[ .-]\d{3}[ .-]\d{4}(?!\w)", text):
+        warnings.append("Possible phone number. Check whether it belongs in a public report.")
+    return warnings
+
+
+async def record_reviewed_export(
+    db: AsyncSession, feedback: ProductFeedback, data: ProductFeedbackExportCreate
+) -> tuple[str, str]:
+    """Fingerprint the exact reviewed artifact without retaining another text copy."""
+    body = data.Body + (
+        "\n\n_This report contains user-entered text reviewed by staff before export. "
+        "The original report remains in the application._"
+    )
+    artifact = json.dumps({"Title": data.Title, "Body": body}, sort_keys=True).encode()
+    feedback.GitHub_Export_Reviewed_At = datetime.now(timezone.utc).replace(tzinfo=None)
+    feedback.GitHub_Export_SHA256 = hashlib.sha256(artifact).hexdigest()
+    await db.commit()
+    return data.Title, body
