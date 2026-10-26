@@ -259,6 +259,19 @@ describe('BuilderPage staff-only sections', () => {
     expect(screen.getByText(/Web address written out as text: https:\/\/example\.com\/raw/)).toBeInTheDocument();
   });
 
+  it('shows the edition date with an AP month abbreviation', async () => {
+    const user = userEvent.setup();
+    newsletterApiMocks.assembleNewsletter.mockResolvedValue(tdrNewsletter);
+    render(<BuilderPage />);
+
+    const publishDateInput = document.querySelector<HTMLInputElement>('input[type="date"]');
+    await user.clear(publishDateInput!);
+    await user.type(publishDateInput!, '2026-08-25');
+    await user.click(screen.getAllByRole('button', { name: 'Assemble Newsletter' })[0]);
+
+    expect(await screen.findByText('Tuesday, Aug. 25, 2026')).toBeInTheDocument();
+  });
+
   it('shows the full approved entry and saves manual edits in place', async () => {
     const user = userEvent.setup();
     newsletterApiMocks.getNewsletter.mockResolvedValue(tdrNewsletter);
