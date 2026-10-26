@@ -26,6 +26,7 @@ export default function CategorySelect({
       </label>
       <select
         id="submission-category"
+        aria-describedby="submission-category-hint"
         value={value}
         onChange={(e) => onChange(e.target.value as SubmissionCategory)}
         disabled={isLoading || categories.length === 0}
@@ -37,7 +38,7 @@ export default function CategorySelect({
           </option>
         ))}
       </select>
-      <p className="mt-1 text-xs text-gray-400">
+      <p id="submission-category-hint" role={isLoading ? 'status' : undefined} className="mt-1 text-xs text-gray-600">
         {isLoading
           ? 'Loading available announcement types...'
           : helperText}

@@ -27,6 +27,8 @@ describe('NewsletterTargetSelect', () => {
       />,
     );
 
+    expect(screen.getByRole('group', { name: 'Target Newsletter' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /the daily register/i })).toHaveAttribute('aria-pressed', 'true');
     const bothButton = screen.getByRole('button', { name: /both newsletters/i });
     expect(bothButton).toBeDisabled();
 

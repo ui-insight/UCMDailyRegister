@@ -1,3 +1,6 @@
+import { ApiError } from '../../api/client';
+import FieldError from '../common/FieldError';
+import { addFieldError, collectFormErrors, fieldErrorProps, type FieldErrors } from '../../utils/formValidation';
 import PrivacyNotice from './PrivacyNotice';
 import { useEffect, useRef, useState } from 'react';
 import { listAllowedValues } from '../../api/allowedValues';
@@ -173,7 +176,13 @@ export default function SubmissionForm() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const successRef = useRef<HTMLDivElement>(null);
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  const [validationAttempt, setValidationAttempt] = useState(0);
+  const summaryRef = useRef<HTMLDivElement>(null);
+  const requestInFlight = useRef(false);
+  useEffect(() => {
+    if (validationAttempt > 0) summaryRef.current?.focus();
+  }, [validationAttempt]);
   const isJobOpportunity = category === 'job_opportunity';
   const isPublicFacultyStaffFlow = !isStaff && category === 'faculty_staff';
   const effectiveTargetNewsletter: TargetNewsletter = isJobOpportunity
@@ -414,32 +423,31 @@ export default function SubmissionForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (hasDateError()) {
-      setError('Please select a valid run date for the chosen newsletter.');
-      return;
-    }
+    if (requestInFlight.current) return;
+    setSuccess(false);
+    const form = e.currentTarget as HTMLFormElement;
+    const problems = collectFormErrors(form);
+    const primaryDateId = scheduleTargetNewsletter === 'both' ? 'submission-tdr-run-date' : 'submission-preferred-run-date';
+    if (hasDateError()) addFieldError(problems, form, primaryDateId, 'Please select a valid run date for the chosen newsletter.');
     const secondDateError = getSecondDateError();
-    if (secondDateError) {
-      setError(secondDateError);
-      return;
-    }
+    if (secondDateError) addFieldError(problems, form, scheduleTargetNewsletter === 'both' ? 'submission-myui-run-date' : 'submission-second-run-date', secondDateError);
     if (alsoPublishInStudentNewsletter) {
-      const studentDateError = preferredStudentDates
-        .map(getStudentDateError)
-        .find((dateError) => dateError !== null);
-      if (studentDateError) {
-        setError(studentDateError);
-        return;
-      }
-      if (new Set(preferredStudentDates).size !== preferredStudentDates.length) {
-        setError('Please choose different Student newsletter publication dates.');
-        return;
-      }
+      preferredStudentDates.forEach((date, index) => {
+        const message = getStudentDateError(date);
+        if (message) addFieldError(problems, form, `submission-student-date-${index}`, message);
+        else if (preferredStudentDates.indexOf(date) !== index) {
+          addFieldError(problems, form, `submission-student-date-${index}`, 'Please choose different Student newsletter publication dates.');
+        }
+      });
     }
-    if (hasRecurrenceEndError()) {
-      setError('Please choose a recurrence end date on or after the first run date.');
+    if (hasRecurrenceEndError()) addFieldError(problems, form, 'submission-recurrence-end-date', 'Please choose a recurrence end date on or after the first run date.');
+    setFieldErrors(problems);
+    setError(null);
+    if (Object.keys(problems).length) {
+      setValidationAttempt((attempt) => attempt + 1);
       return;
     }
+    requestInFlight.current = true;
     setSubmitting(true);
     setError(null);
     setSuccess(false);
@@ -522,7 +530,6 @@ export default function SubmissionForm() {
       await createSubmission(data);
 
       setSuccess(true);
-      setTimeout(() => successRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
       // Reset form
       setHeadline('');
       setBody('');
@@ -550,14 +557,73 @@ export default function SubmissionForm() {
         Recurrence_End_Date: '',
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Submission failed');
+      const serverProblems: FieldErrors = {};
+      if (err instanceof ApiError && err.status === 422 && Array.isArray(err.detail)) {
+        const fields: Record<string, string> = {
+          Original_Headline: isJobOpportunity ? 'submission-job-title' : 'submission-headline',
+          Original_Body: 'submission-body', Submitter_Name: 'submission-submitter-name',
+          Submitter_Email: 'submission-submitter-email', Survey_End_Date: 'submission-survey-end-date',
+        };
+        for (const problem of err.detail) {
+          if (!problem || !Array.isArray(problem.loc) || typeof problem.msg !== 'string') continue;
+          const location = problem.loc.filter((part: unknown) => part !== 'body');
+          let id = fields[String(location[0])];
+          if (location[0] === 'Links' && typeof location[1] === 'number') {
+            const slot = links.map((link, index) => ({ link, index }))
+              .filter(({ link }) => link.Url.trim())[location[1]];
+            const part = location.at(-1) === 'Anchor_Text' ? 'anchor' : 'url';
+            id = isJobOpportunity ? 'submission-job-url' : slot ? `submission-link-${slot.index}-${part}` : '';
+          }
+          if (location[0] === 'Schedule_Requests') {
+            const scheduleFields: Record<string, string> = {
+              Requested_Date: primaryDateId,
+              Second_Requested_Date: isPublicFacultyStaffFlow && alsoPublishInStudentNewsletter
+                ? `submission-student-date-${location[1]}`
+                : scheduleTargetNewsletter === 'both' ? 'submission-myui-run-date' : 'submission-second-run-date',
+              Recurrence_End_Date: 'submission-recurrence-end-date',
+              Recurrence_Interval: 'submission-recurrence-interval',
+            };
+            id = scheduleFields[String(location.at(-1))];
+          }
+          if (id) addFieldError(serverProblems, form, id, problem.msg);
+        }
+      }
+      if (Object.keys(serverProblems).length) {
+        setFieldErrors(serverProblems);
+        setValidationAttempt((attempt) => attempt + 1);
+      } else setError(err instanceof Error ? err.message : 'Submission failed');
     } finally {
+      requestInFlight.current = false;
       setSubmitting(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-3xl space-y-6">
+    <form noValidate aria-label="Newsletter announcement" onInput={(event) => {
+      const id = (event.target as HTMLInputElement).id;
+      if (fieldErrors[id]) setFieldErrors((current) => {
+        const next = { ...current }; delete next[id]; return next;
+      });
+    }} onChangeCapture={(event) => {
+      const field = event.target;
+      if (field instanceof HTMLSelectElement || (field instanceof HTMLInputElement && field.type === 'checkbox')) setFieldErrors({});
+    }} onSubmit={handleSubmit} className="max-w-3xl space-y-6">
+      <p role="status" aria-live="polite" aria-atomic="true" className="text-sm text-gray-700">
+        {submitting ? 'Submitting announcement. Please wait.' : ''}
+      </p>
+      {Object.keys(fieldErrors).length > 0 && (
+        <div ref={summaryRef} role="alert" tabIndex={-1} aria-labelledby="submission-errors-title"
+          className="rounded-md border border-status-error-800 bg-status-error-100 p-4">
+          <h3 id="submission-errors-title" className="font-semibold text-status-error-800">Check these fields before submitting</h3>
+          <ul className="mt-2 list-inside list-disc text-sm text-status-error-800">
+            {Object.entries(fieldErrors).map(([id, problem]) => <li key={id}>
+              <a href={`#${id}`} className="underline" onClick={(event) => {
+                event.preventDefault(); document.getElementById(id)?.focus();
+              }}>{problem.label}: {problem.message}</a>
+            </li>)}
+          </ul>
+        </div>
+      )}
       {isStaff && (
         <div className="rounded-md bg-ui-clearwater-50 border border-ui-clearwater-200 px-4 py-2 flex items-center gap-2">
           <span className="inline-flex items-center rounded-full bg-ui-clearwater-500 px-2 py-0.5 text-xs font-medium text-white">
@@ -569,11 +635,13 @@ export default function SubmissionForm() {
         </div>
       )}
       {error && (
-        <div className="rounded-md bg-red-50 border border-red-200 p-4">
+        <div role="alert" className="rounded-md bg-red-50 border border-red-200 p-4">
           <p className="text-sm text-red-800">{error}</p>
+          <p className="mt-2 text-sm text-red-800">Your entries are still here. If the connection was interrupted, check with UCM before sending again to avoid a duplicate.</p>
         </div>
       )}
 
+      <fieldset aria-label="Announcement details" disabled={submitting} className="min-w-0 space-y-6">
       <div className="bg-white rounded-lg shadow p-6 space-y-5">
         <h3 className="text-lg font-semibold text-gray-900 border-b pb-3">
           About Your Announcement
@@ -614,11 +682,13 @@ export default function SubmissionForm() {
             >
               <input
                 id="submission-also-student-newsletter"
+                {...fieldErrorProps(fieldErrors, 'submission-also-student-newsletter')}
                 type="checkbox"
                 checked={alsoPublishInStudentNewsletter}
                 onChange={(event) => handleStudentNewsletterChange(event.target.checked)}
-                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-ui-gold-600 focus:ring-ui-gold-500"
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-ui-gold-800 focus:ring-ui-gold-500"
               />
+              <FieldError errors={fieldErrors} id="submission-also-student-newsletter" />
               <span>Also publish in Student newsletter</span>
             </label>
             {alsoPublishInStudentNewsletter && (
@@ -635,13 +705,15 @@ export default function SubmissionForm() {
             </label>
             <input
               id="submission-survey-end-date"
+              {...fieldErrorProps(fieldErrors, 'submission-survey-end-date', 'submission-survey-end-date-hint')}
               type="date"
               value={surveyEndDate}
               onChange={(e) => setSurveyEndDate(e.target.value)}
               required
               className="w-full max-w-xs rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
             />
-            <p className="text-xs text-gray-400 mt-1">
+            <FieldError errors={fieldErrors} id="submission-survey-end-date" />
+            <p id="submission-survey-end-date-hint" className="text-xs text-gray-600 mt-1">
               When does this survey or registration close?
             </p>
           </div>
@@ -665,6 +737,7 @@ export default function SubmissionForm() {
               </label>
               <input
                 id="submission-job-url"
+                {...fieldErrorProps(fieldErrors, 'submission-job-url', 'submission-job-url-hint')}
                 type="url"
                 value={jobUrl}
                 onChange={(e) => setJobUrl(e.target.value)}
@@ -672,7 +745,8 @@ export default function SubmissionForm() {
                 placeholder="https://uidaho.peopleadmin.com/postings/..."
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
               />
-              <p className="text-xs text-gray-400 mt-1">
+              <FieldError errors={fieldErrors} id="submission-job-url" />
+              <p id="submission-job-url-hint" className="text-xs text-gray-600 mt-1">
                 Provide the specific official job posting link.
               </p>
             </div>
@@ -683,6 +757,7 @@ export default function SubmissionForm() {
                 </label>
                 <input
                   id="submission-job-title"
+                  {...fieldErrorProps(fieldErrors, 'submission-job-title')}
                   type="text"
                   value={jobTitle}
                   onChange={(e) => setJobTitle(e.target.value)}
@@ -690,6 +765,7 @@ export default function SubmissionForm() {
                   placeholder="e.g., Equal Opportunity specialist"
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
                 />
+                <FieldError errors={fieldErrors} id="submission-job-title" />
               </div>
               <div>
                 <label htmlFor="submission-job-department" className="block text-sm font-medium text-gray-700 mb-1">
@@ -697,6 +773,7 @@ export default function SubmissionForm() {
                 </label>
                 <input
                   id="submission-job-department"
+                  {...fieldErrorProps(fieldErrors, 'submission-job-department')}
                   type="text"
                   value={jobDepartment}
                   onChange={(e) => setJobDepartment(e.target.value)}
@@ -704,6 +781,7 @@ export default function SubmissionForm() {
                   placeholder="e.g., Equal Opportunity and Compliance"
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
                 />
+                <FieldError errors={fieldErrors} id="submission-job-department" />
               </div>
               <div>
                 <label htmlFor="submission-job-location" className="block text-sm font-medium text-gray-700 mb-1">
@@ -711,13 +789,15 @@ export default function SubmissionForm() {
                 </label>
                 <input
                   id="submission-job-location"
+                  {...fieldErrorProps(fieldErrors, 'submission-job-location', 'submission-job-location-hint')}
                   type="text"
                   value={jobLocation}
                   onChange={(e) => setJobLocation(e.target.value)}
                   placeholder="e.g., Moscow/off campus/hybrid possible"
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
                 />
-                <p className="text-xs text-gray-400 mt-1">
+                <FieldError errors={fieldErrors} id="submission-job-location" />
+                <p id="submission-job-location-hint" className="text-xs text-gray-600 mt-1">
                   Leave blank if Moscow only. Separate multiple locations with /.
                 </p>
               </div>
@@ -728,6 +808,7 @@ export default function SubmissionForm() {
               </label>
               <input
                 id="submission-job-remove-date"
+                {...fieldErrorProps(fieldErrors, 'submission-job-remove-date', 'submission-job-remove-date-hint')}
                 type="date"
                 value={jobRemoveDate}
                 onChange={(e) => setJobRemoveDate(e.target.value)}
@@ -737,7 +818,8 @@ export default function SubmissionForm() {
                   : undefined}
                 className="w-full max-w-xs rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
               />
-              <p className="text-xs text-gray-400 mt-1">
+              <FieldError errors={fieldErrors} id="submission-job-remove-date" />
+              <p id="submission-job-remove-date-hint" className="text-xs text-gray-600 mt-1">
                 If the position closes before two weeks, select the date to stop running.
               </p>
             </div>
@@ -751,6 +833,7 @@ export default function SubmissionForm() {
               </label>
               <input
                 id="submission-headline"
+                {...fieldErrorProps(fieldErrors, 'submission-headline', 'submission-headline-hint')}
                 type="text"
                 value={headline}
                 onChange={(e) => setHeadline(e.target.value)}
@@ -759,17 +842,19 @@ export default function SubmissionForm() {
                 placeholder="e.g., 'Register for spring Pilates classes'"
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
               />
-              <p className="text-xs text-gray-400 mt-1">{headline.length}/500</p>
+              <FieldError errors={fieldErrors} id="submission-headline" />
+              <p id="submission-headline-hint" className="text-xs text-gray-600 mt-1">{headline.length}/500</p>
             </div>
             <div>
               <label htmlFor="submission-body" className="block text-sm font-medium text-gray-700 mb-1">
                 Body Text
               </label>
-              <p className="text-xs text-gray-500 mb-2">
+              <p id="submission-body-hint" className="text-xs text-gray-500 mb-2">
                 Keep announcements concise — aim for 150–300 words. Include who, what, when, where, and cost if applicable.
               </p>
               <textarea
                 id="submission-body"
+                {...fieldErrorProps(fieldErrors, 'submission-body', 'submission-body-hint submission-body-count')}
                 value={body}
                 onChange={(e) => setBody(e.target.value)}
                 required
@@ -777,18 +862,19 @@ export default function SubmissionForm() {
                 placeholder="Describe your announcement briefly. Include essential details: dates, times, location, cost, and how to participate or register."
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
               />
-              <p className={`text-xs mt-1 ${
+              <FieldError errors={fieldErrors} id="submission-body" />
+              <p id="submission-body-count" className={`text-xs mt-1 ${
                 (() => {
                   const wc = body.trim() ? body.trim().split(/\s+/).length : 0;
-                  if (wc > 500) return 'text-red-500';
-                  if (wc > 300) return 'text-amber-500';
-                  return 'text-gray-400';
+                  if (wc > 500) return 'text-status-error-800';
+                  if (wc > 300) return 'text-status-warning-800';
+                  return 'text-gray-600';
                 })()
               }`}>
                 {body.trim() ? body.trim().split(/\s+/).length : 0} words
               </p>
             </div>
-            <LinkEditor links={links} onChange={setLinks} />
+            <LinkEditor errors={fieldErrors} links={links} onChange={setLinks} />
           </>
         )}
       </div>
@@ -798,6 +884,7 @@ export default function SubmissionForm() {
           Scheduling
         </h3>
         <SchedulePrefs
+          errors={fieldErrors}
           schedule={schedule}
           onChange={setSchedule}
           targetNewsletter={scheduleTargetNewsletter}
@@ -844,17 +931,19 @@ export default function SubmissionForm() {
                       ))}
                       required
                       min={getMinDate()}
-                      aria-invalid={studentDateError ? true : undefined}
+                      {...fieldErrorProps(fieldErrors, `submission-student-date-${index}`, `submission-student-date-${index}-hint${studentDateError && !fieldErrors[`submission-student-date-${index}`] ? ` submission-student-date-${index}-live-error` : ''}`)}
+                      aria-invalid={!!fieldErrors[`submission-student-date-${index}`] || !!studentDateError || undefined}
                       className={`w-full rounded-md border px-3 py-2 text-sm focus:ring-1 ${
                         studentDateError
                           ? 'border-red-400 focus:border-red-500 focus:ring-red-500'
                           : 'border-gray-300 focus:border-ui-gold-500 focus:ring-ui-gold-500'
                       }`}
                     />
-                    {studentDateError && (
-                      <p className="mt-1 text-xs text-red-600">{studentDateError}</p>
+                    <FieldError errors={fieldErrors} id={`submission-student-date-${index}`} />
+                    {studentDateError && !fieldErrors[`submission-student-date-${index}`] && (
+                      <p id={`submission-student-date-${index}-live-error`} className="mt-1 text-xs text-status-error-800">{studentDateError}</p>
                     )}
-                    <p className="mt-1 text-xs text-gray-400">
+                    <p id={`submission-student-date-${index}-hint`} className="mt-1 text-xs text-gray-600">
                       Select a valid Student newsletter publication date.
                     </p>
                   </div>
@@ -888,6 +977,7 @@ export default function SubmissionForm() {
           </label>
           <textarea
             id="submission-editor-notes"
+            {...fieldErrorProps(fieldErrors, 'submission-editor-notes')}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
@@ -895,6 +985,7 @@ export default function SubmissionForm() {
             autoComplete="off"
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
           />
+          <FieldError errors={fieldErrors} id="submission-editor-notes" />
         </div>
       </div>
 
@@ -909,12 +1000,14 @@ export default function SubmissionForm() {
             </label>
             <input
               id="submission-submitter-name"
+              {...fieldErrorProps(fieldErrors, 'submission-submitter-name')}
               type="text"
               value={submitterName}
               onChange={(e) => setSubmitterName(e.target.value)}
               required
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
             />
+            <FieldError errors={fieldErrors} id="submission-submitter-name" />
           </div>
           <div>
             <label htmlFor="submission-submitter-email" className="block text-sm font-medium text-gray-700 mb-1">
@@ -922,6 +1015,7 @@ export default function SubmissionForm() {
             </label>
             <input
               id="submission-submitter-email"
+              {...fieldErrorProps(fieldErrors, 'submission-submitter-email')}
               type="email"
               value={submitterEmail}
               onChange={(e) => setSubmitterEmail(e.target.value)}
@@ -929,29 +1023,28 @@ export default function SubmissionForm() {
               placeholder="you@uidaho.edu"
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
             />
+            <FieldError errors={fieldErrors} id="submission-submitter-email" />
           </div>
         </div>
       </div>
 
       <PrivacyNotice />
 
+      </fieldset>
       <div className="flex justify-end">
         <button
           type="submit"
-          disabled={submitting}
-          className="px-6 py-3 bg-ui-gold-500 text-ui-black font-medium rounded-lg hover:bg-ui-gold-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          aria-disabled={submitting}
+          className="px-6 py-3 bg-ui-gold-500 text-ui-black font-medium rounded-lg hover:bg-ui-gold-600 aria-disabled:opacity-50 aria-disabled:cursor-wait transition-colors"
         >
           {submitting ? 'Submitting...' : 'Submit Announcement'}
         </button>
       </div>
 
-      {success && (
-        <div ref={successRef} className="rounded-md bg-green-50 border border-green-200 p-4">
-          <p className="text-sm text-green-800">
-            Submission received! An editor will review it for the newsletter.
-          </p>
-        </div>
-      )}
+      <div role="status" aria-live="polite" aria-atomic="true"
+        className={success ? 'rounded-md bg-status-success-100 border border-status-success-800 p-4 text-sm text-status-success-800' : undefined}>
+        {success ? 'Submission received! An editor will review it for the newsletter.' : ''}
+      </div>
     </form>
   );
 }

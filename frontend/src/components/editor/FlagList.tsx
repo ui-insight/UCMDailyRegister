@@ -5,9 +5,9 @@ interface FlagListProps {
 }
 
 const FLAG_STYLES: Record<string, { bg: string; border: string; icon: string }> = {
-  error: { bg: 'bg-red-50', border: 'border-red-200', icon: 'text-red-500' },
-  warning: { bg: 'bg-ui-gold-50', border: 'border-ui-gold-200', icon: 'text-ui-gold-500' },
-  info: { bg: 'bg-blue-50', border: 'border-blue-200', icon: 'text-blue-500' },
+  error: { bg: 'bg-red-50', border: 'border-red-200', icon: 'text-status-error-800' },
+  warning: { bg: 'bg-ui-gold-50', border: 'border-ui-gold-200', icon: 'text-ui-gold-800' },
+  info: { bg: 'bg-blue-50', border: 'border-blue-200', icon: 'text-status-info-800' },
 };
 
 const FLAG_ICONS: Record<string, string> = {

@@ -142,3 +142,7 @@ Version 1.1 replaces failing white/gold and white/mid-green pairings and adds an
 explicit shared-button focus treatment. Remaining #248 work includes raw page
 buttons, selected segmented controls, links, form controls, toggles and navigation,
 all status pairings, browser/forced-colors checks and broader token documentation.
+
+Version 1.2 extends this baseline to native controls and page-level pairings. See
+[Control accessibility baseline](control-accessibility.md) for versioning, ownership,
+contrast measurements, state/focus contracts, supported use and acceptance limits.

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useId, useState } from 'react';
 import {
   createRecurringMessage,
   deleteRecurringMessage,
@@ -210,11 +210,12 @@ export default function RecurringMessagesPage() {
       <Card className="mb-6">
         <div className="flex gap-4 items-end flex-wrap">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Newsletter</label>
+            <label className="block text-xs text-gray-500 mb-1" htmlFor="control-recurringmessagespage-1">Newsletter</label>
             <select
               value={newsletterFilter}
               onChange={(event) => setNewsletterFilter(event.target.value)}
               className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+              id="control-recurringmessagespage-1"
             >
               <option value="">All</option>
               <option value="tdr">The Daily Register</option>
@@ -230,7 +231,7 @@ export default function RecurringMessagesPage() {
             />
             Show inactive
           </label>
-          <span className="text-sm text-gray-400">{messages.length} message{messages.length !== 1 ? 's' : ''}</span>
+          <span className="text-sm text-gray-600">{messages.length} message{messages.length !== 1 ? 's' : ''}</span>
         </div>
       </Card>
 
@@ -387,6 +388,7 @@ function RecurringMessageForm({
   sections: NewsletterSection[];
   onChange: (value: RecurringMessageFormState) => void;
 }) {
+  const formId = useId();
   const setField = <K extends keyof RecurringMessageFormState>(
     field: K,
     fieldValue: RecurringMessageFormState[K],
@@ -402,22 +404,24 @@ function RecurringMessageForm({
     <div className="space-y-3">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Newsletter</label>
+          <label className="block text-xs text-gray-500 mb-1" htmlFor={`${formId}-field-2`}>Newsletter</label>
           <select
             value={value.Newsletter_Type}
             onChange={(event) => setField('Newsletter_Type', event.target.value as NewsletterType)}
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+            id={`${formId}-field-2`}
           >
             <option value="tdr">The Daily Register</option>
             <option value="myui">My UI</option>
           </select>
         </div>
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Section</label>
+          <label className="block text-xs text-gray-500 mb-1" htmlFor={`${formId}-field-3`}>Section</label>
           <select
             value={value.Section_Id}
             onChange={(event) => setField('Section_Id', event.target.value)}
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+            id={`${formId}-field-3`}
           >
             <option value="">Select a section</option>
             {sections.map((section) => (
@@ -430,41 +434,45 @@ function RecurringMessageForm({
       </div>
 
       <div>
-        <label className="block text-xs text-gray-500 mb-1">Headline</label>
+        <label className="block text-xs text-gray-500 mb-1" htmlFor={`${formId}-field-4`}>Headline</label>
         <input
           type="text"
           value={value.Headline}
           onChange={(event) => setField('Headline', event.target.value)}
           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+          id={`${formId}-field-4`}
         />
       </div>
 
       <div>
-        <label className="block text-xs text-gray-500 mb-1">Body</label>
+        <label className="block text-xs text-gray-500 mb-1" htmlFor={`${formId}-field-5`}>Body</label>
         <textarea
           value={value.Body}
           onChange={(event) => setField('Body', event.target.value)}
           rows={4}
           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+          id={`${formId}-field-5`}
         />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Starts</label>
+          <label className="block text-xs text-gray-500 mb-1" htmlFor={`${formId}-field-6`}>Starts</label>
           <input
             type="date"
             value={value.Start_Date}
             onChange={(event) => setField('Start_Date', event.target.value)}
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+            id={`${formId}-field-6`}
           />
         </div>
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Cadence</label>
+          <label className="block text-xs text-gray-500 mb-1" htmlFor={`${formId}-field-7`}>Cadence</label>
           <select
             value={value.Recurrence_Type}
             onChange={(event) => setField('Recurrence_Type', event.target.value as RecurrenceType)}
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+            id={`${formId}-field-7`}
           >
             <option value="once">One time</option>
             <option value="weekly">Weekly</option>
@@ -474,7 +482,7 @@ function RecurringMessageForm({
           </select>
         </div>
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Interval</label>
+          <label className="block text-xs text-gray-500 mb-1" htmlFor={`${formId}-field-8`}>Interval</label>
           <input
             type="number"
             min={1}
@@ -483,15 +491,17 @@ function RecurringMessageForm({
             onChange={(event) => setField('Recurrence_Interval', Number(event.target.value) || 1)}
             disabled={value.Recurrence_Type === 'once' || value.Recurrence_Type === 'date_range'}
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm disabled:bg-gray-50"
+            id={`${formId}-field-8`}
           />
         </div>
         <div>
-          <label className="block text-xs text-gray-500 mb-1">Ends On</label>
+          <label className="block text-xs text-gray-500 mb-1" htmlFor={`${formId}-field-9`}>Ends On</label>
           <input
             type="date"
             value={value.End_Date}
             onChange={(event) => setField('End_Date', event.target.value)}
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+            id={`${formId}-field-9`}
           />
         </div>
       </div>

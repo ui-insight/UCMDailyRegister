@@ -190,8 +190,8 @@ export default function SLCEventSubmitPage() {
         <PrivacyNotice slcOnly />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
-              Submitter Name <span className="text-red-500">*</span>
+            <label className="block text-xs font-medium text-gray-600 mb-1" htmlFor="control-slceventsubmitpage-1">
+              Submitter Name <span className="text-status-error-800">*</span>
             </label>
             <input
               type="text"
@@ -199,11 +199,12 @@ export default function SLCEventSubmitPage() {
               onChange={(e) => setSubmitterName(e.target.value)}
               required
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+              id="control-slceventsubmitpage-1"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
-              Submitter Email <span className="text-red-500">*</span>
+            <label className="block text-xs font-medium text-gray-600 mb-1" htmlFor="control-slceventsubmitpage-2">
+              Submitter Email <span className="text-status-error-800">*</span>
             </label>
             <input
               type="email"
@@ -211,13 +212,14 @@ export default function SLCEventSubmitPage() {
               onChange={(e) => setSubmitterEmail(e.target.value)}
               required
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+              id="control-slceventsubmitpage-2"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">
-            Event Name <span className="text-red-500">*</span>
+          <label className="block text-xs font-medium text-gray-600 mb-1" htmlFor="control-slceventsubmitpage-3">
+            Event Name <span className="text-status-error-800">*</span>
           </label>
           <input
             type="text"
@@ -226,13 +228,14 @@ export default function SLCEventSubmitPage() {
             required
             maxLength={500}
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+            id="control-slceventsubmitpage-3"
           />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
-              Event Date <span className="text-red-500">*</span>
+            <label className="block text-xs font-medium text-gray-600 mb-1" htmlFor="control-slceventsubmitpage-4">
+              Event Date <span className="text-status-error-800">*</span>
             </label>
             <input
               type="date"
@@ -240,13 +243,14 @@ export default function SLCEventSubmitPage() {
               onChange={(e) => setEventDate(e.target.value)}
               required
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+              id="control-slceventsubmitpage-4"
             />
-            <p className="text-[11px] text-gray-400 mt-1">
+            <p className="text-[11px] text-gray-600 mt-1">
               For multi-day events, use the start date and note the range in Notes.
             </p>
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label className="block text-xs font-medium text-gray-600 mb-1" htmlFor="control-slceventsubmitpage-5">
               Start Time
             </label>
             <input
@@ -255,13 +259,14 @@ export default function SLCEventSubmitPage() {
               onChange={(e) => setStartTime(e.target.value)}
               placeholder="e.g. 5:30 PM"
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+              id="control-slceventsubmitpage-5"
             />
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label className="block text-xs font-medium text-gray-600 mb-1" htmlFor="control-slceventsubmitpage-6">
               Location
             </label>
             <input
@@ -270,10 +275,11 @@ export default function SLCEventSubmitPage() {
               onChange={(e) => setLocation(e.target.value)}
               placeholder="e.g. ICCU Arena"
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+              id="control-slceventsubmitpage-6"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label className="block text-xs font-medium text-gray-600 mb-1" htmlFor="control-slceventsubmitpage-7">
               Sponsor / Hosting Unit
             </label>
             <input
@@ -282,18 +288,20 @@ export default function SLCEventSubmitPage() {
               onChange={(e) => setSponsor(e.target.value)}
               placeholder="e.g. Alumni Relations"
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+              id="control-slceventsubmitpage-7"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">
+          <label className="block text-xs font-medium text-gray-600 mb-1" htmlFor="control-slceventsubmitpage-8">
             Ticketed?
           </label>
           <select
             value={ticketed}
             onChange={(e) => setTicketed(e.target.value as TicketedValue)}
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+            id="control-slceventsubmitpage-8"
           >
             {TICKETED_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>
@@ -335,7 +343,7 @@ export default function SLCEventSubmitPage() {
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-gray-600 mb-1">
+          <label className="block text-xs font-medium text-gray-600 mb-1" htmlFor="control-slceventsubmitpage-9">
             Notes
           </label>
           <textarea
@@ -344,6 +352,7 @@ export default function SLCEventSubmitPage() {
             rows={3}
             placeholder="Anything else SLC should know — date ranges, VIP guests, attendance expectations, etc."
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+            id="control-slceventsubmitpage-9"
           />
         </div>
 

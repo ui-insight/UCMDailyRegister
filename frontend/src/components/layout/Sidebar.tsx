@@ -64,7 +64,7 @@ export default function Sidebar() {
         />
         <p className="text-xs text-gray-400">UCM Newsletter Builder</p>
         <div className="mt-4 rounded-lg border border-gray-700 bg-gray-800/80 px-3 py-2">
-          <p className="text-[11px] uppercase tracking-wide text-gray-500">Current Mode</p>
+          <p className="text-[11px] uppercase tracking-wide text-gray-400">Current Mode</p>
           <p className="mt-1 text-sm font-medium text-white">
             {ROLE_LABEL[role]}
           </p>

@@ -121,13 +121,14 @@ export default function DataGovernancePage() {
       <section className="rounded-lg bg-white p-4 shadow">
         <div className="flex flex-wrap items-center gap-3">
           <input
+            aria-label="Search governance catalog"
             type="search"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Search tables, columns, allowed values, descriptions"
             className="min-w-64 flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-clearwater-500 focus:outline-none focus:ring-2 focus:ring-ui-clearwater-100"
           />
-          <select
+          <select aria-label="UDM status"
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
             className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-ui-clearwater-500 focus:outline-none focus:ring-2 focus:ring-ui-clearwater-100"
@@ -137,7 +138,7 @@ export default function DataGovernancePage() {
             <option value="Communications extension">Communications extension</option>
             <option value="Operational support">Operational support</option>
           </select>
-          <select
+          <select aria-label="Data classification"
             value={classificationFilter}
             onChange={(event) => setClassificationFilter(event.target.value)}
             className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-ui-clearwater-500 focus:outline-none focus:ring-2 focus:ring-ui-clearwater-100"
@@ -187,13 +188,13 @@ export default function DataGovernancePage() {
                   onClick={() => toggleTable(table.name)}
                   className="flex w-full items-center gap-4 px-5 py-4 text-left transition-colors hover:bg-gray-50"
                 >
-                  <span className={`text-sm text-gray-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}>
+                  <span className={`text-sm text-gray-600 transition-transform ${isExpanded ? 'rotate-90' : ''}`}>
                     {'>'}
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-mono text-sm font-semibold text-gray-900">{table.name}</span>
-                      <span className="text-xs text-gray-400">{table.columns.length} columns</span>
+                      <span className="text-xs text-gray-600">{table.columns.length} columns</span>
                       <span className={`rounded px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[table.status]}`}>
                         {table.status}
                       </span>
@@ -208,7 +209,7 @@ export default function DataGovernancePage() {
                     </div>
                     <p className="mt-1 truncate text-sm text-gray-500">{table.description}</p>
                   </div>
-                  <span className="hidden text-right text-xs text-gray-400 sm:block">{table.area}</span>
+                  <span className="hidden text-right text-xs text-gray-600 sm:block">{table.area}</span>
                 </button>
 
                 {isExpanded && (
@@ -217,7 +218,7 @@ export default function DataGovernancePage() {
                       Steward: {table.steward} · Source: {table.sourceSystem} · Retention: {table.retentionCategory}
                     </p>
                     {filteredColumns.length === 0 ? (
-                      <div className="px-5 py-4 text-sm text-gray-400">No columns match the current filters.</div>
+                      <div className="px-5 py-4 text-sm text-gray-600">No columns match the current filters.</div>
                     ) : (
                       <div className="overflow-x-auto">
                         <table className="w-full min-w-[760px]">
@@ -272,7 +273,7 @@ export default function DataGovernancePage() {
         )}
       </section>
 
-      <p className="text-center text-xs text-gray-400">
+      <p className="text-center text-xs text-gray-600">
         Showing {filteredTables.length} of {GOVERNANCE_TABLES.length} tables
       </p>
     </div>

@@ -271,6 +271,7 @@ export default function DashboardPage() {
           <form onSubmit={handleSearch} className="flex gap-2 flex-1 min-w-[200px]">
             <input
               type="text"
+              aria-label="Search submissions"
               placeholder="Search headlines, body, submitter..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -301,7 +302,7 @@ export default function DashboardPage() {
               type="button"
               aria-label="Dismiss error"
               onClick={() => setError(null)}
-              className="text-red-400 hover:text-red-600"
+              className="text-status-error-800 hover:text-status-error-800"
             >
               &times;
             </button>
@@ -377,7 +378,7 @@ export default function DashboardPage() {
                     >
                       {STATUS_LABELS[sub.Status] || sub.Status}
                     </span>
-                    <span className="text-xs bg-ui-gold-50 text-ui-gold-700 px-2 py-0.5 rounded font-medium">
+                    <span className="text-xs bg-ui-gold-50 text-ui-gold-800 px-2 py-0.5 rounded font-medium">
                       {NEWSLETTER_LABELS[sub.Target_Newsletter]}
                     </span>
                   </div>
@@ -434,7 +435,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <button
-                  className="shrink-0 px-3 py-1.5 text-xs font-medium rounded-md bg-ui-gold-50 text-ui-gold-700 hover:bg-ui-gold-100 whitespace-nowrap"
+                  className="shrink-0 px-3 py-1.5 text-xs font-medium rounded-md bg-ui-gold-50 text-ui-gold-800 hover:bg-ui-gold-100 whitespace-nowrap"
                   onClick={(e) => {
                     e.stopPropagation();
                     navigate(`/edit/${sub.Id}`);

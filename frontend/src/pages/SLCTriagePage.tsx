@@ -305,7 +305,7 @@ function TriageEventCard({
         <div className="flex items-start justify-between gap-2">
           <h4
             className={`font-medium ${
-              event.Is_Canceled ? 'text-gray-400 line-through' : 'text-gray-900'
+              event.Is_Canceled ? 'text-gray-600 line-through' : 'text-gray-900'
             }`}
           >
             {event.Title}

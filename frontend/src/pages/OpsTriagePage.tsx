@@ -345,7 +345,7 @@ function OpsEventCard({
         <div className="flex items-start justify-between gap-2">
           <h4
             className={`font-medium ${
-              event.Is_Canceled ? 'text-gray-400 line-through' : 'text-gray-900'
+              event.Is_Canceled ? 'text-gray-600 line-through' : 'text-gray-900'
             }`}
           >
             {event.Title}
@@ -379,11 +379,11 @@ function OpsEventCard({
         )}
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
           {!event.Needs_Assessed && event.Needs.length === 0 ? (
-            <span className="text-[11px] italic text-gray-400">
+            <span className="text-[11px] italic text-gray-600">
               Awaiting AI assessment
             </span>
           ) : event.Needs.length === 0 ? (
-            <span className="text-[11px] italic text-gray-400">
+            <span className="text-[11px] italic text-gray-600">
               No service needs detected
             </span>
           ) : (
@@ -482,7 +482,7 @@ function NeedLegend() {
         <span className={`${sample} border-ui-gold-500 bg-ui-gold-400 font-semibold text-ui-black`}>
           ✓ confirmed
         </span>
-        <span className={`${sample} border-gray-200 bg-gray-50 text-gray-400 line-through`}>
+        <span className={`${sample} border-gray-200 bg-gray-50 text-gray-600 line-through`}>
           dismissed
         </span>
         (↺ restores)
@@ -512,7 +512,7 @@ function NeedChip({
     return (
       <span
         title={needTitle(need)}
-        className="text-[11px] font-medium rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-gray-400 line-through inline-flex items-center gap-1"
+        className="text-[11px] font-medium rounded-full border border-gray-200 bg-gray-50 px-2 py-0.5 text-gray-600 line-through inline-flex items-center gap-1"
       >
         {label}
         <button
