@@ -871,41 +871,116 @@ def detect_missing_relative_date_components(
     return findings
 
 
-def detect_weekday_date_mismatches(
-    text: str,
-    *,
-    reference_date: date | None = None,
-) -> list[str]:
-    """Find weekday/month/day combinations that disagree with the calendar.
+def _resolve_calendar_date(
+    match: re.Match,
+    reference: date,
+) -> date | None:
+    """Resolve a matched month/day to a date, or None for an impossible date.
 
     Dates without a year use the reference year unless that date is more than
     60 days in the past, in which case the next calendar year is assumed. This
     mirrors the newsletter's upcoming-event and year-boundary behavior.
     """
+    month = _MONTH_NUMBERS[match.group("month").lower().rstrip(".")]
+    day = int(match.group("day"))
+    explicit_year = match.group("year")
+    year = int(explicit_year) if explicit_year else reference.year
+    try:
+        resolved = date(year, month, day)
+        if not explicit_year and resolved < reference - timedelta(days=60):
+            resolved = date(year + 1, month, day)
+    except ValueError:
+        return None
+    return resolved
+
+
+def _weekday_date_matches(text: str):
+    """Yield weekday/date matches whose month name is recognized."""
+    for match in _WEEKDAY_DATE.finditer(strip_html(text)):
+        if match.group("month").lower().rstrip(".") in _MONTH_NUMBERS:
+            yield match
+
+
+def _weekday_date_key(match: re.Match) -> tuple[str, int, int]:
+    return (
+        match.group("weekday").lower(),
+        _MONTH_NUMBERS[match.group("month").lower().rstrip(".")],
+        int(match.group("day")),
+    )
+
+
+def detect_weekday_date_mismatches(
+    text: str,
+    *,
+    reference_date: date | None = None,
+) -> list[str]:
+    """Find weekday/month/day combinations that disagree with the calendar."""
     reference = reference_date or date.today()
     findings: list[str] = []
-    for match in _WEEKDAY_DATE.finditer(strip_html(text)):
-        month_key = match.group("month").lower().rstrip(".")
-        month = _MONTH_NUMBERS.get(month_key)
-        if month is None:
-            continue
-        day = int(match.group("day"))
-        explicit_year = match.group("year")
-        year = int(explicit_year) if explicit_year else reference.year
-        try:
-            event_date = date(year, month, day)
-        except ValueError:
-            findings.append(match.group().rstrip("."))
-            continue
-        if not explicit_year and event_date < reference - timedelta(days=60):
-            try:
-                event_date = date(year + 1, month, day)
-            except ValueError:
-                findings.append(match.group().rstrip("."))
-                continue
-        if event_date.strftime("%A").lower() != match.group("weekday").lower():
+    for match in _weekday_date_matches(text):
+        resolved = _resolve_calendar_date(match, reference)
+        if resolved is None or (
+            resolved.strftime("%A").lower() != match.group("weekday").lower()
+        ):
             findings.append(match.group().rstrip("."))
     return findings
+
+
+def detect_inserted_weekday_mismatches(
+    source_text: str,
+    edited_text: str,
+    *,
+    reference_date: date | None = None,
+) -> dict[str, str | None]:
+    """Find wrong weekday/date pairs the edit introduced, with the right weekday.
+
+    A pair counts as introduced when the source never pairs that weekday with
+    that month and day, so a weekday added to a bare source date, or changed
+    from the source weekday, is checked here. Conflicts already present in the
+    source are left to the general mismatch check. The value is the calendar
+    weekday, or None when the month and day do not exist.
+    """
+    reference = reference_date or date.today()
+    source_pairs = {_weekday_date_key(match) for match in _weekday_date_matches(source_text)}
+    findings: dict[str, str | None] = {}
+    for match in _weekday_date_matches(edited_text):
+        if _weekday_date_key(match) in source_pairs:
+            continue
+        resolved = _resolve_calendar_date(match, reference)
+        weekday = resolved.strftime("%A") if resolved else None
+        if weekday is None or weekday.lower() != match.group("weekday").lower():
+            findings[match.group().rstrip(".")] = weekday
+    return findings
+
+
+def change_contradicts_final_dates(change: str, final_text: str) -> bool:
+    """Whether a change-log entry names a weekday the final text does not use.
+
+    The entry contradicts the final edit when it mentions a month and day that
+    the final text pairs with a weekday, and none of the weekdays the entry
+    names is that weekday. Entries that name no weekday are not judged.
+    """
+    change_text = strip_html(change)
+    named_weekdays = {
+        weekday.lower()
+        for weekday in re.findall(rf"\b(?:{_WEEKDAY_NAME})\b", change_text, re.IGNORECASE)
+    }
+    if not named_weekdays:
+        return False
+
+    final_weekdays: dict[tuple[int, int], set[str]] = {}
+    for match in _weekday_date_matches(final_text):
+        weekday, month, day = _weekday_date_key(match)
+        final_weekdays.setdefault((month, day), set()).add(weekday)
+
+    for match in _MONTH_DAY.finditer(change_text):
+        month = _MONTH_NUMBERS.get(match.group("month").lower().rstrip("."))
+        if month is None:
+            continue
+        final = final_weekdays.get((month, int(match.group("day"))))
+        if final and not final & named_weekdays:
+            return True
+    return False
 
 
 def detect_missing_near_term_weekdays(

@@ -19,6 +19,14 @@ SOURCE_BODY = (
     "Join us for the Science & Society lecture at 6 p.m. Wednesday, Oct. 28, "
     "in the Example Building. Bring a friend!"
 )
+DATE_RULES = [
+    {
+        "category": "dates",
+        "rule_key": "ap_style_dates",
+        "rule_text": "Use AP date style and correct weekdays.",
+        "severity": "error",
+    },
+]
 ACTIVE_RULES = [
     {
         "category": "punctuation",
@@ -39,6 +47,10 @@ ACTIVE_RULES = [
         "severity": "warning",
     },
 ]
+
+
+class UnusedProvider:
+    """Provider placeholder for exercising deterministic post-validation."""
 
 
 class ReversedChangeProvider:
@@ -246,3 +258,86 @@ async def test_saved_version_reloads_the_reconciled_explanations(
     assert saved["Changes_Made"] == task["Result"]["Changes_Made"]
     assert "Changed 'Oct. 28' to 'Oct. 29'" not in saved["Changes_Made"]
     assert not any("draft" in change.lower() for change in saved["Changes_Made"])
+
+
+class WrongWeekdayProvider:
+    """First draft adds the wrong weekday; the repair fixes the text only."""
+
+    model = "fixture-model"
+
+    def __init__(self):
+        self.prompts: list[str] = []
+
+    async def complete_json(self, **kwargs):
+        self.prompts.append(kwargs["user_prompt"])
+        weekday = "Thursday" if len(self.prompts) == 1 else "Wednesday"
+        return {
+            "edited_headline": "Attend the materials lecture",
+            "edited_body": (
+                f"The materials lecture is at 6 p.m. {weekday}, Oct. 28, 2026, "
+                "in the Example Building."
+            ),
+            "changes_made": [
+                "Added the weekday Thursday to Oct. 28",
+                *(["Added the weekday Wednesday to Oct. 28"] if len(self.prompts) > 1 else []),
+            ],
+            "flags": [],
+            "embedded_links": [],
+            "confidence": 0.9,
+        }
+
+
+def make_dated_submission() -> Submission:
+    submission = make_submission()
+    submission.Original_Headline = "Materials lecture"
+    submission.Original_Body = (
+        "The materials lecture is at 6 p.m. Oct. 28, 2026, in the Example Building."
+    )
+    return submission
+
+
+@pytest.mark.asyncio
+async def test_added_wrong_weekday_is_repaired_and_contradicting_change_dropped():
+    provider = WrongWeekdayProvider()
+    editor = AIEditor(provider)
+
+    async def load_rules(*_args, **_kwargs):
+        return DATE_RULES
+
+    editor.load_style_rules = load_rules
+    result = await editor.edit_submission(None, make_dated_submission(), "tdr")
+
+    assert len(provider.prompts) == 2
+    assert "'Thursday, Oct. 28, 2026' falls on a Wednesday" in provider.prompts[1]
+    assert "Wednesday, Oct. 28, 2026" in result.edited_body
+    assert result.changes_made == ["Added the weekday Wednesday to Oct. 28"]
+    assert [flag["message"] for flag in result.flags] == [
+        "Removed a change note whose weekday contradicts the final date; "
+        "confirm the date in the edit: 'Added the weekday Thursday to Oct. 28'"
+    ]
+
+
+def test_added_and_source_weekday_conflicts_are_reported_differently():
+    editor = AIEditor(UnusedProvider())
+    added = editor.post_analyze(
+        "Materials lecture",
+        "The lecture is Thursday, Oct. 28, 2026.",
+        "faculty_staff",
+        DATE_RULES,
+        source_text="The lecture is Oct. 28, 2026.",
+    )
+    from_source = editor.post_analyze(
+        "Materials lecture",
+        "The lecture is Thursday, Oct. 28, 2026.",
+        "faculty_staff",
+        DATE_RULES,
+        source_text="The lecture is Thursday, Oct. 28, 2026.",
+    )
+
+    assert [flag["message"] for flag in added] == [
+        "Added weekday does not match the calendar date: "
+        "'Thursday, Oct. 28, 2026' falls on a Wednesday"
+    ]
+    assert [flag["message"] for flag in from_source] == [
+        "Weekday does not match the calendar date: 'Thursday, Oct. 28, 2026'"
+    ]
