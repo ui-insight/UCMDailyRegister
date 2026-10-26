@@ -19,10 +19,12 @@ import SsoCallbackPage, { SSO_CALLBACK_PATH } from './pages/SsoCallbackPage';
 import LoginPage from './pages/LoginPage';
 import { LOGIN_PATH } from './auth/loginUrl';
 import RequireRole from './auth/RequireRole';
+import EnvironmentBanner from './components/layout/EnvironmentBanner';
 
 export default function App() {
   return (
     <BrowserRouter>
+      <EnvironmentBanner />
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path={LOGIN_PATH} element={<LoginPage />} />
