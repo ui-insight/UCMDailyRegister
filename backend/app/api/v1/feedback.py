@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db, require_staff
 from app.schemas.feedback import (
     ProductFeedbackCreate,
+    ProductFeedbackExportCreate,
     ProductFeedbackExportResponse,
     ProductFeedbackResponse,
     ProductFeedbackSummaryResponse,
@@ -83,15 +84,39 @@ async def update_feedback(
     return feedback
 
 
-@router.get("/{feedback_id}/github-export", response_model=ProductFeedbackExportResponse)
-async def export_feedback_to_github_markdown(
+@router.get("/{feedback_id}/github-export")
+async def retired_unreviewed_export(
+    feedback_id: str,
+    _staff: None = Depends(require_staff),
+):
+    """Fail closed for older clients that exported report text without review."""
+    raise HTTPException(status_code=410, detail="Review the export draft before preparing public text.")
+
+
+@router.get("/{feedback_id}/github-export/preview", response_model=ProductFeedbackExportResponse)
+async def preview_feedback_export(
     feedback_id: str,
     db: AsyncSession = Depends(get_db),
     _staff: None = Depends(require_staff),
 ):
-    """Return a GitHub-ready title and Markdown body for staff export."""
+    """Return an internal, editable draft; this is not a reviewed export."""
     feedback = await feedback_service.get_feedback(db, feedback_id)
     if not feedback:
         raise HTTPException(status_code=404, detail="Feedback item not found")
-    title, body = feedback_service.build_github_export(feedback)
+    title, body = feedback_service.build_github_export_preview(feedback)
+    return ProductFeedbackExportResponse(Title=title, Body=body)
+
+
+@router.post("/{feedback_id}/github-export", response_model=ProductFeedbackExportResponse)
+async def prepare_reviewed_feedback_export(
+    feedback_id: str,
+    data: ProductFeedbackExportCreate,
+    db: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
+):
+    """Prepare only explicitly reviewed text and record a minimized export receipt."""
+    feedback = await feedback_service.get_feedback(db, feedback_id)
+    if not feedback:
+        raise HTTPException(status_code=404, detail="Feedback item not found")
+    title, body = await feedback_service.record_reviewed_export(db, feedback, data)
     return ProductFeedbackExportResponse(Title=title, Body=body)

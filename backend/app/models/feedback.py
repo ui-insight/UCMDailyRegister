@@ -10,6 +10,11 @@ app surface where the report was filed. It does not collect submission body
 text, submitter PII from newsletter records, editorial notes, or other content
 payloads automatically. Staff can review these records and later attach a
 GitHub issue URL once an item has been exported to the engineering tracker.
+
+Staff prepare public exports from an explicitly reviewed editable copy. The
+latest preparation time and artifact fingerprint are recorded without storing
+another copy of the report. These fields establish preparation, not delivery
+or proof that a GitHub issue was posted; the original report is unchanged.
 """
 
 import uuid
@@ -41,6 +46,8 @@ class ProductFeedback(Base):
     Viewport: Mapped[str] = mapped_column(sa.String(50), nullable=False)
     Status: Mapped[str] = mapped_column(sa.String(30), nullable=False, default="new", index=True)
     GitHub_URL: Mapped[str | None] = mapped_column(sa.String(500), nullable=True)
+    GitHub_Export_Reviewed_At: Mapped[datetime | None] = mapped_column(sa.DateTime, nullable=True)
+    GitHub_Export_SHA256: Mapped[str | None] = mapped_column(sa.String(64), nullable=True)
     Notification_Status: Mapped[str] = mapped_column(
         sa.String(30), nullable=False, default="pending", index=True
     )

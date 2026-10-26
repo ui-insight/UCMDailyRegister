@@ -5,6 +5,7 @@ import type {
   ProductFeedback,
   ProductFeedbackCreate,
   ProductFeedbackExport,
+  ProductFeedbackExportCreate,
   ProductFeedbackSummary,
 } from '../types/feedback';
 
@@ -38,10 +39,18 @@ export async function updateFeedback(
   });
 }
 
-export async function getFeedbackGitHubExport(
+export async function getFeedbackGitHubExportPreview(
   id: string,
 ): Promise<ProductFeedbackExport> {
-  return apiFetch<ProductFeedbackExport>(`/feedback/${id}/github-export`);
+  return apiFetch<ProductFeedbackExport>(`/feedback/${id}/github-export/preview`);
+}
+
+export async function prepareFeedbackGitHubExport(
+  id: string, data: ProductFeedbackExportCreate,
+): Promise<ProductFeedbackExport> {
+  return apiFetch<ProductFeedbackExport>(`/feedback/${id}/github-export`, {
+    method: 'POST', body: JSON.stringify(data),
+  });
 }
 
 export async function getFeedbackSummary(): Promise<ProductFeedbackSummary> {

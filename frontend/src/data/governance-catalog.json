@@ -890,6 +890,18 @@
           "pii": true
         },
         {
+          "name": "GitHub_Export_Reviewed_At",
+          "description": "UTC time a staff-confirmed edited export was prepared; not proof an issue was posted.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "GitHub_Export_SHA256",
+          "description": "Fingerprint of the exact reviewed export artifact; report originals remain unchanged.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
           "name": "Notification_Status",
           "description": "Pending, disabled, failed or sent delivery state.",
           "classification": "Internal",

@@ -1,10 +1,11 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import type { ButtonHTMLAttributes, ReactNode, Ref } from 'react';
 import { cx } from './utils';
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'destructive' | 'success';
 type ButtonSize = 'xs' | 'sm' | 'md';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  ref?: Ref<HTMLButtonElement>;
   variant?: ButtonVariant;
   size?: ButtonSize;
   children: ReactNode;

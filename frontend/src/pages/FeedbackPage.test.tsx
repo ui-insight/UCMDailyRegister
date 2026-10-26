@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  getFeedbackGitHubExport,
+  getFeedbackGitHubExportPreview,
   listFeedback,
   retryFeedbackNotification,
   updateFeedback,
@@ -12,7 +12,8 @@ import type { ProductFeedback } from '../types/feedback';
 import FeedbackPage from './FeedbackPage';
 
 vi.mock('../api/feedback', () => ({
-  getFeedbackGitHubExport: vi.fn(),
+  getFeedbackGitHubExportPreview: vi.fn(),
+  prepareFeedbackGitHubExport: vi.fn(),
   listFeedback: vi.fn(),
   retryFeedbackNotification: vi.fn(),
   updateFeedback: vi.fn(),
@@ -22,7 +23,7 @@ vi.mock('../utils/submitterRole', () => ({
   getSubmitterRole: () => 'staff',
 }));
 
-const getFeedbackGitHubExportMock = vi.mocked(getFeedbackGitHubExport);
+const getFeedbackGitHubExportPreviewMock = vi.mocked(getFeedbackGitHubExportPreview);
 const listFeedbackMock = vi.mocked(listFeedback);
 const retryFeedbackNotificationMock = vi.mocked(retryFeedbackNotification);
 const updateFeedbackMock = vi.mocked(updateFeedback);
@@ -42,6 +43,8 @@ function makeFeedback(overrides: Partial<ProductFeedback> = {}): ProductFeedback
     Viewport: '1280x720',
     Status: 'new',
     GitHub_URL: null,
+    GitHub_Export_Reviewed_At: null,
+    GitHub_Export_SHA256: null,
     Notification_Status: 'disabled',
     Notification_Attempts: 0,
     Notification_Sent_At: null,
@@ -65,7 +68,7 @@ beforeEach(() => {
   listFeedbackMock.mockResolvedValue([makeFeedback()]);
   retryFeedbackNotificationMock.mockResolvedValue(makeFeedback());
   updateFeedbackMock.mockResolvedValue(makeFeedback());
-  getFeedbackGitHubExportMock.mockResolvedValue({ Title: 'Bug', Body: 'Details' });
+  getFeedbackGitHubExportPreviewMock.mockResolvedValue({ Title: 'Bug report', Body: 'Details' });
 });
 
 describe('FeedbackPage notification state', () => {

@@ -1,6 +1,7 @@
 """Pydantic schemas for in-app product feedback."""
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -63,6 +64,8 @@ class ProductFeedbackResponse(BaseModel):
     Viewport: str
     Status: str
     GitHub_URL: str | None
+    GitHub_Export_Reviewed_At: datetime | None
+    GitHub_Export_SHA256: str | None
     Notification_Status: str = Field(..., pattern=NOTIFICATION_STATUS_PATTERN)
     Notification_Attempts: int
     Notification_Sent_At: datetime | None
@@ -76,6 +79,12 @@ class ProductFeedbackResponse(BaseModel):
 class ProductFeedbackExportResponse(BaseModel):
     Title: str
     Body: str
+
+
+class ProductFeedbackExportCreate(BaseModel):
+    Title: str = Field(..., min_length=3, max_length=255)
+    Body: str = Field(..., min_length=5, max_length=12000)
+    Review_Confirmed: Literal[True]
 
 
 class ProductFeedbackSummaryResponse(BaseModel):

@@ -16,6 +16,8 @@ export interface ProductFeedback {
   Viewport: string;
   Status: FeedbackStatus;
   GitHub_URL: string | null;
+  GitHub_Export_Reviewed_At: string | null;
+  GitHub_Export_SHA256: string | null;
   Notification_Status: FeedbackNotificationStatus;
   Notification_Attempts: number;
   Notification_Sent_At: string | null;
@@ -40,6 +42,10 @@ export interface ProductFeedbackCreate {
 export interface ProductFeedbackExport {
   Title: string;
   Body: string;
+}
+
+export interface ProductFeedbackExportCreate extends ProductFeedbackExport {
+  Review_Confirmed: true;
 }
 
 export interface ProductFeedbackSummary {
