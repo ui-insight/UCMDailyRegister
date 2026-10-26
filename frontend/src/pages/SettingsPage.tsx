@@ -1,3 +1,4 @@
+import useConfirmAction from '../components/common/useConfirmAction';
 import { useEffect, useState } from 'react';
 import { apiFetch } from '../api/client';
 import {
@@ -90,6 +91,7 @@ const SETTINGS_SECTIONS = [
 ] as const;
 
 export default function SettingsPage() {
+  const { requestConfirmation, confirmationDialog } = useConfirmAction();
   const [scheduleConfigs, setScheduleConfigs] = useState<ScheduleConfig[]>([]);
   const [activeTdr, setActiveTdr] = useState<ActiveSchedule | null>(null);
   const [activeMyui, setActiveMyui] = useState<ActiveSchedule | null>(null);
@@ -330,10 +332,11 @@ export default function SettingsPage() {
 
   return (
     <div>
+      {confirmationDialog}
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Settings</h2>
 
       {actionError && (
-        <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+        <div role="alert" className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
           {actionError}
           <button onClick={() => setActionError(null)} className="ml-2 text-red-500 hover:text-red-700">&times;</button>
         </div>
@@ -543,7 +546,12 @@ export default function SettingsPage() {
                   {o.Description && <span className="text-gray-400 text-xs">({o.Description})</span>}
                 </div>
                 <button
-                  onClick={() => handleDeleteOverride(o.Id)}
+                  aria-label={`Remove ${o.Newsletter_Type.toUpperCase()} override ${o.Start_Date} to ${o.End_Date}`}
+                  onClick={() => requestConfirmation({
+                    title: 'Remove schedule override?', confirmLabel: 'Remove override',
+                    description: `${o.Newsletter_Type.toUpperCase()} override ${o.Start_Date} to ${o.End_Date}${o.Description ? ` (${o.Description})` : ''}. Normal schedule rules will apply after removal. Recreate the override to restore it.`,
+                    action: () => handleDeleteOverride(o.Id),
+                  })}
                   className="text-red-500 hover:text-red-700 text-xs"
                 >
                   Remove
@@ -620,7 +628,12 @@ export default function SettingsPage() {
                   {c.Description && <span className="text-gray-400 text-xs">({c.Description})</span>}
                 </div>
                 <button
-                  onClick={() => handleDeleteCustomDate(c.Id)}
+                  aria-label={`Remove ${c.Newsletter_Type.toUpperCase()} publication date ${c.Publish_Date}`}
+                  onClick={() => requestConfirmation({
+                    title: 'Remove publication date?', confirmLabel: 'Remove date',
+                    description: `${c.Newsletter_Type.toUpperCase()} on ${c.Publish_Date}${c.Description ? ` (${c.Description})` : ''}. This removes the custom publication date from the schedule. Add the date again in Custom Dates to restore it.`,
+                    action: () => handleDeleteCustomDate(c.Id),
+                  })}
                   className="text-red-500 hover:text-red-700 text-xs"
                 >
                   Remove
@@ -700,7 +713,12 @@ export default function SettingsPage() {
                   {b.Description && <span className="text-gray-400 text-xs">{b.Description}</span>}
                 </div>
                 <button
-                  onClick={() => handleDeleteBlackout(b.Id)}
+                  aria-label={`Remove blackout ${b.Blackout_Date}`}
+                  onClick={() => requestConfirmation({
+                    title: 'Remove blackout date?', confirmLabel: 'Remove blackout',
+                    description: `${b.Blackout_Date} for ${b.Newsletter_Type?.toUpperCase() || 'all newsletters'}${b.Description ? ` (${b.Description})` : ''}. This allows scheduling on that date again. Re-add the blackout to block it.`,
+                    action: () => handleDeleteBlackout(b.Id),
+                  })}
                   className="text-red-500 hover:text-red-700 text-xs"
                 >
                   Remove

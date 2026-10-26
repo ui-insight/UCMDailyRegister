@@ -1,3 +1,4 @@
+import useConfirmAction from '../common/useConfirmAction';
 import { useCallback, useEffect, useState } from 'react';
 import type { Submission, TargetNewsletter } from '../../types/submission';
 import { getValidDates } from '../../api/schedule';
@@ -71,6 +72,7 @@ export default function SubmissionMeta({
   onRemoveScheduleRequest,
   occurrenceActionLoading = false,
 }: SubmissionMetaProps) {
+  const { requestConfirmation, confirmationDialog } = useConfirmAction();
   const [rescheduleTarget, setRescheduleTarget] = useState<{
     scheduleId: string;
     occurrenceDate: string;
@@ -202,6 +204,7 @@ export default function SubmissionMeta({
 
   return (
     <div className="bg-white rounded-lg border p-4">
+      {confirmationDialog}
       <h3 className="text-sm font-semibold text-gray-900 mb-3">Submission Info</h3>
       <dl className="space-y-2 text-sm">
         <div>
@@ -303,7 +306,12 @@ export default function SubmissionMeta({
                   {onRemoveScheduleRequest && (
                     <button
                       type="button"
-                      onClick={() => handleRemoveScheduleRequest(req.Id)}
+                      aria-label={`Remove schedule ${req.Requested_Date || 'without a date'}`}
+                      onClick={() => requestConfirmation({
+                        title: 'Remove run schedule?', confirmLabel: 'Remove schedule',
+                        description: `Remove the schedule starting ${req.Requested_Date || 'without a fixed date'} for “${submission.Original_Headline}”. ${req.Recurrence_Type !== 'once' ? 'This removes every occurrence in this schedule, not just one date. ' : ''}The submission is kept. Use Add run date to recreate the schedule; exclusions must be entered again.`,
+                        action: () => handleRemoveScheduleRequest(req.Id),
+                      })}
                       disabled={removingScheduleId === req.Id}
                       className="ml-2 text-xs font-normal text-red-600 hover:text-red-700 underline disabled:opacity-50"
                     >
@@ -349,7 +357,11 @@ export default function SubmissionMeta({
                                 {onSkipOccurrence && (
                                   <button
                                     type="button"
-                                    onClick={() => onSkipOccurrence(req.Id, occurrenceDate)}
+                                    onClick={() => requestConfirmation({
+                                      title: 'Skip this run date?', confirmLabel: 'Skip date',
+                                      description: `Do not publish “${submission.Original_Headline}” on ${occurrenceDate}. Other dates and the submission are kept. Add a separate run date if this occurrence should run again.`,
+                                      action: () => onSkipOccurrence(req.Id, occurrenceDate),
+                                    })}
                                     disabled={occurrenceActionLoading}
                                     title="Don't publish this item on this date"
                                     className="text-xs rounded border border-gray-300 px-2 py-1 text-gray-700 hover:bg-white disabled:opacity-50"

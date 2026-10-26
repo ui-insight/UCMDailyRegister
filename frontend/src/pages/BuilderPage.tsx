@@ -1,3 +1,4 @@
+import useConfirmAction from '../components/common/useConfirmAction';
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   addAcademicDate,
@@ -189,6 +190,7 @@ function ImportCandidatePill({
 }
 
 export default function BuilderPage() {
+  const { requestConfirmation, confirmationDialog } = useConfirmAction();
   const [newsletterType, setNewsletterType] = useState<'tdr' | 'myui'>('tdr');
   const [publishDate, setPublishDate] = useState(todayISO());
   const [newsletter, setNewsletter] = useState<NewsletterDetailResponse | null>(null);
@@ -834,6 +836,7 @@ export default function BuilderPage() {
 
   return (
     <div>
+      {confirmationDialog}
       {/* Toast */}
       <Toast toast={toast} onDismiss={dismissToast} />
       {dragState && (
@@ -937,7 +940,7 @@ export default function BuilderPage() {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded-lg mb-4">
+        <div role="alert" className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded-lg mb-4">
           {error}
         </div>
       )}
@@ -1064,7 +1067,11 @@ export default function BuilderPage() {
                                 {message.Skipped ? 'Restore' : message.Selected ? 'Added' : 'Add'}
                               </button>
                               <button
-                                onClick={() => void handleSkipRecurringMessage(message.Id)}
+                                onClick={() => requestConfirmation({
+                                  title: 'Skip recurring message?', confirmLabel: 'Skip for this issue',
+                                  description: `Skip “${message.Headline}” for ${publishDate}. Future issues and the reusable message are unchanged. Edition-only wording is lost; copy it first if needed. Use Restore in Recurring Messages to add it back to this issue.`,
+                                  action: () => handleSkipRecurringMessage(message.Id),
+                                })}
                                 disabled={message.Skipped}
                                 className={`px-3 py-1.5 text-xs font-medium rounded-md border ${
                                   message.Skipped
@@ -1521,7 +1528,11 @@ export default function BuilderPage() {
                                             <div className="mt-3 flex flex-wrap gap-2">
                                               <button
                                                 type="button"
-                                                onClick={() => handleUpstreamChoice(item.Id, 'refresh')}
+                                                onClick={() => requestConfirmation({
+                                                  title: 'Replace edition wording?', confirmLabel: 'Use approved copy',
+                                                  description: `Replace the edition wording for “${item.Final_Headline}” with the approved source shown here. Current edition-only edits cannot be restored automatically; copy any wording you need before continuing. The source submission is unchanged.`,
+                                                  action: () => handleUpstreamChoice(item.Id, 'refresh'),
+                                                })}
                                                 disabled={upstreamActionItemId === item.Id}
                                                 className="rounded-md bg-ui-gold-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-ui-gold-700 disabled:opacity-50"
                                               >
@@ -1619,11 +1630,14 @@ export default function BuilderPage() {
                                           </>
                                         )}
                                         <button
-                                          onClick={() => (
-                                            item.Kind === 'submission'
+                                          aria-label={`Remove ${item.Final_Headline || 'newsletter item'}`}
+                                          onClick={() => requestConfirmation({
+                                            title: 'Remove newsletter item?', confirmLabel: 'Remove from issue',
+                                            description: `Remove “${item.Final_Headline || 'this item'}” from the ${publishDate} issue. The original source is unchanged. Edition-only wording is not kept by this removal; copy it first if needed. ${item.Kind !== 'submission' && item.Source_Type === 'recurring_message' ? 'Use Restore in Recurring Messages to add it back.' : item.Kind === 'submission' ? 'Reassemble to add the approved source again if it is still eligible.' : 'Add the source again from its Builder panel to restore it.'}`,
+                                            action: () => item.Kind === 'submission'
                                               ? handleRemoveItem(item.Id)
-                                              : handleRemoveExternalItem(item.Id, item.Source_Type, item.Source_Id)
-                                          )}
+                                              : handleRemoveExternalItem(item.Id, item.Source_Type, item.Source_Id),
+                                          })}
                                           className="p-1 text-red-400 hover:text-red-600"
                                           title="Remove"
                                         >

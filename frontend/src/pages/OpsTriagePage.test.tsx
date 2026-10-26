@@ -311,6 +311,13 @@ describe('OpsTriagePage', () => {
         name: 'Remove Alcohol Service from Screen on the Green',
       }),
     );
+    expect(removeOpsNeedMock).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(removeOpsNeedMock).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', {
+      name: 'Remove Alcohol Service from Screen on the Green',
+    }));
+    await userEvent.click(screen.getByRole('button', { name: 'Remove need' }));
     expect(removeOpsNeedMock).toHaveBeenCalledWith('harvested-1', 'alcohol_service');
     expect(
       await screen.findByText('No service needs detected'),

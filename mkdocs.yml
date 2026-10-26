@@ -65,4 +65,5 @@ nav:
       - Approved Stack Evidence: governance/enterprise-ai-framework/approved-stack-evidence.md
   - Backup & Recovery: backup-and-recovery.md
   - Audit Logging: audit-logging.md
+  - Staff Action Safety: staff-action-safety.md
   - Contributing: contributing.md

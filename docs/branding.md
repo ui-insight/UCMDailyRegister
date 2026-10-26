@@ -16,13 +16,13 @@ The university's signature gold replaces generic amber tones throughout the inte
 | `ui-gold-300`      | `#FBCD48` | Decorative accents                          |
 | `ui-gold-400`      | `#F6BD17` | Hover states on dark backgrounds            |
 | `ui-gold-500`      | `#F1B300` | Official Pride Gold -- sidebar active state |
-| `ui-gold-600`      | `#D49B00` | Button backgrounds (better contrast)        |
-| `ui-gold-700`      | `#A87700` | Button text on light backgrounds            |
+| `ui-gold-600`      | `#D49B00` | Hover background with dark text        |
+| `ui-gold-700`      | `#A87700` | Decorative accents; audit text use            |
 | `ui-gold-800`      | `#7C5800` | Dark text accents                           |
 | `ui-gold-900`      | `#4D3600` | Darkest gold for high contrast              |
 
 !!! note "WCAG Contrast"
-    Pride Gold (#F1B300) does not meet WCAG AA contrast requirements for white text. Use `ui-gold-600` or darker shades for button backgrounds with white text. The sidebar active state uses `text-ui-black` on a gold background for maximum readability.
+    White on Pride Gold (`ui-gold-500`) or `ui-gold-600` fails the 4.5:1 normal-text threshold. Shared primary buttons use `text-ui-black` on `ui-gold-500`, with `ui-gold-600` on hover. Do not use `ui-gold-700` as small text on white without measuring it. The sidebar active state also uses dark text on gold.
 
 ### Clearwater (Secondary)
 
@@ -113,3 +113,32 @@ When the branding was applied, all Tailwind utility classes were updated:
 | `amber-*`           | `ui-gold-*`               |
 | `indigo-*`          | `ui-clearwater-*`         |
 | System font stack   | Public Sans (`font-sans`) |
+
+## Shared button accessibility baseline, version 1.1
+
+Updated October 26, 2026 for #248. Brand provenance remains the University of
+Idaho Brand Book 2023; the existing token values are unchanged. Engineering
+maintains this control implementation through repository review. This does not
+assign institutional Data Owner or accessibility approval.
+
+| Enabled shared-button pairing | Contrast ratio | Supported use |
+| --- | --- | --- |
+| `ui-black` on `ui-gold-500` | 6.83:1 | Primary action text |
+| `ui-black` on `ui-gold-600` | 5.18:1 | Primary hover text |
+| White on `status-success-800` | 7.68:1 | Success action text; hover darkens the background |
+
+Ratios use sRGB relative luminance from the actual theme hex values; enabled
+normal-size text requires at least 4.5:1. Disabled controls retain native disabled
+semantics and reduced opacity; these ratios describe enabled controls.
+
+Shared buttons expose native names, disabled and pressed states and keyboard
+activation. A two-pixel dark focus outline with a two-pixel offset is intended for
+light surfaces, including confirmation dialogs. Reduced-motion preference removes
+color transitions. Dark-surface use requires a contrasting focus treatment and
+separate verification. Tests cover contrast from theme values, keyboard activation
+and disabled behavior; these checks do not establish full app conformance.
+
+Version 1.1 replaces failing white/gold and white/mid-green pairings and adds an
+explicit shared-button focus treatment. Remaining #248 work includes raw page
+buttons, selected segmented controls, links, form controls, toggles and navigation,
+all status pairings, browser/forced-colors checks and broader token documentation.
