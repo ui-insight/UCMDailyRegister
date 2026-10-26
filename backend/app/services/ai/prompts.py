@@ -217,9 +217,9 @@ Return a JSON object with exactly these fields:
 }
 
 Notes on the response:
-- "flags" should include issues found that need human attention (missing event details, potential content filtering issues, ambiguous information)
+- "flags" should include issues that still need human attention in your edited text (missing event details, potential content filtering issues, ambiguous information); do not flag problems you already corrected
 - "confidence" is 0.0-1.0 indicating how confident you are the edit is complete and correct
-- "changes_made" should list every substantive change (not formatting-only changes)
+- "changes_made" should list every substantive change (not formatting-only changes) once, as it appears in your edited text
 - If the submission is a thesis defense or otherwise filtered content, set confidence to 0.0 and add an error-level flag
 """
 
@@ -254,6 +254,12 @@ purpose, contact information and official titles. Do not add facts except the
 canonical expansions or addresses explicitly authorized by an active rule.
 
 {finding_lines}
+
+In "changes_made", list every substantive change between the original
+submission and this corrected draft. This list replaces the first draft's list:
+omit any change the corrected draft no longer makes, describe each change once,
+and do not mention the findings, validation or this repair pass. In "flags",
+include only problems that remain in the corrected text.
 
 Return the complete corrected JSON object in the required response format. Do
 not discuss the findings outside the JSON. If a finding cannot be corrected
