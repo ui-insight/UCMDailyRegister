@@ -46,6 +46,19 @@ export function addMonthsISO(months: number): string {
   return toISODate(d);
 }
 
+/** AP Stylebook month labels: abbreviate only Jan., Feb., Aug., Sept., Oct., Nov., Dec. */
+const AP_MONTHS = [
+  'Jan.', 'Feb.', 'March', 'April', 'May', 'June',
+  'July', 'Aug.', 'Sept.', 'Oct.', 'Nov.', 'Dec.',
+];
+
+/** Format a YYYY-MM-DD string as "Wednesday, Oct. 28, 2026" using AP month labels. */
+export function formatAPDate(dateStr: string): string {
+  const date = parseISODate(dateStr);
+  const weekday = date.toLocaleDateString('en-US', { weekday: 'long' });
+  return `${weekday}, ${AP_MONTHS[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+}
+
 /** Parse an API datetime, treating legacy timezone-naive values as UTC. */
 export function parseAPIDateTime(value: string): Date {
   const hasTimezone = /(?:Z|[+-]\d{2}:\d{2})$/i.test(value);

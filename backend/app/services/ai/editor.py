@@ -1,5 +1,6 @@
 """AI Editor orchestrator — coordinates style rules, LLM calls, and post-processing."""
 
+import html
 import logging
 import re
 from dataclasses import dataclass, field
@@ -91,6 +92,76 @@ def enforce_no_semicolons_in_prose(body: str) -> tuple[str, bool]:
     return "".join(parts), changed
 
 
+SEMICOLON_CLEANUP_DESCRIPTION = (
+    "Replaced semicolons with periods to enforce the short-sentence rule"
+)
+
+# Notes about the validation/repair mechanics, not about the copy itself.
+_INTERNAL_PROCESS_CHANGE = re.compile(
+    r"\b(?:repair pass|compliance (?:repair|findings?|checks?)|"
+    r"deterministic (?:style|rule|compliance|validation|findings?|checks?)|"
+    r"style[- ]rule validation|(?:first|previous|initial) draft)\b",
+    re.IGNORECASE,
+)
+# "Changed 'X' to 'Y'." / "Replaced X with \"Y\"" — Y is the final wording.
+_REPLACEMENT_TARGET = re.compile(
+    r"\b(?:to|with)\s+[\"“'‘](?P<target>.+?)[\"”'’]\W*$",
+    re.IGNORECASE,
+)
+
+
+def _comparable(text: str) -> str:
+    """Normalize text so explanations can be compared with the final copy."""
+    text = html.unescape(strip_html(text))
+    text = text.translate(str.maketrans("“”‘’", "\"\"''"))
+    return " ".join(text.split()).casefold()
+
+
+def reconcile_changes(changes: list, final_text: str) -> list[str]:
+    """Keep only explanations that describe the final saved edit, once each.
+
+    A repair pass can abandon a change the first draft planned, and models
+    sometimes narrate the repair process itself. Drop explanations whose
+    stated replacement wording is absent from the final copy, drop process
+    notes, and collapse duplicates that differ only in case or punctuation.
+    """
+    final_comparable = _comparable(final_text)
+    reconciled: list[str] = []
+    seen: set[str] = set()
+    for change in changes:
+        if not isinstance(change, str) or not change.strip():
+            continue
+        change = change.strip()
+        if _INTERNAL_PROCESS_CHANGE.search(change):
+            continue
+        target = _REPLACEMENT_TARGET.search(change)
+        if target and _comparable(target.group("target")) not in final_comparable:
+            continue
+        key = _comparable(change).rstrip(".")
+        if key in seen:
+            continue
+        seen.add(key)
+        reconciled.append(change)
+    return reconciled
+
+
+def dedupe_flags(flags: list[dict]) -> list[dict]:
+    """Drop repeated flags that name the same rule and problem."""
+    unique: list[dict] = []
+    seen: set[tuple[str, str, str]] = set()
+    for flag in flags:
+        key = (
+            str(flag.get("type", "")),
+            str(flag.get("rule_key", "")),
+            _comparable(str(flag.get("message", ""))).rstrip("."),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(flag)
+    return unique
+
+
 class AIEditError(Exception):
     """Raised when the LLM provider cannot produce an edit suggestion."""
 
@@ -141,7 +212,7 @@ class AIEditor:
     def pre_analyze(
         self, headline: str, body: str, category: str, submitter_notes: str | None
     ) -> list[dict]:
-        """Run rule-based pre-analysis before sending to LLM."""
+        """Run the rule-based text checks shared by source and final copy."""
         flags = []
 
         for text_label, text in [("headline", headline), ("body", body)]:
@@ -469,13 +540,6 @@ class AIEditor:
 
         style_rules = await self.load_style_rules(session, newsletter_type)
 
-        pre_flags = self.pre_analyze(
-            submission.Original_Headline,
-            submission.Original_Body,
-            submission.Category,
-            submission.Submitter_Notes,
-        )
-
         system_prompt = build_system_prompt(
             newsletter_type=newsletter_type,
             style_rules=style_rules,
@@ -522,12 +586,6 @@ class AIEditor:
             if short_sentence_rule_active
             else (edited_body, False)
         )
-        if replaced_semicolons:
-            cleanup_description = (
-                "Replaced semicolons with periods to enforce the short-sentence rule"
-            )
-            if cleanup_description not in changes_made:
-                changes_made.append(cleanup_description)
 
         if headline_case == "sentence_case":
             edited_headline = to_sentence_case(edited_headline)
@@ -591,30 +649,21 @@ class AIEditor:
                     edited_headline,
                 )
                 edited_body = repair_result.get("edited_body", edited_body)
-                for change in repair_result.get("changes_made", []) or []:
-                    if change not in changes_made:
-                        changes_made.append(change)
-                repair_description = (
-                    "Revised draft after deterministic style-rule validation"
-                )
-                if repair_description not in changes_made:
-                    changes_made.append(repair_description)
+                # The repair prompt asks for the complete list for the
+                # corrected draft, so it replaces the first draft's list.
+                repair_changes = list(repair_result.get("changes_made", []) or [])
+                if repair_changes:
+                    changes_made = repair_changes
                 ai_flags = repair_result.get("flags", [])
                 embedded_links = repair_result.get("embedded_links", [])
                 confidence = repair_result.get("confidence", confidence)
 
-                edited_body, replaced_semicolons = (
+                edited_body, replaced_repair_semicolons = (
                     enforce_no_semicolons_in_prose(edited_body)
                     if short_sentence_rule_active
                     else (edited_body, False)
                 )
-                if replaced_semicolons:
-                    cleanup_description = (
-                        "Replaced semicolons with periods to enforce the "
-                        "short-sentence rule"
-                    )
-                    if cleanup_description not in changes_made:
-                        changes_made.append(cleanup_description)
+                replaced_semicolons = replaced_semicolons or replaced_repair_semicolons
 
                 if headline_case == "sentence_case":
                     edited_headline = to_sentence_case(edited_headline)
@@ -644,7 +693,35 @@ class AIEditor:
             generate_word_diff(submission.Original_Body, edited_body)
         )
 
-        all_flags = pre_flags + ai_flags + post_flags
+        # Explanations and flags must describe the final saved text, not
+        # the first draft or the source problems the edit already resolved.
+        final_output = "\n".join(comparison_output_parts)
+        changes_made = reconcile_changes(changes_made, final_output)
+        if replaced_semicolons and SEMICOLON_CLEANUP_DESCRIPTION not in changes_made:
+            changes_made.append(SEMICOLON_CLEANUP_DESCRIPTION)
+
+        final_text_flags = self.pre_analyze(
+            edited_headline,
+            edited_body,
+            submission.Category,
+            None,
+        )
+        unembedded_links = [
+            link
+            for link in parse_submitter_notes(submission.Submitter_Notes or "")
+            if link.url not in final_output
+        ]
+        if unembedded_links:
+            final_text_flags.append({
+                "type": "info",
+                "rule_key": "link_embedding",
+                "message": (
+                    f"{len(unembedded_links)} link(s) from submitter notes "
+                    "are not embedded in the edit"
+                ),
+            })
+
+        all_flags = dedupe_flags(final_text_flags + ai_flags + post_flags)
 
         return EditResult(
             edited_headline=edited_headline,
