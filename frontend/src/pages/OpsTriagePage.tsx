@@ -1,3 +1,4 @@
+import useConfirmAction from '../components/common/useConfirmAction';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   acknowledgeOpsUpstreamChange,
@@ -62,6 +63,7 @@ function needTitle(need: OpsNeed): string {
 }
 
 export default function OpsTriagePage() {
+  const { requestConfirmation, confirmationDialog } = useConfirmAction();
   const role = getSubmitterRole();
   const allowed = role === 'ops' || role === 'staff';
 
@@ -140,12 +142,18 @@ export default function OpsTriagePage() {
       'Failed to add the need',
     );
 
-  const handleRemoveNeed = (event: OpsEvent, need: string) =>
+  const removeConfirmedNeed = (event: OpsEvent, need: string) =>
     applyEventUpdate(
       event.Id,
       () => removeOpsNeed(event.Id, need),
       'Failed to remove the need',
     );
+
+  const handleRemoveNeed = (event: OpsEvent, need: string) => requestConfirmation({
+    title: 'Remove staff-added need?', confirmLabel: 'Remove need',
+    description: `Remove ${need.replaceAll('_', ' ')} from “${event.Title}”. This removes the staff-added need, not the event. Use Add need on the event to restore it.`,
+    action: () => removeConfirmedNeed(event, need),
+  });
 
   const handleAcknowledge = (event: OpsEvent) =>
     applyEventUpdate(
@@ -192,6 +200,7 @@ export default function OpsTriagePage() {
 
   return (
     <div>
+      {confirmationDialog}
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-900">Ops Event Triage</h2>
         <p className="text-sm text-gray-500 mt-1">
@@ -264,7 +273,7 @@ export default function OpsTriagePage() {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded-lg mb-4">
+        <div role="alert" className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded-lg mb-4">
           {error}
         </div>
       )}

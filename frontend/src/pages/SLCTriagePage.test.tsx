@@ -293,6 +293,8 @@ describe('SLCTriagePage', () => {
       screen.getByLabelText('Flag Screen on the Green for SLC'),
     );
 
+    expect(updateHarvestedEventMock).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Remove from calendar' }));
     expect(updateHarvestedEventMock).toHaveBeenCalledWith('harvested-1', {
       SLC_Review_Status: 'new',
     });
@@ -359,6 +361,8 @@ describe('SLCTriagePage', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Un-flag' }));
 
+    expect(updateHarvestedEventMock).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Remove from calendar' }));
     expect(updateHarvestedEventMock).toHaveBeenCalledWith('harvested-1', {
       SLC_Review_Status: 'new',
     });

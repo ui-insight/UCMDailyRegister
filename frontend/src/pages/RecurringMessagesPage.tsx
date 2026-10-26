@@ -9,7 +9,7 @@ import { listSections } from '../api/newsletters';
 import type { NewsletterSection } from '../types/newsletter';
 import type { RecurringMessage, RecurrenceType } from '../types/recurringMessage';
 import { getSubmitterRole } from '../utils/submitterRole';
-import { Button, Card, ConfirmDialog, EmptyState, Toast, useToast } from '../components/common';
+import { Button, Card, useConfirmAction, EmptyState, Toast, useToast } from '../components/common';
 
 type NewsletterType = 'tdr' | 'myui';
 
@@ -86,7 +86,7 @@ export default function RecurringMessagesPage() {
   const [newForm, setNewForm] = useState<RecurringMessageFormState>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<RecurringMessageFormState>(EMPTY_FORM);
-  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const { requestConfirmation, confirmationDialog } = useConfirmAction();
   const isStaff = getSubmitterRole() === 'staff';
 
   const loadData = useCallback(async () => {
@@ -173,18 +173,6 @@ export default function RecurringMessagesPage() {
     }
   };
 
-  const handleConfirmDelete = async () => {
-    if (!pendingDeleteId) return;
-    try {
-      await deleteRecurringMessage(pendingDeleteId);
-      setPendingDeleteId(null);
-      showToast('Recurring message deleted');
-      await loadData();
-    } catch (err) {
-      setLoadError(err instanceof Error ? err.message : 'Failed to delete recurring message');
-    }
-  };
-
   if (!isStaff) {
     return (
       <Card className="p-8">
@@ -201,15 +189,7 @@ export default function RecurringMessagesPage() {
   return (
     <div>
       <Toast toast={toast} onDismiss={dismissToast} />
-      <ConfirmDialog
-        open={pendingDeleteId !== null}
-        title="Delete recurring message"
-        description="This removes the reusable message from future newsletter assembly. Existing newsletter items are not changed."
-        confirmLabel="Delete Message"
-        destructive
-        onConfirm={() => void handleConfirmDelete()}
-        onCancel={() => setPendingDeleteId(null)}
-      />
+      {confirmationDialog}
 
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -345,7 +325,16 @@ export default function RecurringMessagesPage() {
                       {message.Is_Active ? 'Deactivate' : 'Activate'}
                     </Button>
                     <Button
-                      onClick={() => setPendingDeleteId(message.Id)}
+                      onClick={() => requestConfirmation({
+                        title: 'Delete recurring message?',
+                        description: `Delete “${message.Headline}”? Future assembly will no longer use this message; existing newsletter items are unchanged. There is no undo; copy its content and schedule first to recreate it with Add Recurring Message.`,
+                        confirmLabel: 'Delete Message',
+                        action: async () => {
+                          await deleteRecurringMessage(message.Id);
+                          showToast('Recurring message deleted');
+                          void loadData();
+                        },
+                      })}
                       variant="destructive"
                       size="sm"
                     >

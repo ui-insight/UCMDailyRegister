@@ -298,7 +298,9 @@ describe('SubmissionMeta schedule management', () => {
       />,
     );
 
-    await user.click(screen.getByRole('button', { name: 'Remove' }));
+    await user.click(screen.getByRole('button', { name: /Remove schedule/ }));
+    expect(onRemoveScheduleRequest).not.toHaveBeenCalled();
+    await user.click(screen.getByRole('button', { name: 'Remove schedule' }));
     await waitFor(() => {
       expect(onRemoveScheduleRequest).toHaveBeenCalledWith('schedule-weekly');
     });
@@ -306,6 +308,6 @@ describe('SubmissionMeta schedule management', () => {
 
   it('hides the remove control when no handler is provided', () => {
     render(<SubmissionMeta submission={makeSubmission()} />);
-    expect(screen.queryByRole('button', { name: 'Remove' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Remove schedule/ })).not.toBeInTheDocument();
   });
 });

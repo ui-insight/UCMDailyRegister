@@ -1,3 +1,4 @@
+import useConfirmAction from '../components/common/useConfirmAction';
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   acknowledgeUpstreamChange,
@@ -28,6 +29,7 @@ function matchesStatusFilter(event: HarvestedEvent, filter: StatusFilter): boole
 }
 
 export default function SLCTriagePage() {
+  const { requestConfirmation, confirmationDialog } = useConfirmAction();
   const role = getSubmitterRole();
   const allowed = role === 'slc' || role === 'staff';
 
@@ -87,7 +89,7 @@ export default function SLCTriagePage() {
     }
   };
 
-  const handleTriage = async (
+  const applyTriage = async (
     event: HarvestedEvent,
     status: SLCReviewStatus,
     classification?: Classification,
@@ -107,6 +109,16 @@ export default function SLCTriagePage() {
     } finally {
       setBusyEventId(null);
     }
+  };
+
+  const handleTriage = (event: HarvestedEvent, status: SLCReviewStatus, classification?: Classification) => {
+    if (event.SLC_Review_Status === 'flagged' && status !== 'flagged') {
+      requestConfirmation({
+        title: 'Remove event from SLC calendar?', confirmLabel: 'Remove from calendar',
+        description: `“${event.Title}” will be removed from the SLC calendar. The harvested event is kept. ${status === 'dismissed' ? 'Show dismissed events and restore it, then flag it again' : 'Flag the event again'} to restore the calendar entry from its source.`,
+        action: () => applyTriage(event, status, classification),
+      });
+    } else void applyTriage(event, status, classification);
   };
 
   const handleAcknowledge = async (event: HarvestedEvent) => {
@@ -163,6 +175,7 @@ export default function SLCTriagePage() {
 
   return (
     <div>
+      {confirmationDialog}
       <div className="flex items-center justify-between mb-6 flex-wrap gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">SLC Event Triage</h2>
@@ -229,7 +242,7 @@ export default function SLCTriagePage() {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded-lg mb-4">
+        <div role="alert" className="bg-red-50 border border-red-200 text-red-700 text-sm p-3 rounded-lg mb-4">
           {error}
         </div>
       )}

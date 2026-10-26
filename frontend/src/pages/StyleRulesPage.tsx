@@ -6,7 +6,7 @@ import {
   deleteStyleRule,
 } from '../api/styleRules';
 import type { StyleRule } from '../types/aiEdit';
-import { Button, Card, ConfirmDialog, EmptyState, Pill, Toast, useToast } from '../components/common';
+import { Button, Card, useConfirmAction, EmptyState, Pill, Toast, useToast } from '../components/common';
 
 const SEVERITY_TONES: Record<string, 'error' | 'gold' | 'info'> = {
   error: 'error',
@@ -30,7 +30,7 @@ export default function StyleRulesPage() {
   const [editText, setEditText] = useState('');
   const [editSeverity, setEditSeverity] = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
-  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const { requestConfirmation, confirmationDialog } = useConfirmAction();
   const { toast, showToast, dismissToast } = useToast();
 
   // New rule form
@@ -105,19 +105,6 @@ export default function StyleRulesPage() {
     }
   };
 
-  const handleConfirmDelete = async () => {
-    if (!pendingDeleteId) return;
-    try {
-      await deleteStyleRule(pendingDeleteId);
-      setPendingDeleteId(null);
-      showToast('Rule deleted');
-      void loadRules();
-    } catch (err) {
-      console.error('Failed to delete rule:', err);
-      showToast('Failed to delete rule', 'error');
-    }
-  };
-
   const handleAddRule = async () => {
     if (!newCategory || !newRuleKey || !newRuleText) return;
     try {
@@ -153,15 +140,7 @@ export default function StyleRulesPage() {
   return (
     <div>
       <Toast toast={toast} onDismiss={dismissToast} />
-      <ConfirmDialog
-        open={pendingDeleteId !== null}
-        title="Delete style rule"
-        description="This removes the rule from the style-rule library. Existing edit versions are unchanged, but future AI edits will no longer use it."
-        confirmLabel="Delete Rule"
-        destructive
-        onConfirm={() => void handleConfirmDelete()}
-        onCancel={() => setPendingDeleteId(null)}
-      />
+      {confirmationDialog}
 
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-2xl font-bold text-gray-900">Style Rules</h2>
@@ -387,7 +366,16 @@ export default function StyleRulesPage() {
                             {rule.Is_Active ? 'Off' : 'On'}
                           </button>
                           <button
-                            onClick={() => setPendingDeleteId(rule.Id)}
+                            onClick={() => requestConfirmation({
+                              title: 'Delete style rule?',
+                              description: `Delete “${rule.Rule_Key}”? Existing edit versions are unchanged. Future AI edits will no longer use this rule. There is no undo; copy its text first to recreate it with Add Rule.`,
+                              confirmLabel: 'Delete Rule',
+                              action: async () => {
+                                await deleteStyleRule(rule.Id);
+                                showToast('Rule deleted');
+                                void loadRules();
+                              },
+                            })}
                             className="p-1 text-gray-400 hover:text-red-600 text-xs"
                             title="Delete"
                           >

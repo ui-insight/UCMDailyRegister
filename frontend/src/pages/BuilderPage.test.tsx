@@ -222,6 +222,10 @@ describe('BuilderPage staff-only sections', () => {
     expect(screen.getByText('1 item has newer approved copy')).toBeInTheDocument();
 
     await user.click(within(panel).getByRole('button', { name: button }));
+    if (button === 'Use approved copy') {
+      expect(newsletterApiMocks[apiCall]).not.toHaveBeenCalled();
+      await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: button }));
+    }
 
     expect(newsletterApiMocks[apiCall]).toHaveBeenCalledWith('tdr-newsletter-1', 'newsletter-item-1');
     expect(await screen.findByText(toast)).toBeInTheDocument();
