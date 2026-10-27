@@ -61,6 +61,8 @@ from app.utils.style_checks import (
     detect_noncanonical_campus_locations,
     detect_missing_approved_venue_addresses,
     detect_weekday_date_mismatches,
+    detect_inserted_weekday_mismatches,
+    change_contradicts_final_dates,
     detect_missing_relative_date_components,
 )
 
@@ -290,8 +292,26 @@ class AIEditor:
             add("ap_style_dates", f"Month should be abbreviated with a specific date: '{found}'")
         for found in detect_abbreviated_months_without_date(text):
             add("ap_style_dates", f"Month without a specific date should be spelled out: '{found}'")
+        inserted_weekdays = (
+            detect_inserted_weekday_mismatches(
+                source_text,
+                text,
+                reference_date=reference_date,
+            )
+            if source_text
+            else {}
+        )
         for found in detect_weekday_date_mismatches(text, reference_date=reference_date):
-            add("ap_style_dates", f"Weekday does not match the calendar date: '{found}'")
+            if found not in inserted_weekdays:
+                add("ap_style_dates", f"Weekday does not match the calendar date: '{found}'")
+            elif inserted_weekdays[found] is None:
+                add("ap_style_dates", f"Added weekday is paired with a date that does not exist: '{found}'")
+            else:
+                add(
+                    "ap_style_dates",
+                    f"Added weekday does not match the calendar date: '{found}' "
+                    f"falls on a {inserted_weekdays[found]}",
+                )
         for found in detect_missing_near_term_weekdays(
             text,
             reference_date=reference_date,
@@ -697,6 +717,14 @@ class AIEditor:
         # the first draft or the source problems the edit already resolved.
         final_output = "\n".join(comparison_output_parts)
         changes_made = reconcile_changes(changes_made, final_output)
+        date_contradictions = [
+            change
+            for change in changes_made
+            if change_contradicts_final_dates(change, final_output)
+        ]
+        changes_made = [
+            change for change in changes_made if change not in date_contradictions
+        ]
         if replaced_semicolons and SEMICOLON_CLEANUP_DESCRIPTION not in changes_made:
             changes_made.append(SEMICOLON_CLEANUP_DESCRIPTION)
 
@@ -718,6 +746,16 @@ class AIEditor:
                 "message": (
                     f"{len(unembedded_links)} link(s) from submitter notes "
                     "are not embedded in the edit"
+                ),
+            })
+
+        for change in date_contradictions:
+            final_text_flags.append({
+                "type": "warning",
+                "rule_key": "ap_style_dates",
+                "message": (
+                    "Removed a change note whose weekday contradicts the final "
+                    f"date; confirm the date in the edit: '{change}'"
                 ),
             })
 

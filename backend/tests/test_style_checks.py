@@ -34,6 +34,8 @@ from app.utils.style_checks import (
     detect_missing_relative_date_components,
     detect_missing_near_term_weekdays,
     detect_weekday_date_mismatches,
+    detect_inserted_weekday_mismatches,
+    change_contradicts_final_dates,
 )
 
 
@@ -545,3 +547,90 @@ class TestWeekdayDateConsistency:
             "Orientation is Friday, Jan. 1.",
             reference_date=date(2027, 1, 1),
         ) == []
+
+
+class TestInsertedWeekdays:
+    """Weekdays the AI adds are checked against the calendar (#410)."""
+
+    def test_flags_weekday_added_to_bare_source_date_with_correct_weekday(self):
+        # Oct. 28, 2026 is a Wednesday.
+        assert detect_inserted_weekday_mismatches(
+            "The lecture is Oct. 28, 2026.",
+            "The lecture is Thursday, Oct. 28, 2026.",
+            reference_date=date(2026, 10, 1),
+        ) == {"Thursday, Oct. 28, 2026": "Wednesday"}
+
+    def test_accepts_correct_added_weekday(self):
+        assert detect_inserted_weekday_mismatches(
+            "The lecture is Oct. 28, 2026.",
+            "The lecture is Wednesday, Oct. 28, 2026.",
+            reference_date=date(2026, 10, 1),
+        ) == {}
+
+    def test_leaves_source_supplied_conflict_to_general_check(self):
+        source = "The lecture is Thursday, Oct. 28, 2026."
+        assert detect_inserted_weekday_mismatches(
+            source,
+            "The lecture is Thursday, Oct. 28, 2026.",
+            reference_date=date(2026, 10, 1),
+        ) == {}
+
+    def test_flags_source_weekday_changed_to_another_wrong_weekday(self):
+        assert detect_inserted_weekday_mismatches(
+            "The lecture is Thursday, Oct. 28, 2026.",
+            "The lecture is Friday, Oct. 28, 2026.",
+            reference_date=date(2026, 10, 1),
+        ) == {"Friday, Oct. 28, 2026": "Wednesday"}
+
+    def test_resolves_year_boundary_for_added_weekday(self):
+        # Without a year, Jan. 1 seen from late December is Jan. 1, 2027 (Friday).
+        assert detect_inserted_weekday_mismatches(
+            "Orientation is Jan. 1.",
+            "Orientation is Thursday, Jan. 1.",
+            reference_date=date(2026, 12, 20),
+        ) == {"Thursday, Jan. 1": "Friday"}
+
+    def test_reports_impossible_dates_without_a_weekday(self):
+        assert detect_inserted_weekday_mismatches(
+            "Applications are due Feb. 30.",
+            "Applications are due Monday, Feb. 30.",
+            reference_date=date(2026, 1, 10),
+        ) == {"Monday, Feb. 30": None}
+
+
+class TestChangeLogDateContradictions:
+    FINAL = "The lecture is at 6 p.m. Wednesday, Oct. 28, 2026."
+
+    def test_entry_naming_a_different_weekday_for_a_final_date(self):
+        assert change_contradicts_final_dates("Added Thursday to the Oct. 28 date", self.FINAL)
+        assert change_contradicts_final_dates(
+            "Changed Tuesday to Thursday for Oct. 28", self.FINAL
+        )
+        assert change_contradicts_final_dates(
+            "Formatted the date as Thursday, Oct. 28, 2026", self.FINAL
+        )
+
+    def test_entry_naming_only_the_replaced_weekday_is_not_judged(self):
+        assert not change_contradicts_final_dates(
+            "Corrected the weekday for the Oct. 28 event (it was listed as Thursday)",
+            self.FINAL,
+        )
+
+    def test_weekday_for_another_date_is_not_applied_to_a_final_date(self):
+        # Nov. 5, 2026 is a Thursday.
+        final = "The lecture is Wednesday, Oct. 28. Signups close Thursday, Nov. 5."
+        assert not change_contradicts_final_dates(
+            "Added Thursday to the Nov. 5 date and abbreviated Oct. 28", final
+        )
+
+    def test_entry_that_includes_the_final_weekday(self):
+        assert not change_contradicts_final_dates(
+            "Corrected Thursday, Oct. 28 to Wednesday, Oct. 28", self.FINAL
+        )
+        assert not change_contradicts_final_dates(
+            "Added the weekday Wednesday to Oct. 28", self.FINAL
+        )
+
+    def test_entries_without_a_weekday_or_a_final_pairing_are_not_judged(self):
+        assert not change_contradicts_final_dates("Abbreviated October to Oct. 28", self.FINAL)
+        assert not change_contradicts_final_dates("Added Friday to Oct. 30", self.FINAL)
