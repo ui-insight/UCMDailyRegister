@@ -72,3 +72,61 @@
   /* === Typography === */
   --font-sans: 'Public Sans', ui-sans-serif, system-ui, sans-serif;
 }
+
+/* Control baseline v1.2: native semantics, visible focus on light AND dark
+   surfaces, and sufficient non-text contrast for editable field boundaries.
+   Unlayered selectors intentionally take precedence over page utility classes. */
+:root {
+  --control-border: var(--color-status-muted-500);
+  --control-focus: var(--color-ui-black);
+  --control-focus-gap: #fff;
+}
+
+:where(button, a[href], input, select, textarea, [tabindex], [contenteditable="true"]):focus-visible {
+  outline: 2px solid var(--control-focus);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--control-focus-gap);
+}
+
+:where(input:not([type="checkbox"]):not([type="radio"]), select, textarea):not(:disabled):not([aria-invalid="true"]) {
+  border-color: var(--control-border);
+}
+:where(input, select, textarea)[aria-invalid="true"] {
+  border-color: var(--color-status-error-800);
+}
+:where(input[type="checkbox"], input[type="radio"]) {
+  accent-color: var(--color-ui-clearwater-700);
+}
+:where(input, textarea)[readonly] {
+  background-color: var(--color-status-muted-100);
+}
+:where(button[aria-pressed="true"], a[aria-current="page"]) {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation: none !important;
+    transition: none !important;
+  }
+}
+@media (forced-colors: active) {
+  :where(button, a[href], input, select, textarea, [tabindex], [contenteditable="true"]):focus-visible {
+    outline-color: Highlight;
+    box-shadow: none;
+  }
+  :where(input, select, textarea):not(:disabled) { border-color: ButtonText; }
+  :where(button[aria-pressed="true"], a[aria-current="page"]):not(:focus-visible) {
+    outline: 1px solid ButtonText;
+    outline-offset: -3px;
+  }
+}
+
+/* Body links retain a cue independent of hue; navigation retains its own state. */
+:where(main a[href]) {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

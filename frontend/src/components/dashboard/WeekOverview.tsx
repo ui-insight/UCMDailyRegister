@@ -98,10 +98,10 @@ export default function WeekOverview({
                     : 'hover:bg-gray-50'
               }`}
             >
-              <span className={`text-xs font-medium ${isToday ? 'text-ui-gold-700' : 'text-gray-500'}`}>
+              <span className={`text-xs font-medium ${isToday ? 'text-ui-gold-800' : 'text-gray-500'}`}>
                 {DAY_LABELS[idx]}
               </span>
-              <span className={`text-xs ${isToday ? 'text-ui-gold-600 font-semibold' : 'text-gray-400'}`}>
+              <span className={`text-xs ${isToday ? 'text-ui-gold-800 font-semibold' : 'text-gray-600'}`}>
                 {new Date(dateStr + 'T12:00:00').getDate()}
               </span>
 
@@ -144,9 +144,9 @@ export default function WeekOverview({
                 counts.total === 0
                   ? 'text-gray-300'
                   : counts.total >= 8
-                    ? 'text-red-600'
+                    ? 'text-status-error-800'
                     : counts.total >= 5
-                      ? 'text-amber-600'
+                      ? 'text-status-warning-800'
                       : 'text-gray-700'
               }`}>
                 {counts.total}
@@ -157,7 +157,7 @@ export default function WeekOverview({
       </div>
 
       {/* Load indicators */}
-      <div className="mt-2 flex items-center justify-center gap-4 text-[10px] text-gray-400">
+      <div className="mt-2 flex items-center justify-center gap-4 text-[10px] text-gray-600">
         <span className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-sm bg-ui-gold-400" /> TDR
         </span>

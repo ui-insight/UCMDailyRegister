@@ -73,15 +73,17 @@ export default function CalendarView({
       {/* Month navigation */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
         <button
+          aria-label="Previous month"
           onClick={prevMonth}
-          className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded"
+          className="p-1.5 text-gray-600 hover:text-gray-700 hover:bg-gray-100 rounded"
         >
           &#x25C0;
         </button>
         <h3 className="text-sm font-semibold text-gray-900">{monthLabel}</h3>
         <button
+          aria-label="Next month"
           onClick={nextMonth}
-          className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded"
+          className="p-1.5 text-gray-600 hover:text-gray-700 hover:bg-gray-100 rounded"
         >
           &#x25B6;
         </button>
@@ -126,7 +128,7 @@ export default function CalendarView({
                 <span
                   className={`text-xs font-medium ${
                     isToday
-                      ? 'bg-ui-gold-500 text-white rounded-full w-5 h-5 inline-flex items-center justify-center'
+                      ? 'bg-ui-gold-500 text-ui-black rounded-full w-5 h-5 inline-flex items-center justify-center'
                       : 'text-gray-700'
                   }`}
                 >
@@ -161,7 +163,7 @@ export default function CalendarView({
                       />
                     ))
                   ) : (
-                    <span className="text-xs font-medium text-ui-gold-700 bg-ui-gold-50 px-1 rounded">
+                    <span className="text-xs font-medium text-ui-gold-800 bg-ui-gold-50 px-1 rounded">
                       {daySubs.length}
                     </span>
                   )}
@@ -176,7 +178,7 @@ export default function CalendarView({
       <div className="px-4 py-2 border-t border-gray-100 space-y-1.5">
         {validDates && (
           <div className="flex items-center gap-4 text-xs text-gray-500">
-            <span className="text-gray-400 font-medium">Pub days:</span>
+            <span className="text-gray-600 font-medium">Pub days:</span>
             <span className="flex items-center gap-1">
               <span className="w-2 h-2 rounded-full bg-ui-gold-500" />
               TDR
@@ -188,7 +190,7 @@ export default function CalendarView({
           </div>
         )}
         <div className="flex items-center gap-3 text-xs text-gray-500 flex-wrap">
-          <span className="text-gray-400 font-medium">Status:</span>
+          <span className="text-gray-600 font-medium">Status:</span>
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-status-info-500" />
             New

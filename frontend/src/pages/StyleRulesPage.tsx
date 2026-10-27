@@ -160,11 +160,12 @@ export default function StyleRulesPage() {
       <Card className="mb-6">
         <div className="flex gap-4 items-end flex-wrap">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Rule Set</label>
+            <label className="block text-xs text-gray-500 mb-1" htmlFor="control-stylerulespage-1">Rule Set</label>
             <select
               value={ruleSetFilter}
               onChange={(e) => setRuleSetFilter(e.target.value)}
               className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+              id="control-stylerulespage-1"
             >
               <option value="">All</option>
               <option value="shared">Shared</option>
@@ -173,11 +174,12 @@ export default function StyleRulesPage() {
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Category</label>
+            <label className="block text-xs text-gray-500 mb-1" htmlFor="control-stylerulespage-2">Category</label>
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
               className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+              id="control-stylerulespage-2"
             >
               <option value="">All</option>
               {categories.map((cat) => (
@@ -205,11 +207,12 @@ export default function StyleRulesPage() {
           <h3 className="text-sm font-semibold text-gray-900 mb-3">Add New Rule</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Rule Set</label>
+              <label className="block text-xs text-gray-500 mb-1" htmlFor="control-stylerulespage-3">Rule Set</label>
               <select
                 value={newRuleSet}
                 onChange={(e) => setNewRuleSet(e.target.value)}
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                id="control-stylerulespage-3"
               >
                 <option value="shared">Shared</option>
                 <option value="tdr">TDR</option>
@@ -217,38 +220,41 @@ export default function StyleRulesPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Category</label>
+              <label className="block text-xs text-gray-500 mb-1" htmlFor="control-stylerulespage-4">Category</label>
               <input
                 type="text"
                 value={newCategory}
                 onChange={(e) => setNewCategory(e.target.value)}
                 placeholder="e.g., formatting, voice"
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                id="control-stylerulespage-4"
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Rule Key</label>
+              <label className="block text-xs text-gray-500 mb-1" htmlFor="control-stylerulespage-5">Rule Key</label>
               <input
                 type="text"
                 value={newRuleKey}
                 onChange={(e) => setNewRuleKey(e.target.value)}
                 placeholder="e.g., no_passive_voice"
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                id="control-stylerulespage-5"
               />
             </div>
           </div>
           <div className="mb-3">
-            <label className="block text-xs text-gray-500 mb-1">Rule Text</label>
+            <label className="block text-xs text-gray-500 mb-1" htmlFor="control-stylerulespage-6">Rule Text</label>
             <textarea
               value={newRuleText}
               onChange={(e) => setNewRuleText(e.target.value)}
               rows={2}
               placeholder="Describe the editorial rule..."
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+              id="control-stylerulespage-6"
             />
           </div>
           <div className="flex items-center gap-3">
-            <select
+            <select aria-label="New rule severity"
               value={newSeverity}
               onChange={(e) => setNewSeverity(e.target.value)}
               className="rounded-md border border-gray-300 px-3 py-2 text-sm"
@@ -296,19 +302,19 @@ export default function StyleRulesPage() {
                 {catRules.map((rule) => (
                   <div
                     key={rule.Id}
-                    className={`px-4 py-3 ${!rule.Is_Active ? 'opacity-50' : ''}`}
+                    className={`px-4 py-3 ${!rule.Is_Active ? 'bg-status-muted-100' : ''}`}
                   >
                     {editingId === rule.Id ? (
                       /* Editing mode */
                       <div className="space-y-2">
-                        <textarea
+                        <textarea aria-label={`Edit rule ${rule.Rule_Key}`}
                           value={editText}
                           onChange={(e) => setEditText(e.target.value)}
                           rows={2}
                           className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
                         />
                         <div className="flex items-center gap-2">
-                          <select
+                          <select aria-label={`Severity for ${rule.Rule_Key}`}
                             value={editSeverity}
                             onChange={(e) => setEditSeverity(e.target.value)}
                             className="rounded-md border border-gray-300 px-2 py-1 text-xs"
@@ -344,7 +350,7 @@ export default function StyleRulesPage() {
                             <Pill tone="muted" className="rounded px-1.5">
                               {RULE_SET_LABELS[rule.Rule_Set]}
                             </Pill>
-                            <span className="text-xs text-gray-400 font-mono">
+                            <span className="text-xs text-gray-600 font-mono">
                               {rule.Rule_Key}
                             </span>
                           </div>
@@ -353,14 +359,14 @@ export default function StyleRulesPage() {
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2 shrink-0">
                           <button
                             onClick={() => handleStartEdit(rule)}
-                            className="p-1 text-gray-400 hover:text-ui-gold-600 text-xs"
+                            className="p-1 text-gray-600 hover:text-ui-gold-800 text-xs"
                             title="Edit"
                           >
                             Edit
                           </button>
                           <button
                             onClick={() => handleToggleActive(rule)}
-                            className="p-1 text-gray-400 hover:text-blue-600 text-xs"
+                            className="p-1 text-gray-600 hover:text-blue-600 text-xs"
                             title={rule.Is_Active ? 'Deactivate' : 'Activate'}
                           >
                             {rule.Is_Active ? 'Off' : 'On'}
@@ -376,7 +382,7 @@ export default function StyleRulesPage() {
                                 void loadRules();
                               },
                             })}
-                            className="p-1 text-gray-400 hover:text-red-600 text-xs"
+                            className="p-1 text-gray-600 hover:text-status-error-800 text-xs"
                             title="Delete"
                           >
                             Del

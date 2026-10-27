@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { listAllowedValues } from '../../api/allowedValues';
@@ -310,7 +310,8 @@ describe('SubmissionForm', () => {
     await user.type(screen.getByLabelText('Email Address'), 'jane@example.edu');
     await user.click(screen.getByRole('button', { name: /submit announcement/i }));
 
-    expect(await screen.findAllByText('Please select a valid Student newsletter publication date.')).toHaveLength(2);
+    expect(await screen.findByText('Please select a valid Student newsletter publication date.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Preferred Student newsletter publication date')).toHaveAttribute('aria-invalid', 'true');
     expect(createSubmissionMock).not.toHaveBeenCalled();
   });
 
@@ -449,4 +450,89 @@ describe('SubmissionForm', () => {
       );
     });
   });
+  it('focuses a linked error summary and associates required-field errors without writing', async () => {
+    const user = userEvent.setup();
+    render(<SubmissionForm />);
+    await screen.findByRole('option', { name: 'Faculty/Staff and Student' });
+    await user.click(screen.getByRole('button', { name: 'Submit Announcement' }));
+    const summary = await screen.findByRole('alert');
+    expect(summary).toHaveFocus();
+    expect(createSubmissionMock).not.toHaveBeenCalled();
+    const headline = screen.getByLabelText('Headline');
+    expect(headline).toHaveAttribute('aria-invalid', 'true');
+    expect(headline).toHaveAccessibleDescription(/complete this field/i);
+    await user.click(screen.getByRole('link', { name: /Headline:/ }));
+    expect(headline).toHaveFocus();
+  });
+
+});
+
+it('preserves a complete submission after rejection and permits an explicit retry', async () => {
+  const user = userEvent.setup();
+  createSubmissionMock.mockRejectedValueOnce(new Error('Synthetic service unavailable'));
+  render(<SubmissionForm />);
+  await screen.findByRole('option', { name: 'Faculty/Staff and Student' });
+  await fillStandardAnnouncement(user);
+  await user.click(screen.getByRole('button', { name: 'Submit Announcement' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent('Your entries are still here');
+  expect(screen.getByRole('button', { name: 'Submit Announcement' })).toHaveFocus();
+  expect(screen.getByLabelText('Headline')).toHaveValue('Campus forum');
+  expect(screen.getByLabelText('Body Text')).toHaveValue('Join us for a campus-wide forum.');
+  expect(screen.getByLabelText('Additional Notes for Editors')).toHaveValue('Please review timing.');
+  expect(screen.getAllByLabelText('URL')[0]).toHaveValue('https://www.uidaho.edu/forum');
+  expect(screen.getByLabelText('Preferred run date')).toHaveValue('2026-05-05');
+  expect(screen.getByLabelText('Email Address')).toHaveValue('jane@example.edu');
+  const firstPayload = createSubmissionMock.mock.calls[0][0];
+  await user.click(screen.getByRole('button', { name: 'Submit Announcement' }));
+  await waitFor(() => expect(createSubmissionMock).toHaveBeenCalledTimes(2));
+  expect(createSubmissionMock.mock.calls[1][0]).toEqual(firstPayload);
+  expect(await screen.findByText(/Submission received!/)).toHaveAttribute('role', 'status');
+});
+
+it('serializes repeated submit events and prevents editing an in-flight payload', async () => {
+  const user = userEvent.setup();
+  let finish!: (value: Submission) => void;
+  createSubmissionMock.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+  render(<SubmissionForm />);
+  await screen.findByRole('option', { name: 'Faculty/Staff and Student' });
+  await fillStandardAnnouncement(user);
+  const form = screen.getByRole('form', { name: 'Newsletter announcement' });
+  fireEvent.submit(form);
+  fireEvent.submit(form);
+  expect(createSubmissionMock).toHaveBeenCalledTimes(1);
+  expect(screen.getByLabelText('Headline')).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Submitting...' })).toHaveAttribute('aria-disabled', 'true');
+  expect(screen.getByText('Submitting announcement. Please wait.')).toHaveAttribute('role', 'status');
+  await act(async () => finish(makeSubmission()));
+  expect(await screen.findByText(/Submission received!/)).toHaveAttribute('role', 'status');
+  expect(screen.getByLabelText('Headline')).toHaveValue('');
+  expect(screen.getByRole('button', { name: 'Submit Announcement' })).toBeEnabled();
+});
+
+it('associates structured server validation with the affected field and retains the work', async () => {
+  const user = userEvent.setup();
+  const { ApiError } = await import('../../api/client');
+  createSubmissionMock.mockRejectedValueOnce(new ApiError(422, [{ loc: ['body', 'Submitter_Email'], msg: 'Synthetic email validation failed' }]));
+  render(<SubmissionForm />);
+  await screen.findByRole('option', { name: 'Faculty/Staff and Student' });
+  await fillStandardAnnouncement(user);
+  await user.click(screen.getByRole('button', { name: 'Submit Announcement' }));
+  expect(await screen.findByRole('alert')).toHaveFocus();
+  expect(screen.getByLabelText('Email Address')).toHaveAttribute('aria-invalid', 'true');
+  expect(screen.getByLabelText('Email Address')).toHaveAccessibleDescription('Synthetic email validation failed');
+  expect(screen.getByLabelText('Headline')).toHaveValue('Campus forum');
+});
+
+it('keeps every public field named and every instruction reference resolvable', async () => {
+  const user = userEvent.setup();
+  render(<SubmissionForm />);
+  await screen.findByRole('option', { name: 'Faculty/Staff and Student' });
+  await user.click(screen.getByLabelText('My dates are somewhat flexible'));
+  await user.click(screen.getByRole('button', { name: 'Submit Announcement' }));
+  const form = screen.getByRole('form', { name: 'Newsletter announcement' });
+  for (const field of form.querySelectorAll('input, textarea, select')) expect(field).toHaveAccessibleName();
+  for (const described of form.querySelectorAll('[aria-describedby]')) {
+    for (const id of described.getAttribute('aria-describedby')!.split(/\s+/)) expect(document.getElementById(id), id).not.toBeNull();
+  }
+  expect(screen.getByLabelText('Timing flexibility (optional)')).toBeInTheDocument();
 });

@@ -223,7 +223,7 @@ export default function SubmissionMeta({
           <dt className="text-xs text-gray-500">Target Newsletter</dt>
           {onChangeNewsletter ? (
             <dd>
-              <select
+              <select aria-label="Target Newsletter"
                 value={submission.Target_Newsletter}
                 onChange={(e) => onChangeNewsletter(e.target.value as TargetNewsletter)}
                 className="mt-0.5 w-full rounded-md border border-gray-300 px-2 py-1 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
@@ -313,7 +313,7 @@ export default function SubmissionMeta({
                         action: () => handleRemoveScheduleRequest(req.Id),
                       })}
                       disabled={removingScheduleId === req.Id}
-                      className="ml-2 text-xs font-normal text-red-600 hover:text-red-700 underline disabled:opacity-50"
+                      className="ml-2 text-xs font-normal text-status-error-800 hover:text-red-700 underline disabled:opacity-50"
                     >
                       {removingScheduleId === req.Id ? 'Removing...' : 'Remove'}
                     </button>
@@ -337,7 +337,7 @@ export default function SubmissionMeta({
                     <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-0.5">
                       Upcoming occurrences
                     </div>
-                    <div className="text-[10px] text-gray-400 mb-1">
+                    <div className="text-[10px] text-gray-600 mb-1">
                       Skip Date removes this item from that day's newsletter. Move reschedules it.
                     </div>
                     <div className="space-y-2">
@@ -374,7 +374,7 @@ export default function SubmissionMeta({
                                     type="button"
                                     onClick={() => handleStartReschedule(req.Id, occurrenceDate)}
                                     disabled={occurrenceActionLoading}
-                                    className="text-xs rounded border border-ui-gold-200 bg-ui-gold-50 px-2 py-1 text-ui-gold-700 hover:bg-ui-gold-100 disabled:opacity-50"
+                                    className="text-xs rounded border border-ui-gold-200 bg-ui-gold-50 px-2 py-1 text-ui-gold-800 hover:bg-ui-gold-100 disabled:opacity-50"
                                   >
                                     Move
                                   </button>
@@ -386,7 +386,7 @@ export default function SubmissionMeta({
                             && rescheduleTarget.occurrenceDate === occurrenceDate
                             && onRescheduleOccurrence && (
                               <div className="flex items-center gap-2">
-                                <input
+                                <input aria-label={`Replacement date for ${occurrenceDate}`}
                                   type="date"
                                   value={replacementDate}
                                   min={getMinDate()}
@@ -401,7 +401,7 @@ export default function SubmissionMeta({
                                     handleCancelReschedule();
                                   }}
                                   disabled={occurrenceActionLoading || !replacementDate}
-                                  className="text-xs rounded bg-ui-gold-600 px-2 py-1 text-white hover:bg-ui-gold-700 disabled:opacity-50"
+                                  className="text-xs rounded bg-ui-gold-500 px-2 py-1 text-ui-black hover:bg-ui-gold-600 disabled:opacity-50"
                                 >
                                   Save
                                 </button>
@@ -429,7 +429,7 @@ export default function SubmissionMeta({
             <button
               type="button"
               onClick={handleOpenAddDate}
-              className="text-xs rounded border border-dashed border-gray-300 px-3 py-1.5 text-gray-600 hover:border-ui-gold-400 hover:text-ui-gold-700 hover:bg-ui-gold-50 w-full"
+              className="text-xs rounded border border-dashed border-gray-300 px-3 py-1.5 text-gray-600 hover:border-ui-gold-400 hover:text-ui-gold-800 hover:bg-ui-gold-50 w-full"
             >
               + Add Run Date
             </button>
@@ -492,7 +492,7 @@ export default function SubmissionMeta({
                   )}
                 </div>
                 {addDateValue && validDatesSet.size > 0 && validDatesSet.has(addDateValue) && (
-                  <div className="text-[10px] text-green-600">Valid publication date</div>
+                  <div className="text-[10px] text-status-success-800">Valid publication date</div>
                 )}
                 <div className="flex gap-2">
                   <div className="flex-1">
@@ -559,7 +559,7 @@ export default function SubmissionMeta({
                   </div>
                 )}
                 {addDateError && (
-                  <div className="text-[10px] text-red-600">{addDateError}</div>
+                  <div className="text-[10px] text-status-error-800">{addDateError}</div>
                 )}
               </>
             )}
@@ -568,7 +568,7 @@ export default function SubmissionMeta({
                 type="button"
                 onClick={handleSaveAddDate}
                 disabled={addDateLoading || !addDateValue || !resolveNewsletter()}
-                className="text-xs rounded bg-ui-gold-600 px-3 py-1 text-white hover:bg-ui-gold-700 disabled:opacity-50"
+                className="text-xs rounded bg-ui-gold-500 px-3 py-1 text-ui-black hover:bg-ui-gold-600 disabled:opacity-50"
               >
                 {addDateLoading ? 'Saving...' : 'Save'}
               </button>

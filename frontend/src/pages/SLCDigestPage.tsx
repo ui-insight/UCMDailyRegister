@@ -21,7 +21,7 @@ import {
 
 const CLASSIFICATION_STYLES: Record<EventClassification, string> = {
   strategic: 'bg-ui-clearwater-50 text-ui-clearwater-700 border-ui-clearwater-200',
-  signature: 'bg-ui-gold-50 text-ui-gold-700 border-ui-gold-200',
+  signature: 'bg-ui-gold-50 text-ui-gold-800 border-ui-gold-200',
 };
 
 export default function SLCDigestPage() {
@@ -292,7 +292,7 @@ function DigestEventRow({ event }: { event: DigestEvent }) {
         ) : (
           <span
             className={`font-medium ${
-              event.canceled ? 'text-gray-400 line-through' : 'text-gray-900'
+              event.canceled ? 'text-gray-600 line-through' : 'text-gray-900'
             }`}
           >
             {event.submission.Original_Headline}

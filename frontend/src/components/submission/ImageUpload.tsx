@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 
 interface Props {
   file: File | null;
@@ -6,6 +6,7 @@ interface Props {
 }
 
 export default function ImageUpload({ file, onChange }: Props) {
+  const instructionsId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [preview, setPreview] = useState<string | null>(null);
 
@@ -28,10 +29,10 @@ export default function ImageUpload({ file, onChange }: Props) {
 
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
+      <p className="block text-sm font-medium text-gray-700 mb-1">
         Image (optional)
-      </label>
-      <p className="text-xs text-gray-500 mb-2">
+      </p>
+      <p id={instructionsId} className="text-xs text-gray-500 mb-2">
         For Highlighted Events in My UI, images should be at least 600x600 pixels.
       </p>
       {preview ? (
@@ -49,22 +50,23 @@ export default function ImageUpload({ file, onChange }: Props) {
             <button
               type="button"
               onClick={handleRemove}
-              className="mt-1 text-sm text-red-600 hover:text-red-700"
+              className="mt-1 text-sm text-status-error-800 hover:text-red-700"
             >
               Remove
             </button>
           </div>
         </div>
       ) : (
-        <div
+        <button type="button" aria-describedby={instructionsId}
           onClick={() => inputRef.current?.click()}
           className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-ui-gold-400 transition-colors"
         >
-          <p className="text-sm text-gray-500">Click to upload an image</p>
-          <p className="text-xs text-gray-400 mt-1">JPG, PNG, GIF, WebP up to 10MB</p>
-        </div>
+          <span className="block text-sm text-gray-500">Choose an image</span>
+          <span className="block text-xs text-gray-600 mt-1">JPG, PNG, GIF, WebP up to 10MB</span>
+        </button>
       )}
       <input
+        aria-label="Upload announcement image"
         ref={inputRef}
         type="file"
         accept="image/*"
