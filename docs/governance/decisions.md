@@ -71,3 +71,26 @@ and a local test pass do not establish deployed enablement.
 
 See the [remediation status](remediation-2026-10-22.md) for what repository changes
 addressed and what remains dependent on these decisions.
+
+## Production SSO confirmation — October 26, 2026
+
+The project user reports that OIT approved SSO and that two UCM users successfully
+signed in to `https://ucmnews.insight.uidaho.edu` with their University credentials.
+This is user-reported production acceptance evidence for the sign-in flow; the
+previous administrator-consent blocker is resolved. The last verified production
+release is `32f0da1f06940abdb328a20e2bf59480f0cf8966`.
+
+Deployment checks for that release verified OIDC mode, Microsoft login/logout
+redirects, secure state-cookie attributes, anonymous staff-access denial, and
+rejection of the legacy shared-role headers. Authentication configuration and
+signing secrets were preserved during deployment. No credentials, tokens or
+individual identity claims are recorded here.
+
+Successful sign-in does not establish every authorization or session outcome.
+Remaining acceptance evidence includes the intended role and workflow access for
+each account, insufficient-role denial, session expiry, and complete app/Microsoft
+sign-out. Track the wider identity and authorization criteria in
+[#172](https://github.com/ui-insight/UCMDailyRegister/issues/172),
+[#256](https://github.com/ui-insight/UCMDailyRegister/issues/256), and
+[#261](https://github.com/ui-insight/UCMDailyRegister/issues/261). This entry does
+not claim broader institutional assurance approval or dev SSO enablement.
