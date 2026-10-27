@@ -84,20 +84,25 @@ describe('route helpers', () => {
     }
   });
 
-  it('slc and ops are scoped to their own pages', () => {
-    expect(roleMayOpen('slc', '/slc-calendar')).toBe(true);
+  it('keeps slc and ops out of staff pages', () => {
     expect(roleMayOpen('slc', '/dashboard')).toBe(false);
-    expect(roleMayOpen('slc', '/ops-triage')).toBe(false);
-    expect(roleMayOpen('ops', '/ops-triage')).toBe(true);
-    expect(roleMayOpen('ops', '/slc-triage')).toBe(false);
+    expect(roleMayOpen('ops', '/builder')).toBe(false);
     expect(roleMayOpen('ops', '/submit')).toBe(true);
+  });
+
+  it('treats the hidden SLC and Event Services paths as public notices', () => {
+    for (const role of ['public', 'slc', 'ops'] as const) {
+      expect(roleMayOpen(role, '/slc-calendar')).toBe(true);
+      expect(roleMayOpen(role, '/ops-triage')).toBe(true);
+    }
+    expect(pathRequiresRole('/submit-slc-event')).toBe(false);
+    expect(pathRequiresRole('/ops-triage')).toBe(false);
   });
 
   it('knows which paths need a role', () => {
     expect(pathRequiresRole('/submit')).toBe(false);
-    expect(pathRequiresRole('/submit-slc-event')).toBe(true);
     expect(pathRequiresRole('/dashboard')).toBe(true);
-    expect(pathRequiresRole('/ops-triage')).toBe(true);
+    expect(pathRequiresRole('/edit/abc')).toBe(true);
     expect(pathRequiresRole('/')).toBe(false);
   });
 
