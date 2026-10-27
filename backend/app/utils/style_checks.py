@@ -262,6 +262,12 @@ _MONTH_DAY = re.compile(
     rf"\.?\s+(?P<day>\d{{1,2}})(?:,\s*(?P<year>\d{{4}}))?\b",
     re.IGNORECASE,
 )
+# "Added Thursday to the Oct. 28 date", "Changed Tuesday to Thursday for Oct. 28"
+_WEEKDAY_ASSIGNED_TO_DATE = re.compile(
+    rf"\b(?P<weekday>{_WEEKDAY_NAME})\s+(?:to|for)\s+(?:the\s+)?"
+    rf"(?P<month>{_MONTH_NAME})\.?\s+(?P<day>\d{{1,2}})\b",
+    re.IGNORECASE,
+)
 _RELATIVE_DATE_REFERENCE = re.compile(
     r"\b(?:today|tomorrow|this\s+(?:week|month)|next\s+(?:week|month))\b",
     re.IGNORECASE,
@@ -954,33 +960,36 @@ def detect_inserted_weekday_mismatches(
 
 
 def change_contradicts_final_dates(change: str, final_text: str) -> bool:
-    """Whether a change-log entry names a weekday the final text does not use.
+    """Whether a change-log entry gives a date a weekday the final text does not.
 
-    The entry contradicts the final edit when it mentions a month and day that
-    the final text pairs with a weekday, and none of the weekdays the entry
-    names is that weekday. Entries that name no weekday are not judged.
+    Only weekdays the entry ties to a date are judged: written with it
+    ("Thursday, Oct. 28") or assigned to it ("Added Thursday to Oct. 28").
+    The entry contradicts the final edit when, for a month and day the final
+    text pairs with a weekday, none of the weekdays it ties to that date is
+    the final one. A weekday mentioned on its own, such as the one replaced,
+    is not judged.
     """
     change_text = strip_html(change)
-    named_weekdays = {
-        weekday.lower()
-        for weekday in re.findall(rf"\b(?:{_WEEKDAY_NAME})\b", change_text, re.IGNORECASE)
-    }
-    if not named_weekdays:
-        return False
+    claimed_weekdays: dict[tuple[int, int], set[str]] = {}
+    for match in _weekday_date_matches(change_text):
+        weekday, month, day = _weekday_date_key(match)
+        claimed_weekdays.setdefault((month, day), set()).add(weekday)
+    for match in _WEEKDAY_ASSIGNED_TO_DATE.finditer(change_text):
+        month = _MONTH_NUMBERS.get(match.group("month").lower().rstrip("."))
+        if month is not None:
+            claimed_weekdays.setdefault((month, int(match.group("day"))), set()).add(
+                match.group("weekday").lower()
+            )
 
     final_weekdays: dict[tuple[int, int], set[str]] = {}
     for match in _weekday_date_matches(final_text):
         weekday, month, day = _weekday_date_key(match)
         final_weekdays.setdefault((month, day), set()).add(weekday)
 
-    for match in _MONTH_DAY.finditer(change_text):
-        month = _MONTH_NUMBERS.get(match.group("month").lower().rstrip("."))
-        if month is None:
-            continue
-        final = final_weekdays.get((month, int(match.group("day"))))
-        if final and not final & named_weekdays:
-            return True
-    return False
+    return any(
+        final_weekdays.get(month_day) and not final_weekdays[month_day] & claimed
+        for month_day, claimed in claimed_weekdays.items()
+    )
 
 
 def detect_missing_near_term_weekdays(

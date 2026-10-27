@@ -606,6 +606,22 @@ class TestChangeLogDateContradictions:
         assert change_contradicts_final_dates(
             "Changed Tuesday to Thursday for Oct. 28", self.FINAL
         )
+        assert change_contradicts_final_dates(
+            "Formatted the date as Thursday, Oct. 28, 2026", self.FINAL
+        )
+
+    def test_entry_naming_only_the_replaced_weekday_is_not_judged(self):
+        assert not change_contradicts_final_dates(
+            "Corrected the weekday for the Oct. 28 event (it was listed as Thursday)",
+            self.FINAL,
+        )
+
+    def test_weekday_for_another_date_is_not_applied_to_a_final_date(self):
+        # Nov. 5, 2026 is a Thursday.
+        final = "The lecture is Wednesday, Oct. 28. Signups close Thursday, Nov. 5."
+        assert not change_contradicts_final_dates(
+            "Added Thursday to the Nov. 5 date and abbreviated Oct. 28", final
+        )
 
     def test_entry_that_includes_the_final_weekday(self):
         assert not change_contradicts_final_dates(
