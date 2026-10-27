@@ -1,0 +1,3354 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="AI-assisted newsletter production for the University of Idaho">
+      
+      
+      
+      
+        <link rel="prev" href="../../data-governance/">
+      
+      
+        <link rel="next" href="../reference-data/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
+    
+    
+      
+        <title>Data Dictionary - UCM Daily Register</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#data-dictionary" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="UCM Daily Register" class="md-header__button md-logo" aria-label="UCM Daily Register" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            UCM Daily Register
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Data Dictionary
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/ui-insight/UCMDailyRegister" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ui-insight/UCMDailyRegister
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="UCM Daily Register" class="md-nav__button md-logo" aria-label="UCM Daily Register" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    UCM Daily Register
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ui-insight/UCMDailyRegister" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ui-insight/UCMDailyRegister
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reliability Review
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reliability Review
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reliability-plan-for-product-owners-2026-09-18/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    For Editors and Product Owners
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture-review-2026-09-18/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Technical Findings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../udm-alignment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UDM Alignment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ai-editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../branding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Branding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisions
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Decisions
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/001-entra-sso/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-001 Entra SSO
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../github-enterprise-migration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GitHub Enterprise Migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data-governance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Governance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_13" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_13" id="__nav_13_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Governance Artifacts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_13_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_13">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Governance Artifacts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Dictionary
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Dictionary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#ai_edit_tasks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ai_edit_tasks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#allowed_values" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        allowed_values
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#blackout_dates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        blackout_dates
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#custom_publish_dates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        custom_publish_dates
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#edit_versions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        edit_versions
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#harvested_events" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        harvested_events
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#newsletter_external_items" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        newsletter_external_items
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#newsletter_items" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        newsletter_items
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#newsletter_sections" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        newsletter_sections
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#newsletters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        newsletters
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ops_need_assessments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ops_need_assessments
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#product_feedback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        product_feedback
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#recurring_message_issue_overrides" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        recurring_message_issue_overrides
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#recurring_messages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        recurring_messages
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#schedule_configs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        schedule_configs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#schedule_mode_overrides" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        schedule_mode_overrides
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#style_rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        style_rules
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#submission_links" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        submission_links
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#submission_schedule_requests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        submission_schedule_requests
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#submissions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        submissions
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference-data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bootstrap Reference Inventory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../retention/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Retention and Disposal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../decisions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisions and Ownership
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../remediation-2026-10-22/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Audit Remediation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../documentation-governance-audit-2026-10-22/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentation and Governance Audit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_15" >
+        
+          
+          <label class="md-nav__link" for="__nav_15" id="__nav_15_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enterprise AI Framework
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_15_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_15">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Enterprise AI Framework
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../enterprise-ai-framework/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../enterprise-ai-framework/approved-stack-evidence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Approved Stack Evidence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backup-and-recovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backup & Recovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../audit-logging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Audit Logging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../staff-action-safety/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Staff Action Safety
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="data-dictionary">Data dictionary<a class="headerlink" href="#data-dictionary" title="Permanent link">&para;</a></h1>
+<p>Generated from <code>frontend/src/data/governance-catalog.json</code>; used by the staff governance page.
+Update reviewed metadata in that file, then run <code>python scripts/check_governance.py --write</code>.</p>
+<p>Catalog review: 2026-10-24; <strong>provisional; owner classification approval pending</strong>.</p>
+<p>Labels describe default handling, not institutional classification approval. PII flags include
+incidental personal information risk; published release decisions apply to individual content.
+Retention categories are defined in <a href="../retention/">Retention and disposal</a>.</p>
+<h2 id="ai_edit_tasks"><code>ai_edit_tasks</code><a class="headerlink" href="#ai_edit_tasks" title="Permanent link">&para;</a></h2>
+<p>Durable staff-only AI edit requests, bounded execution state, restart interruption and committed response copies; source-level retention applies.</p>
+<p>Steward role: UCM editorial staff / technical operations. Source: staff / AI editing pipeline.
+Retention category: <code>submission_source</code>. Extension: Operational support.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Meaning</th>
+<th>Handling</th>
+<th>PII risk</th>
+<th>Vocabulary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Id</code></td>
+<td>Durable task UUID returned as Task_Id by the staff API.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Submission_Id</code></td>
+<td>Parent source submission; task copies are deleted with the source.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Newsletter_Type</code></td>
+<td>Publication context for this AI request.</td>
+<td>Internal</td>
+<td>No</td>
+<td>Newsletter_Type</td>
+</tr>
+<tr>
+<td><code>Editor_Instructions</code></td>
+<td>Staff-provided instructions, potentially containing unpublished copy or incidental personal data.</td>
+<td>Confidential</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Status</code></td>
+<td>Code-validated queued, running, succeeded or failed task state.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Source_Fingerprint</code></td>
+<td>SHA-256 fingerprint of source copy, category, target, notes and links for stale-result checks.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Active_Key</code></td>
+<td>Nullable unique submission/newsletter key preventing duplicate pending work.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Run_Id</code></td>
+<td>Worker attempt UUID used to prevent late invalidated attempts from saving.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Result_JSON</code></td>
+<td>Committed AI edit response including copy, links, flags, diffs and provenance; may repeat personal data.</td>
+<td>Confidential</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Error_Message</code></td>
+<td>Controlled application failure/retry message; external exception details are excluded.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Created_At</code></td>
+<td>Request acceptance timestamp in UTC.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Updated_At</code></td>
+<td>Latest task transition timestamp in UTC.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h2 id="allowed_values"><code>allowed_values</code><a class="headerlink" href="#allowed_values" title="Permanent link">&para;</a></h2>
+<p>Central governed value list for categorical fields, adapted from OpenERA AllowedValues.</p>
+<p>Steward role: UCM operations. Source: staff / system.
+Retention category: <code>configuration</code>. Extension: UDM-derived pattern.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Meaning</th>
+<th>Handling</th>
+<th>PII risk</th>
+<th>Vocabulary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Id</code></td>
+<td>UUID primary key.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Value_Group</code></td>
+<td>Vocabulary family used by API, forms, and settings.</td>
+<td>Public</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Code</code></td>
+<td>Machine-readable value within the group.</td>
+<td>Public</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Label</code></td>
+<td>Human-readable value shown in the user interface.</td>
+<td>Public</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Display_Order</code></td>
+<td>Sort order for menus and settings views.</td>
+<td>Public</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Is_Active</code></td>
+<td>Soft-disable flag for values that should no longer be selected.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Visibility_Role</code></td>
+<td>Public or staff visibility scope for submission categories.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Description</code></td>
+<td>Steward-facing explanation of the value.</td>
+<td>Public</td>
+<td>No</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h2 id="blackout_dates"><code>blackout_dates</code><a class="headerlink" href="#blackout_dates" title="Permanent link">&para;</a></h2>
+<p>Dates when one or all newsletters should not publish.</p>
+<p>Steward role: UCM editorial staff. Source: staff / system.
+Retention category: <code>configuration</code>. Extension: Communications extension.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Meaning</th>
+<th>Handling</th>
+<th>PII risk</th>
+<th>Vocabulary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Id</code></td>
+<td>UUID primary key.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Blackout_Date</code></td>
+<td>Suppressed publication date.</td>
+<td>Public</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Newsletter_Type</code></td>
+<td>Optional publication scope; null applies broadly.</td>
+<td>Public</td>
+<td>No</td>
+<td>Newsletter_Type</td>
+</tr>
+<tr>
+<td><code>Description</code></td>
+<td>Reason for the blackout.</td>
+<td>Public</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Is_Active</code></td>
+<td>Soft-disable flag.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h2 id="custom_publish_dates"><code>custom_publish_dates</code><a class="headerlink" href="#custom_publish_dates" title="Permanent link">&para;</a></h2>
+<p>Ad hoc publish dates used during winter break or other non-standard schedules.</p>
+<p>Steward role: UCM editorial staff. Source: staff / system.
+Retention category: <code>configuration</code>. Extension: Communications extension.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Meaning</th>
+<th>Handling</th>
+<th>PII risk</th>
+<th>Vocabulary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Id</code></td>
+<td>UUID primary key.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Newsletter_Type</code></td>
+<td>Publication code.</td>
+<td>Public</td>
+<td>No</td>
+<td>Newsletter_Type</td>
+</tr>
+<tr>
+<td><code>Publish_Date</code></td>
+<td>Manual issue date.</td>
+<td>Public</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Description</code></td>
+<td>Reason for the custom publish date.</td>
+<td>Internal</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Created_At</code></td>
+<td>Server creation timestamp.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h2 id="edit_versions"><code>edit_versions</code><a class="headerlink" href="#edit_versions" title="Permanent link">&para;</a></h2>
+<p>Append-only snapshots of original, AI-suggested, and editor-final copy.</p>
+<p>Steward role: UCM editorial staff. Source: AI / staff.
+Retention category: <code>submission_source</code>. Extension: Communications extension.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Meaning</th>
+<th>Handling</th>
+<th>PII risk</th>
+<th>Vocabulary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Id</code></td>
+<td>UUID primary key.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Submission_Id</code></td>
+<td>Foreign key to submissions.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Version_Type</code></td>
+<td>Editing stage represented by the snapshot.</td>
+<td>Internal</td>
+<td>No</td>
+<td>Version_Type</td>
+</tr>
+<tr>
+<td><code>Headline</code></td>
+<td>Headline text at this version.</td>
+<td>Internal</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Body</code></td>
+<td>Body text at this version.</td>
+<td>Internal</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Headline_Case</code></td>
+<td>Headline casing policy applied to this version.</td>
+<td>Internal</td>
+<td>No</td>
+<td>Headline_Case</td>
+</tr>
+<tr>
+<td><code>Flags</code></td>
+<td>JSON list of AI or rule findings.</td>
+<td>Internal</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Changes_Made</code></td>
+<td>JSON list of generated or editor-facing change summaries.</td>
+<td>Internal</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>AI_Provider</code></td>
+<td>LLM provider used for AI-generated versions.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>AI_Model</code></td>
+<td>LLM model used for AI-generated versions.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Editor_Instructions</code></td>
+<td>Free-text editor instructions passed into an edit run.</td>
+<td>Confidential</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Created_At</code></td>
+<td>Immutable version creation timestamp.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h2 id="harvested_events"><code>harvested_events</code><a class="headerlink" href="#harvested_events" title="Permanent link">&para;</a></h2>
+<p>External calendar occurrences with independent SLC and ops review lenses.</p>
+<p>Steward role: UCM and Event Services. Source: Trumba / staff.
+Retention category: <code>external_working</code>. Extension: Communications extension.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Meaning</th>
+<th>Handling</th>
+<th>PII risk</th>
+<th>Vocabulary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Id</code></td>
+<td>UUID primary key.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Source_Type</code></td>
+<td>External feed source family.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Source_Id</code></td>
+<td>External event-occurrence identifier.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Series_Id</code></td>
+<td>External repeating-series identifier.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Source_Url</code></td>
+<td>External source link; may include query parameters.</td>
+<td>Internal</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Title</code></td>
+<td>Upstream public event title; can name people.</td>
+<td>Internal</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Description</code></td>
+<td>Upstream event details; can include personal contact information.</td>
+<td>Internal</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Location</code></td>
+<td>Upstream event venue or location.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Event_Start</code></td>
+<td>Event start timestamp.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Event_End</code></td>
+<td>Optional event end timestamp.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>All_Day</code></td>
+<td>All-day occurrence indicator.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Category_Path</code></td>
+<td>Upstream category hierarchy.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Is_Canceled</code></td>
+<td>Upstream cancellation marker.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Content_Hash</code></td>
+<td>Hash of source content used to detect upstream changes.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>SLC_Review_Status</code></td>
+<td>Independent SLC triage state.</td>
+<td>Internal</td>
+<td>No</td>
+<td>SLC_Review_Status</td>
+</tr>
+<tr>
+<td><code>Ops_Review_Status</code></td>
+<td>Independent Event Services triage state.</td>
+<td>Internal</td>
+<td>No</td>
+<td>Ops_Review_Status</td>
+</tr>
+<tr>
+<td><code>Ops_Assessed_Content_Hash</code></td>
+<td>Content hash used for current ops assessment.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Upstream_Changed_At</code></td>
+<td>Time source changed after SLC flagging; cleared by SLC acknowledgment.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Ops_Upstream_Changed_At</code></td>
+<td>Time source changed after ops review; cleared independently by ops.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Promoted_Submission_Id</code></td>
+<td>SLC-only submission created by promotion; cleared if submission is deleted.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>First_Seen_At</code></td>
+<td>First harvest timestamp.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Last_Seen_At</code></td>
+<td>Most recent observation timestamp.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h2 id="newsletter_external_items"><code>newsletter_external_items</code><a class="headerlink" href="#newsletter_external_items" title="Permanent link">&para;</a></h2>
+<p>Placement of imported calendar, job, or other external content into a newsletter issue.</p>
+<p>Steward role: UCM editorial staff. Source: staff / system.
+Retention category: <code>publication_archive</code>. Extension: Communications extension.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Meaning</th>
+<th>Handling</th>
+<th>PII risk</th>
+<th>Vocabulary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Id</code></td>
+<td>UUID primary key.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Newsletter_Id</code></td>
+<td>Foreign key to newsletters.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Section_Id</code></td>
+<td>Foreign key to newsletter_sections.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Source_Type</code></td>
+<td>External source category, such as calendar_event or job_posting.</td>
+<td>Public</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Source_Id</code></td>
+<td>Source-system identifier.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Source_Url</code></td>
+<td>Source-system URL.</td>
+<td>Public</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Event_Start</code></td>
+<td>Event start timestamp where applicable.</td>
+<td>Public</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Event_End</code></td>
+<td>Event end timestamp where applicable.</td>
+<td>Public</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Location</code></td>
+<td>Event location where applicable.</td>
+<td>Public</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Position</code></td>
+<td>Ordering within the section.</td>
+<td>Public</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Final_Headline</code></td>
+<td>Final published headline.</td>
+<td>Internal</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Final_Body</code></td>
+<td>Final published body.</td>
+<td>Internal</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h2 id="newsletter_items"><code>newsletter_items</code><a class="headerlink" href="#newsletter_items" title="Permanent link">&para;</a></h2>
+<p>Placement of a finalized submission into a newsletter issue and section.</p>
+<p>Steward role: UCM editorial staff. Source: staff / system.
+Retention category: <code>publication_archive</code>. Extension: Communications extension.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Meaning</th>
+<th>Handling</th>
+<th>PII risk</th>
+<th>Vocabulary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Id</code></td>
+<td>UUID primary key.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Newsletter_Id</code></td>
+<td>Foreign key to newsletters.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Submission_Id</code></td>
+<td>Foreign key to submissions.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Section_Id</code></td>
+<td>Foreign key to newsletter_sections.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Position</code></td>
+<td>Ordering within the section.</td>
+<td>Public</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Final_Headline</code></td>
+<td>Final published headline.</td>
+<td>Internal</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Final_Body</code></td>
+<td>Final published body.</td>
+<td>Internal</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Run_Number</code></td>
+<td>Occurrence number for repeated publication.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Manually_Placed</code></td>
+<td>Staff changed section placement; automatic reassembly preserves it.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Source_Version_Id</code></td>
+<td>Edit-version reference from which issue copy was assembled.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Edition_Edited</code></td>
+<td>Staff changed issue copy; reassembly preserves the edition override.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Upstream_Reviewed_Version_Id</code></td>
+<td>Approved revision reviewed and intentionally not applied to this issue.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h2 id="newsletter_sections"><code>newsletter_sections</code><a class="headerlink" href="#newsletter_sections" title="Permanent link">&para;</a></h2>
+<p>Governed section taxonomy and layout requirements for each newsletter type.</p>
+<p>Steward role: UCM editorial staff. Source: staff / system.
+Retention category: <code>configuration</code>. Extension: Communications extension.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Meaning</th>
+<th>Handling</th>
+<th>PII risk</th>
+<th>Vocabulary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Id</code></td>
+<td>UUID primary key.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Newsletter_Type</code></td>
+<td>Publication code.</td>
+<td>Public</td>
+<td>No</td>
+<td>Newsletter_Type</td>
+</tr>
+<tr>
+<td><code>Name</code></td>
+<td>Human-readable section name.</td>
+<td>Public</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Slug</code></td>
+<td>Machine-readable section identifier.</td>
+<td>Public</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Display_Order</code></td>
+<td>Default section order.</td>
+<td>Public</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Description</code></td>
+<td>Section purpose.</td>
+<td>Public</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Requires_Image</code></td>
+<td>Whether items in the section need an image.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Image_Dimensions</code></td>
+<td>Expected image dimensions.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Is_Active</code></td>
+<td>Soft-retirement flag.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h2 id="newsletters"><code>newsletters</code><a class="headerlink" href="#newsletters" title="Permanent link">&para;</a></h2>
+<p>Dated editions of The Daily Register or My UI.</p>
+<p>Steward role: UCM editorial staff. Source: staff / system.
+Retention category: <code>publication_archive</code>. Extension: Communications extension.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Meaning</th>
+<th>Handling</th>
+<th>PII risk</th>
+<th>Vocabulary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Id</code></td>
+<td>UUID primary key.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Newsletter_Type</code></td>
+<td>Publication code.</td>
+<td>Public</td>
+<td>No</td>
+<td>Newsletter_Type</td>
+</tr>
+<tr>
+<td><code>Publish_Date</code></td>
+<td>Issue date.</td>
+<td>Public</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Status</code></td>
+<td>Issue lifecycle state.</td>
+<td>Internal</td>
+<td>No</td>
+<td>Newsletter_Status</td>
+</tr>
+<tr>
+<td><code>Created_At</code></td>
+<td>Server creation timestamp.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Updated_At</code></td>
+<td>Server update timestamp.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h2 id="ops_need_assessments"><code>ops_need_assessments</code><a class="headerlink" href="#ops_need_assessments" title="Permanent link">&para;</a></h2>
+<p>AI-suggested needs and staff verdicts for a harvested event.</p>
+<p>Steward role: Event Services. Source: AI / staff.
+Retention category: <code>external_working</code>. Extension: Communications extension.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Meaning</th>
+<th>Handling</th>
+<th>PII risk</th>
+<th>Vocabulary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Id</code></td>
+<td>UUID primary key.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Harvested_Event_Id</code></td>
+<td>Parent harvested event reference; assessment cascades on event deletion.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Need</code></td>
+<td>Operational service code.</td>
+<td>Internal</td>
+<td>No</td>
+<td>Ops_Need_Type</td>
+</tr>
+<tr>
+<td><code>Confidence</code></td>
+<td>AI confidence code; null for staff-added needs.</td>
+<td>Internal</td>
+<td>No</td>
+<td>Ops_Need_Confidence</td>
+</tr>
+<tr>
+<td><code>Rationale</code></td>
+<td>Model or staff explanation; can quote source content and contain personal information.</td>
+<td>Internal</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Verdict</code></td>
+<td>Staff judgment of the suggested need.</td>
+<td>Internal</td>
+<td>No</td>
+<td>Ops_Need_Verdict</td>
+</tr>
+<tr>
+<td><code>Source</code></td>
+<td>AI or staff origin of the assessment.</td>
+<td>Internal</td>
+<td>No</td>
+<td>Ops_Need_Source</td>
+</tr>
+<tr>
+<td><code>Created_At</code></td>
+<td>Record creation timestamp.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h2 id="product_feedback"><code>product_feedback</code><a class="headerlink" href="#product_feedback" title="Permanent link">&para;</a></h2>
+<p>User reports and diagnostic context; only staff review the queue.</p>
+<p>Steward role: UCM product support. Source: user / browser.
+Retention category: <code>feedback</code>. Extension: Operational support.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Meaning</th>
+<th>Handling</th>
+<th>PII risk</th>
+<th>Vocabulary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Id</code></td>
+<td>UUID primary key.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Feedback_Type</code></td>
+<td>Reported bug or product idea.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Summary</code></td>
+<td>User-entered short report summary; can contain incidental personal information.</td>
+<td>Confidential</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Details</code></td>
+<td>User-entered report text; can contain incidental sensitive information.</td>
+<td>Confidential</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Contact_Email</code></td>
+<td>Optional reporter email for follow-up.</td>
+<td>Confidential</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Submitter_Role</code></td>
+<td>Client-reported UI role; not an authenticated actor identity.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Route</code></td>
+<td>Reported page route; free text from client, potentially identifying.</td>
+<td>Internal</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>App_Environment</code></td>
+<td>Client-reported deployment label.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Host</code></td>
+<td>Client-reported host; operational context.</td>
+<td>Internal</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Browser</code></td>
+<td>Client-reported user agent.</td>
+<td>Internal</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Viewport</code></td>
+<td>Reported viewport dimensions.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Status</code></td>
+<td>Product-feedback workflow status.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>GitHub_URL</code></td>
+<td>Optional engineering issue reference; review sharing permissions.</td>
+<td>Internal</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>GitHub_Export_Reviewed_At</code></td>
+<td>UTC time a staff-confirmed edited export was prepared; not proof an issue was posted.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>GitHub_Export_SHA256</code></td>
+<td>Fingerprint of the exact reviewed export artifact; report originals remain unchanged.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Notification_Status</code></td>
+<td>Pending, disabled, failed or sent delivery state.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Notification_Attempts</code></td>
+<td>Number of attempted notification deliveries.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Notification_Sent_At</code></td>
+<td>Latest successful delivery time, if any.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Notification_Last_Error</code></td>
+<td>Exception class for latest delivery failure; older releases could store arbitrary error text.</td>
+<td>Confidential</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Created_At</code></td>
+<td>Record creation timestamp.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Updated_At</code></td>
+<td>Most recent record update timestamp.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h2 id="recurring_message_issue_overrides"><code>recurring_message_issue_overrides</code><a class="headerlink" href="#recurring_message_issue_overrides" title="Permanent link">&para;</a></h2>
+<p>Issue-specific exceptions, currently used to preserve skipped recurring messages.</p>
+<p>Steward role: UCM editorial staff. Source: staff / system.
+Retention category: <code>configuration</code>. Extension: Communications extension.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Meaning</th>
+<th>Handling</th>
+<th>PII risk</th>
+<th>Vocabulary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Id</code></td>
+<td>UUID primary key.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Recurring_Message_Id</code></td>
+<td>Foreign key to recurring_messages.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Newsletter_Id</code></td>
+<td>Foreign key to newsletters.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Override_Action</code></td>
+<td>Issue-level action, currently skip.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Created_At</code></td>
+<td>Server creation timestamp.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h2 id="recurring_messages"><code>recurring_messages</code><a class="headerlink" href="#recurring_messages" title="Permanent link">&para;</a></h2>
+<p>Staff-managed reusable copy surfaced on a configured cadence.</p>
+<p>Steward role: UCM editorial staff. Source: staff / system.
+Retention category: <code>configuration</code>. Extension: Communications extension.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Meaning</th>
+<th>Handling</th>
+<th>PII risk</th>
+<th>Vocabulary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Id</code></td>
+<td>UUID primary key.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Newsletter_Type</code></td>
+<td>Publication code.</td>
+<td>Public</td>
+<td>No</td>
+<td>Newsletter_Type</td>
+</tr>
+<tr>
+<td><code>Section_Id</code></td>
+<td>Foreign key to newsletter_sections.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Headline</code></td>
+<td>Reusable message headline.</td>
+<td>Internal</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Body</code></td>
+<td>Reusable message body.</td>
+<td>Internal</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Start_Date</code></td>
+<td>First eligible publish date.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Recurrence_Type</code></td>
+<td>Recurrence rule type.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Recurrence_Interval</code></td>
+<td>Interval for recurring messages.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>End_Date</code></td>
+<td>Optional final eligible date.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Excluded_Dates</code></td>
+<td>JSON list of skipped dates.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Is_Active</code></td>
+<td>Soft-disable flag.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Created_At</code></td>
+<td>Server creation timestamp.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Updated_At</code></td>
+<td>Server update timestamp.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h2 id="schedule_configs"><code>schedule_configs</code><a class="headerlink" href="#schedule_configs" title="Permanent link">&para;</a></h2>
+<p>Publication cadence and submission deadline rules by newsletter type and schedule mode.</p>
+<p>Steward role: UCM editorial staff. Source: staff / system.
+Retention category: <code>configuration</code>. Extension: Communications extension.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Meaning</th>
+<th>Handling</th>
+<th>PII risk</th>
+<th>Vocabulary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Id</code></td>
+<td>UUID primary key.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Newsletter_Type</code></td>
+<td>Publication code.</td>
+<td>Public</td>
+<td>No</td>
+<td>Newsletter_Type</td>
+</tr>
+<tr>
+<td><code>Mode</code></td>
+<td>Academic year, summer, or winter break schedule mode.</td>
+<td>Internal</td>
+<td>No</td>
+<td>Schedule_Mode</td>
+</tr>
+<tr>
+<td><code>Submission_Deadline_Description</code></td>
+<td>Human-readable deadline rule.</td>
+<td>Public</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Deadline_Day_Of_Week</code></td>
+<td>Deadline weekday used in calculations.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Deadline_Time</code></td>
+<td>Deadline time used in calculations.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Publish_Day_Of_Week</code></td>
+<td>Publish weekday where applicable.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Is_Daily</code></td>
+<td>Whether the mode publishes every weekday.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Active_Start_Month</code></td>
+<td>Month when this mode starts.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Active_End_Month</code></td>
+<td>Month when this mode ends.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Holiday_Shift_Enabled</code></td>
+<td>Whether holiday-aware shifting applies.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h2 id="schedule_mode_overrides"><code>schedule_mode_overrides</code><a class="headerlink" href="#schedule_mode_overrides" title="Permanent link">&para;</a></h2>
+<p>Manual date-range override that forces a newsletter into a configured schedule mode.</p>
+<p>Steward role: UCM editorial staff. Source: staff / system.
+Retention category: <code>configuration</code>. Extension: Communications extension.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Meaning</th>
+<th>Handling</th>
+<th>PII risk</th>
+<th>Vocabulary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Id</code></td>
+<td>UUID primary key.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Newsletter_Type</code></td>
+<td>Publication code.</td>
+<td>Public</td>
+<td>No</td>
+<td>Newsletter_Type</td>
+</tr>
+<tr>
+<td><code>Override_Mode</code></td>
+<td>Schedule mode to apply during the range.</td>
+<td>Internal</td>
+<td>No</td>
+<td>Schedule_Mode</td>
+</tr>
+<tr>
+<td><code>Start_Date</code></td>
+<td>Inclusive override start date.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>End_Date</code></td>
+<td>Inclusive override end date.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Description</code></td>
+<td>Reason for the override.</td>
+<td>Internal</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Created_At</code></td>
+<td>Server creation timestamp.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h2 id="style_rules"><code>style_rules</code><a class="headerlink" href="#style_rules" title="Permanent link">&para;</a></h2>
+<p>Database-managed style rules injected into the AI editing system prompt.</p>
+<p>Steward role: UCM editorial staff. Source: staff / system.
+Retention category: <code>configuration</code>. Extension: Communications extension.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Meaning</th>
+<th>Handling</th>
+<th>PII risk</th>
+<th>Vocabulary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Id</code></td>
+<td>UUID primary key.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Rule_Set</code></td>
+<td>Shared, TDR, or My UI rule scope.</td>
+<td>Internal</td>
+<td>No</td>
+<td>Rule_Set</td>
+</tr>
+<tr>
+<td><code>Category</code></td>
+<td>Editorial rule category.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Rule_Key</code></td>
+<td>Machine-readable rule key.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Rule_Text</code></td>
+<td>Natural-language editing instruction.</td>
+<td>Internal</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Is_Active</code></td>
+<td>Whether future AI edits should use the rule.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Severity</code></td>
+<td>Rule severity for editor attention.</td>
+<td>Internal</td>
+<td>No</td>
+<td>Severity</td>
+</tr>
+</tbody>
+</table>
+<h2 id="submission_links"><code>submission_links</code><a class="headerlink" href="#submission_links" title="Permanent link">&para;</a></h2>
+<p>Normalized hyperlinks attached to submitted content.</p>
+<p>Steward role: UCM editorial staff. Source: submitter / staff.
+Retention category: <code>submission_source</code>. Extension: Communications extension.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Meaning</th>
+<th>Handling</th>
+<th>PII risk</th>
+<th>Vocabulary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Id</code></td>
+<td>UUID primary key.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Submission_Id</code></td>
+<td>Foreign key to submissions.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Url</code></td>
+<td>Destination URL supplied with the submission.</td>
+<td>Internal</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Anchor_Text</code></td>
+<td>Optional display text for the link.</td>
+<td>Internal</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Display_Order</code></td>
+<td>Ordering of links inside the submission.</td>
+<td>Public</td>
+<td>No</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h2 id="submission_schedule_requests"><code>submission_schedule_requests</code><a class="headerlink" href="#submission_schedule_requests" title="Permanent link">&para;</a></h2>
+<p>Requested run dates, recurrence settings, flexibility notes, and skipped occurrence dates.</p>
+<p>Steward role: UCM editorial staff. Source: submitter / staff.
+Retention category: <code>submission_source</code>. Extension: Communications extension.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Meaning</th>
+<th>Handling</th>
+<th>PII risk</th>
+<th>Vocabulary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Id</code></td>
+<td>UUID primary key.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Submission_Id</code></td>
+<td>Foreign key to submissions.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Requested_Date</code></td>
+<td>Primary requested publication date.</td>
+<td>Public</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Second_Requested_Date</code></td>
+<td>Secondary requested date when an item targets both newsletters.</td>
+<td>Public</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Repeat_Count</code></td>
+<td>Legacy number of requested runs.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Repeat_Note</code></td>
+<td>Legacy free-text repeat instructions.</td>
+<td>Confidential</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Is_Flexible</code></td>
+<td>Whether editors may choose an alternate date.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Flexible_Deadline</code></td>
+<td>Optional text describing the latest flexible publication deadline.</td>
+<td>Confidential</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Recurrence_Type</code></td>
+<td>Recurrence rule type for repeated runs.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Recurrence_Interval</code></td>
+<td>Interval for recurring requests.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Recurrence_End_Date</code></td>
+<td>End date for recurrence expansion.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Excluded_Dates</code></td>
+<td>JSON list of skipped or rescheduled occurrence dates.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<h2 id="submissions"><code>submissions</code><a class="headerlink" href="#submissions" title="Permanent link">&para;</a></h2>
+<p>Submitted newsletter or SLC event content with workflow, submitter, image, and routing metadata.</p>
+<p>Steward role: UCM editorial staff. Source: submitter / staff.
+Retention category: <code>submission_source</code>. Extension: Communications extension.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Meaning</th>
+<th>Handling</th>
+<th>PII risk</th>
+<th>Vocabulary</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Id</code></td>
+<td>UUID primary key.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Category</code></td>
+<td>Content category code.</td>
+<td>Public</td>
+<td>No</td>
+<td>Submission_Category</td>
+</tr>
+<tr>
+<td><code>Target_Newsletter</code></td>
+<td>Publication routing code: TDR, My UI, both, or SLC-only none.</td>
+<td>Public</td>
+<td>No</td>
+<td>Target_Newsletter</td>
+</tr>
+<tr>
+<td><code>Original_Headline</code></td>
+<td>Submitted headline text.</td>
+<td>Internal</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Original_Body</code></td>
+<td>Submitted body text.</td>
+<td>Internal</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Submitter_Name</code></td>
+<td>Submitter contact name.</td>
+<td>Confidential</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Submitter_Email</code></td>
+<td>Submitter contact email.</td>
+<td>Confidential</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Submitter_Notes</code></td>
+<td>Free-text instructions from submitter; may contain incidental PII.</td>
+<td>Confidential</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Assigned_Editor</code></td>
+<td>Staff owner for editorial follow-up.</td>
+<td>Internal</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Editorial_Notes</code></td>
+<td>Staff-only editorial notes; may contain incidental PII.</td>
+<td>Confidential</td>
+<td>Yes</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Has_Image</code></td>
+<td>Whether an uploaded image is attached.</td>
+<td>Public</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Image_Path</code></td>
+<td>Server-side image path using UUID naming.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Survey_End_Date</code></td>
+<td>Optional survey close date used for survey handling.</td>
+<td>Public</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Status</code></td>
+<td>Editorial workflow state.</td>
+<td>Internal</td>
+<td>No</td>
+<td>Submission_Status</td>
+</tr>
+<tr>
+<td><code>Show_In_SLC_Calendar</code></td>
+<td>Whether the submission appears in the SLC calendar feed.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Event_Classification</code></td>
+<td>Strategic or signature event label for SLC visibility.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Approved_Version_Id</code></td>
+<td>Explicit approved edit-version reference; cleared when a later draft is saved.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Created_At</code></td>
+<td>Server creation timestamp.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Updated_At</code></td>
+<td>Server update timestamp.</td>
+<td>Internal</td>
+<td>No</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.c21346df.min.js"></script>
+      
+    
+  </body>
+</html>
