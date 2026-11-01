@@ -1,10 +1,9 @@
-import { ApiError } from '../../api/client';
 import FieldError from '../common/FieldError';
 import { addFieldError, collectFormErrors, fieldErrorProps, type FieldErrors } from '../../utils/formValidation';
 import PrivacyNotice from './PrivacyNotice';
 import { useEffect, useRef, useState } from 'react';
 import { listAllowedValues } from '../../api/allowedValues';
-import type { SubmissionCategory, TargetNewsletter, SubmissionCreate } from '../../types/submission';
+import type { SubmissionCategory, TargetNewsletter } from '../../types/submission';
 import type { AllowedValue } from '../../types/allowedValue';
 import { createSubmission } from '../../api/submissions';
 import { getValidDates } from '../../api/schedule';
@@ -20,6 +19,13 @@ import CategorySelect from './CategorySelect';
 import NewsletterTargetSelect from './NewsletterTargetSelect';
 import LinkEditor from './LinkEditor';
 import SchedulePrefs from './SchedulePrefs';
+import {
+  buildSubmissionPayload,
+  mapServerFieldErrors,
+  resolveNewsletterTargets,
+  type LinkEntry,
+  type ScheduleEntry,
+} from './submissionPayload';
 
 /**
  * Public categories filtered by target newsletter. Staff-visibility
@@ -42,23 +48,6 @@ const PUBLIC_TDR_ONLY_CATEGORY_CODES = new Set([
   'job_opportunity',
   'kudos',
 ]);
-
-interface LinkEntry {
-  Url: string;
-  Anchor_Text: string;
-}
-
-interface ScheduleEntry {
-  Requested_Date: string;
-  Second_Requested_Date: string;
-  Repeat_Count: number;
-  Repeat_Note: string;
-  Is_Flexible: boolean;
-  Flexible_Deadline: string;
-  Recurrence_Type: 'once' | 'weekly' | 'monthly_date' | 'monthly_nth_weekday' | 'date_range';
-  Recurrence_Interval: number;
-  Recurrence_End_Date: string;
-}
 
 const FALLBACK_CATEGORIES: AllowedValue[] = [
   {
@@ -185,15 +174,16 @@ export default function SubmissionForm() {
   }, [validationAttempt]);
   const isJobOpportunity = category === 'job_opportunity';
   const isPublicFacultyStaffFlow = !isStaff && category === 'faculty_staff';
-  const effectiveTargetNewsletter: TargetNewsletter = isJobOpportunity
-    ? 'tdr'
-    : isPublicFacultyStaffFlow
-      ? alsoPublishInStudentNewsletter ? 'both' : 'tdr'
-      : targetNewsletter;
-  const scheduleTargetNewsletter: TargetNewsletter = isPublicFacultyStaffFlow
-    && alsoPublishInStudentNewsletter
-      ? 'tdr'
-      : effectiveTargetNewsletter;
+  const {
+    combinesStudentDates,
+    effectiveTargetNewsletter,
+    scheduleTargetNewsletter,
+  } = resolveNewsletterTargets({
+    isJobOpportunity,
+    isPublicFacultyStaffFlow,
+    alsoPublishInStudentNewsletter,
+    targetNewsletter,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -428,9 +418,10 @@ export default function SubmissionForm() {
     const form = e.currentTarget as HTMLFormElement;
     const problems = collectFormErrors(form);
     const primaryDateId = scheduleTargetNewsletter === 'both' ? 'submission-tdr-run-date' : 'submission-preferred-run-date';
+    const secondDateId = scheduleTargetNewsletter === 'both' ? 'submission-myui-run-date' : 'submission-second-run-date';
     if (hasDateError()) addFieldError(problems, form, primaryDateId, 'Please select a valid run date for the chosen newsletter.');
     const secondDateError = getSecondDateError();
-    if (secondDateError) addFieldError(problems, form, scheduleTargetNewsletter === 'both' ? 'submission-myui-run-date' : 'submission-second-run-date', secondDateError);
+    if (secondDateError) addFieldError(problems, form, secondDateId, secondDateError);
     if (alsoPublishInStudentNewsletter) {
       preferredStudentDates.forEach((date, index) => {
         const message = getStudentDateError(date);
@@ -453,81 +444,27 @@ export default function SubmissionForm() {
     setSuccess(false);
 
     try {
-      const isJob = isJobOpportunity;
-
-      // For jobs, compose headline/body/links from structured fields
-      const jobAnchorText = [jobTitle, jobDepartment, jobLocation].filter(Boolean).join(', ');
-      const jobBodyParts = [
-        jobDepartment ? `Department: ${jobDepartment}.` : null,
-        jobLocation ? `Location: ${jobLocation}.` : null,
-        'Apply using the linked posting.',
-      ].filter(Boolean);
-      const effectiveHeadline = isJob ? jobTitle : headline;
-      const effectiveBody = isJob ? jobBodyParts.join(' ') : body;
-      const effectiveLinks = isJob
-        ? (jobUrl.trim() ? [{ Url: jobUrl, Anchor_Text: jobAnchorText || undefined }] : [])
-        : links.filter((l) => l.Url.trim()).map((l) => ({ Url: l.Url, Anchor_Text: l.Anchor_Text || undefined }));
-
-      const baseScheduleRequest = {
-        Repeat_Note: schedule.Repeat_Note || undefined,
-        Is_Flexible: schedule.Is_Flexible || undefined,
-        Flexible_Deadline: schedule.Flexible_Deadline || undefined,
-        Recurrence_Type: isStaff ? schedule.Recurrence_Type : 'once' as const,
-        Recurrence_Interval: isStaff ? schedule.Recurrence_Interval : 1,
-        Recurrence_End_Date: isStaff ? schedule.Recurrence_End_Date || undefined : undefined,
-      };
-      const tdrDates = [
-        schedule.Requested_Date,
-        ...(schedule.Repeat_Count >= 2 && schedule.Second_Requested_Date
-          ? [schedule.Second_Requested_Date]
-          : []),
-      ];
-      const combinedScheduleCount = Math.max(tdrDates.length, preferredStudentDates.length);
-      const scheduleRequests: NonNullable<SubmissionCreate['Schedule_Requests']> =
-        isJob
-          ? [{
-              ...baseScheduleRequest,
-              Requested_Date: schedule.Requested_Date,
-              Second_Requested_Date: undefined,
-              Repeat_Count: 1,
-              Recurrence_Type: 'date_range',
-              Recurrence_Interval: 1,
-              Recurrence_End_Date: jobRemoveDate || (
-                schedule.Requested_Date
-                  ? addDaysToISODate(schedule.Requested_Date, 13)
-                  : undefined
-              ),
-            }]
-          : isPublicFacultyStaffFlow && alsoPublishInStudentNewsletter
-          ? Array.from({ length: combinedScheduleCount }, (_, index) => ({
-              ...baseScheduleRequest,
-              Requested_Date: tdrDates[index] ?? tdrDates[0],
-              Second_Requested_Date: preferredStudentDates[index] || undefined,
-              Repeat_Count: 1,
-            }))
-          : [
-              {
-                ...baseScheduleRequest,
-                Requested_Date: schedule.Requested_Date,
-                Second_Requested_Date: schedule.Second_Requested_Date || undefined,
-                Repeat_Count: schedule.Repeat_Count,
-              },
-            ];
-
-      const data: SubmissionCreate = {
-        Category: category,
-        Target_Newsletter: effectiveTargetNewsletter,
-        Original_Headline: effectiveHeadline,
-        Original_Body: effectiveBody,
-        Submitter_Name: submitterName,
-        Submitter_Email: submitterEmail,
-        Submitter_Notes: notes || undefined,
-        Survey_End_Date: category === 'survey' && surveyEndDate ? surveyEndDate : undefined,
-        Links: effectiveLinks,
-        Schedule_Requests: scheduleRequests,
-      };
-
-      await createSubmission(data);
+      await createSubmission(buildSubmissionPayload({
+        category,
+        targetNewsletter: effectiveTargetNewsletter,
+        headline,
+        body,
+        submitterName,
+        submitterEmail,
+        notes,
+        surveyEndDate,
+        links,
+        schedule,
+        preferredStudentDates,
+        isStaff,
+        combinesStudentDates,
+        isJobOpportunity,
+        jobUrl,
+        jobTitle,
+        jobDepartment,
+        jobLocation,
+        jobRemoveDate,
+      }));
 
       setSuccess(true);
       // Reset form
@@ -557,37 +494,13 @@ export default function SubmissionForm() {
         Recurrence_End_Date: '',
       });
     } catch (err) {
-      const serverProblems: FieldErrors = {};
-      if (err instanceof ApiError && err.status === 422 && Array.isArray(err.detail)) {
-        const fields: Record<string, string> = {
-          Original_Headline: isJobOpportunity ? 'submission-job-title' : 'submission-headline',
-          Original_Body: 'submission-body', Submitter_Name: 'submission-submitter-name',
-          Submitter_Email: 'submission-submitter-email', Survey_End_Date: 'submission-survey-end-date',
-        };
-        for (const problem of err.detail) {
-          if (!problem || !Array.isArray(problem.loc) || typeof problem.msg !== 'string') continue;
-          const location = problem.loc.filter((part: unknown) => part !== 'body');
-          let id = fields[String(location[0])];
-          if (location[0] === 'Links' && typeof location[1] === 'number') {
-            const slot = links.map((link, index) => ({ link, index }))
-              .filter(({ link }) => link.Url.trim())[location[1]];
-            const part = location.at(-1) === 'Anchor_Text' ? 'anchor' : 'url';
-            id = isJobOpportunity ? 'submission-job-url' : slot ? `submission-link-${slot.index}-${part}` : '';
-          }
-          if (location[0] === 'Schedule_Requests') {
-            const scheduleFields: Record<string, string> = {
-              Requested_Date: primaryDateId,
-              Second_Requested_Date: isPublicFacultyStaffFlow && alsoPublishInStudentNewsletter
-                ? `submission-student-date-${location[1]}`
-                : scheduleTargetNewsletter === 'both' ? 'submission-myui-run-date' : 'submission-second-run-date',
-              Recurrence_End_Date: 'submission-recurrence-end-date',
-              Recurrence_Interval: 'submission-recurrence-interval',
-            };
-            id = scheduleFields[String(location.at(-1))];
-          }
-          if (id) addFieldError(serverProblems, form, id, problem.msg);
-        }
-      }
+      const serverProblems = mapServerFieldErrors(err, form, {
+        isJobOpportunity,
+        combinesStudentDates,
+        links,
+        primaryDateId,
+        secondDateId,
+      });
       if (Object.keys(serverProblems).length) {
         setFieldErrors(serverProblems);
         setValidationAttempt((attempt) => attempt + 1);

@@ -71,25 +71,14 @@ function getMinDate(): string {
   return addDaysISO(1);
 }
 
-export default function SchedulePrefs({
-  errors = {},
+function getScheduleErrors({
+  errors,
   schedule,
-  onChange,
   targetNewsletter,
   validDates,
   secondaryValidDates,
-  showRecurrenceControls = false,
-  showRepeatCount = true,
-  heading = 'Scheduling Preferences',
-  preferredDateLabel = 'Preferred run date',
-  secondDateLabel = 'Second run date',
-}: Props) {
-  const update = (field: keyof ScheduleEntry, value: string | number | boolean) => {
-    onChange({ ...schedule, [field]: value });
-  };
-
+}: Pick<Props, 'schedule' | 'targetNewsletter' | 'validDates' | 'secondaryValidDates'> & { errors: FieldErrors }) {
   const isBoth = targetNewsletter === 'both';
-
   const primaryId = isBoth ? 'submission-tdr-run-date' : 'submission-preferred-run-date';
   const secondaryId = isBoth ? 'submission-myui-run-date' : 'submission-second-run-date';
   const dateError = errors[primaryId]?.message ?? (isBoth
@@ -109,6 +98,86 @@ export default function SchedulePrefs({
       ? 'End date cannot be before the first run date.'
       : null);
 
+  return { dateError, secondDateError, recurrenceEndError };
+}
+
+interface DateFieldProps {
+  id: string;
+  label: string;
+  value: string;
+  error: string | null;
+  hint: string;
+  min: string;
+  required?: boolean;
+  widthClassName?: string;
+  onChange: (value: string) => void;
+}
+
+function DateField({
+  id,
+  label,
+  value,
+  error,
+  hint,
+  min,
+  required = false,
+  widthClassName = 'w-full',
+  onChange,
+}: DateFieldProps) {
+  return (
+    <>
+      <label htmlFor={id} className="block text-xs text-gray-500 mb-1">
+        {label}
+      </label>
+      <input
+        id={id}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={[error ? `${id}-error` : '', `${id}-hint`].filter(Boolean).join(' ')}
+        type="date"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        required={required}
+        min={min}
+        className={`${widthClassName} rounded-md border px-3 py-2 text-sm focus:ring-1 ${
+          error
+            ? 'border-red-400 focus:border-red-500 focus:ring-red-500'
+            : 'border-gray-300 focus:border-ui-gold-500 focus:ring-ui-gold-500'
+        }`}
+      />
+      {error && (
+        <p id={`${id}-error`} className="text-xs text-status-error-800 mt-1">{error}</p>
+      )}
+      <p id={`${id}-hint`} className="text-xs text-gray-600 mt-1">{hint}</p>
+    </>
+  );
+}
+
+export default function SchedulePrefs({
+  errors = {},
+  schedule,
+  onChange,
+  targetNewsletter,
+  validDates,
+  secondaryValidDates,
+  showRecurrenceControls = false,
+  showRepeatCount = true,
+  heading = 'Scheduling Preferences',
+  preferredDateLabel = 'Preferred run date',
+  secondDateLabel = 'Second run date',
+}: Props) {
+  const update = (field: keyof ScheduleEntry, value: string | number | boolean) => {
+    onChange({ ...schedule, [field]: value });
+  };
+
+  const isBoth = targetNewsletter === 'both';
+  const { dateError, secondDateError, recurrenceEndError } = getScheduleErrors({
+    errors,
+    schedule,
+    targetNewsletter,
+    validDates,
+    secondaryValidDates,
+  });
+
   return (
     <div>
       <p className="block text-sm font-medium text-gray-700 mb-2">
@@ -120,58 +189,28 @@ export default function SchedulePrefs({
         <div className="space-y-3">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label
-                htmlFor="submission-tdr-run-date"
-                className="block text-xs text-gray-500 mb-1"
-              >
-                Daily Register run date (Mon–Fri)
-              </label>
-              <input
+              <DateField
                 id="submission-tdr-run-date"
-                aria-invalid={dateError ? true : undefined}
-                aria-describedby={[dateError ? 'submission-tdr-run-date-error' : '', 'submission-tdr-run-date-hint'].filter(Boolean).join(' ')}
-                type="date"
+                label="Daily Register run date (Mon–Fri)"
                 value={schedule.Requested_Date}
-                onChange={(e) => update('Requested_Date', e.target.value)}
-                required
+                error={dateError}
+                hint="Weekdays only"
                 min={getMinDate()}
-                className={`w-full rounded-md border px-3 py-2 text-sm focus:ring-1 ${
-                  dateError
-                    ? 'border-red-400 focus:border-red-500 focus:ring-red-500'
-                    : 'border-gray-300 focus:border-ui-gold-500 focus:ring-ui-gold-500'
-                }`}
+                required
+                onChange={(value) => update('Requested_Date', value)}
               />
-              {dateError && (
-                <p id="submission-tdr-run-date-error" className="text-xs text-status-error-800 mt-1">{dateError}</p>
-              )}
-              <p id="submission-tdr-run-date-hint" className="text-xs text-gray-600 mt-1">Weekdays only</p>
             </div>
             <div>
-              <label
-                htmlFor="submission-myui-run-date"
-                className="block text-xs text-gray-500 mb-1"
-              >
-                My UI run date (Mondays only)
-              </label>
-              <input
+              <DateField
                 id="submission-myui-run-date"
-                aria-invalid={secondDateError ? true : undefined}
-                aria-describedby={[secondDateError ? 'submission-myui-run-date-error' : '', 'submission-myui-run-date-hint'].filter(Boolean).join(' ')}
-                type="date"
+                label="My UI run date (Mondays only)"
                 value={schedule.Second_Requested_Date}
-                onChange={(e) => update('Second_Requested_Date', e.target.value)}
-                required
+                error={secondDateError}
+                hint="Mondays only"
                 min={getMinDate()}
-                className={`w-full rounded-md border px-3 py-2 text-sm focus:ring-1 ${
-                  secondDateError
-                    ? 'border-red-400 focus:border-red-500 focus:ring-red-500'
-                    : 'border-gray-300 focus:border-ui-gold-500 focus:ring-ui-gold-500'
-                }`}
+                required
+                onChange={(value) => update('Second_Requested_Date', value)}
               />
-              {secondDateError && (
-                <p id="submission-myui-run-date-error" className="text-xs text-status-error-800 mt-1">{secondDateError}</p>
-              )}
-              <p id="submission-myui-run-date-hint" className="text-xs text-gray-600 mt-1">Mondays only</p>
             </div>
           </div>
           <p className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-md px-3 py-2">
@@ -183,37 +222,20 @@ export default function SchedulePrefs({
         <>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label
-                htmlFor="submission-preferred-run-date"
-                className="block text-xs text-gray-500 mb-1"
-              >
-                {preferredDateLabel}
-              </label>
-              <input
+              <DateField
                 id="submission-preferred-run-date"
-                aria-invalid={dateError ? true : undefined}
-                aria-describedby={[dateError ? 'submission-preferred-run-date-error' : '', 'submission-preferred-run-date-hint'].filter(Boolean).join(' ')}
-                type="date"
+                label={preferredDateLabel}
                 value={schedule.Requested_Date}
-                onChange={(e) => update('Requested_Date', e.target.value)}
-                required
-                min={getMinDate()}
-                className={`w-full rounded-md border px-3 py-2 text-sm focus:ring-1 ${
-                  dateError
-                    ? 'border-red-400 focus:border-red-500 focus:ring-red-500'
-                    : 'border-gray-300 focus:border-ui-gold-500 focus:ring-ui-gold-500'
-                }`}
-              />
-              {dateError && (
-                <p id="submission-preferred-run-date-error" className="text-xs text-status-error-800 mt-1">{dateError}</p>
-              )}
-              <p id="submission-preferred-run-date-hint" className="text-xs text-gray-600 mt-1">
-                {validDates
+                error={dateError}
+                hint={validDates
                   ? 'Select a valid publication date'
                   : targetNewsletter === 'myui'
                     ? 'My UI publishes Mondays only'
                     : 'Mon–Fri only'}
-              </p>
+                min={getMinDate()}
+                required
+                onChange={(value) => update('Requested_Date', value)}
+              />
             </div>
             {showRepeatCount && <div>
               <label
@@ -236,32 +258,16 @@ export default function SchedulePrefs({
           </div>
           {showRepeatCount && schedule.Repeat_Count >= 2 && (
             <div className="mt-3">
-              <label
-                htmlFor="submission-second-run-date"
-                className="block text-xs text-gray-500 mb-1"
-              >
-                {secondDateLabel}
-              </label>
-              <input
+              <DateField
                 id="submission-second-run-date"
-                aria-invalid={secondDateError ? true : undefined}
-                aria-describedby={[secondDateError ? 'submission-second-run-date-error' : '', 'submission-second-run-date-hint'].filter(Boolean).join(' ')}
-                type="date"
+                label={secondDateLabel}
                 value={schedule.Second_Requested_Date}
-                onChange={(e) => update('Second_Requested_Date', e.target.value)}
+                error={secondDateError}
+                hint="Select the date for the second run. Must be after the first run date."
                 min={schedule.Requested_Date || getMinDate()}
-                className={`w-full max-w-xs rounded-md border px-3 py-2 text-sm focus:ring-1 ${
-                  secondDateError
-                    ? 'border-red-400 focus:border-red-500 focus:ring-red-500'
-                    : 'border-gray-300 focus:border-ui-gold-500 focus:ring-ui-gold-500'
-                }`}
+                widthClassName="w-full max-w-xs"
+                onChange={(value) => update('Second_Requested_Date', value)}
               />
-              {secondDateError && (
-                <p id="submission-second-run-date-error" className="text-xs text-status-error-800 mt-1">{secondDateError}</p>
-              )}
-              <p id="submission-second-run-date-hint" className="text-xs text-gray-600 mt-1">
-                Select the date for the second run. Must be after the first run date.
-              </p>
             </div>
           )}
         </>

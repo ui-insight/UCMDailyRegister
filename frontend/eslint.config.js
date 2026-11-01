@@ -12,10 +12,10 @@ const MAX_COMPLEXITY = 20
 const COMPLEXITY_CAPS = {
   'src/pages/EditPage.tsx': 75,
   'src/pages/BuilderPage.tsx': 44,
-  'src/components/submission/SchedulePrefs.tsx': 38,
-  'src/components/submission/SubmissionForm.tsx': 38,
+  'src/components/submission/SubmissionForm.tsx': 36,
   'src/components/editor/SubmissionMeta.tsx': 34,
   'src/components/editor/AIEditControls.tsx': 25,
+  'src/components/submission/SchedulePrefs.tsx': 25,
 }
 
 export default defineConfig([
