@@ -235,7 +235,16 @@ describe('DashboardPage', () => {
 
     expect(await screen.findByText('Network is unavailable')).toBeInTheDocument();
     expect(screen.getByLabelText('Status')).toBeInTheDocument();
-    expect(screen.getByLabelText('Category')).toBeInTheDocument();
+    const categoryOptions = Array.from(
+      screen.getByLabelText<HTMLSelectElement>('Category').options,
+    ).map((option) => option.value);
+    expect(categoryOptions).toEqual(expect.arrayContaining([
+      'employee_announcement',
+      'survey',
+      'ucm_feature_story',
+    ]));
+    expect(categoryOptions).not.toContain('slc_event');
+    expect(categoryOptions).not.toContain('calendar_event');
     expect(screen.getByLabelText('Newsletter')).toBeInTheDocument();
   });
 

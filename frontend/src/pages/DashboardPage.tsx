@@ -35,15 +35,23 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
+  employee_announcement: 'Employee',
   faculty_staff: 'Faculty/Staff',
   student: 'Student',
   job_opportunity: 'Job Opportunity',
   kudos: 'Kudos',
   in_memoriam: 'In Memoriam',
+  survey: 'Survey',
   news_release: 'News Release',
+  ucm_feature_story: 'UCM Feature Story',
   calendar_event: 'Calendar Event',
   slc_event: 'SLC Event',
 };
+
+// Still labeled for any older rows, but no longer submitted, so not filterable.
+const UNFILTERABLE_CATEGORIES = new Set(['calendar_event', 'slc_event']);
+const CATEGORY_FILTER_OPTIONS = Object.entries(CATEGORY_LABELS)
+  .filter(([code]) => !UNFILTERABLE_CATEGORIES.has(code));
 
 const NEWSLETTER_LABELS: Record<string, string> = {
   tdr: 'TDR',
@@ -247,7 +255,7 @@ export default function DashboardPage() {
               className="rounded-md border border-gray-300 px-3 py-2 text-sm"
             >
               <option value="">All</option>
-              {Object.entries(CATEGORY_LABELS).map(([val, label]) => (
+              {CATEGORY_FILTER_OPTIONS.map(([val, label]) => (
                 <option key={val} value={val}>{label}</option>
               ))}
             </select>
