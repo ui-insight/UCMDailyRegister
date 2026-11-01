@@ -257,7 +257,7 @@ class AIEditor:
 
         return flags
 
-    def post_analyze(
+    def post_analyze(  # noqa: C901
         self,
         headline: str,
         body: str,

@@ -340,7 +340,7 @@ def _is_blacked_out(
     return False
 
 
-async def get_valid_publication_dates(
+async def get_valid_publication_dates(  # noqa: C901
     db: AsyncSession,
     from_date: date,
     to_date: date,
