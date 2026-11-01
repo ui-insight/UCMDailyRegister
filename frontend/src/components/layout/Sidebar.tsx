@@ -59,8 +59,7 @@ export default function Sidebar() {
         />
         <p className="text-xs text-gray-400">UCM Newsletter Builder</p>
         <div className="mt-4 rounded-lg border border-gray-700 bg-gray-800/80 px-3 py-2">
-          <p className="text-[11px] uppercase tracking-wide text-gray-400">Current Mode</p>
-          <p className="mt-1 text-sm font-medium text-white">
+          <p className="text-sm font-medium text-white">
             {ROLE_LABEL[role]}
           </p>
           {identity ? (
@@ -84,7 +83,7 @@ export default function Sidebar() {
               to="/"
               className="mt-2 inline-flex text-xs font-medium text-ui-gold-300 hover:text-ui-gold-200"
             >
-              Switch mode
+              UCM News home
             </NavLink>
           )}
           <button

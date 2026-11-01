@@ -28,9 +28,10 @@ import {
 } from './submissionPayload';
 
 /**
- * Public categories filtered by target newsletter. Staff-visibility
- * categories (e.g., news_release, ucm_feature_story) bypass this
- * filter — the backend authorizes staff-only fields via the trusted auth boundary.
+ * Categories offered to staff for each target newsletter; `Visibility_Role`
+ * "staff" categories bypass this filter. Public submitters see every category
+ * marked "public", which includes news_release and ucm_feature_story so UCM
+ * writers can submit them without dashboard access (#69).
  */
 const NEWSLETTER_CATEGORY_CODES: Record<TargetNewsletter, Set<string>> = {
   myui: new Set(['student', 'survey']),
