@@ -210,8 +210,9 @@ async def list_submissions(
             status_code=403,
             detail="SLC calendar events are only visible to authorized viewers.",
         )
-    # Viewers without staff/slc access never see SLC-only submissions.
-    exclude_slc_only = submission_role not in ("staff", "slc")
+    # SLC-only submissions appear only in the SLC calendar feed. The SLC tools
+    # are hidden from UCM News, so the staff listing leaves them out as well.
+    exclude_slc_only = not slc_calendar_only
     items, total = await submission_service.list_submissions(
         db, status=status, category=category, target_newsletter=target_newsletter,
         search=search, date_from=date_from, date_to=date_to,

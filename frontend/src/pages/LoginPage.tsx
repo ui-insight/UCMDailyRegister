@@ -73,9 +73,9 @@ function CheckIcon() {
 }
 
 const WORKSPACES = [
-  { name: 'Editor tools', detail: 'Dashboard, builder, style rules, scheduling' },
-  { name: 'SLC Leadership', detail: 'Strategic and signature events calendar' },
-  { name: 'Event Services', detail: 'Operational triage for upcoming events' },
+  { name: 'Dashboard', detail: 'Review, edit, and approve incoming submissions' },
+  { name: 'Builder', detail: 'Assemble each edition of The Daily Register and My UI' },
+  { name: 'Style rules and scheduling', detail: 'House style, sections, and the publication calendar' },
 ];
 
 const PRIMARY_BUTTON =
@@ -91,7 +91,7 @@ const SECONDARY_BUTTON =
   + 'focus-visible:ring-offset-2';
 
 /**
- * Sign-in entry for the Staff, SLC, and Event Services views.
+ * Sign-in entry for the UCM staff workspace.
  *
  * The password is never entered here. The optional email field is forwarded
  * to Microsoft as a `login_hint`, so the University sign-in page opens with
@@ -100,7 +100,7 @@ const SECONDARY_BUTTON =
  * they were headed once Entra returns.
  *
  * Reached only when SSO is on: under the trusted-header deployment the
- * landing page cards go straight to their views, as they always have.
+ * landing page's staff link goes straight to the dashboard.
  */
 export default function LoginPage() {
   const ssoEnabled = useSsoEnabled();
@@ -181,8 +181,8 @@ export default function LoginPage() {
             The Daily Register and My UI, produced in one place.
           </h2>
           <p className="mt-4 max-w-md text-sm leading-relaxed text-gray-300">
-            Sign in with your University account to reach the workspace your role grants.
-            Campus submitters don't need an account; they use the public submission form.
+            UCM staff sign in with a University account. Campus submitters don't need an
+            account; they use the public submission form.
           </p>
           <ul className="mt-10 space-y-4">
             {WORKSPACES.map((workspace) => (

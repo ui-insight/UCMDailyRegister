@@ -7,6 +7,7 @@ import {
   addDaysISO,
   addDaysToISODate,
   addMonthsISO,
+  formatAPDate,
 } from './date';
 
 afterEach(() => {
@@ -68,5 +69,27 @@ describe('parseAPIDateTime', () => {
     expect(parseAPIDateTime('2026-08-05T09:20:28.935-07:00').toISOString()).toBe(
       '2026-08-05T16:20:28.935Z',
     );
+  });
+});
+
+describe('formatAPDate', () => {
+  it('uses the AP label for every month', () => {
+    const labels = Array.from({ length: 12 }, (_, i) =>
+      formatAPDate(`2026-${String(i + 1).padStart(2, '0')}-15`).split(', ')[1].replace(/ 15$/, ''),
+    );
+    expect(labels).toEqual([
+      'Jan.', 'Feb.', 'March', 'April', 'May', 'June',
+      'July', 'Aug.', 'Sept.', 'Oct.', 'Nov.', 'Dec.',
+    ]);
+  });
+
+  it('keeps the local weekday and calendar date', () => {
+    expect(formatAPDate('2026-10-28')).toBe('Wednesday, Oct. 28, 2026');
+    expect(formatAPDate('2026-09-01')).toBe('Tuesday, Sept. 1, 2026');
+  });
+
+  it('crosses year boundaries without shifting the date', () => {
+    expect(formatAPDate('2026-12-31')).toBe('Thursday, Dec. 31, 2026');
+    expect(formatAPDate('2027-01-01')).toBe('Friday, Jan. 1, 2027');
   });
 });

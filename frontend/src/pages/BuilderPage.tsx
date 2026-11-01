@@ -39,7 +39,7 @@ import {
   prepareBodyForEditing,
   type EditableBodyLink,
 } from '../utils/bodyLinks';
-import { parseISODate, todayISO, toISODate } from '../utils/date';
+import { formatAPDate, parseISODate, todayISO, toISODate } from '../utils/date';
 
 const ACADEMIC_DATES_SOURCE_URL = 'https://www.uidaho.edu/registrar/dates-deadlines';
 const ACADEMIC_DATES_WINDOW_DAYS = 30;
@@ -1274,12 +1274,7 @@ export default function BuilderPage() {
                     {newsletterType === 'tdr' ? 'The Daily Register' : 'My UI'}
                   </h3>
                   <p className="text-sm text-gray-500">
-                    {parseISODate(newsletter.Publish_Date).toLocaleDateString('en-US', {
-                      weekday: 'long',
-                      year: 'numeric',
-                      month: 'long',
-                      day: 'numeric',
-                    })}
+                    {formatAPDate(newsletter.Publish_Date)}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">

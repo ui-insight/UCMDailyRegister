@@ -55,6 +55,15 @@ Optional frontend-only Vite settings, such as `VITE_APP_ENV`, can be placed in
 the same values from the project-level environment file and pass them into the
 frontend build.
 
+Every page displays a persistent environment banner, including the sign-in
+page. Browser tabs use `[DEV]`, `[PROD]`, or `[LOCAL]` titles. Development and
+production store separate work; the development banner links to production.
+The two deployed hostnames determine both the visible label and feedback
+environment metadata, even when a production frontend build is used on dev.
+For custom preview hosts, set `VITE_APP_ENV` explicitly. Use
+`VITE_APP_ENV=development` in the dev deployment environment file and
+`VITE_APP_ENV=production` in production.
+
 ### Environment Variables
 
 Create a `.env` file in the project root (for Docker) or `backend/` directory (for local dev):
