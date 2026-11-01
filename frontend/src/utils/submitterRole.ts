@@ -12,8 +12,6 @@ const STAFF_ONLY_ROUTE_PREFIXES = [
   '/edit',
   '/home',
 ];
-const SLC_ROUTE_PREFIXES = ['/slc-calendar', '/slc-triage', '/submit-slc-event'];
-const OPS_ROUTE_PREFIXES = ['/ops-triage'];
 
 function parseRole(value: string | null): SubmitterRole | null {
   if (!value) return null;
@@ -39,14 +37,6 @@ function inferRoleFromPath(
     return 'staff';
   }
 
-  if (SLC_ROUTE_PREFIXES.some((prefix) => matchesRoutePrefix(normalizedPath, prefix))) {
-    return preferredRole === 'staff' || preferredRole === 'slc' ? preferredRole : 'slc';
-  }
-
-  if (OPS_ROUTE_PREFIXES.some((prefix) => matchesRoutePrefix(normalizedPath, prefix))) {
-    return preferredRole === 'staff' || preferredRole === 'ops' ? preferredRole : 'ops';
-  }
-
   return preferredRole;
 }
 
@@ -55,26 +45,17 @@ function inferRoleFromPath(
 export function roleMayOpen(role: SubmitterRole, pathname: string): boolean {
   const normalizedPath = pathname.toLowerCase();
   if (role === 'staff') return true;
-  if (STAFF_ONLY_ROUTE_PREFIXES.some((prefix) => matchesRoutePrefix(normalizedPath, prefix))) {
-    return false;
-  }
-  if (SLC_ROUTE_PREFIXES.some((prefix) => matchesRoutePrefix(normalizedPath, prefix))) {
-    return role === 'slc';
-  }
-  if (OPS_ROUTE_PREFIXES.some((prefix) => matchesRoutePrefix(normalizedPath, prefix))) {
-    return role === 'ops';
-  }
-  return true;
+  return !STAFF_ONLY_ROUTE_PREFIXES.some((prefix) => matchesRoutePrefix(normalizedPath, prefix));
 }
 
 /** Whether a path needs a signed-in role at all (vs. open to submitters). */
 export function pathRequiresRole(pathname: string): boolean {
   const normalizedPath = pathname.toLowerCase();
-  return [...STAFF_ONLY_ROUTE_PREFIXES, ...SLC_ROUTE_PREFIXES, ...OPS_ROUTE_PREFIXES]
-    .some((prefix) => matchesRoutePrefix(normalizedPath, prefix));
+  return STAFF_ONLY_ROUTE_PREFIXES.some((prefix) => matchesRoutePrefix(normalizedPath, prefix));
 }
 
-/** Where a signed-in role lands after sign-in. */
+/** Where a signed-in role lands after sign-in. The SLC and Event Services
+ * tools are hidden, so their homes now show the RetiredToolPage notice. */
 export function homeForRole(role: SubmitterRole): string {
   switch (role) {
     case 'staff':

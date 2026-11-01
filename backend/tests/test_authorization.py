@@ -137,6 +137,33 @@ class TestTrustedRoleAuthorization:
         assert item["Submitter_Email"] == ""
         assert item["Submitter_Notes"] is None
 
+    async def test_staff_listing_leaves_out_slc_only_submissions(
+        self,
+        client: AsyncClient,
+        staff_headers: dict[str, str],
+    ):
+        newsletter_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(Original_Headline="Newsletter item"),
+        )
+        slc_only_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(
+                Original_Headline="SLC-only item",
+                Target_Newsletter="none",
+                Show_In_SLC_Calendar=True,
+            ),
+        )
+        assert newsletter_resp.status_code == 201
+        assert slc_only_resp.status_code == 201
+
+        resp = await client.get("/api/v1/submissions/", headers=staff_headers)
+
+        assert resp.status_code == 200
+        headlines = [item["Original_Headline"] for item in resp.json()["Items"]]
+        assert headlines == ["Newsletter item"]
+        assert resp.json()["Total"] == 1
+
     async def test_only_staff_can_update_or_schedule_existing_submissions(
         self,
         client: AsyncClient,

@@ -3,9 +3,11 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { getAuthConfig } from '../api/auth';
+import { getValidDates } from '../api/schedule';
 import { clearToken, setToken } from '../auth/tokenStore';
 import { resetSsoEnabledCache } from '../auth/useAuth';
 import RequireRole from '../auth/RequireRole';
+import { addDaysISO, formatAPDate, todayISO } from '../utils/date';
 import LandingPage from './LandingPage';
 
 function ShowLocation({ label }: { label: string }) {
@@ -18,7 +20,10 @@ vi.mock('../api/auth', async () => {
   return { ...actual, getAuthConfig: vi.fn() };
 });
 
+vi.mock('../api/schedule', () => ({ getValidDates: vi.fn() }));
+
 const getAuthConfigMock = vi.mocked(getAuthConfig);
+const getValidDatesMock = vi.mocked(getValidDates);
 
 function fakeJwt(claims: Record<string, unknown>): string {
   const b64 = (obj: unknown) => btoa(JSON.stringify(obj))
@@ -39,7 +44,6 @@ function renderApp(initialPath = '/') {
         <Route element={<RequireRole />}>
           <Route path="/submit" element={<p>submit page</p>} />
           <Route path="/dashboard" element={<p>dashboard page</p>} />
-          <Route path="/slc-calendar" element={<p>slc page</p>} />
         </Route>
       </Routes>
     </MemoryRouter>,
@@ -58,10 +62,47 @@ describe('LandingPage', () => {
       configurable: true,
       value: { ...window.location, assign: assignSpy, pathname: '/', search: '', hash: '' },
     });
+    getValidDatesMock.mockResolvedValue({ dates: [], blackout_dates: [] });
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it('describes both newsletters and leaves out the hidden SLC and Event Services views', async () => {
+    getAuthConfigMock.mockResolvedValue({ sso_enabled: false });
+    renderApp();
+    await waitFor(() => expect(getAuthConfigMock).toHaveBeenCalled());
+    expect(screen.getByRole('heading', { name: 'The Daily Register' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'My UI' })).toBeInTheDocument();
+    expect(screen.queryByText(/SLC/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Event Services/)).not.toBeInTheDocument();
+  });
+
+  it('shows the next issue after today for each newsletter', async () => {
+    getAuthConfigMock.mockResolvedValue({ sso_enabled: false });
+    const tomorrow = addDaysISO(1);
+    const inThreeDays = addDaysISO(3);
+    getValidDatesMock.mockResolvedValue({
+      dates: [
+        { date: todayISO(), newsletters: ['tdr', 'myui'] },
+        { date: tomorrow, newsletters: ['tdr'] },
+        { date: inThreeDays, newsletters: ['tdr', 'myui'] },
+      ],
+      blackout_dates: [],
+    });
+    renderApp();
+    expect(await screen.findByTestId('next-issue-tdr')).toHaveTextContent(formatAPDate(tomorrow));
+    expect(screen.getByTestId('next-issue-myui')).toHaveTextContent(formatAPDate(inThreeDays));
+  });
+
+  it('still renders when the schedule cannot be loaded', async () => {
+    getAuthConfigMock.mockResolvedValue({ sso_enabled: false });
+    getValidDatesMock.mockRejectedValue(new Error('offline'));
+    renderApp();
+    await waitFor(() => expect(getValidDatesMock).toHaveBeenCalled());
+    expect(screen.getByRole('button', { name: /Submit an item/ })).toBeInTheDocument();
+    expect(screen.queryByTestId('next-issue-tdr')).not.toBeInTheDocument();
   });
 
   describe('trusted-header deployment (SSO off)', () => {
@@ -69,12 +110,21 @@ describe('LandingPage', () => {
       getAuthConfigMock.mockResolvedValue({ sso_enabled: false });
     });
 
-    it('opens Staff view directly, as today', async () => {
+    it('opens the staff workspace directly, as today', async () => {
       renderApp();
       await waitFor(() => expect(getAuthConfigMock).toHaveBeenCalled());
-      await userEvent.click(screen.getByRole('button', { name: /Staff view/ }));
+      await userEvent.click(screen.getByRole('button', { name: 'Open the staff workspace' }));
       expect(screen.getByText('dashboard page')).toBeInTheDocument();
+      expect(window.localStorage.getItem('ucm_submitter_role')).toBe('staff');
       expect(assignSpy).not.toHaveBeenCalled();
+    });
+
+    it('opens the submission form', async () => {
+      renderApp();
+      await waitFor(() => expect(getAuthConfigMock).toHaveBeenCalled());
+      await userEvent.click(screen.getByRole('button', { name: /Submit an item/ }));
+      expect(screen.getByText('submit page')).toBeInTheDocument();
+      expect(window.localStorage.getItem('ucm_submitter_role')).toBe('public');
     });
 
     it('shows no sign-in status line', async () => {
@@ -89,36 +139,33 @@ describe('LandingPage', () => {
       getAuthConfigMock.mockResolvedValue({ sso_enabled: true });
     });
 
-    it('sends an anonymous visitor to the login page, remembering the view', async () => {
+    it('sends an anonymous visitor to the login page, remembering the dashboard', async () => {
       renderApp();
-      await screen.findByTestId('sign-in-status');
-      await userEvent.click(screen.getByRole('button', { name: /Staff view/ }));
+      await userEvent.click(await screen.findByRole('button', { name: 'Staff sign in' }));
       expect(screen.getByText(/^login:/)).toHaveTextContent('/login?next=%2Fdashboard');
       expect(assignSpy).not.toHaveBeenCalled();
     });
 
-    it('still lets an anonymous visitor into Submitter view', async () => {
+    it('still lets an anonymous visitor submit an item', async () => {
       renderApp();
-      await screen.findByTestId('sign-in-status');
-      await userEvent.click(screen.getByRole('button', { name: /Submitter view/ }));
+      await screen.findByRole('button', { name: 'Staff sign in' });
+      await userEvent.click(screen.getByRole('button', { name: /Submit an item/ }));
       expect(screen.getByText('submit page')).toBeInTheDocument();
       expect(assignSpy).not.toHaveBeenCalled();
     });
 
-    it('lets a signed-in SLC member into SLC view but not Staff view', async () => {
-      setToken(fakeJwt({ sub: 's@uidaho.edu', name: 'Sam', role: 'slc', exp: future }));
+    it('lets a signed-in staff member go straight to the dashboard', async () => {
+      setToken(fakeJwt({ sub: 's@uidaho.edu', name: 'Sam', role: 'staff', exp: future }));
       renderApp();
-      expect(await screen.findByText('Sam')).toBeInTheDocument();
-
-      await userEvent.click(screen.getByRole('button', { name: /SLC Leadership view/ }));
-      expect(screen.getByText('slc page')).toBeInTheDocument();
+      expect(await screen.findByTestId('sign-in-status')).toHaveTextContent('Signed in as Sam');
+      await userEvent.click(screen.getByRole('button', { name: 'Go to dashboard' }));
+      expect(screen.getByText('dashboard page')).toBeInTheDocument();
     });
 
-    it('sends a signed-in user to the login page for a view they may not open', async () => {
+    it('sends a signed-in SLC member to the login page instead of the dashboard', async () => {
       setToken(fakeJwt({ sub: 's@uidaho.edu', name: 'Sam', role: 'slc', exp: future }));
       renderApp();
-      await screen.findByText('Sam');
-      await userEvent.click(screen.getByRole('button', { name: /Staff view/ }));
+      await userEvent.click(await screen.findByRole('button', { name: 'Staff sign in' }));
       expect(screen.getByText(/^login:/)).toHaveTextContent('/login?next=%2Fdashboard');
     });
 
