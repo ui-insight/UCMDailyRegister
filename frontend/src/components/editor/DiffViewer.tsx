@@ -19,7 +19,7 @@ export default function DiffViewer({ diff, label }: DiffViewerProps) {
       {label && (
         <div className="flex items-center gap-2 mb-2">
           <span className="text-xs font-medium text-gray-500 uppercase">{label}</span>
-          <span className="text-xs text-gray-400">
+          <span className="text-xs text-gray-600">
             {diff.change_count} change{diff.change_count !== 1 ? 's' : ''} &middot;{' '}
             {Math.round(diff.similarity_ratio * 100)}% similar
           </span>

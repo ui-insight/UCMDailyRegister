@@ -141,11 +141,11 @@ function CollapsibleCard({
           aria-expanded={isOpen}
         >
           <div className="flex items-center gap-3">
-            <span className="text-sm text-gray-400">{isOpen ? '▾' : '▸'}</span>
+            <span className="text-sm text-gray-600">{isOpen ? '▾' : '▸'}</span>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
-                {meta && <span className="text-xs text-gray-400">{meta}</span>}
+                {meta && <span className="text-xs text-gray-600">{meta}</span>}
               </div>
               {subtitle && <p className="text-xs text-gray-500 mt-1">{subtitle}</p>}
             </div>
@@ -849,7 +849,7 @@ export default function BuilderPage() {
             minHeight: dragState.height,
           }}
         >
-          <div className="flex items-center gap-2 text-xs text-ui-gold-700 mb-1">
+          <div className="flex items-center gap-2 text-xs text-ui-gold-800 mb-1">
             <span className="tracking-wide uppercase">Dragging</span>
           </div>
           <p className="text-sm font-medium text-gray-900 line-clamp-2">{dragState.title}</p>
@@ -893,7 +893,7 @@ export default function BuilderPage() {
           <button
             onClick={handleAssemble}
             disabled={loading}
-            className="px-4 py-2 text-sm font-medium rounded-md bg-ui-gold-600 text-white hover:bg-ui-gold-700 disabled:opacity-50"
+            className="px-4 py-2 text-sm font-medium rounded-md bg-ui-gold-500 text-ui-black hover:bg-ui-gold-600 disabled:opacity-50"
           >
             {loading ? 'Assembling...' : 'Assemble Newsletter'}
           </button>
@@ -923,7 +923,7 @@ export default function BuilderPage() {
                     : `${itemsWithLinkProblems} items have link problems`}
                 </span>
               )}
-              <select
+              <select aria-label="Newsletter status"
                 value={newsletter.Status}
                 onChange={(e) => handleStatusChange(e.target.value)}
                 className="rounded-md border border-gray-300 px-3 py-2 text-sm"
@@ -1061,7 +1061,7 @@ export default function BuilderPage() {
                                 className={`px-3 py-1.5 text-xs font-medium rounded-md ${
                                   message.Selected
                                     ? 'bg-green-100 text-green-700 cursor-default'
-                                    : 'bg-ui-gold-600 text-white hover:bg-ui-gold-700'
+                                    : 'bg-ui-gold-500 text-ui-black hover:bg-ui-gold-600'
                                 }`}
                               >
                                 {message.Skipped ? 'Restore' : message.Selected ? 'Added' : 'Add'}
@@ -1243,7 +1243,7 @@ export default function BuilderPage() {
                             className={`px-3 py-1.5 text-xs font-medium rounded-md ${
                               posting.Selected
                                 ? 'bg-green-100 text-green-700 cursor-default'
-                                : 'bg-ui-gold-600 text-white hover:bg-ui-gold-700'
+                                : 'bg-ui-gold-500 text-ui-black hover:bg-ui-gold-600'
                             }`}
                           >
                             {posting.Selected ? 'Added' : 'Add'}
@@ -1283,7 +1283,7 @@ export default function BuilderPage() {
                   >
                     {newsletter.Status.replace(/_/g, ' ')}
                   </span>
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-gray-600">
                     {newsletter.Items.length + newsletter.External_Items.length} item
                     {newsletter.Items.length + newsletter.External_Items.length !== 1 ? 's' : ''}
                   </span>
@@ -1307,12 +1307,12 @@ export default function BuilderPage() {
                       aria-expanded={isOpen}
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <span className="text-sm text-gray-400">{isOpen ? '▾' : '▸'}</span>
+                        <span className="text-sm text-gray-600">{isOpen ? '▾' : '▸'}</span>
                         <h4 className="text-sm font-semibold text-gray-900">
                           {section.Name}
                         </h4>
                       </div>
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-gray-600">
                         {items.length} item{items.length !== 1 ? 's' : ''}
                       </span>
                     </button>
@@ -1404,7 +1404,7 @@ export default function BuilderPage() {
                                 <button
                                   type="submit"
                                   disabled={academicSaving || !academicDate || !academicTitle.trim()}
-                                  className="w-full rounded-md bg-ui-gold-600 px-3 py-2 text-sm font-medium text-white hover:bg-ui-gold-700 disabled:cursor-not-allowed disabled:opacity-50"
+                                  className="w-full rounded-md bg-ui-gold-500 px-3 py-2 text-sm font-medium text-ui-black hover:bg-ui-gold-600 disabled:cursor-not-allowed disabled:opacity-50"
                                 >
                                   {academicSaving ? 'Adding...' : 'Add academic date'}
                                 </button>
@@ -1423,7 +1423,7 @@ export default function BuilderPage() {
                                   ? 'No academic dates added'
                                   : 'No items in this section'}
                               </p>
-                              <p className="mt-1 text-xs text-gray-400">
+                              <p className="mt-1 text-xs text-gray-600">
                                 {isAcademicDatesSection
                                   ? 'Use the form above to add a Registrar deadline, or move an approved submission here.'
                                   : 'Approved submissions can be moved here before export.'}
@@ -1529,7 +1529,7 @@ export default function BuilderPage() {
                                                   action: () => handleUpstreamChoice(item.Id, 'refresh'),
                                                 })}
                                                 disabled={upstreamActionItemId === item.Id}
-                                                className="rounded-md bg-ui-gold-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-ui-gold-700 disabled:opacity-50"
+                                                className="rounded-md bg-ui-gold-500 px-3 py-1.5 text-xs font-medium text-ui-black hover:bg-ui-gold-600 disabled:opacity-50"
                                               >
                                                 Use approved copy
                                               </button>
@@ -1545,12 +1545,12 @@ export default function BuilderPage() {
                                           </section>
                                         )}
                                         {item.Kind === 'submission' && item.Run_Number > 1 && (
-                                          <span className="text-xs text-ui-gold-600 mt-1 inline-block">
+                                          <span className="text-xs text-ui-gold-800 mt-1 inline-block">
                                             Run #{item.Run_Number}
                                           </span>
                                         )}
                                         {item.Kind === 'calendar_event' && item.Event_Start && (
-                                          <p className="text-xs text-gray-400 mt-1">
+                                          <p className="text-xs text-gray-600 mt-1">
                                             {new Date(item.Event_Start).toLocaleString('en-US', {
                                               weekday: 'short',
                                               month: 'short',
@@ -1562,7 +1562,7 @@ export default function BuilderPage() {
                                           </p>
                                         )}
                                         {item.Kind === 'job_posting' && item.Location && (
-                                          <p className="text-xs text-gray-400 mt-1">{item.Location}</p>
+                                          <p className="text-xs text-gray-600 mt-1">{item.Location}</p>
                                         )}
                                         {item.Kind === 'academic_date' && item.Source_Url && (
                                           <a
@@ -1589,12 +1589,12 @@ export default function BuilderPage() {
                                             <button
                                               type="button"
                                               onPointerDown={(event) => startSubmissionDrag(item, event)}
-                                              className="cursor-grab rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700 active:cursor-grabbing"
+                                              className="cursor-grab rounded p-1 text-gray-600 hover:bg-gray-100 hover:text-gray-700 active:cursor-grabbing"
                                               title="Drag to reorder or move to another section"
                                             >
                                               &#8942;
                                             </button>
-                                            <select
+                                            <select aria-label={`Move ${item.Final_Headline} to section`}
                                               value={item.Section_Id}
                                               onChange={(event) => void handleReassignSubmission(item.Id, event.target.value)}
                                               className="rounded border border-gray-300 bg-white px-2 py-1 text-xs text-gray-600"
@@ -1609,7 +1609,7 @@ export default function BuilderPage() {
                                             <button
                                               onClick={() => handleMoveItem(item.Id, 'up')}
                                               disabled={submissionIndex === 0}
-                                              className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30"
+                                              className="p-1 text-gray-600 hover:text-gray-700 disabled:opacity-30"
                                               title="Move up"
                                             >
                                               &#x25B2;
@@ -1617,7 +1617,7 @@ export default function BuilderPage() {
                                             <button
                                               onClick={() => handleMoveItem(item.Id, 'down')}
                                               disabled={submissionIndex === submissionItems.length - 1}
-                                              className="p-1 text-gray-400 hover:text-gray-700 disabled:opacity-30"
+                                              className="p-1 text-gray-600 hover:text-gray-700 disabled:opacity-30"
                                               title="Move down"
                                             >
                                               &#x25BC;
@@ -1633,7 +1633,7 @@ export default function BuilderPage() {
                                               ? handleRemoveItem(item.Id)
                                               : handleRemoveExternalItem(item.Id, item.Source_Type, item.Source_Id),
                                           })}
-                                          className="p-1 text-red-400 hover:text-red-600"
+                                          className="p-1 text-status-error-800 hover:text-status-error-800"
                                           title="Remove"
                                         >
                                           &times;

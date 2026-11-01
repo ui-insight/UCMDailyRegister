@@ -20,7 +20,7 @@ export default function SegmentedToggle<T extends string>({
 }) {
   return (
     <div
-      className={cx('inline-flex overflow-hidden rounded-md border border-gray-300', className)}
+      className={cx('inline-flex rounded-md border border-gray-300', className)}
       role="group"
       aria-label={ariaLabel}
     >
@@ -30,10 +30,10 @@ export default function SegmentedToggle<T extends string>({
           type="button"
           onClick={() => onChange(option.value)}
           className={cx(
-            'px-3 py-1.5 text-xs font-medium transition-colors',
+            'px-3 py-1.5 text-xs font-medium transition-colors first:rounded-l-md last:rounded-r-md',
             index > 0 && 'border-l border-gray-300',
             value === option.value
-              ? 'bg-ui-gold-500 text-white'
+              ? 'bg-ui-gold-500 text-ui-black'
               : 'bg-white text-gray-600 hover:bg-gray-50',
           )}
           aria-pressed={value === option.value}

@@ -268,10 +268,10 @@ export default function SettingsPage() {
   if (loadError) {
     return (
       <div className="text-center py-12">
-        <p className="text-red-600 mb-4">{loadError}</p>
+        <p className="text-status-error-800 mb-4">{loadError}</p>
         <button
           onClick={loadData}
-          className="px-4 py-2 bg-ui-gold-600 text-white rounded-lg hover:bg-ui-gold-700 transition-colors"
+          className="px-4 py-2 bg-ui-gold-500 text-ui-black rounded-lg hover:bg-ui-gold-600 transition-colors"
         >
           Retry
         </button>
@@ -309,7 +309,7 @@ export default function SettingsPage() {
           </div>
           <div>
             <dt className="text-xs text-gray-500">Submission Deadline</dt>
-            <dd className="text-ui-gold-700 font-medium">
+            <dd className="text-ui-gold-800 font-medium">
               {new Date(active.submission_deadline).toLocaleString('en-US', {
                 weekday: 'long', month: 'long', day: 'numeric', hour: 'numeric', minute: '2-digit',
               })}
@@ -338,7 +338,7 @@ export default function SettingsPage() {
       {actionError && (
         <div role="alert" className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
           {actionError}
-          <button onClick={() => setActionError(null)} className="ml-2 text-red-500 hover:text-red-700">&times;</button>
+          <button onClick={() => setActionError(null)} className="ml-2 text-status-error-800 hover:text-red-700">&times;</button>
         </div>
       )}
 
@@ -406,7 +406,7 @@ export default function SettingsPage() {
                     ? 'border-ui-clearwater-400 bg-ui-clearwater-50 ring-1 ring-ui-clearwater-300'
                     : providerInfo?.configured
                       ? 'border-gray-200'
-                      : 'border-gray-200 opacity-60'
+                      : 'border-gray-200 bg-gray-50'
                 }`}
               >
                 {isActive && (
@@ -441,7 +441,7 @@ export default function SettingsPage() {
                   )}
                   <div className="flex gap-2">
                     <dt className="text-gray-500 w-28">Key provided:</dt>
-                    <dd className={providerInfo?.configured ? 'text-green-600 font-medium' : 'text-gray-400'}>
+                    <dd className={providerInfo?.configured ? 'text-status-success-800 font-medium' : 'text-gray-600'}>
                       {providerInfo?.configured ? 'Yes' : 'No'}
                     </dd>
                   </div>
@@ -471,22 +471,24 @@ export default function SettingsPage() {
         {/* Add form */}
         <div className="flex flex-wrap items-end gap-3 mb-4 p-3 bg-gray-50 rounded-lg">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Newsletter</label>
+            <label className="block text-xs text-gray-500 mb-1" htmlFor="control-settingspage-1">Newsletter</label>
             <select
               value={newOverride.newsletter_type}
               onChange={(e) => setNewOverride((p) => ({ ...p, newsletter_type: e.target.value }))}
               className="block w-28 rounded border-gray-300 text-sm"
+              id="control-settingspage-1"
             >
               <option value="tdr">TDR</option>
               <option value="myui">My UI</option>
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Mode</label>
+            <label className="block text-xs text-gray-500 mb-1" htmlFor="control-settingspage-2">Mode</label>
             <select
               value={newOverride.mode}
               onChange={(e) => setNewOverride((p) => ({ ...p, mode: e.target.value }))}
               className="block w-36 rounded border-gray-300 text-sm"
+              id="control-settingspage-2"
             >
               <option value="winter_break">Winter Break</option>
               <option value="summer">Summer</option>
@@ -494,37 +496,40 @@ export default function SettingsPage() {
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Start Date</label>
+            <label className="block text-xs text-gray-500 mb-1" htmlFor="control-settingspage-3">Start Date</label>
             <input
               type="date"
               value={newOverride.start}
               onChange={(e) => setNewOverride((p) => ({ ...p, start: e.target.value }))}
               className="block rounded border-gray-300 text-sm"
+              id="control-settingspage-3"
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">End Date</label>
+            <label className="block text-xs text-gray-500 mb-1" htmlFor="control-settingspage-4">End Date</label>
             <input
               type="date"
               value={newOverride.end}
               onChange={(e) => setNewOverride((p) => ({ ...p, end: e.target.value }))}
               className="block rounded border-gray-300 text-sm"
+              id="control-settingspage-4"
             />
           </div>
           <div className="flex-1 min-w-[120px]">
-            <label className="block text-xs text-gray-500 mb-1">Description</label>
+            <label className="block text-xs text-gray-500 mb-1" htmlFor="control-settingspage-5">Description</label>
             <input
               type="text"
               value={newOverride.description}
               onChange={(e) => setNewOverride((p) => ({ ...p, description: e.target.value }))}
               placeholder="e.g., Winter break 2026-27"
               className="block w-full rounded border-gray-300 text-sm"
+              id="control-settingspage-5"
             />
           </div>
           <button
             onClick={handleAddOverride}
             disabled={!newOverride.start || !newOverride.end}
-            className="px-3 py-2 bg-ui-gold-600 text-white text-sm rounded hover:bg-ui-gold-700 disabled:opacity-50 transition-colors"
+            className="px-3 py-2 bg-ui-gold-500 text-ui-black text-sm rounded hover:bg-ui-gold-600 disabled:opacity-50 transition-colors"
           >
             Add Override
           </button>
@@ -543,7 +548,7 @@ export default function SettingsPage() {
                   <span className="text-gray-600">
                     {new Date(o.Start_Date + 'T12:00:00').toLocaleDateString()} — {new Date(o.End_Date + 'T12:00:00').toLocaleDateString()}
                   </span>
-                  {o.Description && <span className="text-gray-400 text-xs">({o.Description})</span>}
+                  {o.Description && <span className="text-gray-600 text-xs">({o.Description})</span>}
                 </div>
                 <button
                   aria-label={`Remove ${o.Newsletter_Type.toUpperCase()} override ${o.Start_Date} to ${o.End_Date}`}
@@ -552,7 +557,7 @@ export default function SettingsPage() {
                     description: `${o.Newsletter_Type.toUpperCase()} override ${o.Start_Date} to ${o.End_Date}${o.Description ? ` (${o.Description})` : ''}. Normal schedule rules will apply after removal. Recreate the override to restore it.`,
                     action: () => handleDeleteOverride(o.Id),
                   })}
-                  className="text-red-500 hover:text-red-700 text-xs"
+                  className="text-status-error-800 hover:text-red-700 text-xs"
                 >
                   Remove
                 </button>
@@ -560,7 +565,7 @@ export default function SettingsPage() {
             ))}
           </div>
         ) : (
-          <p className="text-xs text-gray-400">No active overrides — schedule auto-detects by month.</p>
+          <p className="text-xs text-gray-600">No active overrides — schedule auto-detects by month.</p>
         )}
       </div>
 
@@ -575,39 +580,42 @@ export default function SettingsPage() {
         {/* Add form */}
         <div className="flex flex-wrap items-end gap-3 mb-4 p-3 bg-gray-50 rounded-lg">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Newsletter</label>
+            <label className="block text-xs text-gray-500 mb-1" htmlFor="control-settingspage-6">Newsletter</label>
             <select
               value={newCustomDate.newsletter_type}
               onChange={(e) => setNewCustomDate((p) => ({ ...p, newsletter_type: e.target.value }))}
               className="block w-28 rounded border-gray-300 text-sm"
+              id="control-settingspage-6"
             >
               <option value="tdr">TDR</option>
               <option value="myui">My UI</option>
             </select>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Publish Date</label>
+            <label className="block text-xs text-gray-500 mb-1" htmlFor="control-settingspage-7">Publish Date</label>
             <input
               type="date"
               value={newCustomDate.date}
               onChange={(e) => setNewCustomDate((p) => ({ ...p, date: e.target.value }))}
               className="block rounded border-gray-300 text-sm"
+              id="control-settingspage-7"
             />
           </div>
           <div className="flex-1 min-w-[120px]">
-            <label className="block text-xs text-gray-500 mb-1">Description</label>
+            <label className="block text-xs text-gray-500 mb-1" htmlFor="control-settingspage-8">Description</label>
             <input
               type="text"
               value={newCustomDate.description}
               onChange={(e) => setNewCustomDate((p) => ({ ...p, description: e.target.value }))}
               placeholder="e.g., Last edition before break"
               className="block w-full rounded border-gray-300 text-sm"
+              id="control-settingspage-8"
             />
           </div>
           <button
             onClick={handleAddCustomDate}
             disabled={!newCustomDate.date}
-            className="px-3 py-2 bg-ui-gold-600 text-white text-sm rounded hover:bg-ui-gold-700 disabled:opacity-50 transition-colors"
+            className="px-3 py-2 bg-ui-gold-500 text-ui-black text-sm rounded hover:bg-ui-gold-600 disabled:opacity-50 transition-colors"
           >
             Add Date
           </button>
@@ -625,7 +633,7 @@ export default function SettingsPage() {
                       weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
                     })}
                   </span>
-                  {c.Description && <span className="text-gray-400 text-xs">({c.Description})</span>}
+                  {c.Description && <span className="text-gray-600 text-xs">({c.Description})</span>}
                 </div>
                 <button
                   aria-label={`Remove ${c.Newsletter_Type.toUpperCase()} publication date ${c.Publish_Date}`}
@@ -634,7 +642,7 @@ export default function SettingsPage() {
                     description: `${c.Newsletter_Type.toUpperCase()} on ${c.Publish_Date}${c.Description ? ` (${c.Description})` : ''}. This removes the custom publication date from the schedule. Add the date again in Custom Dates to restore it.`,
                     action: () => handleDeleteCustomDate(c.Id),
                   })}
-                  className="text-red-500 hover:text-red-700 text-xs"
+                  className="text-status-error-800 hover:text-red-700 text-xs"
                 >
                   Remove
                 </button>
@@ -642,7 +650,7 @@ export default function SettingsPage() {
             ))}
           </div>
         ) : (
-          <p className="text-xs text-gray-400">No custom dates set.</p>
+          <p className="text-xs text-gray-600">No custom dates set.</p>
         )}
       </div>
 
@@ -657,20 +665,22 @@ export default function SettingsPage() {
         {/* Add form */}
         <div className="flex flex-wrap items-end gap-3 mb-4 p-3 bg-gray-50 rounded-lg">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Date</label>
+            <label className="block text-xs text-gray-500 mb-1" htmlFor="control-settingspage-9">Date</label>
             <input
               type="date"
               value={newBlackout.date}
               onChange={(e) => setNewBlackout((p) => ({ ...p, date: e.target.value }))}
               className="block rounded border-gray-300 text-sm"
+              id="control-settingspage-9"
             />
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Applies To</label>
+            <label className="block text-xs text-gray-500 mb-1" htmlFor="control-settingspage-10">Applies To</label>
             <select
               value={newBlackout.newsletter_type}
               onChange={(e) => setNewBlackout((p) => ({ ...p, newsletter_type: e.target.value }))}
               className="block w-32 rounded border-gray-300 text-sm"
+              id="control-settingspage-10"
             >
               <option value="">All Newsletters</option>
               <option value="tdr">TDR Only</option>
@@ -678,19 +688,20 @@ export default function SettingsPage() {
             </select>
           </div>
           <div className="flex-1 min-w-[120px]">
-            <label className="block text-xs text-gray-500 mb-1">Reason</label>
+            <label className="block text-xs text-gray-500 mb-1" htmlFor="control-settingspage-11">Reason</label>
             <input
               type="text"
               value={newBlackout.description}
               onChange={(e) => setNewBlackout((p) => ({ ...p, description: e.target.value }))}
               placeholder="e.g., Labor Day, Thanksgiving Break"
               className="block w-full rounded border-gray-300 text-sm"
+              id="control-settingspage-11"
             />
           </div>
           <button
             onClick={handleAddBlackout}
             disabled={!newBlackout.date}
-            className="px-3 py-2 bg-ui-gold-600 text-white text-sm rounded hover:bg-ui-gold-700 disabled:opacity-50 transition-colors"
+            className="px-3 py-2 bg-ui-gold-500 text-ui-black text-sm rounded hover:bg-ui-gold-600 disabled:opacity-50 transition-colors"
           >
             Add Blackout
           </button>
@@ -710,7 +721,7 @@ export default function SettingsPage() {
                   <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-600">
                     {b.Newsletter_Type ? b.Newsletter_Type.toUpperCase() : 'All'}
                   </span>
-                  {b.Description && <span className="text-gray-400 text-xs">{b.Description}</span>}
+                  {b.Description && <span className="text-gray-600 text-xs">{b.Description}</span>}
                 </div>
                 <button
                   aria-label={`Remove blackout ${b.Blackout_Date}`}
@@ -719,7 +730,7 @@ export default function SettingsPage() {
                     description: `${b.Blackout_Date} for ${b.Newsletter_Type?.toUpperCase() || 'all newsletters'}${b.Description ? ` (${b.Description})` : ''}. This allows scheduling on that date again. Re-add the blackout to block it.`,
                     action: () => handleDeleteBlackout(b.Id),
                   })}
-                  className="text-red-500 hover:text-red-700 text-xs"
+                  className="text-status-error-800 hover:text-red-700 text-xs"
                 >
                   Remove
                 </button>
@@ -727,7 +738,7 @@ export default function SettingsPage() {
             ))}
           </div>
         ) : (
-          <p className="text-xs text-gray-400">No blackout dates set.</p>
+          <p className="text-xs text-gray-600">No blackout dates set.</p>
         )}
       </div>
 
@@ -770,9 +781,9 @@ export default function SettingsPage() {
                   </td>
                   <td className="py-2">
                     {config.Holiday_Shift_Enabled ? (
-                      <span className="text-green-600 text-xs font-medium">Enabled</span>
+                      <span className="text-status-success-800 text-xs font-medium">Enabled</span>
                     ) : (
-                      <span className="text-gray-400 text-xs">Off</span>
+                      <span className="text-gray-600 text-xs">Off</span>
                     )}
                   </td>
                 </tr>

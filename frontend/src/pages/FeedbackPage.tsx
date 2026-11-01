@@ -171,11 +171,12 @@ export default function FeedbackPage() {
       <Card className="mb-6">
         <div className="flex flex-wrap items-end gap-4">
           <div>
-            <label className="mb-1 block text-xs text-gray-500">Status</label>
+            <label className="mb-1 block text-xs text-gray-500" htmlFor="control-feedbackpage-1">Status</label>
             <select
               value={statusFilter}
               onChange={(event) => setStatusFilter(event.target.value as FeedbackStatus | '')}
               className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+              id="control-feedbackpage-1"
             >
               {STATUS_OPTIONS.map((option) => (
                 <option key={option.value || 'all'} value={option.value}>
@@ -185,11 +186,12 @@ export default function FeedbackPage() {
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs text-gray-500">Type</label>
+            <label className="mb-1 block text-xs text-gray-500" htmlFor="control-feedbackpage-2">Type</label>
             <select
               value={typeFilter}
               onChange={(event) => setTypeFilter(event.target.value as FeedbackType | '')}
               className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+              id="control-feedbackpage-2"
             >
               {TYPE_OPTIONS.map((option) => (
                 <option key={option.value || 'all'} value={option.value}>
@@ -236,7 +238,7 @@ export default function FeedbackPage() {
                   <span className={`rounded px-1.5 py-0.5 text-[11px] font-medium ${NOTIFICATION_CLASSES[item.Notification_Status]}`}>
                     {NOTIFICATION_LABELS[item.Notification_Status]}
                   </span>
-                  <span className="ml-auto text-xs text-gray-400">{formatDate(item.Created_At)}</span>
+                  <span className="ml-auto text-xs text-gray-600">{formatDate(item.Created_At)}</span>
                 </div>
                 <h3 className="text-sm font-semibold text-gray-900">{item.Summary}</h3>
                 <p className="mt-1 line-clamp-2 text-xs text-gray-500">{item.Details}</p>
@@ -300,11 +302,12 @@ export default function FeedbackPage() {
               </dl>
 
               <div className="mt-5 border-t border-gray-100 pt-4">
-                <label className="mb-1 block text-xs text-gray-500">Status</label>
+                <label className="mb-1 block text-xs text-gray-500" htmlFor="control-feedbackpage-3">Status</label>
                 <select
                   value={selected.Status}
                   onChange={(event) => void handleStatusChange(selected, event.target.value as FeedbackStatus)}
                   className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+                  id="control-feedbackpage-3"
                 >
                   {STATUS_OPTIONS.filter((option) => option.value).map((option) => (
                     <option key={option.value} value={option.value}>

@@ -1,3 +1,6 @@
+import { useId } from 'react';
+import FieldError from '../common/FieldError';
+import { fieldErrorProps, type FieldErrors } from '../../utils/formValidation';
 import { findMentions, resolvedLinkStart } from '../../utils/bodyLinks';
 
 export interface LinkEntry {
@@ -8,6 +11,7 @@ export interface LinkEntry {
 }
 
 interface Props {
+  errors?: FieldErrors;
   links: LinkEntry[];
   onChange: (links: LinkEntry[]) => void;
   onAnchorCommit?: (index: number, previousValue: string, nextValue: string) => void;
@@ -62,6 +66,7 @@ function ensureSlots(links: LinkEntry[]): LinkEntry[] {
 }
 
 export default function LinkEditor({
+  errors = {},
   links,
   onChange,
   onAnchorCommit,
@@ -70,6 +75,7 @@ export default function LinkEditor({
   label = 'Links to Embed',
   description = `Add up to ${MAX_LINKS} web URLs or email addresses to embed in your announcement.`,
 }: Props) {
+  const descriptionId = useId();
   const slots = ensureSlots(links);
 
   const updateLink = (index: number, field: keyof LinkEntry, value: string) => {
@@ -100,24 +106,24 @@ export default function LinkEditor({
   };
 
   return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
+    <div role="group" aria-label={label}>
+      <p className="block text-sm font-medium text-gray-700 mb-2">
         {label}
-      </label>
-      <p className="text-xs text-gray-500 mb-3">
+      </p>
+      <p id={descriptionId} className="text-xs text-gray-500 mb-3">
         {description}
       </p>
       <div className="space-y-3">
         {slots.map((link, index) => {
           const emailMode = isEmailLink(link.Url);
           return (
-            <div key={index} className="rounded-md border border-gray-200 bg-gray-50 p-3">
+            <div key={index} role="group" aria-label={`Link ${index + 1}`} className="rounded-md border border-gray-200 bg-gray-50 p-3">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs font-medium text-gray-500">Link {index + 1}</p>
                 <button
                   type="button"
                   onClick={() => toggleLinkType(index)}
-                  className="text-xs text-ui-gold-700 hover:text-ui-gold-800 font-medium"
+                  className="text-xs text-ui-gold-800 hover:text-ui-gold-800 font-medium"
                 >
                   {emailMode ? 'Switch to web link' : 'Switch to email link'}
                 </button>
@@ -133,6 +139,7 @@ export default function LinkEditor({
                   {emailMode ? (
                     <input
                       id={`submission-link-${index}-url`}
+                      {...fieldErrorProps(errors, `submission-link-${index}-url`, descriptionId)}
                       type="email"
                       placeholder="name@uidaho.edu"
                       value={link.Url.replace(/^mailto:/, '')}
@@ -143,6 +150,7 @@ export default function LinkEditor({
                   ) : (
                     <input
                       id={`submission-link-${index}-url`}
+                      {...fieldErrorProps(errors, `submission-link-${index}-url`, descriptionId)}
                       type="url"
                       placeholder="https://..."
                       value={link.Url}
@@ -163,6 +171,7 @@ export default function LinkEditor({
                   </label>
                   <input
                     id={`submission-link-${index}-anchor`}
+                    {...fieldErrorProps(errors, `submission-link-${index}-anchor`, descriptionId)}
                     type="text"
                     placeholder={emailMode ? "e.g., Jane Smith" : "e.g., Learn more"}
                     value={link.Anchor_Text}
@@ -180,6 +189,8 @@ export default function LinkEditor({
                   />
                 </div>
               </div>
+              <FieldError errors={errors} id={`submission-link-${index}-url`} />
+              <FieldError errors={errors} id={`submission-link-${index}-anchor`} />
               {body !== undefined && link.Anchor_Text.trim() && (
                 <LinkPlacement
                   index={index}
@@ -189,7 +200,7 @@ export default function LinkEditor({
                 />
               )}
               {emailMode && (
-                <p className="text-[11px] text-gray-400 mt-1.5">
+                <p className="text-[11px] text-gray-600 mt-1.5">
                   For individual email addresses, use the person's name as the link text. For general addresses, the email address itself is fine.
                 </p>
               )}

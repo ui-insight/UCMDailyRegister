@@ -9,7 +9,7 @@ import { toISODate } from '../utils/date';
 
 const CLASSIFICATION_STYLES: Record<EventClassification, string> = {
   strategic: 'bg-ui-clearwater-50 text-ui-clearwater-700 border-ui-clearwater-200',
-  signature: 'bg-ui-gold-50 text-ui-gold-700 border-ui-gold-200',
+  signature: 'bg-ui-gold-50 text-ui-gold-800 border-ui-gold-200',
 };
 
 export default function SLCCalendarPage() {
@@ -99,7 +99,7 @@ export default function SLCCalendarPage() {
           </p>
         </div>
         <div className="flex items-center gap-2 text-xs">
-          <span className="rounded px-2 py-1 bg-ui-gold-50 text-ui-gold-700 border border-ui-gold-200">
+          <span className="rounded px-2 py-1 bg-ui-gold-50 text-ui-gold-800 border border-ui-gold-200">
             Signature: {totalsByClassification.signature}
           </span>
           <span className="rounded px-2 py-1 bg-ui-clearwater-50 text-ui-clearwater-700 border border-ui-clearwater-200">
@@ -114,13 +114,14 @@ export default function SLCCalendarPage() {
       <div className="bg-white rounded-lg shadow p-4 mb-6">
         <div className="flex gap-4 items-end flex-wrap">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">Classification</label>
+            <label className="block text-xs text-gray-500 mb-1" htmlFor="control-slccalendarpage-1">Classification</label>
             <select
               value={classificationFilter}
               onChange={(e) =>
                 setClassificationFilter(e.target.value as '' | EventClassification)
               }
               className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+              id="control-slccalendarpage-1"
             >
               <option value="">All</option>
               <option value="strategic">Strategic only</option>

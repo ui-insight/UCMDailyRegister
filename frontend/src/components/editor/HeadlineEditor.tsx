@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useId } from 'react';
 
 interface HeadlineEditorProps {
   value: string;
@@ -13,6 +13,7 @@ export default function HeadlineEditor({
   headlineCase,
   disabled = false,
 }: HeadlineEditorProps) {
+  const fieldId = useId();
   const [localValue, setLocalValue] = useState(value);
 
   useEffect(() => {
@@ -32,14 +33,14 @@ export default function HeadlineEditor({
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <label className="block text-xs font-medium text-gray-700">Headline</label>
+        <label htmlFor={fieldId} className="block text-xs font-medium text-gray-700">Headline</label>
         {caseLabel && (
           <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
             {caseLabel}
           </span>
         )}
       </div>
-      <input
+      <input id={fieldId}
         type="text"
         value={localValue}
         onChange={(e) => setLocalValue(e.target.value)}

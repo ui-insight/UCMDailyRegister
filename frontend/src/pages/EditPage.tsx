@@ -480,10 +480,10 @@ export default function EditPage() {
   if (error && !submission) {
     return (
       <div className="text-center py-12">
-        <p className="text-red-600 mb-4">{error}</p>
+        <p className="text-status-error-800 mb-4">{error}</p>
         <button
           onClick={() => navigate('/dashboard')}
-          className="text-sm text-ui-gold-600 hover:text-ui-gold-700"
+          className="text-sm text-ui-gold-800 hover:text-ui-gold-800"
         >
           Back to Dashboard
         </button>
@@ -546,7 +546,7 @@ export default function EditPage() {
       {isJobSubmission ? (
         <div className="rounded-md border border-ui-gold-200 bg-ui-gold-50 px-3 py-2">
           <p className="text-xs font-medium text-ui-gold-800">Jobs listing</p>
-          <p className="mt-0.5 text-xs text-ui-gold-700">
+          <p className="mt-0.5 text-xs text-ui-gold-800">
             Jobs run as one linked line without a separate headline.
           </p>
         </div>
@@ -696,7 +696,7 @@ export default function EditPage() {
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/dashboard')}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-gray-600 hover:text-gray-600"
           >
             &larr;
           </button>
@@ -717,7 +717,7 @@ export default function EditPage() {
           <span>{error}</span>
           <button
             onClick={() => setError(null)}
-            className="ml-4 text-red-400 hover:text-red-600"
+            className="ml-4 text-status-error-800 hover:text-status-error-800"
           >
             &times;
           </button>
@@ -737,7 +737,7 @@ export default function EditPage() {
                   disabled={!tab.available}
                   className={`pb-2 text-sm font-medium border-b-2 transition-colors ${
                     activeTab === tab.id
-                      ? 'border-ui-gold-500 text-ui-gold-600'
+                      ? 'border-ui-gold-500 text-ui-gold-800'
                       : tab.available
                         ? 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                         : 'border-transparent text-gray-300 cursor-not-allowed'
@@ -948,7 +948,7 @@ export default function EditPage() {
                 </p>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">
+                <label className="block text-xs font-medium text-gray-500 mb-1" htmlFor="control-editpage-1">
                   Assigned Editor
                 </label>
                 <input
@@ -957,10 +957,11 @@ export default function EditPage() {
                   onChange={(e) => setAssignedEditor(e.target.value)}
                   placeholder="e.g., Jane Smith"
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
+                  id="control-editpage-1"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-500 mb-1">
+                <label className="block text-xs font-medium text-gray-500 mb-1" htmlFor="control-editpage-2">
                   Internal Notes
                 </label>
                 <textarea
@@ -969,6 +970,7 @@ export default function EditPage() {
                   rows={5}
                   placeholder="Internal handoff notes, follow-up items, source context, or pending questions."
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
+                  id="control-editpage-2"
                 />
               </div>
               <Button
@@ -1007,7 +1009,7 @@ export default function EditPage() {
                 <Button
                   onClick={handleConfirmPendingInfo}
                   size="sm"
-                  className="flex-1 bg-status-attention-500 text-white hover:bg-status-attention-800"
+                  className="flex-1 bg-status-attention-800 text-white hover:bg-status-attention-800"
                 >
                   Yes, mark pending
                 </Button>

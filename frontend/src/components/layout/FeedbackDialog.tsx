@@ -97,7 +97,7 @@ export default function FeedbackDialog({
             value={summary}
             onChange={(event) => setSummary(event.target.value)}
             maxLength={240}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-600"
             placeholder="What should we fix or improve?"
           />
         </div>
@@ -112,21 +112,21 @@ export default function FeedbackDialog({
             onChange={(event) => setDetails(event.target.value)}
             rows={5}
             maxLength={5000}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-600"
             placeholder="What were you doing? What happened? What would have helped?"
           />
         </div>
 
         <div>
           <label htmlFor="feedback-contact-email" className="block text-xs font-medium text-gray-500 mb-1">
-            Contact email <span className="font-normal text-gray-400">(optional)</span>
+            Contact email <span className="font-normal text-gray-600">(optional)</span>
           </label>
           <input
             id="feedback-contact-email"
             type="email"
             value={contactEmail}
             onChange={(event) => setContactEmail(event.target.value)}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400"
+            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900 placeholder:text-gray-600"
             placeholder="you@uidaho.edu"
           />
         </div>

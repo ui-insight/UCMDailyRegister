@@ -47,6 +47,7 @@ nav:
   - UDM Alignment: udm-alignment.md
   - AI Editing: ai-editing.md
   - UI Branding: branding.md
+  - Accessible Controls: control-accessibility.md
   - API Reference: api-reference.md
   - Deployment: deployment.md
   - Decisions:

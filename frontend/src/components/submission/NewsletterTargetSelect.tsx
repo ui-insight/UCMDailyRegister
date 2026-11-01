@@ -19,19 +19,20 @@ export default function NewsletterTargetSelect({
 }: Props) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">
+      <p id="newsletter-target-label" className="block text-sm font-medium text-gray-700 mb-2">
         Target Newsletter
-      </label>
-      <div className="flex gap-3">
+      </p>
+      <div role="group" aria-labelledby="newsletter-target-label" className="flex flex-wrap gap-3">
         {TARGETS.map((target) => (
           <button
             key={target.value}
+            aria-pressed={value === target.value}
             type="button"
             disabled={disabledTargets.includes(target.value)}
             onClick={() => onChange(target.value)}
             className={`flex-1 rounded-lg border-2 p-3 text-left transition-colors ${
               value === target.value
-                ? 'border-ui-gold-500 bg-ui-gold-50'
+                ? 'border-ui-gold-800 bg-ui-gold-50'
                 : 'border-gray-200 hover:border-gray-300'
             } ${
               disabledTargets.includes(target.value)

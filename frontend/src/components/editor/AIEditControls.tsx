@@ -25,12 +25,12 @@ export default function AIEditControls({
   const [editorFeedback, setEditorFeedback] = useState('');
   const confidenceColor =
     confidence === undefined
-      ? 'text-gray-400'
+      ? 'text-gray-600'
       : confidence >= 0.8
-        ? 'text-green-600'
+        ? 'text-status-success-800'
         : confidence >= 0.5
-          ? 'text-ui-gold-600'
-          : 'text-red-600';
+          ? 'text-ui-gold-800'
+          : 'text-status-error-800';
 
   return (
     <div className="bg-white rounded-lg border p-4">
@@ -40,9 +40,9 @@ export default function AIEditControls({
         <div className="mb-3 p-3 bg-ui-gold-50 border border-ui-gold-200 rounded-md">
           <div className="flex items-center gap-2">
             <div className="animate-spin h-4 w-4 border-2 border-ui-gold-600 border-t-transparent rounded-full" />
-            <span className="text-sm text-ui-gold-700 font-medium">AI is editing...</span>
+            <span className="text-sm text-ui-gold-800 font-medium">AI is editing...</span>
           </div>
-          <p className="text-xs text-ui-gold-600 mt-1">This may take a few seconds.</p>
+          <p className="text-xs text-ui-gold-800 mt-1">This may take a few seconds.</p>
         </div>
       )}
 
