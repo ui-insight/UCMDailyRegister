@@ -169,6 +169,12 @@
   },
   {
     "category": "formatting",
+    "rule_key": "date_conflicts",
+    "rule_text": "Never guess or silently correct a date. When a supplied weekday and date do not match, keep both exactly as written and add a flag stating the correct weekday for the date given, for example: DATE CONFLICT: MARCH 3, 2027, IS A WEDNESDAY, NOT A TUESDAY. When the same event has different dates in the headline, body, links or notes, keep the body date and add a flag naming the other date, for example: DATE CONFLICT: HEADLINE SAYS MARCH 4. When a date has no year, assume the next upcoming occurrence after the submission date. When adding a missing weekday, calculate it from the calendar for that resolved year, never from today's date or the publication date. If the weekday cannot be verified, add the flag DAY OF WEEK NOT VERIFIED instead of adding a weekday. Report these conflicts in the flags list for the editor; do not write them into the headline or body.",
+    "severity": "error"
+  },
+  {
+    "category": "formatting",
     "rule_key": "events_free_default",
     "rule_text": "Events are assumed to be free unless otherwise noted. If an event has a cost, include the price. Do not write 'free' unless the original submission explicitly states it.",
     "severity": "warning"

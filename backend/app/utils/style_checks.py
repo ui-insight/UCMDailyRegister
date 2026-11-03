@@ -959,6 +959,89 @@ def detect_inserted_weekday_mismatches(
     return findings
 
 
+def date_conflict_note(match: re.Match, reference: date) -> str:
+    """Describe a weekday/date conflict in UCM's flag wording (#384).
+
+    Example: ``DATE CONFLICT: MARCH 3, 2027, IS A WEDNESDAY, NOT A TUESDAY``.
+    """
+    month = _MONTH_NUMBERS[match.group("month").lower().rstrip(".")]
+    day = int(match.group("day"))
+    weekday = match.group("weekday").upper()
+    resolved = _resolve_calendar_date(match, reference)
+    if resolved is None:
+        month_name = date(2000, month, 1).strftime("%B").upper()
+        return f"DATE CONFLICT: {month_name} {day} DOES NOT EXIST"
+    return (
+        f"DATE CONFLICT: {resolved.strftime('%B').upper()} {day}, {resolved.year}, "
+        f"IS A {resolved.strftime('%A').upper()}, NOT A {weekday}"
+    )
+
+
+def detect_weekday_date_conflicts(
+    text: str,
+    *,
+    reference_date: date | None = None,
+) -> dict[str, str]:
+    """Map each mismatched weekday/date pair to its conflict note."""
+    reference = reference_date or date.today()
+    return {
+        match.group().rstrip("."): date_conflict_note(match, reference)
+        for match in _weekday_date_matches(text)
+        if (resolved := _resolve_calendar_date(match, reference)) is None
+        or resolved.strftime("%A").lower() != match.group("weekday").lower()
+    }
+
+
+def detect_changed_source_date_conflicts(
+    source_text: str,
+    edited_text: str,
+    *,
+    reference_date: date | None = None,
+) -> dict[str, str]:
+    """Find source weekday/date conflicts the edit no longer keeps as written.
+
+    UCM keeps both the supplied weekday and the supplied date and flags the
+    conflict instead of choosing a correction (#384). A conflicting source
+    pair missing from the edit means the AI changed or dropped one of them.
+    """
+    reference = reference_date or date.today()
+    edited_pairs = {_weekday_date_key(match) for match in _weekday_date_matches(edited_text)}
+    return {
+        match.group().rstrip("."): date_conflict_note(match, reference)
+        for match in _weekday_date_matches(source_text)
+        if _weekday_date_key(match) not in edited_pairs
+        and (
+            (resolved := _resolve_calendar_date(match, reference)) is None
+            or resolved.strftime("%A").lower() != match.group("weekday").lower()
+        )
+    }
+
+
+def detect_headline_date_conflicts(headline: str, body: str) -> list[str]:
+    """Find headline dates the body never gives (#384).
+
+    When the headline and body disagree, the body date is kept and the
+    headline date is flagged. Only month/day dates are compared, and a body
+    without any date is not judged.
+    """
+    def month_days(text: str) -> dict[tuple[int, int], str]:
+        found: dict[tuple[int, int], str] = {}
+        for match in _MONTH_DAY.finditer(strip_html(text)):
+            month = _MONTH_NUMBERS.get(match.group("month").lower().rstrip("."))
+            if month is not None:
+                found.setdefault((month, int(match.group("day"))), match.group())
+        return found
+
+    body_dates = month_days(body)
+    if not body_dates:
+        return []
+    return [
+        written
+        for key, written in month_days(headline).items()
+        if key not in body_dates
+    ]
+
+
 def change_contradicts_final_dates(change: str, final_text: str) -> bool:
     """Whether a change-log entry gives a date a weekday the final text does not.
 

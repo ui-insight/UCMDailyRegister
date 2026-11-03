@@ -61,6 +61,9 @@ from app.utils.style_checks import (
     detect_noncanonical_campus_locations,
     detect_missing_approved_venue_addresses,
     detect_weekday_date_mismatches,
+    detect_weekday_date_conflicts,
+    detect_changed_source_date_conflicts,
+    detect_headline_date_conflicts,
     detect_inserted_weekday_mismatches,
     change_contradicts_final_dates,
     detect_missing_relative_date_components,
@@ -301,9 +304,14 @@ class AIEditor:
             if source_text
             else {}
         )
+        conflicts = detect_weekday_date_conflicts(text, reference_date=reference_date)
         for found in detect_weekday_date_mismatches(text, reference_date=reference_date):
             if found not in inserted_weekdays:
-                add("ap_style_dates", f"Weekday does not match the calendar date: '{found}'")
+                add(
+                    "ap_style_dates",
+                    f"Weekday does not match the calendar date: '{found}' "
+                    f"[{conflicts[found]}]",
+                )
             elif inserted_weekdays[found] is None:
                 add("ap_style_dates", f"Added weekday is paired with a date that does not exist: '{found}'")
             else:
@@ -312,6 +320,23 @@ class AIEditor:
                     f"Added weekday does not match the calendar date: '{found}' "
                     f"falls on a {inserted_weekdays[found]}",
                 )
+        if source_text:
+            for found, note in detect_changed_source_date_conflicts(
+                source_text,
+                text,
+                reference_date=reference_date,
+            ).items():
+                add(
+                    "date_conflicts",
+                    f"Keep the submitted weekday and date as written: '{found}' [{note}]",
+                )
+        for found in detect_headline_date_conflicts(headline, body):
+            add(
+                "date_conflicts",
+                f"Headline date does not appear in the body [DATE CONFLICT: HEADLINE SAYS "
+                f"{found.upper()}]",
+                heuristic=True,
+            )
         for found in detect_missing_near_term_weekdays(
             text,
             reference_date=reference_date,
@@ -559,6 +584,10 @@ class AIEditor:
         headline_case = "sentence_case"
 
         style_rules = await self.load_style_rules(session, newsletter_type)
+        # Dates without a year resolve from when the item was submitted (#410).
+        submission_date = (
+            submission.Created_At.date() if submission.Created_At else date.today()
+        )
 
         system_prompt = build_system_prompt(
             newsletter_type=newsletter_type,
@@ -578,6 +607,7 @@ class AIEditor:
             links=links if links else None,
             category=submission.Category,
             editor_instructions=editor_instructions,
+            submission_date=submission_date,
         )
 
         try:
@@ -632,7 +662,7 @@ class AIEditor:
             source_text="\n".join(source_parts),
             source_body=submission.Original_Body,
             source_comparison_output="\n".join(comparison_output_parts),
-            reference_date=date.today(),
+            reference_date=submission_date,
         )
 
         mandatory_rule_keys = {
@@ -703,7 +733,7 @@ class AIEditor:
                     source_text="\n".join(source_parts),
                     source_body=submission.Original_Body,
                     source_comparison_output="\n".join(comparison_output_parts),
-                    reference_date=date.today(),
+                    reference_date=submission_date,
                 )
 
         headline_diff = diff_to_dict(

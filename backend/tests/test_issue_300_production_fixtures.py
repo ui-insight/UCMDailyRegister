@@ -1,5 +1,6 @@
 """Production-derived regression fixtures for Joy's Aug. 10 feedback (#300)."""
 
+from datetime import datetime
 import json
 from pathlib import Path
 
@@ -62,6 +63,9 @@ class StubbornProvider(RepairSequenceProvider):
             "embedded_links": [],
             "confidence": 0.5,
         }
+
+
+FIXTURE_SUBMITTED_AT = datetime(2026, 8, 10, 9, 0)
 
 
 def load_fixtures() -> list[dict]:
@@ -152,6 +156,9 @@ async def test_active_must_rule_violations_trigger_one_compliance_repair(fixture
         Submitter_Name="Production fixture",
         Submitter_Email="fixture@example.edu",
         Links=[],
+        # Fixtures date from August 2026; dates without a year resolve from
+        # the submission date, not from the day the suite runs (#410).
+        Created_At=FIXTURE_SUBMITTED_AT,
     )
 
     result = await editor.edit_submission(
@@ -180,6 +187,9 @@ def make_submission(fixture: dict) -> Submission:
         Submitter_Name="Production fixture",
         Submitter_Email="fixture@example.edu",
         Links=[],
+        # Fixtures date from August 2026; dates without a year resolve from
+        # the submission date, not from the day the suite runs (#410).
+        Created_At=FIXTURE_SUBMITTED_AT,
     )
 
 

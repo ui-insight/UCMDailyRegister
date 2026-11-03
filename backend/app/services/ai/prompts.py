@@ -4,6 +4,8 @@ The system prompt is assembled dynamically from active style rules in the databa
 so rule changes take effect immediately without code changes.
 """
 
+from datetime import date
+
 
 def build_system_prompt(
     newsletter_type: str,
@@ -131,6 +133,7 @@ def build_edit_user_prompt(
     links: list[dict] | None,
     category: str,
     editor_instructions: str | None = None,
+    submission_date: date | None = None,
 ) -> str:
     """Build the user prompt for a single submission edit.
 
@@ -141,7 +144,16 @@ def build_edit_user_prompt(
         links: Optional list of link dicts with 'url' and 'anchor_text' keys
         category: Submission category
         editor_instructions: Optional targeted feedback from an editor
+        submission_date: Date the item was submitted; dates without a year
+            resolve to their next occurrence after it (#410)
     """
+    submission_date_line = (
+        f"**Submission Date:** {submission_date:%A, %B} {submission_date.day}, "
+        f"{submission_date.year} (resolve dates without a year to their next "
+        "occurrence after this date)\n"
+        if submission_date
+        else ""
+    )
     prompt = f"""Please edit the following newsletter submission. Return your response as a JSON object.
 
 ## Editing Example
@@ -159,7 +171,7 @@ Key edits: sentence case headline, removed "please", specified exact dates, remo
 ## Original Submission
 
 **Category:** {category}
-**Headline:** {headline}
+{submission_date_line}**Headline:** {headline}
 
 **Body:**
 {body}
