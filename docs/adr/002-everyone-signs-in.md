@@ -2,8 +2,17 @@
 
 ## Status
 
-Accepted. Supersedes the "no default role" paragraph of
-[ADR-001](001-entra-sso.md); the rest of ADR-001 stands.
+Accepted. Under `AUTH_PROVIDER=oidc` this supersedes every part of
+[ADR-001](001-entra-sso.md) that relies on anonymous submission:
+
+- context point 2, "Anonymous use is a feature";
+- the "no default role" paragraph and its `not_authorized` refusal;
+- the landing-page paragraph, where the Submitter view "stays open" and only
+  the other views hand visitors to Microsoft;
+- the consequence that "the public submission path is unchanged".
+
+The rest of ADR-001 stands: token handling, the per-mode credential rule, and
+header mode, which still allows anonymous submission.
 
 ## Context
 

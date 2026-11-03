@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { SSO_LOGIN_URL } from '../api/auth';
 import { getValidDates } from '../api/schedule';
-import { useIdentity, useSsoEnabled } from '../auth/useAuth';
+import { useAuthMode, useIdentity } from '../auth/useAuth';
 import MicrosoftMark from '../components/common/MicrosoftMark';
 import { addDaysISO, formatAPDate, todayISO } from '../utils/date';
 import { homeForRole, setSubmitterRole } from '../utils/submitterRole';
@@ -65,16 +65,18 @@ function useNextIssues(): Partial<Record<NewsletterKey, string>> {
  * form. A visitor who is already signed in goes straight there.
  *
  * Header-mode deployments (local development) have no sign-in, so they get
- * plain links to the two workspaces instead.
+ * plain links to the two workspaces instead. Those links appear only after
+ * the backend says so: if the check fails, the page offers a retry rather
+ * than an anonymous form the backend would refuse.
  */
 export default function LandingPage() {
   const navigate = useNavigate();
-  const ssoEnabled = useSsoEnabled();
+  const { mode, retry } = useAuthMode();
   const identity = useIdentity();
   const nextIssues = useNextIssues();
   const [redirecting, setRedirecting] = useState(false);
 
-  if (ssoEnabled === true && identity) {
+  if (mode === 'sso' && identity) {
     return <Navigate to={homeForRole(identity.role)} replace />;
   }
 
@@ -117,7 +119,7 @@ export default function LandingPage() {
           . UCM editors review every item before it runs.
         </p>
 
-        {ssoEnabled === false ? (
+        {mode === 'header' ? (
           <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
             <button
               type="button"
@@ -134,12 +136,21 @@ export default function LandingPage() {
               Open the staff workspace
             </button>
           </div>
+        ) : mode === 'error' ? (
+          <div className="mt-10" role="alert">
+            <p className="text-sm text-gray-600">
+              Sign-in isn't available right now. Check your connection, then try again.
+            </p>
+            <button type="button" onClick={retry} className={`mt-4 ${PRIMARY_BUTTON}`}>
+              Try again
+            </button>
+          </div>
         ) : (
           <div className="mt-10">
             <button
               type="button"
               onClick={handleSignIn}
-              disabled={redirecting}
+              disabled={mode === null || redirecting}
               className={PRIMARY_BUTTON}
             >
               <MicrosoftMark />

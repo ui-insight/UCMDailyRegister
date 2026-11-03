@@ -112,6 +112,41 @@ describe('LandingPage', () => {
     expect(screen.queryByTestId('next-issue-tdr')).not.toBeInTheDocument();
   });
 
+  describe('while the deployment mode is unknown', () => {
+    it('keeps sign-in disabled until the backend answers', async () => {
+      let answer: (value: { sso_enabled: boolean }) => void = () => {};
+      getAuthConfigMock.mockReturnValue(
+        new Promise((resolve) => {
+          answer = resolve;
+        }),
+      );
+      renderApp();
+      const signIn = screen.getByRole('button', { name: /Sign in with your University account/ });
+      expect(signIn).toBeDisabled();
+      await userEvent.click(signIn);
+      expect(assignSpy).not.toHaveBeenCalled();
+      answer({ sso_enabled: true });
+      await waitFor(() => expect(signIn).toBeEnabled());
+    });
+
+    it('offers a retry, not an anonymous form, when the check fails', async () => {
+      getAuthConfigMock.mockRejectedValueOnce(new Error('offline'));
+      getAuthConfigMock.mockResolvedValueOnce({ sso_enabled: true });
+      renderApp();
+      expect(await screen.findByRole('alert')).toHaveTextContent(/Sign-in isn't available/);
+      expect(screen.queryByRole('button', { name: /Submit an item/ })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /Sign in with your University account/ }),
+      ).not.toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+      const signIn = await screen.findByRole('button', {
+        name: /Sign in with your University account/,
+      });
+      await waitFor(() => expect(signIn).toBeEnabled());
+      expect(getAuthConfigMock).toHaveBeenCalledTimes(2);
+    });
+  });
+
   describe('SSO deployment', () => {
     beforeEach(() => {
       getAuthConfigMock.mockResolvedValue({ sso_enabled: true });
@@ -119,9 +154,11 @@ describe('LandingPage', () => {
 
     it('sends everyone to the University sign-in from one button', async () => {
       renderApp();
-      await userEvent.click(
-        await screen.findByRole('button', { name: /Sign in with your University account/ }),
-      );
+      const signIn = await screen.findByRole('button', {
+        name: /Sign in with your University account/,
+      });
+      await waitFor(() => expect(signIn).toBeEnabled());
+      await userEvent.click(signIn);
       expect(assignSpy).toHaveBeenCalledWith('/api/v1/auth/sso/login');
       expect(screen.queryByRole('button', { name: /Submit an item/ })).not.toBeInTheDocument();
     });
