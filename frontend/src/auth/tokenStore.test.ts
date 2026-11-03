@@ -75,6 +75,16 @@ describe('getSubmitterRole with a session token', () => {
     setToken(fakeJwt({ sub: 'x', name: 'x', role: 'ops', exp: future }));
     expect(getSubmitterRole()).toBe('ops');
   });
+
+  it('treats a signed-in submitter as the public view', () => {
+    window.history.replaceState(null, '', '/submit');
+    setToken(fakeJwt({ sub: 'p@uidaho.edu', name: 'Pat', role: 'submitter', exp: future }));
+    expect(getIdentity()?.role).toBe('submitter');
+    expect(getSubmitterRole()).toBe('public');
+    expect(homeForRole('submitter')).toBe('/submit');
+    expect(roleMayOpen('submitter', '/submit')).toBe(true);
+    expect(roleMayOpen('submitter', '/dashboard')).toBe(false);
+  });
 });
 
 describe('route helpers', () => {

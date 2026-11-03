@@ -1,6 +1,6 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useIdentity, useSsoEnabled } from './useAuth';
-import { pathRequiresRole, roleMayOpen } from '../utils/submitterRole';
+import { roleMayOpen } from '../utils/submitterRole';
 import { loginUrlFor } from './loginUrl';
 
 /**
@@ -9,17 +9,20 @@ import { loginUrlFor } from './loginUrl';
  * browser has no way to know its role, so the pages render and the backend
  * answers 403 exactly as it does today.
  *
+ * Under SSO every page behind this guard needs a signed-in user, submitters
+ * included (ADR-002); staff-only pages also need the staff role.
+ *
  * This is a UX guard, not a security boundary: every API call is still
- * checked server-side. Its job is to send an anonymous visitor to the
- * landing page (where they can sign in) instead of showing them an empty
- * dashboard full of 403s.
+ * checked server-side. Its job is to send an anonymous visitor to sign in
+ * instead of showing them a form that cannot be sent or a dashboard full
+ * of 403s.
  */
 export default function RequireRole() {
   const ssoEnabled = useSsoEnabled();
   const identity = useIdentity();
   const location = useLocation();
 
-  if (ssoEnabled !== true || !pathRequiresRole(location.pathname)) {
+  if (ssoEnabled !== true) {
     return <Outlet />;
   }
 

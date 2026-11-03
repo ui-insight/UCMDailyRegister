@@ -7,5 +7,5 @@ export interface AuthConfig {
 export interface CurrentUser {
   subject: string;
   name: string;
-  role: 'staff' | 'slc' | 'ops';
+  role: 'staff' | 'slc' | 'ops' | 'submitter';
 }

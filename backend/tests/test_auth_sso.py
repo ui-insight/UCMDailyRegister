@@ -18,7 +18,7 @@ from app.auth.entra_roles import map_groups_to_role
 from app.auth.session_tokens import create_session_token, decode_session_token
 from app.config import Settings
 from app.services.graph_groups import GraphGroupLookupError, GraphPermissionError
-from tests.conftest import make_newsletter_data
+from tests.conftest import make_newsletter_data, make_submission_data
 
 
 def _token(role: str = "staff", **overrides: Any) -> str:
@@ -134,6 +134,30 @@ class TestBearerTokenAuthorization:
         resp = await client.get("/api/v1/submissions/")
         assert resp.status_code == 403
 
+    async def test_anonymous_submission_needs_sign_in(self, client: AsyncClient):
+        resp = await client.post("/api/v1/submissions/", json=make_submission_data())
+        assert resp.status_code == 401
+
+    async def test_submitter_token_may_submit(self, client: AsyncClient):
+        resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(),
+            headers=_bearer(_token("submitter")),
+        )
+        assert resp.status_code == 201
+
+    async def test_submitter_token_is_refused_at_staff_gate(self, client: AsyncClient):
+        headers = _bearer(_token("submitter"))
+        assert (await client.get("/api/v1/submissions/", headers=headers)).status_code == 403
+        resp = await client.post(
+            "/api/v1/newsletters", json=make_newsletter_data(), headers=headers
+        )
+        assert resp.status_code == 403
+
+    async def test_anonymous_feedback_needs_sign_in(self, client: AsyncClient):
+        resp = await client.post("/api/v1/feedback", json={})
+        assert resp.status_code == 401
+
 
 @pytest.mark.asyncio
 class TestHeaderModeIgnoresTokens:
@@ -207,9 +231,9 @@ class TestEntraRoleMapping:
         monkeypatch.setattr(entra_roles.settings, "entra_group_slc", "SLC-Members")
         monkeypatch.setattr(entra_roles.settings, "entra_group_ops", "Event-Services")
 
-    def test_no_match_is_none(self):
-        assert map_groups_to_role(["Some-Other-Group"]) is None
-        assert map_groups_to_role([]) is None
+    def test_no_match_is_submitter(self):
+        assert map_groups_to_role(["Some-Other-Group"]) == "submitter"
+        assert map_groups_to_role([]) == "submitter"
 
     def test_matches_case_insensitively(self):
         assert map_groups_to_role(["ucm-staff"]) == "staff"
@@ -225,7 +249,7 @@ class TestEntraRoleMapping:
 
     def test_empty_config_matches_nothing(self, monkeypatch: pytest.MonkeyPatch):
         monkeypatch.setattr(entra_roles.settings, "entra_group_ops", "")
-        assert map_groups_to_role([""]) is None
+        assert map_groups_to_role([""]) == "submitter"
 
 
 # --- SSO callback ----------------------------------------------------------
@@ -324,11 +348,13 @@ class TestSsoCallback:
         )
         assert decode_session_token(_fragment(location)["access_token"]).role == "staff"
 
-    async def test_unmapped_user_is_not_authorized(self, sso_app):
+    async def test_unmapped_user_signs_in_as_submitter(self, sso_app):
         location = await self._callback(
             sso_app, {"userinfo": {"email": "x@uidaho.edu", "roles": ["Nothing"]}}
         )
-        assert _fragment(location) == {"error": "not_authorized"}
+        identity = decode_session_token(_fragment(location)["access_token"])
+        assert identity.role == "submitter"
+        assert identity.subject == "x@uidaho.edu"
 
     async def test_missing_email_is_no_account(self, sso_app):
         location = await self._callback(sso_app, {"userinfo": {"roles": ["UCM-Staff"]}})

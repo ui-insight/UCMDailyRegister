@@ -4,9 +4,11 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-# Roles a signed-in user can hold. Deliberately excludes "public": anonymous
-# submitters never sign in, so a session token always names a real role.
-SignedInRole = Literal["staff", "slc", "ops"]
+# Roles a signed-in user can hold. Any University account that signs in
+# without a UCM role is a "submitter": it may submit items and nothing more,
+# so for authorization it is treated exactly like the old anonymous "public"
+# role (see app.api.deps). "public" itself never appears in a token.
+SignedInRole = Literal["staff", "slc", "ops", "submitter"]
 
 
 class TokenIdentity(BaseModel):

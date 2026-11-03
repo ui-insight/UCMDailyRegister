@@ -69,18 +69,23 @@ describe('LandingPage', () => {
     vi.restoreAllMocks();
   });
 
-  it('describes both newsletters and leaves out the hidden SLC and Event Services views', async () => {
-    getAuthConfigMock.mockResolvedValue({ sso_enabled: false });
+  it('is one simple page with no menu of views', async () => {
+    getAuthConfigMock.mockResolvedValue({ sso_enabled: true });
     renderApp();
-    await waitFor(() => expect(getAuthConfigMock).toHaveBeenCalled());
-    expect(screen.getByRole('heading', { name: 'The Daily Register' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'My UI' })).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 1, name: 'UCM Newsletter Submissions' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('The Daily Register')).toBeInTheDocument();
+    expect(screen.getByText('My UI')).toBeInTheDocument();
+    await screen.findByRole('button', { name: /Sign in with your University account/ });
+    expect(screen.getAllByRole('button')).toHaveLength(1);
+    expect(screen.queryByText(/\bviews?\b/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/SLC/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Event Services/)).not.toBeInTheDocument();
   });
 
   it('shows the next issue after today for each newsletter', async () => {
-    getAuthConfigMock.mockResolvedValue({ sso_enabled: false });
+    getAuthConfigMock.mockResolvedValue({ sso_enabled: true });
     const tomorrow = addDaysISO(1);
     const inThreeDays = addDaysISO(3);
     getValidDatesMock.mockResolvedValue({
@@ -97,41 +102,14 @@ describe('LandingPage', () => {
   });
 
   it('still renders when the schedule cannot be loaded', async () => {
-    getAuthConfigMock.mockResolvedValue({ sso_enabled: false });
+    getAuthConfigMock.mockResolvedValue({ sso_enabled: true });
     getValidDatesMock.mockRejectedValue(new Error('offline'));
     renderApp();
     await waitFor(() => expect(getValidDatesMock).toHaveBeenCalled());
-    expect(screen.getByRole('button', { name: /Submit an item/ })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: /Sign in with your University account/ }),
+    ).toBeInTheDocument();
     expect(screen.queryByTestId('next-issue-tdr')).not.toBeInTheDocument();
-  });
-
-  describe('trusted-header deployment (SSO off)', () => {
-    beforeEach(() => {
-      getAuthConfigMock.mockResolvedValue({ sso_enabled: false });
-    });
-
-    it('opens the staff workspace directly, as today', async () => {
-      renderApp();
-      await waitFor(() => expect(getAuthConfigMock).toHaveBeenCalled());
-      await userEvent.click(screen.getByRole('button', { name: 'Open the staff workspace' }));
-      expect(screen.getByText('dashboard page')).toBeInTheDocument();
-      expect(window.localStorage.getItem('ucm_submitter_role')).toBe('staff');
-      expect(assignSpy).not.toHaveBeenCalled();
-    });
-
-    it('opens the submission form', async () => {
-      renderApp();
-      await waitFor(() => expect(getAuthConfigMock).toHaveBeenCalled());
-      await userEvent.click(screen.getByRole('button', { name: /Submit an item/ }));
-      expect(screen.getByText('submit page')).toBeInTheDocument();
-      expect(window.localStorage.getItem('ucm_submitter_role')).toBe('public');
-    });
-
-    it('shows no sign-in status line', async () => {
-      renderApp();
-      await waitFor(() => expect(getAuthConfigMock).toHaveBeenCalled());
-      expect(screen.queryByTestId('sign-in-status')).not.toBeInTheDocument();
-    });
   });
 
   describe('SSO deployment', () => {
@@ -139,54 +117,48 @@ describe('LandingPage', () => {
       getAuthConfigMock.mockResolvedValue({ sso_enabled: true });
     });
 
-    it('sends an anonymous visitor to the login page, remembering the dashboard', async () => {
+    it('sends everyone to the University sign-in from one button', async () => {
       renderApp();
-      await userEvent.click(await screen.findByRole('button', { name: 'Staff sign in' }));
-      expect(screen.getByText(/^login:/)).toHaveTextContent('/login?next=%2Fdashboard');
-      expect(assignSpy).not.toHaveBeenCalled();
+      await userEvent.click(
+        await screen.findByRole('button', { name: /Sign in with your University account/ }),
+      );
+      expect(assignSpy).toHaveBeenCalledWith('/api/v1/auth/sso/login');
+      expect(screen.queryByRole('button', { name: /Submit an item/ })).not.toBeInTheDocument();
     });
 
-    it('still lets an anonymous visitor submit an item', async () => {
+    it('sends a signed-in staff member straight to the dashboard', async () => {
+      setToken(fakeJwt({ sub: 's@uidaho.edu', name: 'Sam', role: 'staff', exp: future }));
       renderApp();
-      await screen.findByRole('button', { name: 'Staff sign in' });
-      await userEvent.click(screen.getByRole('button', { name: /Submit an item/ }));
+      expect(await screen.findByText('dashboard page')).toBeInTheDocument();
+    });
+
+    it('sends a signed-in submitter straight to the submission form', async () => {
+      setToken(fakeJwt({ sub: 'p@uidaho.edu', name: 'Pat', role: 'submitter', exp: future }));
+      renderApp();
+      expect(await screen.findByText('submit page')).toBeInTheDocument();
+    });
+
+    it('sends an anonymous deep link to the submission form to sign in', async () => {
+      renderApp('/submit');
+      await waitFor(() => expect(screen.getByText(/^login:/)).toBeInTheDocument());
+      expect(screen.getByText(/^login:/)).toHaveTextContent('/login?next=%2Fsubmit');
+    });
+
+    it('lets a signed-in submitter open the submission form', async () => {
+      setToken(fakeJwt({ sub: 'p@uidaho.edu', name: 'Pat', role: 'submitter', exp: future }));
+      renderApp('/submit');
+      await waitFor(() => expect(getAuthConfigMock).toHaveBeenCalled());
       expect(screen.getByText('submit page')).toBeInTheDocument();
-      expect(assignSpy).not.toHaveBeenCalled();
-    });
-
-    it('lets a signed-in staff member go straight to the dashboard', async () => {
-      setToken(fakeJwt({ sub: 's@uidaho.edu', name: 'Sam', role: 'staff', exp: future }));
-      renderApp();
-      expect(await screen.findByTestId('sign-in-status')).toHaveTextContent('Signed in as Sam');
-      await userEvent.click(screen.getByRole('button', { name: 'Go to dashboard' }));
-      expect(screen.getByText('dashboard page')).toBeInTheDocument();
-    });
-
-    it('sends a signed-in SLC member to the login page instead of the dashboard', async () => {
-      setToken(fakeJwt({ sub: 's@uidaho.edu', name: 'Sam', role: 'slc', exp: future }));
-      renderApp();
-      await userEvent.click(await screen.findByRole('button', { name: 'Staff sign in' }));
-      expect(screen.getByText(/^login:/)).toHaveTextContent('/login?next=%2Fdashboard');
-    });
-
-    it('signs out through the backend so the Entra session ends too', async () => {
-      setToken(fakeJwt({ sub: 's@uidaho.edu', name: 'Sam', role: 'staff', exp: future }));
-      renderApp();
-      await userEvent.click(await screen.findByRole('button', { name: 'Sign out' }));
-      expect(assignSpy).toHaveBeenCalledWith('/api/v1/auth/logout');
-      expect(window.localStorage.getItem('ucm_session_token')).toBeNull();
     });
 
     it('guards a deep link to a staff page for an anonymous visitor', async () => {
       renderApp('/dashboard');
-      // Before the config answers, RequireRole renders the page; once SSO is
-      // known to be on and there is no identity, it redirects to sign-in.
       await waitFor(() => expect(screen.getByText(/^login:/)).toBeInTheDocument());
       expect(screen.getByText(/^login:/)).toHaveTextContent('/login?next=%2Fdashboard');
     });
 
-    it('guards a deep link to a staff page for an SLC member', async () => {
-      setToken(fakeJwt({ sub: 's@uidaho.edu', name: 'Sam', role: 'slc', exp: future }));
+    it.each(['slc', 'submitter'])('guards a staff page from a %s', async (role) => {
+      setToken(fakeJwt({ sub: 's@uidaho.edu', name: 'Sam', role, exp: future }));
       renderApp('/dashboard');
       await waitFor(() => expect(screen.getByText(/^login:/)).toBeInTheDocument());
     });
@@ -196,6 +168,29 @@ describe('LandingPage', () => {
       renderApp('/dashboard');
       await waitFor(() => expect(getAuthConfigMock).toHaveBeenCalled());
       expect(screen.getByText('dashboard page')).toBeInTheDocument();
+    });
+  });
+
+  describe('trusted-header deployment (SSO off, local development)', () => {
+    beforeEach(() => {
+      getAuthConfigMock.mockResolvedValue({ sso_enabled: false });
+    });
+
+    it('opens the staff workspace directly', async () => {
+      renderApp();
+      await userEvent.click(
+        await screen.findByRole('button', { name: 'Open the staff workspace' }),
+      );
+      expect(screen.getByText('dashboard page')).toBeInTheDocument();
+      expect(window.localStorage.getItem('ucm_submitter_role')).toBe('staff');
+      expect(assignSpy).not.toHaveBeenCalled();
+    });
+
+    it('opens the submission form without signing in', async () => {
+      renderApp();
+      await userEvent.click(await screen.findByRole('button', { name: 'Submit an item' }));
+      expect(screen.getByText('submit page')).toBeInTheDocument();
+      expect(window.localStorage.getItem('ucm_submitter_role')).toBe('public');
     });
   });
 });

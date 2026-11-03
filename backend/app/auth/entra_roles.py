@@ -16,8 +16,8 @@ def _names(raw: str) -> set[str]:
     return {name.strip().casefold() for name in raw.split(",") if name.strip()}
 
 
-def map_groups_to_role(claim_values: Iterable[object]) -> SignedInRole | None:
-    """Resolve Entra names to a role, or `None` when none of them grant one.
+def map_groups_to_role(claim_values: Iterable[object]) -> SignedInRole:
+    """Resolve Entra names to a role; `submitter` when none of them grant one.
 
     Highest privilege first: `staff` passes every gate in `app.api.deps`, so a
     user in both the staff and SLC groups is staff, not whichever Entra
@@ -32,7 +32,7 @@ def map_groups_to_role(claim_values: Iterable[object]) -> SignedInRole | None:
     for role, configured in ordered:
         if held & _names(configured):
             return role
-    # No default role. Anonymous users already have "public" without signing
-    # in; a signed-in user in no mapped group is a refused login, never a
-    # silent downgrade.
-    return None
+    # Everyone submits through SSO, so a University account with no UCM role
+    # is a submitter. The Entra registration is single-tenant, so only
+    # University accounts reach this point.
+    return "submitter"

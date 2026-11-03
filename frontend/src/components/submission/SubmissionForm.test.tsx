@@ -24,6 +24,14 @@ vi.mock('../../api/submissions', () => ({
   createSubmission: vi.fn(),
 }));
 
+const identityMock = vi.hoisted(() => ({
+  value: null as null | { subject: string; name: string; role: string; exp: number },
+}));
+
+vi.mock('../../auth/tokenStore', () => ({
+  getIdentity: () => identityMock.value,
+}));
+
 vi.mock('../../utils/submitterRole', () => ({
   getSubmitterRole: () => submitterRoleMock.value,
 }));
@@ -122,6 +130,7 @@ beforeEach(() => {
   vi.useFakeTimers({ shouldAdvanceTime: true, now: new Date(2026, 4, 1, 9, 0, 0) });
   vi.clearAllMocks();
   submitterRoleMock.value = 'public';
+  identityMock.value = null;
   listAllowedValuesMock.mockResolvedValue(allowedCategories);
   getValidDatesMock.mockResolvedValue({
     dates: [
@@ -535,4 +544,38 @@ it('keeps every public field named and every instruction reference resolvable', 
     for (const id of described.getAttribute('aria-describedby')!.split(/\s+/)) expect(document.getElementById(id), id).not.toBeNull();
   }
   expect(screen.getByLabelText('Timing flexibility (optional)')).toBeInTheDocument();
+});
+
+describe('SubmissionForm contact details', () => {
+  const identity = (role: string) => ({
+    subject: 'pat.example@uidaho.edu',
+    name: 'Pat Example',
+    role,
+    exp: Math.floor(Date.now() / 1000) + 3600,
+  });
+
+  it('starts with a signed-in submitter\'s name and University email, still editable', async () => {
+    identityMock.value = identity('submitter');
+    render(<SubmissionForm />);
+    const name = await screen.findByLabelText('Your Name');
+    const email = screen.getByLabelText('Email Address');
+    expect(name).toHaveValue('Pat Example');
+    expect(email).toHaveValue('pat.example@uidaho.edu');
+    await userEvent.clear(name);
+    await userEvent.type(name, 'Someone Else');
+    expect(name).toHaveValue('Someone Else');
+  });
+
+  it('starts blank for staff, who often submit for someone else', async () => {
+    submitterRoleMock.value = 'staff';
+    identityMock.value = identity('staff');
+    render(<SubmissionForm />);
+    expect(await screen.findByLabelText('Your Name')).toHaveValue('');
+    expect(screen.getByLabelText('Email Address')).toHaveValue('');
+  });
+
+  it('starts blank without a sign-in', async () => {
+    render(<SubmissionForm />);
+    expect(await screen.findByLabelText('Your Name')).toHaveValue('');
+  });
 });

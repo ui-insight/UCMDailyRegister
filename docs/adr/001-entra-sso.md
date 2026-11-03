@@ -2,7 +2,8 @@
 
 ## Status
 
-Accepted
+Accepted. The "no default role" rule below is superseded by
+[ADR-002](002-everyone-signs-in.md).
 
 ## Context
 

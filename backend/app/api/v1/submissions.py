@@ -5,7 +5,13 @@ from fastapi import APIRouter, Depends, File, Header, HTTPException, Query, Uplo
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import SubmitterRole, get_db, get_submitter_role, require_staff
+from app.api.deps import (
+    SubmitterRole,
+    get_db,
+    get_submitter_role,
+    require_signed_in_under_sso,
+    require_staff,
+)
 from app.config import settings
 from app.schemas.submission import (
     LinkCreate,
@@ -168,6 +174,7 @@ async def create_submission(
     data: SubmissionCreate,
     db: AsyncSession = Depends(get_db),
     submission_role: SubmitterRole = Depends(get_submitter_role),
+    _signed_in: object = Depends(require_signed_in_under_sso),
 ):
     if not await allowed_value_service.is_submission_category_allowed(
         db, data.Category, submission_role
