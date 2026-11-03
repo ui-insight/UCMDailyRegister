@@ -339,5 +339,6 @@ def test_added_and_source_weekday_conflicts_are_reported_differently():
         "'Thursday, Oct. 28, 2026' falls on a Wednesday"
     ]
     assert [flag["message"] for flag in from_source] == [
-        "Weekday does not match the calendar date: 'Thursday, Oct. 28, 2026'"
+        "Weekday does not match the calendar date: 'Thursday, Oct. 28, 2026' "
+        "[DATE CONFLICT: OCTOBER 28, 2026, IS A WEDNESDAY, NOT A THURSDAY]"
     ]

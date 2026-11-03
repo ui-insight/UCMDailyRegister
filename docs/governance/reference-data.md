@@ -9,7 +9,7 @@ normal seeding; deliberate overwrite requires `SEED_OVERWRITE=1`.
 | ORM tables | 20 |
 | Mapped columns | 211 |
 | Newsletter sections | 15 |
-| Style rules | 99 |
+| Style rules | 100 |
 | Schedule configurations | 6 |
 | AllowedValue groups | 16 |
 | AllowedValue values | 60 |
