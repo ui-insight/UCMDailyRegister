@@ -113,6 +113,7 @@ def test_migration_is_idempotent_and_matches_shared_seed():
         "composition_title_format",
         "preserve_audience_scope",
         "preserve_purpose_contact_titles",
+        "spell_out_acronyms",
         "today_tomorrow",
     }
     for row in rows:

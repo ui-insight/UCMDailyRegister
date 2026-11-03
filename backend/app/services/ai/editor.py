@@ -41,6 +41,8 @@ from app.utils.style_checks import (
     detect_disallowed_ampersands,
     detect_platform_names,
     detect_undefined_acronyms,
+    detect_unneeded_acronym_definitions,
+    never_spell_out_acronyms,
     detect_repeated_cta_phrases,
     detect_redundant_promotional_leads,
     detect_generic_destination_references,
@@ -271,6 +273,7 @@ class AIEditor:
         source_body: str = "",
         source_comparison_output: str = "",
         reference_date: date | None = None,
+        newsletter_type: str | None = None,
     ) -> list[dict]:
         """Run deterministic rule checks on the AI-edited output.
 
@@ -385,7 +388,8 @@ class AIEditor:
                 heuristic=True,
             )
 
-        acronyms = detect_undefined_acronyms(strip_html(body))
+        standalone = never_spell_out_acronyms(newsletter_type)
+        acronyms = detect_undefined_acronyms(strip_html(body), standalone)
         if acronyms:
             listed = ", ".join(acronyms[:5])
             add(
@@ -393,6 +397,15 @@ class AIEditor:
                 f"Acronym(s) never defined in the body as Full Name (ACRONYM): {listed}",
                 heuristic=True,
             )
+        for token in detect_unneeded_acronym_definitions(
+            strip_html(headline), strip_html(body), standalone
+        ):
+            reason = (
+                "is on the never-spell-out list; use it alone"
+                if token in standalone
+                else "is not used again; write the full name alone"
+            )
+            add("spell_out_acronyms", f"Acronym '{token}' {reason}", heuristic=True)
 
         repeated = detect_repeated_cta_phrases(text)
         if repeated:
@@ -663,6 +676,7 @@ class AIEditor:
             source_body=submission.Original_Body,
             source_comparison_output="\n".join(comparison_output_parts),
             reference_date=submission_date,
+            newsletter_type=newsletter_type,
         )
 
         mandatory_rule_keys = {
@@ -734,6 +748,7 @@ class AIEditor:
                     source_body=submission.Original_Body,
                     source_comparison_output="\n".join(comparison_output_parts),
                     reference_date=submission_date,
+                    newsletter_type=newsletter_type,
                 )
 
         headline_diff = diff_to_dict(
