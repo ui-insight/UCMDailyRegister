@@ -145,6 +145,14 @@ class TestDetectors:
         body = "The Example Research Office (ERO) hosts a workshop Tuesday."
         assert detect_unneeded_acronym_definitions("Join the ERO workshop", body) == []
 
+    def test_capitalized_word_in_parentheses_is_not_an_acronym(self):
+        body = "Attend the workshop (Online). Seats are limited (Free)."
+        assert detect_unneeded_acronym_definitions("Attend a workshop", body) == []
+
+    def test_mixed_case_acronym_is_still_detected(self):
+        body = "Idaho Established Program to Stimulate Competitive Research (EPSCoR) funds it."
+        assert detect_unneeded_acronym_definitions("Research funding", body) == ["EPSCoR"]
+
     def test_never_spell_out_acronym_stands_alone(self):
         standalone = never_spell_out_acronyms("tdr")
         assert detect_undefined_acronyms("IMCI hosts a seminar.", standalone) == []

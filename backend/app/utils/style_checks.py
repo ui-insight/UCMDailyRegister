@@ -94,7 +94,9 @@ _KNOWN_ACRONYMS = {
 # first reference, with no parenthetical definition.
 NEVER_SPELL_OUT_ACRONYMS = {"IMCI", "IRIC", "COBRE", "INBRE", "EPSCoR", "ISUB"}
 MYUI_NEVER_SPELL_OUT_ACRONYMS = {"CALS", "CAA", "ICCU", "LHSOM"}
-_PARENTHETICAL_ACRONYM = re.compile(r"\(([A-Z][A-Za-z]{1,7})\)")
+# Acronym-shaped: starts with a capital and has at least one more capital,
+# so EPSCoR matches but ordinary words such as (Online) do not.
+_PARENTHETICAL_ACRONYM = re.compile(r"\(([A-Z](?=[a-z]*[A-Z])[A-Za-z]{1,7})\)")
 
 _CTA_PHRASES = ("register", "sign up", "enroll", "rsvp", "apply", "learn more")
 
