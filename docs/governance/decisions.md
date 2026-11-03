@@ -114,3 +114,19 @@ Dev staff access now follows the same Entra app-role assignments as production. 
 client secret lives in both environment files, so rotating it must update both.
 Sign-out on dev and the remaining criteria listed in the production entry above are
 not established by this entry.
+
+## Scheduled backups installed — November 3, 2026
+
+A nightly job (`scripts/backup.sh`, see
+[Backup and recovery](../backup-and-recovery.md#scheduled-backup-job)) now takes a
+database dump and uploads archive for prod at 02:30 and dev at 02:40 server time,
+each into its own timestamped directory with a checksum manifest. Before this, no
+scheduled backup existed for UCM News. A one-off prod recovery point was also
+taken immediately before the November 3 production deployment.
+
+The job verifies each archive with `pg_restore --list`, which shows the archive is
+readable but does not prove a restore. Expiry, off-host encrypted replication,
+environment-file backup, failure alerting and a recorded restore exercise remain
+open, so the "Backup job, expiry, encryption and latest paired restore" field above
+stays pending. No credentials or database contents are recorded here.
+
