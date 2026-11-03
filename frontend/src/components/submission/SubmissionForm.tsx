@@ -8,6 +8,7 @@ import type { AllowedValue } from '../../types/allowedValue';
 import { createSubmission } from '../../api/submissions';
 import { getValidDates } from '../../api/schedule';
 import { getSubmitterRole } from '../../utils/submitterRole';
+import { getIdentity } from '../../auth/tokenStore';
 import {
   addDaysISO,
   addDaysToISODate,
@@ -133,8 +134,17 @@ export default function SubmissionForm() {
   const [targetNewsletter, setTargetNewsletter] = useState<TargetNewsletter>('tdr');
   const [headline, setHeadline] = useState('');
   const [body, setBody] = useState('');
-  const [submitterName, setSubmitterName] = useState('');
-  const [submitterEmail, setSubmitterEmail] = useState('');
+  // A signed-in submitter is submitting for themselves, so start with their
+  // University name and email. Staff often enter items for someone else, so
+  // their form starts blank. Both stay editable.
+  const [submitterName, setSubmitterName] = useState(() => {
+    const identity = getIdentity();
+    return identity?.role === 'submitter' ? identity.name : '';
+  });
+  const [submitterEmail, setSubmitterEmail] = useState(() => {
+    const identity = getIdentity();
+    return identity?.role === 'submitter' ? identity.subject : '';
+  });
   const [notes, setNotes] = useState('');
   const [surveyEndDate, setSurveyEndDate] = useState('');
   const [alsoPublishInStudentNewsletter, setAlsoPublishInStudentNewsletter] = useState(false);

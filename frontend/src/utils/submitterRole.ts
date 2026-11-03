@@ -2,6 +2,16 @@ import { getIdentity } from '../auth/tokenStore';
 
 export type SubmitterRole = 'public' | 'staff' | 'slc' | 'ops';
 
+/** Roles a session token can carry. A University account with no UCM role
+ * signs in as `submitter`, which has the same rights as an anonymous `public`
+ * caller (ADR-002). */
+export type SignedInRole = 'staff' | 'slc' | 'ops' | 'submitter';
+
+/** The view a role works in: a signed-in submitter sees the public view. */
+export function viewRole(role: SubmitterRole | SignedInRole): SubmitterRole {
+  return role === 'submitter' ? 'public' : role;
+}
+
 const STORAGE_KEY = 'ucm_submitter_role';
 const STAFF_ONLY_ROUTE_PREFIXES = [
   '/dashboard',
@@ -42,9 +52,9 @@ function inferRoleFromPath(
 
 /** Route prefixes each role may open. `staff` passes every gate, matching
  * `require_staff_or_*` on the backend. */
-export function roleMayOpen(role: SubmitterRole, pathname: string): boolean {
+export function roleMayOpen(role: SubmitterRole | SignedInRole, pathname: string): boolean {
   const normalizedPath = pathname.toLowerCase();
-  if (role === 'staff') return true;
+  if (viewRole(role) === 'staff') return true;
   return !STAFF_ONLY_ROUTE_PREFIXES.some((prefix) => matchesRoutePrefix(normalizedPath, prefix));
 }
 
@@ -56,8 +66,8 @@ export function pathRequiresRole(pathname: string): boolean {
 
 /** Where a signed-in role lands after sign-in. The SLC and Event Services
  * tools are hidden, so their homes now show the RetiredToolPage notice. */
-export function homeForRole(role: SubmitterRole): string {
-  switch (role) {
+export function homeForRole(role: SubmitterRole | SignedInRole): string {
+  switch (viewRole(role)) {
     case 'staff':
       return '/dashboard';
     case 'slc':
@@ -79,7 +89,7 @@ export function getSubmitterRole(): SubmitterRole {
   // deployment, where the browser never learns its role any other way.
   const identity = getIdentity();
   if (identity) {
-    return identity.role;
+    return viewRole(identity.role);
   }
 
   const queryRole = parseRole(new URLSearchParams(window.location.search).get('role'));
@@ -93,12 +103,12 @@ export function getSubmitterRole(): SubmitterRole {
   return resolvedRole ?? 'public';
 }
 
-export function setSubmitterRole(role: SubmitterRole) {
+export function setSubmitterRole(role: SubmitterRole | SignedInRole) {
   if (typeof window === 'undefined') {
     return;
   }
 
-  window.localStorage.setItem(STORAGE_KEY, role);
+  window.localStorage.setItem(STORAGE_KEY, viewRole(role));
 }
 
 export function getSubmitterRoleHeaders(): HeadersInit {

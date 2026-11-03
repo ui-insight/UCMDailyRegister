@@ -58,6 +58,24 @@ async def require_identity(
     return identity
 
 
+async def require_signed_in_under_sso(
+    identity: TokenIdentity | None = Depends(get_current_identity),
+) -> TokenIdentity | None:
+    """Require a signed-in user under SSO; allow anonymous callers otherwise.
+
+    Under AUTH_PROVIDER=oidc everyone, submitters included, signs in with a
+    University account before submitting. Header mode has no sign-in, so
+    those deployments (and local development) stay open as before.
+    """
+    if settings.auth_provider == "oidc" and identity is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Sign in with your University account to continue.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return identity
+
+
 async def get_submitter_role(
     identity: TokenIdentity | None = Depends(get_current_identity),
     x_user_role: str | None = Header(None, alias="X-User-Role"),
@@ -78,6 +96,10 @@ async def get_submitter_role(
         )
 
     if identity is not None:
+        # A signed-in submitter has exactly the rights anonymous submitters
+        # had, so every downstream check keeps working on "public".
+        if identity.role == "submitter":
+            return cast(SubmitterRole, "public")
         return cast(SubmitterRole, identity.role)
 
     if settings.auth_provider == "header" and x_trusted_user_role:

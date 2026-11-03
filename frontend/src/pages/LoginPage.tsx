@@ -4,6 +4,7 @@ import { SSO_LOGIN_URL, SSO_LOGOUT_URL } from '../api/auth';
 import { clearToken } from '../auth/tokenStore';
 import { useIdentity, useSsoEnabled } from '../auth/useAuth';
 import { signInMessageFor } from '../auth/signInMessages';
+import MicrosoftMark from '../components/common/MicrosoftMark';
 import { homeForRole, roleMayOpen, setSubmitterRole } from '../utils/submitterRole';
 
 const UI_DOMAIN = 'uidaho.edu';
@@ -11,18 +12,6 @@ const UI_DOMAIN = 'uidaho.edu';
 /** Loose shape check only: the address is a hint to Microsoft, never a credential. */
 function looksLikeEmail(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-}
-
-/** Microsoft's four-square mark, inline so the page needs no external assets. */
-function MicrosoftMark() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 21 21" className="h-4 w-4 shrink-0">
-      <rect x="1" y="1" width="9" height="9" fill="#F25022" />
-      <rect x="11" y="1" width="9" height="9" fill="#7FBA00" />
-      <rect x="1" y="11" width="9" height="9" fill="#00A4EF" />
-      <rect x="11" y="11" width="9" height="9" fill="#FFB900" />
-    </svg>
-  );
 }
 
 function MailIcon() {
@@ -181,8 +170,8 @@ export default function LoginPage() {
             The Daily Register and My UI, produced in one place.
           </h2>
           <p className="mt-4 max-w-md text-sm leading-relaxed text-gray-300">
-            UCM staff sign in with a University account. Campus submitters don't need an
-            account; they use the public submission form.
+            Everyone signs in with a University account. Submitters go straight to the
+            submission form; UCM staff go to the editorial workspace.
           </p>
           <ul className="mt-10 space-y-4">
             {WORKSPACES.map((workspace) => (
@@ -302,8 +291,8 @@ export default function LoginPage() {
           )}
 
           <p className="mt-10 border-t border-gray-100 pt-6 text-xs text-ui-silver">
-            Access is managed by University Communications &amp; Marketing. If you need access,
-            contact UCM.
+            Staff access is managed by University Communications &amp; Marketing. If you
+            need it, contact UCM.
           </p>
         </div>
       </main>

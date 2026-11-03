@@ -1,4 +1,4 @@
-import type { SubmitterRole } from '../utils/submitterRole';
+import type { SignedInRole } from '../utils/submitterRole';
 
 /**
  * The session token minted by the backend after Entra sign-in, plus the
@@ -13,7 +13,7 @@ import type { SubmitterRole } from '../utils/submitterRole';
 
 const STORAGE_KEY = 'ucm_session_token';
 
-export type SignedInRole = Exclude<SubmitterRole, 'public'>;
+export type { SignedInRole };
 
 export interface Identity {
   subject: string;
@@ -40,7 +40,7 @@ function decodeIdentity(raw: string): Identity | null {
       typeof claims.sub !== 'string'
       || typeof claims.name !== 'string'
       || typeof claims.exp !== 'number'
-      || (role !== 'staff' && role !== 'slc' && role !== 'ops')
+      || (role !== 'staff' && role !== 'slc' && role !== 'ops' && role !== 'submitter')
     ) {
       return null;
     }

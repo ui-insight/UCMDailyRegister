@@ -90,7 +90,7 @@ class Settings(BaseSettings):
     oidc_role_claim: str = "roles"
     # Entra App Role / group names that grant each role. Comma-separated
     # lists are accepted; matching is case-insensitive. A signed-in user
-    # matching none of them is refused — there is no default role.
+    # matching none of them is a "submitter" (ADR-002).
     entra_group_staff: str = ""
     entra_group_slc: str = ""
     entra_group_ops: str = ""

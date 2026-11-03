@@ -4,8 +4,10 @@ All endpoints are prefixed with `/api/v1`. Responses use JSON. Errors return sta
 
 ## Authorization
 
-Public requests carry no credentials. Staff, SLC, and Event Services access
-reaches the API one of two ways, selected by `AUTH_PROVIDER`:
+Public metadata requests carry no credentials. Under `AUTH_PROVIDER=oidc`,
+creating a submission or feedback requires a signed-in session (any role,
+including `submitter`; see [ADR-002](adr/002-everyone-signs-in.md)). Roles
+reach the API one of two ways, selected by `AUTH_PROVIDER`:
 
 - **Session token** (`AUTH_PROVIDER=oidc`): after Microsoft Entra sign-in the
   backend mints a signed session token; the client sends it as
@@ -28,8 +30,9 @@ ignored, and under `oidc` the `X-Trusted-*` headers are ignored. Client-supplied
 | GET    | `/api/v1/auth/callback`   | Entra reply URL. Mints a session token and redirects to the SPA's `/sso/callback` with it in the URL fragment (plus `next` if one was given), or with `#error=<reason>`. `oidc` only. |
 | GET    | `/api/v1/auth/logout`     | Redirects through Entra's end-session endpoint so both sessions end. `oidc` only. |
 
-Callback `error` reasons: `not_authorized` (signed in, but in no mapped App
-Role), `unavailable` (directory lookup failed; retry), `misconfigured` (Graph
+A University account in no mapped App Role signs in as `submitter`.
+
+Callback `error` reasons: `unavailable` (directory lookup failed; retry), `misconfigured` (Graph
 refused; needs an administrator), `no_account` (no email claim),
 `sign_in_failed` (Entra rejected the exchange).
 
@@ -254,7 +257,7 @@ The settings endpoint returns read-only configuration data for the frontend Sett
 
 ## Feedback
 
-Public `POST /api/v1/feedback` captures a report and returns its created record.
+`POST /api/v1/feedback` (signed in under `oidc`) captures a report and returns its created record.
 The reported role and browser context are client-provided diagnostic data, not a
 verified actor identity. The notifier is disabled.
 

@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db, require_staff
+from app.api.deps import get_db, require_signed_in_under_sso, require_staff
 from app.schemas.feedback import (
     ProductFeedbackCreate,
     ProductFeedbackExportCreate,
@@ -23,6 +23,7 @@ async def create_feedback(
     data: ProductFeedbackCreate,
     db: AsyncSession = Depends(get_db),
     notifier: FeedbackNotifier = Depends(get_feedback_notifier),
+    _signed_in: object = Depends(require_signed_in_under_sso),
 ):
     """Capture a user-submitted bug report or product idea."""
     return await feedback_service.create_feedback(db, data, notifier)

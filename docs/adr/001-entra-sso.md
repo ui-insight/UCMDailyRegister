@@ -2,7 +2,9 @@
 
 ## Status
 
-Accepted
+Accepted. Under SSO, the anonymous-submission parts below (context point 2,
+"no default role", the open Submitter view and the unchanged public submission
+path) are superseded by [ADR-002](002-everyone-signs-in.md).
 
 ## Context
 

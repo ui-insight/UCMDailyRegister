@@ -74,7 +74,6 @@ def _sanitize_display_name(raw: object) -> str:
 
 # Reason codes handed to the frontend callback page, which turns each into a
 # sentence. Codes rather than messages so the wording stays in the UI.
-ERROR_NOT_AUTHORIZED = "not_authorized"
 ERROR_UNAVAILABLE = "unavailable"
 ERROR_MISCONFIGURED = "misconfigured"
 ERROR_NO_ACCOUNT = "no_account"
@@ -85,9 +84,8 @@ def _error_redirect(reason: str) -> RedirectResponse:
     """Return the browser to the callback page with a reason it can explain.
 
     Raising here would render FastAPI's JSON body straight into the browser
-    window - no layout, no way back. The commonest reason (`not_authorized`)
-    is what everyone sees until OIT assigns them a role, so it has to read
-    as a next step rather than as a broken app.
+    window - no layout, no way back. Each reason has to read as a next step
+    rather than as a broken app.
     """
     return RedirectResponse(
         f"{settings.oidc_post_login_redirect}#{urlencode({'error': reason})}",
@@ -229,9 +227,6 @@ async def sso_callback(request: Request) -> RedirectResponse:
         return _error_redirect(ERROR_UNAVAILABLE)
 
     role = map_groups_to_role(group_names)
-    if role is None:
-        logger.info("Sign-in refused: no configured role matched")
-        return _error_redirect(ERROR_NOT_AUTHORIZED)
 
     logger.info("Sign-in succeeded role=%s", role)
     session_token = create_session_token(subject=subject, role=role, name=name)
