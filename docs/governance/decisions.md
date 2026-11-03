@@ -130,3 +130,22 @@ environment-file backup, failure alerting and a recorded restore exercise remain
 open, so the "Backup job, expiry, encryption and latest paired restore" field above
 stays pending. No credentials or database contents are recorded here.
 
+
+## Dev restore exercise — November 3, 2026
+
+| Field | Value |
+| --- | --- |
+| Date / operator | November 3, 2026, 22:56 UTC; run by a coding agent for the project user on the deployment host |
+| Recovery point | `ucmnews-dev/scheduled/20261103T225610Z` (scheduled job, dev) |
+| Checksums | `database.dump` and `uploads.tgz` matched `MANIFEST.txt` |
+| Restore target | New temporary database `ucm_restore_test_20261103225611` on `insight-db`, owned by the dev application role; restored with `pg_restore --exit-on-error` in under one second |
+| Data checks | Exact row counts matched live dev for all 21 tables (2,874 rows); Alembic revision `b2d4f6a8c0e3` on both |
+| Application checks | The dev backend image, with AI keys blanked and no host port, connected only to the restore copy; ORM loaded recent submissions with their links and all 100 active style rules; `/health` and `/readyz` returned 200; the anonymous staff submission list returned 403 |
+| Not covered | Uploads (the volume is empty), a staff sign-in, a synthetic create/edit/export cycle, and prod data |
+| Measured RPO / RTO | Not measured; dev was quiet and the copy was taken seconds before restore |
+| Teardown | Temporary database dropped and temporary files removed; live dev and prod untouched |
+| Decision | The scheduled dev backup restores to a working database. Repeat monthly, and run a prod restore in an approved isolated environment before claiming the prod RPO/RTO |
+
+This dev result does not change the "Backup job, expiry, encryption and latest
+paired restore" field above, which stays pending until a prod restore, expiry,
+off-host encrypted copies and alerting are in place.
