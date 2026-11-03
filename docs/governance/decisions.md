@@ -94,3 +94,23 @@ sign-out. Track the wider identity and authorization criteria in
 [#256](https://github.com/ui-insight/UCMDailyRegister/issues/256), and
 [#261](https://github.com/ui-insight/UCMDailyRegister/issues/261). This entry does
 not claim broader institutional assurance approval or dev SSO enablement.
+
+## Dev SSO enablement — November 1, 2026
+
+`https://ucmnews-dev.insight.uidaho.edu` moved from the trusted-header boundary to
+`AUTH_PROVIDER=oidc`, using the production Entra registration and client secret.
+The project user reports confirmation that the same Entra credentials are intended
+for both environments. The dev reply URL was already registered, so no Entra change
+was needed. Dev has its own `SECRET_KEY` and `SESSION_COOKIE_SECRET`, so a session
+token minted on one environment is not valid on the other.
+
+The project user reports signing in to dev with University credentials, and the dev
+backend logged a successful Entra token exchange. Deployment checks for release
+`674c45d` verified OIDC mode, the Microsoft login redirect with the dev reply URL,
+anonymous staff-access denial, and rejection of the legacy shared-role headers. No
+credentials, tokens or individual identity claims are recorded here.
+
+Dev staff access now follows the same Entra app-role assignments as production. The
+client secret lives in both environment files, so rotating it must update both.
+Sign-out on dev and the remaining criteria listed in the production entry above are
+not established by this entry.
