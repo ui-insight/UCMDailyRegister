@@ -116,7 +116,7 @@
   {
     "category": "content_filtering",
     "rule_key": "flag_unclear_acronyms",
-    "rule_text": "Flag acronyms that are not spelled out on first reference. Student readers may not be familiar with university department or program abbreviations.",
+    "rule_text": "In My UI, CALS, CAA, ICCU and LHSOM also stand alone, even on first reference, with no expansion and no parenthetical. Student readers may not know other university department or program abbreviations, so spell out every other acronym according to spell_out_acronyms.",
     "severity": "warning"
   }
 ]

@@ -224,7 +224,7 @@
   {
     "category": "formatting",
     "rule_key": "spell_out_acronyms",
-    "rule_text": "Define every nonstandard acronym on first reference in the body as Full Name (ACRONYM), then use only the acronym on subsequent references. No acronym may appear before that definition. An acronym may appear in a headline only when the body defines it on first reference. Do not repeatedly use the full name after the acronym is established unless clarity requires it. Widely recognized terms such as U of I are exempt.",
+    "rule_text": "Apply these acronym checks in order. 1. Inside an official name: an acronym that is part of an official event, program, product, website or organization name stays exactly as submitted, with no expansion and no parenthetical. 2. Never-spell-out list: IMCI, IRIC, COBRE, INBRE, EPSCoR and ISUB always stand alone, even on first reference, with no expansion and no parenthetical. 3. Widely known acronyms: following AP style, use acronyms such as AI, GPS, FBI and NASA without spelling them out. U of I is also exempt. 4. Everything else: spell out the full name on first reference in the body. Add the acronym in parentheses after the full name only when the acronym appears again later in the body or in the headline, then use only the acronym. If the acronym is not used again, write the full name alone and leave the acronym out. No acronym may appear before that definition, except under checks 1 through 3. An acronym may appear in a headline only when the body defines it on first reference or it passes check 1, 2 or 3. When unsure whether an acronym is widely known, spell it out on first reference.",
     "severity": "error"
   },
   {
