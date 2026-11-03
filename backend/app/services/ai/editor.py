@@ -607,6 +607,7 @@ class AIEditor:
             links=links if links else None,
             category=submission.Category,
             editor_instructions=editor_instructions,
+            submission_date=submission_date,
         )
 
         try:

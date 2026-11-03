@@ -185,8 +185,10 @@ class RecordingProvider:
 
     def __init__(self, body: str):
         self.body = body
+        self.user_prompts: list[str] = []
 
-    async def complete_json(self, **_kwargs):
+    async def complete_json(self, **kwargs):
+        self.user_prompts.append(kwargs["user_prompt"])
         return {
             "edited_headline": "Hear a guest talk",
             "edited_body": self.body,
@@ -201,7 +203,8 @@ class RecordingProvider:
 async def test_dates_without_a_year_resolve_from_the_submission_date():
     """Sept. 2 is a Wednesday in 2026 but a Thursday in 2027 (#410)."""
     body = "The talk is 2 p.m. Wednesday, Sept. 2, in Example Hall."
-    editor = AIEditor(RecordingProvider(body))
+    provider = RecordingProvider(body)
+    editor = AIEditor(provider)
 
     async def no_rules(*_args, **_kwargs):
         return DATE_RULES
@@ -222,3 +225,7 @@ async def test_dates_without_a_year_resolve_from_the_submission_date():
     result = await editor.edit_submission(None, submission, "tdr")
 
     assert not [flag for flag in result.flags if "DATE CONFLICT" in flag["message"]]
+    # The model resolves yearless dates too, so it must see the same anchor.
+    assert provider.user_prompts
+    assert "**Submission Date:** Monday, August 10, 2026" in provider.user_prompts[0]
+
