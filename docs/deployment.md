@@ -487,6 +487,11 @@ already-migrated database.
 
 ### Cron on the deployment host
 
+!!! note "Paused"
+    Both harvest cron lines were commented out on November 3, 2026, after the
+    SLC and Event Services tools were hidden on dev and prod. Uncomment them only
+    if those tools return.
+
 Schedule the harvest with the host crontab on the target server, one line per
 environment, writing to a log file so outcomes and drift stay visible:
 

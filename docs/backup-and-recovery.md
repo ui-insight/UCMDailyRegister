@@ -55,6 +55,44 @@ inside them. A retained weekly/monthly pair can outlive the daily tier. Holds an
 backup retention extensions require recorded owner authorization. Monitor failed
 backups, missing pairs, off-host replication and expiry failures.
 
+## Scheduled backup job
+
+`scripts/backup.sh <prod|dev>` takes one recovery point per run on the
+deployment host. It runs from the server checkout
+(`/home/devops/UCMDailyRegister`) under the `devops` crontab:
+
+```cron
+30 2 * * * /home/devops/UCMDailyRegister/scripts/backup.sh prod >> /home/devops/backups/ucmnews-prod/backup.log 2>&1
+40 2 * * * /home/devops/UCMDailyRegister/scripts/backup.sh dev  >> /home/devops/backups/ucmnews-dev/backup.log  2>&1
+```
+
+Each run creates a new, never-reused directory
+`~/backups/ucmnews-<env>/scheduled/<UTC stamp>/` (mode 700, files mode 600)
+holding `database.dump` (`pg_dump -Fc`, taken through the `insight-db` container
+so the client matches the server), `uploads.tgz` (the `ucmnews-<env>_uploads`
+volume, read-only mount) and `MANIFEST.txt` (Alembic revision, backend image,
+server checkout, table and file counts, SHA-256 checksums; no secrets). The
+database is dumped before the uploads are archived, so every image the dump
+references is already on disk; the application keeps running. A run fails, and
+removes its incomplete directory, if the dump is empty, cannot be listed by
+`pg_restore --list`, or lacks `alembic_version`. The latest outcome is written to
+`~/backups/ucmnews-<env>/last-success` or `last-failure`.
+
+Check freshness daily with `scripts/backup.sh prod --check`, which exits 1 when no
+backup has succeeded in the last 26 hours.
+
+What the job does not do yet:
+
+- **Expiry.** Nothing is pruned, because backup expiry is pending Data Owner
+  approval. A recovery point is under 1 MB today; review disk use monthly.
+- **Off-host, encrypted copies.** Backups stay on the same VM as the database
+  host until an approved off-host store is chosen.
+- **Environment files.** They hold secrets and need their own controlled,
+  encrypted backup; the job does not copy them.
+- **Alerting.** Failures are logged but nobody is notified automatically.
+- **Restore proof.** `pg_restore --list` shows the archive is readable, not that a
+  restore works. Follow the restore exercise below.
+
 ## Restore exercise and data loss
 
 Use an isolated, approved recovery environment for a monthly exercise and before
