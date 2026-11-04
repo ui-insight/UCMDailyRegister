@@ -19,7 +19,7 @@ import logging
 import re
 import time
 from typing import Iterable
-from urllib.parse import urlsplit
+from urllib.parse import urljoin, urlsplit
 from xml.etree import ElementTree
 
 import httpx
@@ -61,10 +61,12 @@ _OFFICIAL_UNIT_EXPANSIONS = {
 _DEFAULT_SUMMARY = "Imported from the University of Idaho careers site."
 _SUMMARY_MAX_LENGTH = 300
 _CACHE_TTL_SECONDS = 6 * 60 * 60
-
-# Job pages rarely change, and the careers site throttles bursts, so parsed
-# pages are kept per URL until the sitemap's lastmod changes or the TTL ends.
-_page_cache: dict[str, tuple[str | None, float, JobPosting]] = {}
+# After the careers site throttles a request, every caller waits this long
+# before asking it for job pages again.
+_THROTTLE_BACKOFF_SECONDS = 120
+_MAX_REDIRECTS = 3
+_SOURCE_ID_MAX_LENGTH = 255
+_LOCALE_PREFIX_RE = re.compile(r"^/[a-z]{2}-[A-Z]{2}(?=/jobs/)")
 
 
 @dataclass(slots=True)
@@ -81,7 +83,28 @@ class JobPosting:
     date_posted: str | None = None
 
 
-class CareersSiteBusyError(RuntimeError):
+@dataclass(slots=True)
+class _CachedPage:
+    lastmod: str | None
+    fetched_at: float
+    fetched_on: str  # UTC date, comparable with sitemap lastmod dates
+    posting: JobPosting | None
+
+
+# Job pages rarely change, and the careers site throttles bursts, so parsed
+# pages (and confirmed closed ones, as None) are shared across callers until
+# the sitemap's lastmod changes or the TTL ends.
+_page_cache: dict[str, _CachedPage] = {}
+_in_flight: dict[str, asyncio.Task] = {}
+_throttled_until = 0.0
+_fetch_limit: tuple[asyncio.AbstractEventLoop, asyncio.Semaphore] | None = None
+
+
+class CareersSiteError(RuntimeError):
+    """The careers site could not be read."""
+
+
+class CareersSiteBusyError(CareersSiteError):
     """The careers site answered with its empty throttling response."""
 
 
@@ -95,49 +118,35 @@ async def fetch_job_postings(selected_source_ids: Iterable[str] = ()) -> JobPost
     """Fetch open job postings from the University of Idaho careers site.
 
     The careers site throttles bursts with an empty HTTP 202. Once that
-    happens, no further pages are requested in this run; postings already
-    read (or cached from earlier runs) are returned and the result is marked
-    incomplete so staff can retry later or add a job by its link.
+    happens, no caller requests job pages for a short backoff; postings
+    already read (or cached) are returned and the result is marked
+    incomplete, as it is for any page that could not be read or a sitemap
+    longer than the listing cap.
     """
     timeout = settings.job_postings_request_timeout_seconds
-    throttled = False
-    async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
-        sitemap = await client.get(settings.job_postings_source_url)
-        sitemap.raise_for_status()
-        entries = parse_careers_sitemap(sitemap.text)[: settings.job_postings_max_listings]
+    async with httpx.AsyncClient(timeout=timeout, follow_redirects=False) as client:
+        sitemap = await _get_careers_page(client, settings.job_postings_source_url)
+        try:
+            all_entries = parse_careers_sitemap(sitemap.text)
+        except ElementTree.ParseError as exc:
+            raise CareersSiteError("The careers sitemap could not be parsed") from exc
+        entries = all_entries[: settings.job_postings_max_listings]
+        truncated = len(all_entries) > len(entries)
 
-        semaphore = asyncio.Semaphore(settings.job_postings_fetch_concurrency)
-
-        async def load(url: str, lastmod: str | None) -> JobPosting | None:
-            nonlocal throttled
-            cached = _page_cache.get(url)
-            if cached and cached[0] in (lastmod, None) and time.monotonic() - cached[1] < _CACHE_TTL_SECONDS:
-                return cached[2]
-            async with semaphore:
-                if throttled:
-                    return None
-                try:
-                    posting = await _fetch_job_page(client, url)
-                except CareersSiteBusyError:
-                    throttled = True
-                    return None
-                except httpx.HTTPError as exc:
-                    logger.warning("Job page %s could not be read: %s", url, exc)
-                    return None
-            if posting is not None:
-                _page_cache[url] = (lastmod, time.monotonic(), posting)
-            return posting
-
-        results = await asyncio.gather(*(load(url, lastmod) for url, lastmod in entries))
-
-    postings = [posting for posting in results if posting is not None]
-    if throttled:
-        logger.warning(
-            "Careers site throttled job page reads; %s of %s listings available",
-            len(postings),
-            len(entries),
+        results = await asyncio.gather(
+            *(_load_job_page(client, url, lastmod) for url, lastmod in entries)
         )
-    if entries and not postings:
+
+    unread = sum(1 for read, _ in results if not read)
+    postings = [posting for read, posting in results if read and posting is not None]
+    if unread or truncated:
+        logger.warning(
+            "Job listing incomplete: %s of %s pages unread, %s beyond the cap",
+            unread,
+            len(entries),
+            len(all_entries) - len(entries),
+        )
+    if entries and unread == len(entries):
         raise CareersSiteBusyError("No job pages could be read from the careers site")
     # Newest at top, matching the Jobs section rule.
     postings.sort(key=lambda posting: posting.date_posted or "", reverse=True)
@@ -145,31 +154,46 @@ async def fetch_job_postings(selected_source_ids: Iterable[str] = ()) -> JobPost
     selected = set(selected_source_ids)
     return JobPostingFetchResult(
         postings=[posting_to_candidate(posting, posting.source_id in selected) for posting in postings],
-        is_complete=not throttled,
+        is_complete=not unread and not truncated,
     )
 
 
 async def lookup_job_posting(url: str) -> JobPosting | None:
     """Read one job page that staff pasted into the Builder."""
-    if not is_careers_job_url(url):
+    canonical = canonical_job_url(url)
+    if canonical is None:
         raise ValueError("Use a job link from the University careers site.")
     timeout = settings.job_postings_request_timeout_seconds
-    async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
-        posting = await _fetch_job_page(client, url)
-    if posting is not None:
-        _page_cache[url] = (None, time.monotonic(), posting)
+    async with httpx.AsyncClient(timeout=timeout, follow_redirects=False) as client:
+        read, posting = await _load_job_page(client, canonical, None, force=True)
+    if not read:
+        if time.monotonic() < _throttled_until:
+            raise CareersSiteBusyError(canonical)
+        raise CareersSiteError(f"Job page {canonical} could not be read")
     return posting
+
+
+def canonical_job_url(url: str) -> str | None:
+    """Return the one stable URL for a careers job page, or None if it isn't one.
+
+    Query strings, fragments, a locale prefix (/en-US/) and a trailing slash
+    don't change which posting a link names, so they are dropped. The result
+    is also the posting's Source_Id, which is limited to 255 characters.
+    """
+    careers_host = urlsplit(settings.job_postings_source_url).netloc
+    parts = urlsplit(url.strip())
+    if parts.scheme != "https" or parts.netloc != careers_host:
+        return None
+    path = _LOCALE_PREFIX_RE.sub("", parts.path).rstrip("/")
+    canonical = f"https://{parts.netloc}{path}"
+    if not _JOB_PATH_RE.match(canonical) or len(canonical) > _SOURCE_ID_MAX_LENGTH:
+        return None
+    return canonical
 
 
 def is_careers_job_url(url: str) -> bool:
     """Accept only job pages on the configured careers host."""
-    careers_host = urlsplit(settings.job_postings_source_url).netloc
-    parts = urlsplit(url.strip())
-    return (
-        parts.scheme == "https"
-        and parts.netloc == careers_host
-        and bool(_JOB_PATH_RE.match(f"https://{parts.netloc}{parts.path}"))
-    )
+    return canonical_job_url(url) is not None
 
 
 def posting_to_candidate(posting: JobPosting, selected: bool = False) -> dict:
@@ -187,16 +211,96 @@ def posting_to_candidate(posting: JobPosting, selected: bool = False) -> dict:
     }
 
 
-async def _fetch_job_page(client: httpx.AsyncClient, url: str) -> JobPosting | None:
-    response = await client.get(url)
-    # The careers site answers a throttled request with an empty 202.
-    if response.status_code == 202 or (response.status_code == 200 and not response.text):
-        raise CareersSiteBusyError(url)
-    response.raise_for_status()
+def _cache_is_fresh(cached: _CachedPage, lastmod: str | None) -> bool:
+    if time.monotonic() - cached.fetched_at >= _CACHE_TTL_SECONDS:
+        return False
+    if lastmod is None or cached.lastmod == lastmod:
+        return True
+    # A page cached by a link lookup has no sitemap revision: reuse it only
+    # if it was read after the sitemap's last change.
+    return cached.lastmod is None and cached.fetched_on > lastmod
+
+
+def _shared_fetch_limit() -> asyncio.Semaphore:
+    """One request limit for every caller on this event loop."""
+    global _fetch_limit
+    loop = asyncio.get_running_loop()
+    if _fetch_limit is None or _fetch_limit[0] is not loop:
+        _fetch_limit = (loop, asyncio.Semaphore(settings.job_postings_fetch_concurrency))
+    return _fetch_limit[1]
+
+
+async def _load_job_page(
+    client: httpx.AsyncClient,
+    url: str,
+    lastmod: str | None,
+    *,
+    force: bool = False,
+) -> tuple[bool, JobPosting | None]:
+    """Return (read, posting). read is False when the page couldn't be read.
+
+    A posting of None with read True means the page is closed or has no
+    job data. Concurrent callers asking for the same page share one request.
+    """
+    cached = _page_cache.get(url)
+    if cached and not force and _cache_is_fresh(cached, lastmod):
+        return True, cached.posting
+
+    task = _in_flight.get(url)
+    if task is None:
+        task = asyncio.ensure_future(_fetch_and_cache(client, url, lastmod))
+        _in_flight[url] = task
+        task.add_done_callback(lambda _task, key=url: _in_flight.pop(key, None))
+    return await asyncio.shield(task)
+
+
+async def _fetch_and_cache(
+    client: httpx.AsyncClient,
+    url: str,
+    lastmod: str | None,
+) -> tuple[bool, JobPosting | None]:
+    global _throttled_until
+    async with _shared_fetch_limit():
+        if time.monotonic() < _throttled_until:
+            return False, None
+        try:
+            response = await _get_careers_page(client, url)
+        except CareersSiteBusyError:
+            _throttled_until = time.monotonic() + _THROTTLE_BACKOFF_SECONDS
+            return False, None
+        except (CareersSiteError, httpx.HTTPError) as exc:
+            logger.warning("Job page %s could not be read: %s", url, exc)
+            return False, None
     posting = parse_careers_job_page(response.text, url)
     if posting is None:
-        logger.warning("Job page %s had no open JobPosting data", url)
-    return posting
+        logger.info("Job page %s has no open JobPosting data", url)
+    _page_cache[url] = _CachedPage(
+        lastmod=lastmod,
+        fetched_at=time.monotonic(),
+        fetched_on=datetime.now(timezone.utc).date().isoformat(),
+        posting=posting,
+    )
+    return True, posting
+
+
+async def _get_careers_page(client: httpx.AsyncClient, url: str) -> httpx.Response:
+    """GET a careers-site page, following redirects only within that site."""
+    careers_host = urlsplit(settings.job_postings_source_url).netloc
+    for _ in range(_MAX_REDIRECTS + 1):
+        response = await client.get(url)
+        if response.is_redirect:
+            target = urljoin(url, response.headers.get("location", ""))
+            parts = urlsplit(target)
+            if parts.scheme != "https" or parts.netloc != careers_host:
+                raise CareersSiteError(f"Refused redirect off the careers site: {target}")
+            url = target
+            continue
+        # The careers site answers a throttled request with an empty 202.
+        if response.status_code == 202 or (response.status_code == 200 and not response.text):
+            raise CareersSiteBusyError(url)
+        response.raise_for_status()
+        return response
+    raise CareersSiteError(f"Too many redirects reading {url}")
 
 
 def parse_careers_sitemap(xml_text: str) -> list[tuple[str, str | None]]:
@@ -206,7 +310,10 @@ def parse_careers_sitemap(xml_text: str) -> list[tuple[str, str | None]]:
     seen: set[str] = set()
     for url_node in root.iter(f"{_SITEMAP_NS}url"):
         loc = (url_node.findtext(f"{_SITEMAP_NS}loc") or "").strip()
-        if not _JOB_PATH_RE.match(loc) or loc in seen:
+        if not _JOB_PATH_RE.match(loc):
+            continue
+        loc = canonical_job_url(loc) or loc
+        if loc in seen:
             continue
         seen.add(loc)
         lastmod = (url_node.findtext(f"{_SITEMAP_NS}lastmod") or "").strip() or None
@@ -336,11 +443,17 @@ def build_job_listing_text(posting: JobPosting) -> str:
     """Return title, official unit and any non-Moscow location as one line."""
     title = posting.title.strip()
     department = clean_unit_name(posting.department)
-    # Some working titles already name the unit ("..., UI Foundation"). Use
-    # the unit once, with its official capitalization rather than title case.
-    unit_index = title.casefold().find(department.casefold()) if department else -1
-    if department and unit_index > 0:
-        title = title[:unit_index].rstrip(" ,-–—")
+    # Some working titles already end with the unit ("..., UI Foundation").
+    # Only a delimited unit at the very end is dropped, so a unit named
+    # mid-title ("Director of Financial Aid and Scholarships") stays whole.
+    if department:
+        suffix = re.search(
+            rf"\s*(?:,|\s[-\u2013\u2014])\s*{re.escape(department)}\s*$",
+            title,
+            re.IGNORECASE,
+        )
+        if suffix and suffix.start() > 0:
+            title = title[: suffix.start()]
     parts = [format_job_title(title)]
     if department:
         for abbreviation, expansion in _OFFICIAL_UNIT_EXPANSIONS.items():

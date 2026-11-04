@@ -299,7 +299,7 @@ async def list_job_postings(
         result = await job_posting_service.fetch_job_postings(
             selected_source_ids=_selected_job_source_ids(newsletter),
         )
-    except (httpx.HTTPError, job_posting_service.CareersSiteBusyError) as exc:
+    except (httpx.HTTPError, job_posting_service.CareersSiteError) as exc:
         raise HTTPException(
             status_code=502,
             detail="The University careers site could not be read. Try again in a few minutes.",
@@ -329,9 +329,9 @@ async def lookup_job_posting(
     except job_posting_service.CareersSiteBusyError as exc:
         raise HTTPException(
             status_code=503,
-            detail="The University careers site is busy. Try again in a minute.",
+            detail="The University careers site is busy. Try again in a few minutes.",
         ) from exc
-    except httpx.HTTPError as exc:
+    except (httpx.HTTPError, job_posting_service.CareersSiteError) as exc:
         raise HTTPException(
             status_code=502,
             detail="That job page could not be read from the University careers site.",
