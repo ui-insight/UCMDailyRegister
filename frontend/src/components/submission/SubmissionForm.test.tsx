@@ -393,7 +393,7 @@ describe('SubmissionForm', () => {
     expect(screen.queryByLabelText('How many times to run')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Repeat on a cadence')).not.toBeInTheDocument();
 
-    await user.type(screen.getByLabelText('Job Posting URL'), 'https://uidaho.peopleadmin.com/postings/123');
+    await user.type(screen.getByLabelText('Job Posting URL'), 'https://careers.uidaho.edu/jobs/example-123');
     await user.type(screen.getByLabelText('Position Title'), 'Program Coordinator');
     await user.type(screen.getByLabelText('Department'), 'Student Affairs');
     await user.type(screen.getByLabelText('Location(s)'), 'Moscow');
@@ -411,7 +411,7 @@ describe('SubmissionForm', () => {
           Original_Body: 'Department: Student Affairs. Location: Moscow. Apply using the linked posting.',
           Links: [
             {
-              Url: 'https://uidaho.peopleadmin.com/postings/123',
+              Url: 'https://careers.uidaho.edu/jobs/example-123',
               Anchor_Text: 'Program Coordinator, Student Affairs, Moscow',
             },
           ],
@@ -434,7 +434,7 @@ describe('SubmissionForm', () => {
 
     await screen.findByRole('option', { name: 'Job Opportunity' });
     await user.selectOptions(screen.getByLabelText('Announcement Type'), 'job_opportunity');
-    await user.type(screen.getByLabelText('Job Posting URL'), 'https://uidaho.peopleadmin.com/postings/124');
+    await user.type(screen.getByLabelText('Job Posting URL'), 'https://careers.uidaho.edu/jobs/example-124');
     await user.type(screen.getByLabelText('Position Title'), 'Program Coordinator');
     await user.type(screen.getByLabelText('Department'), 'Student Affairs');
     await user.type(screen.getByLabelText('Preferred run date'), '2026-05-05');

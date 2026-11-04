@@ -666,7 +666,7 @@ export default function SubmissionForm() {
                 value={jobUrl}
                 onChange={(e) => setJobUrl(e.target.value)}
                 required
-                placeholder="https://uidaho.peopleadmin.com/postings/..."
+                placeholder="https://careers.uidaho.edu/jobs/..."
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
               />
               <FieldError errors={fieldErrors} id="submission-job-url" />

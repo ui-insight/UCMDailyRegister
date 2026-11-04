@@ -106,7 +106,7 @@ contain no secrets. API responses, permission tests, and the
    editorial notes columns are not explicitly inserted, but personal data in
    content is not automatically sanitized. Returned copy, flags, change summaries,
    model/provider and editor instructions may persist in edit history.
-3. Trumba calendar pages/feed and PeopleAdmin postings are fetched on demand.
+3. Trumba calendar pages/feed and job postings from the PageUp careers site (careers.uidaho.edu sitemap and job pages) are fetched on demand.
    SLC harvesting upserts structured JSON-feed occurrences in `harvested_events`.
    SLC flagging promotes an event into a submission and records its provenance.
 4. A harvest queues ops classification in the background. A separate MindRouter
@@ -130,7 +130,7 @@ contain no secrets. API responses, permission tests, and the
 | Anthropic / OpenAI | Selected newsletter editor; local default is Claude | Approved processor/model, endpoint and account configuration, contract retention/training/residency terms, external sharing authorization |
 | MindRouter | Optional newsletter editor; dedicated ops classifier | Approved endpoint/model and operating controls; configurable URLs alone do not prove campus-only routing |
 | Microsoft Entra / Graph | Sign-in and optional group lookup | Registration/consent, scopes, role assignments, secret ownership and rotation |
-| Trumba / PeopleAdmin | Public source reads | Source purpose, endpoint inventory and operational limits |
+| Trumba / PageUp careers site | Public source reads | Source purpose, endpoint inventory and operational limits |
 | GitHub | Source control and optional staff-prepared feedback export | Approved access and export review; protected data excluded |
 
 No external-provider residency or zero-retention claim follows from source code.
