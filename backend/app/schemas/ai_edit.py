@@ -49,6 +49,7 @@ class AIEditResponse(BaseModel):
     Confidence: float
     AI_Provider: str
     AI_Model: str
+    Policy_Fingerprint: str | None = None
     Headline_Diff: TextDiffResponse
     Body_Diff: TextDiffResponse
     Edit_Version_Id: str
@@ -77,6 +78,7 @@ class EditVersionResponse(BaseModel):
     Changes_Made: list | None
     AI_Provider: str | None
     AI_Model: str | None
+    Policy_Fingerprint: str | None = None
     Editor_Instructions: str | None
     Created_At: datetime
 

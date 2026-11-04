@@ -33,6 +33,7 @@ export interface AIEditResponse {
   Confidence: number;
   AI_Provider: string;
   AI_Model: string;
+  Policy_Fingerprint: string | null;
   Headline_Diff: TextDiff;
   Body_Diff: TextDiff;
   Edit_Version_Id: string;
@@ -60,6 +61,7 @@ export interface EditVersion {
   Changes_Made: string[] | null;
   AI_Provider: string | null;
   AI_Model: string | null;
+  Policy_Fingerprint: string | null;
   Editor_Instructions: string | null;
   Created_At: string;
 }

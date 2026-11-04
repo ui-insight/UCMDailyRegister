@@ -148,7 +148,12 @@ def test_migration_values_match_style_rule_seeds():
     )
     assert seeded_shared["preserve_event_title_case"]["severity"] == "error"
     assert seeded_shared["preserve_event_title_case"]["category"] == "formatting"
-    assert seeded_tdr["sentence_case"]["rule_text"] == migration.TDR_SENTENCE_CASE_RULE_TEXT
+    # Editorial policy 2026-11-04 (d6e8f0a2b4c7) swaps the example's vague
+    # "Attend" for a specific action (#376); the precedence wording stays.
+    assert seeded_tdr["sentence_case"]["rule_text"] != migration.TDR_SENTENCE_CASE_RULE_TEXT
+    assert "keep their official capitalization inside a sentence-case headline" in (
+        seeded_tdr["sentence_case"]["rule_text"]
+    )
     assert seeded_tdr["sentence_case"]["severity"] == "error"
     assert seeded_tdr["sentence_case"]["category"] == "headlines"
     assert seeded_myui["sentence_case"]["rule_text"] == migration.MYUI_SENTENCE_CASE_RULE_TEXT

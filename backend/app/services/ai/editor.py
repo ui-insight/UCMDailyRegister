@@ -17,6 +17,7 @@ from app.services.ai.prompts import (
     build_compliance_repair_prompt,
     build_edit_user_prompt,
     build_system_prompt,
+    policy_fingerprint,
 )
 from app.services.ai.diff_generator import generate_word_diff, diff_to_dict
 from app.utils.text import (
@@ -29,6 +30,8 @@ from app.utils.text import (
 )
 from app.utils.hyperlinks import parse_submitter_notes
 from app.utils.style_checks import (
+    detect_headline_echoes_lead,
+    detect_review_notes_in_copy,
     strip_html,
     detect_unabbreviated_month_dates,
     detect_abbreviated_months_without_date,
@@ -102,6 +105,96 @@ def enforce_no_semicolons_in_prose(body: str) -> tuple[str, bool]:
 SEMICOLON_CLEANUP_DESCRIPTION = (
     "Replaced semicolons with periods to enforce the short-sentence rule"
 )
+
+CURLY_QUOTES_DESCRIPTION = (
+    "Converted straight quotation marks and apostrophes to curly ones"
+)
+
+_OPENING_CONTEXT = set(" \t\n\u00a0([{\u2014\u2013-/\u201c\u2018")
+
+# Tags (quoted attribute values may contain ">"), entities and URLs are
+# copied through untouched; only the prose between them is converted.
+_QUOTE_SAFE_TOKEN = re.compile(
+    r"(<(?:[^<>\"']|\"[^\"]*\"|'[^']*')*>"
+    r"|&(?:#\d+|#x[0-9a-f]+|[a-z][a-z0-9]+);"
+    r"|(?:https?://|www\.)[^\s<>\"]+)",
+    re.IGNORECASE,
+)
+
+
+def _curly(char: str, previous: str, following: str) -> str:
+    opening = not previous or previous in _OPENING_CONTEXT
+    if char == '"':
+        return "\u201c" if opening else "\u201d"
+    # Apostrophes, closing quotes and '26-style years take the right mark.
+    return "\u2018" if opening and not following.isdigit() else "\u2019"
+
+
+def enforce_curly_quotes(text: str) -> tuple[str, bool]:
+    """Convert straight quotes in prose to curly ones (#409).
+
+    HTML tags (attributes included) and URLs are left alone. Entities count
+    as the character they display, and encoded straight quotes (&quot;,
+    &#39;) are converted like typed ones. Curly marks are never touched.
+    """
+    parts = _QUOTE_SAFE_TOKEN.split(text)
+    changed = False
+    previous = ""
+
+    for index, part in enumerate(parts):
+        if not part:
+            continue
+        if index % 2 == 1:
+            if part.startswith("<"):
+                continue  # a tag doesn't change quote direction
+            if part.startswith("&"):
+                shown = html.unescape(part)
+                if shown in ("\"", "'"):
+                    following = parts[index + 1][:1] if index + 1 < len(parts) else ""
+                    parts[index] = _curly(shown, previous, following)
+                    changed = True
+                    previous = parts[index]
+                else:
+                    previous = shown[-1:] or previous
+                continue
+            previous = part[-1]  # a URL
+            continue
+        out: list[str] = []
+        for position, char in enumerate(part):
+            if char in ("\"", "'"):
+                following = part[position + 1] if position + 1 < len(part) else ""
+                char = _curly(char, previous, following)
+                changed = True
+            out.append(char)
+            previous = char
+        parts[index] = "".join(out)
+
+    return "".join(parts), changed
+
+
+def strip_headline_exclamations(headline: str) -> tuple[str, bool]:
+    """Headlines never end in exclamation marks (#376)."""
+    stripped = re.sub(r"\s*!+\s*$", "", headline)
+    return stripped, stripped != headline
+
+
+def _clean_final_copy(
+    headline: str,
+    body: str,
+    active_rule_keys: set[str],
+) -> tuple[str, str, bool]:
+    """Apply the mechanical policy fixes before the copy is analyzed.
+
+    Running these before post-analysis keeps flags, the repair pass and the
+    change notes describing the text that is actually saved.
+    """
+    if active_rule_keys & {"headline_rules", "no_exclamation_marks"}:
+        headline, _ = strip_headline_exclamations(headline)
+    if "curly_quotes" not in active_rule_keys:
+        return headline, body, False
+    headline, headline_quotes = enforce_curly_quotes(headline)
+    body, body_quotes = enforce_curly_quotes(body)
+    return headline, body, headline_quotes or body_quotes
 
 # Notes about the validation/repair mechanics, not about the copy itself.
 _INTERNAL_PROCESS_CHANGE = re.compile(
@@ -185,6 +278,7 @@ class EditResult:
     confidence: float = 0.0
     ai_provider: str = ""
     ai_model: str = ""
+    policy_fingerprint: str | None = None
     headline_diff: dict = field(default_factory=dict)
     body_diff: dict = field(default_factory=dict)
 
@@ -209,6 +303,7 @@ class AIEditor:
         return [
             {
                 "category": r.Category,
+                "rule_set": r.Rule_Set,
                 "rule_key": r.Rule_Key,
                 "rule_text": r.Rule_Text,
                 "severity": r.Severity,
@@ -294,6 +389,14 @@ class AIEditor:
             flag_type = "warning" if heuristic or rule["severity"] != "error" else "error"
             flags.append({"type": flag_type, "rule_key": rule_key, "message": message})
 
+        for note in detect_review_notes_in_copy(text):
+            add("review_flags", f"Move this review note to the flags list: '{note}'")
+        if detect_headline_echoes_lead(headline, body):
+            add(
+                "headline_rules",
+                "Headline begins with the same wording as the first sentence",
+                heuristic=True,
+            )
         for found in detect_unabbreviated_month_dates(text):
             add("ap_style_dates", f"Month should be abbreviated with a specific date: '{found}'")
         for found in detect_abbreviated_months_without_date(text):
@@ -654,6 +757,10 @@ class AIEditor:
             edited_headline = to_sentence_case(edited_headline)
         else:
             edited_headline = to_title_case(edited_headline)
+        active_rule_keys = {rule["rule_key"] for rule in style_rules}
+        edited_headline, edited_body, converted_quotes = _clean_final_copy(
+            edited_headline, edited_body, active_rule_keys
+        )
 
         source_parts = [
             submission.Original_Headline,
@@ -733,6 +840,10 @@ class AIEditor:
                     edited_headline = to_sentence_case(edited_headline)
                 else:
                     edited_headline = to_title_case(edited_headline)
+                edited_headline, edited_body, repair_quotes = _clean_final_copy(
+                    edited_headline, edited_body, active_rule_keys
+                )
+                converted_quotes = converted_quotes or repair_quotes
 
                 comparison_output_parts = [edited_headline, edited_body]
                 for link in embedded_links:
@@ -772,6 +883,8 @@ class AIEditor:
         ]
         if replaced_semicolons and SEMICOLON_CLEANUP_DESCRIPTION not in changes_made:
             changes_made.append(SEMICOLON_CLEANUP_DESCRIPTION)
+        if converted_quotes and CURLY_QUOTES_DESCRIPTION not in changes_made:
+            changes_made.append(CURLY_QUOTES_DESCRIPTION)
 
         final_text_flags = self.pre_analyze(
             edited_headline,
@@ -816,6 +929,7 @@ class AIEditor:
             confidence=confidence,
             ai_provider=self.llm.__class__.__name__.replace("Provider", "").lower(),
             ai_model=getattr(self.llm, "model", "unknown"),
+            policy_fingerprint=policy_fingerprint(style_rules),
             headline_diff=headline_diff,
             body_diff=body_diff,
         )
@@ -857,6 +971,7 @@ class AIEditor:
             Changes_Made=edit_result.changes_made,
             AI_Provider=edit_result.ai_provider,
             AI_Model=edit_result.ai_model,
+            Policy_Fingerprint=edit_result.policy_fingerprint,
             Editor_Instructions=editor_instructions,
         )
         session.add(ai_version)

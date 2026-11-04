@@ -300,6 +300,12 @@
           "pii": false
         },
         {
+          "name": "Policy_Fingerprint",
+          "description": "Editorial policy version and hash of the active style rules behind an AI-generated version.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
           "name": "Editor_Instructions",
           "description": "Free-text editor instructions passed into an edit run.",
           "classification": "Confidential",

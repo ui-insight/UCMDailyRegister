@@ -10,7 +10,9 @@ Version_Type and Headline_Case map to AllowedValue vocabularies. AI_Provider
 identifies a code-configured provider; it is not currently a seeded AllowedValue
 group. Changes to the provider set require code and governance review. The Flags and Changes_Made columns store
 structured JSON produced by the AI pipeline (e.g., style-rule violations
-detected, diff summaries).
+detected, diff summaries). Policy_Fingerprint records the editorial policy
+version and a hash of the active style rules behind an AI suggestion, so a
+suggestion can be traced to the rules that produced it.
 
 Created_At is set by the application with microsecond precision so the
 history reads in order; a database-side now() is second-resolution on SQLite
@@ -50,6 +52,7 @@ class EditVersion(Base):
     Changes_Made: Mapped[str | None] = mapped_column(sa.JSON, nullable=True)
     AI_Provider: Mapped[str | None] = mapped_column(sa.String(50), nullable=True)
     AI_Model: Mapped[str | None] = mapped_column(sa.String(100), nullable=True)
+    Policy_Fingerprint: Mapped[str | None] = mapped_column(sa.String(64), nullable=True)
     Editor_Instructions: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
     Created_At: Mapped[datetime] = mapped_column(
         sa.DateTime,

@@ -5,6 +5,30 @@ so rule changes take effect immediately without code changes.
 """
 
 from datetime import date
+import hashlib
+import json
+
+# Bump when the hard-coded prompt or the managed editorial rules change in a
+# way UCM approved (#409, #411). Saved AI versions record it with a hash of
+# the active rules so a suggestion can be traced to the policy that made it.
+EDITORIAL_POLICY_VERSION = "2026-11-04"
+
+
+def policy_fingerprint(style_rules: list[dict]) -> str:
+    """Return '<policy version>:<12-char hash of the active rules>'."""
+    canonical = sorted(
+        (
+            str(rule.get("rule_set", "")),
+            str(rule["rule_key"]),
+            str(rule["severity"]),
+            str(rule["rule_text"]),
+        )
+        for rule in style_rules
+    )
+    digest = hashlib.sha256(
+        json.dumps(canonical, ensure_ascii=False).encode("utf-8")
+    ).hexdigest()[:12]
+    return f"{EDITORIAL_POLICY_VERSION}:{digest}"
 
 
 def build_system_prompt(
@@ -67,11 +91,12 @@ source explicitly names a group.
 ## Your Editing Process
 
 ### Headline
-- Convert to {headline_case}. Remove exclamation marks.
-- Make it action-oriented: start with a verb when possible (e.g., "Attend...", "Sign up for...", "Become a...").
-- Preserve the action the original submission asks readers to take; invite them to attend a reading, not read or purchase the book.
+- Follow the headline rules: start with a verb naming the specific action readers should take ("Buy tickets", "Register", "Submit"), not a vague verb such as "Attend" when a more specific action applies.
+- Write a complete phrase with articles and connecting words, in {headline_case}, with no exclamation marks.
+- Do not begin the headline with the same wording as the first sentence of the body.
+- Preserve the action the original submission asks readers to take; invite them to hear a reading, not read or purchase the book.
 - Remove dates and times from headlines — those belong in the body.
-- Keep it short and informative, not promotional.
+- Keep it informative, not promotional.
 
 ### Voice and Tone
 - Rewrite any first-person language ("I/we/our/we're") to third person. Replace with the organization name or neutral phrasing.
@@ -106,11 +131,12 @@ source explicitly names a group.
 - NEVER duplicate link anchor text in the surrounding sentence. Integrate the link naturally so the anchor text appears exactly once. BAD: "and online via <a href='...'>online</a>". GOOD: "and <a href='...'>online</a>".
 
 ### Length and Structure
-- Trim verbose submissions to essential information. Produce exactly one paragraph.
+- Tighten wording only when it makes the item clearer and the meaning stays the same. Do not rewrite wording that is already clear and concise just because another phrasing is possible.
+- Remove redundancy from verbose submissions, but keep every fact, deadline and action. Produce exactly one paragraph.
 - REQUIRED: Use short, complete sentences. Each sentence should communicate one main idea.
 - Do not use semicolons. Replace them with periods and split compound or lengthy sentences without separating an event from its time, date or location.
 - Favor clear, direct wording over complex sentence structures.
-- Remove redundant phrasing, lists of minor duties, and excessive detail.
+- Remove redundant phrasing and repeated detail.
 {jobs_guidance}- Collapse bullet lists into flowing prose when possible.
 
 ### Content Filtering
@@ -120,6 +146,7 @@ source explicitly names a group.
 - Preserve the core meaning and all factual details of the submission.
 - **CRITICAL: Do not add ANY information, facts, names, links, or references that were not in the original submission, except canonical expansions or addresses explicitly approved by an active rule, or an acronym's full name when the acronym rule requires a first-reference definition — flag any full name you supply so an editor can verify it. Do not combine or reference content from other submissions. Every remaining sentence in your output must trace back to the original submission text.**
 - When in doubt about a factual claim, preserve it and flag it for human review.
+- Review notes such as [CONFIRM VENUE NAME] go in the flags list, never in the headline or body.
 - Always embed links with meaningful anchor text, never raw URLs in the final text.
 - The submitter notes often contain critical link instructions — always follow them.
 - Before returning JSON, audit the draft against every [MUST] rule in the Editorial Rules section.
@@ -161,10 +188,10 @@ def build_edit_user_prompt(
 BEFORE headline: "Vandal Health Clinic Closure"
 BEFORE body: "The Vandal Health Clinic will be closed the week of May 26, 2025, as the staff will be attending their yearly conference. If you need to visit a provider, please use the Gritman QuickCare or if you are experiencing a medical emergency, please call 911 or visit the Gritman Emergency Room. The clinic will reopen with normal hours on June 2, 2025."
 
-AFTER headline: "Vandal Health Clinic closure"
+AFTER headline: "Use Gritman QuickCare while the Vandal Health Clinic is closed"
 AFTER body: "The Vandal Health Clinic will be closed Monday through Friday, May 26-30, while staff attend their yearly conference. If you need to visit a provider, use Gritman QuickCare. If you are experiencing a medical emergency, call 911 or visit the Gritman Emergency Room. The clinic will reopen with normal hours Monday, June 2."
 
-Key edits: sentence case headline, removed "please", specified exact dates, removed year (current year), split run-on sentence, tightened prose.
+Key edits: headline asks readers to act and doesn't repeat the opening, removed "please", specified exact dates, removed year (current year), split run-on sentence, kept clear wording as submitted.
 
 ---
 

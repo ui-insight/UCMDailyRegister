@@ -98,6 +98,10 @@ def test_migration_matches_seeded_rules():
         if rule_key == "preserve_audience_scope":
             # The Aug. 20 clarification adds the channel-metadata prohibition.
             assert rule["rule_text"] != rule_text
+        elif rule_key == "promotional_action_benefit_lead":
+            # Editorial policy 2026-11-04 (d6e8f0a2b4c7) defers event CTA
+            # placement and headlines to the newer rules.
+            assert rule["rule_text"].startswith(rule_text)
         else:
             assert rule["rule_text"] == rule_text
         assert rule["severity"] == severity

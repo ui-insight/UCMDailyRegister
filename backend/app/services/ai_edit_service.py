@@ -207,6 +207,7 @@ def _build_response(
         Confidence=edit_result.confidence,
         AI_Provider=edit_result.ai_provider,
         AI_Model=edit_result.ai_model,
+        Policy_Fingerprint=edit_result.policy_fingerprint,
         Headline_Diff=TextDiffResponse(
             segments=[DiffSegment(**s) for s in edit_result.headline_diff.get("segments", [])],
             change_count=edit_result.headline_diff.get("change_count", 0),

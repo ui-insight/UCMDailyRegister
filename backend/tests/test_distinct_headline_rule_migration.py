@@ -99,6 +99,10 @@ def test_migration_values_match_style_rule_seeds():
         for rule in json.loads((seed_dir / "shared_rules.json").read_text())
     }
 
-    assert seeded_shared["headline_distinct_from_lead"]["rule_text"] == migration.DISTINCT_HEADLINE_RULE_TEXT
+    # Superseded by editorial policy 2026-11-04 (d6e8f0a2b4c7, #376 rule 3).
+    assert seeded_shared["headline_distinct_from_lead"]["rule_text"] != migration.DISTINCT_HEADLINE_RULE_TEXT
+    assert "must not begin with the same wording" in (
+        seeded_shared["headline_distinct_from_lead"]["rule_text"]
+    )
     assert seeded_shared["headline_distinct_from_lead"]["severity"] == "warning"
     assert seeded_shared["headline_distinct_from_lead"]["category"] == "headlines"

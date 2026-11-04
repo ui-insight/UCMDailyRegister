@@ -7,7 +7,8 @@ from pathlib import Path
 import pytest
 
 from app.models.submission import Submission
-from app.services.ai.editor import AIEditor
+from app.services.ai.editor import AIEditor, enforce_curly_quotes
+from app.services.ai.prompts import EDITORIAL_POLICY_VERSION
 
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "joy_august_10_editorial.json"
@@ -169,8 +170,10 @@ async def test_active_must_rule_violations_trigger_one_compliance_repair(fixture
 
     assert len(provider.prompts) == 2
     assert "Deterministic compliance findings" in provider.prompts[1]
-    assert result.edited_headline == fixture["compliant_headline"]
-    assert result.edited_body == fixture["compliant_body"]
+    # The final copy always gets curly quotes (#409).
+    assert result.edited_headline == enforce_curly_quotes(fixture["compliant_headline"])[0]
+    assert result.edited_body == enforce_curly_quotes(fixture["compliant_body"])[0]
+    assert result.policy_fingerprint.startswith(f"{EDITORIAL_POLICY_VERSION}:")
     assert not (
         set(fixture["expected_rule_keys"])
         & {flag["rule_key"] for flag in result.flags}

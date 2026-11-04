@@ -460,6 +460,34 @@ def _first_sentence(text: str) -> str:
     return re.split(r"(?<=[.!?])\s+", visible, maxsplit=1)[0]
 
 
+# Staff review notes use these openings (#396, #384, #410); ordinary
+# bracketed copy such as "[NASA]" is not a note.
+_REVIEW_NOTE = re.compile(
+    r"\[(?:CONFIRM|DATE CONFLICT|DATE HAS PASSED|DAY OF WEEK NOT VERIFIED|"
+    r"NAME VARIES|VERIFY|CHECK|STAFF REVIEW|EDITOR NOTE|TBD)\b[^\]]*\]"
+)
+
+
+def detect_review_notes_in_copy(text: str) -> list[str]:
+    """Bracketed staff notes such as [CONFIRM VENUE NAME] left in the copy."""
+    return _REVIEW_NOTE.findall(text)
+
+
+def _leading_words(text: str) -> list[str]:
+    return re.findall(r"[a-z0-9\u2019']+", text.casefold().replace("\u2018", "'"))
+
+
+def detect_headline_echoes_lead(headline: str, body: str, words: int = 4) -> bool:
+    """True when the headline opens with the same words as the body (#376).
+
+    Compares up to the first four words; a headline of two or three words
+    echoes the body when all of them open it.
+    """
+    head = _leading_words(strip_html(headline).replace("\u2019", "'"))[:words]
+    lead = _leading_words(_first_sentence(strip_html(body)).replace("\u2019", "'"))
+    return len(head) >= 2 and head == lead[: len(head)]
+
+
 def detect_redundant_promotional_leads(text: str) -> list[str]:
     """Find narrow, high-confidence passive or circular promotional leads."""
     first_sentence = _first_sentence(text)
