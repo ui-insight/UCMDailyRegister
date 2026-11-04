@@ -1,6 +1,6 @@
 [
-  {"Value_Group": "Submission_Category", "Code": "employee_announcement", "Label": "Employee (Faculty/Staff)", "Display_Order": 0, "Visibility_Role": "public", "Description": "Announcements for all employees"},
-  {"Value_Group": "Submission_Category", "Code": "faculty_staff", "Label": "Faculty/Staff", "Display_Order": 1, "Visibility_Role": "public", "Description": "General faculty and staff announcements"},
+  {"Value_Group": "Submission_Category", "Code": "faculty_staff", "Label": "Employee News (Faculty/Staff)", "Display_Order": 0, "Visibility_Role": "public", "Description": "News and announcements for faculty and staff"},
+  {"Value_Group": "Submission_Category", "Code": "employee_announcement", "Label": "Employee Announcement (UCM)", "Display_Order": 10, "Visibility_Role": "staff", "Description": "Announcements UCM writes for all employees"},
   {"Value_Group": "Submission_Category", "Code": "student", "Label": "Student", "Display_Order": 2, "Visibility_Role": "public", "Description": "Student-focused announcements"},
   {"Value_Group": "Submission_Category", "Code": "job_opportunity", "Label": "Job Opportunity", "Display_Order": 3, "Visibility_Role": "public", "Description": "Employment listings"},
   {"Value_Group": "Submission_Category", "Code": "kudos", "Label": "Kudos", "Display_Order": 4, "Visibility_Role": "public", "Description": "Awards, honors, recognition"},

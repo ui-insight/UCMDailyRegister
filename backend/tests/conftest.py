@@ -142,10 +142,10 @@ async def seed_submission_categories(setup_db, db: AsyncSession):
         AllowedValue(
             Value_Group="Submission_Category",
             Code="employee_announcement",
-            Label="Employee Announcement",
+            Label="Employee Announcement (UCM)",
             Display_Order=6,
             Is_Active=True,
-            Visibility_Role="public",
+            Visibility_Role="staff",
         ),
         AllowedValue(
             Value_Group="Submission_Category",

@@ -29,9 +29,9 @@ interface SubmissionMetaProps {
 }
 
 const CATEGORY_LABELS: Record<string, string> = {
-  faculty_staff: 'Faculty/Staff',
+  faculty_staff: 'Employee News (Faculty/Staff)',
   student: 'Student',
-  employee_announcement: 'Employee (Faculty/Staff)',
+  employee_announcement: 'Employee Announcement (UCM)',
   job_opportunity: 'Job Opportunity',
   survey: 'Survey',
   kudos: 'Kudos',

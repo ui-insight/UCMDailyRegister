@@ -28,7 +28,7 @@ normal seeding; deliberate overwrite requires `SEED_OVERWRITE=1`.
 | `SLC_Review_Status` | `new`, `flagged`, `dismissed` |
 | `Schedule_Mode` | `academic_year`, `summer`, `winter_break` |
 | `Severity` | `error`, `warning`, `info` |
-| `Submission_Category` | `employee_announcement`, `faculty_staff`, `student`, `job_opportunity`, `kudos`, `in_memoriam`, `survey`, `news_release`, `ucm_feature_story` |
+| `Submission_Category` | `faculty_staff`, `employee_announcement`, `student`, `job_opportunity`, `kudos`, `in_memoriam`, `survey`, `news_release`, `ucm_feature_story` |
 | `Submission_Status` | `new`, `ai_edited`, `in_review`, `approved`, `scheduled`, `published`, `rejected`, `pending_info` |
 | `Target_Newsletter` | `tdr`, `myui`, `both` |
 | `Version_Type` | `original`, `ai_suggested`, `editor_final` |

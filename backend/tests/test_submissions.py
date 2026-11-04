@@ -312,6 +312,15 @@ class TestSubmissionCRUD:
         assert resp.status_code == 422
         assert "not available" in resp.json()["detail"]
 
+    async def test_public_submitter_cannot_use_retired_employee_announcement(
+        self, client: AsyncClient
+    ):
+        # Employee announcements are written by UCM (#441).
+        data = make_submission_data(Category="employee_announcement")
+        resp = await client.post("/api/v1/submissions/", json=data)
+        assert resp.status_code == 422
+        assert "not available" in resp.json()["detail"]
+
     async def test_staff_submitter_can_use_staff_only_category(
         self, client: AsyncClient, staff_headers: dict[str, str]
     ):
