@@ -9,7 +9,7 @@ import sqlalchemy as sa
 
 
 ROOT = Path(__file__).parents[1]
-MIGRATION_PATH = ROOT / "alembic" / "versions" / "f1b3d5e7a9c2_employee_news_categories.py"
+MIGRATION_PATH = ROOT / "alembic" / "versions" / "77b37be60275_employee_news_categories.py"
 SEED_PATH = ROOT / "data" / "allowed_values" / "allowed_values.json"
 
 

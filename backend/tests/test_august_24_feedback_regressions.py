@@ -51,7 +51,7 @@ def test_employee_news_seed_appears_first_with_requested_label():
     ]
     first = min(categories, key=lambda category: category["Display_Order"])
 
-    # Superseded by the Nov. 2026 decision (#441, migration f1b3d5e7a9c2):
+    # Superseded by the Nov. 2026 decision (#441, migration 77b37be60275):
     # Employee News leads, and employee announcements became staff-only.
     assert first["Code"] == "faculty_staff"
     assert first["Label"] == "Employee News (Faculty/Staff)"

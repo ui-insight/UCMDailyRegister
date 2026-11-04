@@ -1,6 +1,6 @@
 """retire employee announcements from the public form; rename Employee News
 
-Revision ID: f1b3d5e7a9c2
+Revision ID: 77b37be60275
 Revises: e7a9c1d3f5b8
 Create Date: 2026-11-04 16:00:00.000000
 
@@ -17,7 +17,7 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision: str = "f1b3d5e7a9c2"
+revision: str = "77b37be60275"
 down_revision: str | Sequence[str] | None = "e7a9c1d3f5b8"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
