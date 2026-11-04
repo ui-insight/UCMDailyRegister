@@ -161,3 +161,105 @@ def test_policy_fingerprint_names_version_and_tracks_rule_changes():
     assert len(first) <= 64
     assert policy_fingerprint(list(reversed(rules))) == first
     assert policy_fingerprint([{**rules[0], "rule_text": "Two."}]) != first
+
+
+def test_curly_quotes_respect_tags_urls_and_entities():
+    from app.services.ai.editor import enforce_curly_quotes
+
+    tag = '<a title="x > y" href="https://example.edu">"Hi"</a>'
+    assert enforce_curly_quotes(tag)[0] == '<a title="x > y" href="https://example.edu">“Hi”</a>'
+    assert enforce_curly_quotes("See https://example.edu/o'brien, it's here.")[0] == (
+        "See https://example.edu/o'brien, it’s here."
+    )
+    assert enforce_curly_quotes('Read&nbsp;"Example".')[0] == "Read&nbsp;“Example”."
+    assert enforce_curly_quotes("&quot;Example&quot; and it&#39;s")[0] == "“Example” and it’s"
+
+
+def test_only_staff_note_forms_count_as_review_notes():
+    from app.utils.style_checks import detect_review_notes_in_copy
+
+    assert detect_review_notes_in_copy("The project [NASA] will launch Friday.") == []
+    assert detect_review_notes_in_copy(
+        "[DATE CONFLICT: HEADLINE SAYS MARCH 4] and [NAME VARIES IN SUBMISSION: CONFIRM OFFICIAL NAME]"
+    ) == ["[DATE CONFLICT: HEADLINE SAYS MARCH 4]", "[NAME VARIES IN SUBMISSION: CONFIRM OFFICIAL NAME]"]
+
+
+def test_short_headlines_that_echo_the_lead_are_caught():
+    from app.utils.style_checks import detect_headline_echoes_lead
+
+    assert detect_headline_echoes_lead("Register for workshops", "Register for workshops by Friday.")
+    assert detect_headline_echoes_lead("Learn about Idaho’s labs", "Learn about Idaho's labs today.")
+    assert not detect_headline_echoes_lead("Register for the workshop", "Sign up for the workshop now.")
+    assert not detect_headline_echoes_lead("Register", "Register by Friday.")
+
+
+def test_headline_rules_follow_the_narrowed_decision():
+    shared = seeded("shared")
+    distinct = shared["headline_distinct_from_lead"]["rule_text"]
+    assert "minor rewording" not in distinct
+    assert "same action in other words" in distinct
+    assert "online rule" in shared["protected_names"]["rule_text"]
+    assert "keep the submitted words and capitalization" in (
+        shared["composition_title_format"]["rule_text"]
+    )
+
+
+class _OneDraftProvider:
+    model = "fixture-model"
+
+    def __init__(self, headline: str, body: str):
+        self.result = {
+            "edited_headline": headline,
+            "edited_body": body,
+            "changes_made": [],
+            "flags": [],
+            "embedded_links": [],
+            "confidence": 0.9,
+        }
+
+    async def complete_json(self, **kwargs):
+        return dict(self.result)
+
+
+async def test_cleanup_runs_before_the_final_checks():
+    from datetime import datetime
+
+    from app.models.submission import Submission
+    from app.services.ai.editor import AIEditor
+
+    rules = [
+        {"rule_set": "shared", "category": "formatting", "rule_key": "curly_quotes",
+         "severity": "error", "rule_text": "Curly quotes."},
+        {"rule_set": "shared", "category": "headlines", "rule_key": "headline_rules",
+         "severity": "error", "rule_text": "Headline rules."},
+    ]
+    editor = AIEditor(_OneDraftProvider(
+        "Learn about Idaho’s research programs!",
+        "Learn about Idaho's research programs at the open house.",
+    ))
+
+    async def load_rules(*_args, **_kwargs):
+        return rules
+
+    editor.load_style_rules = load_rules
+    submission = Submission(
+        Id="synthetic-1",
+        Category="faculty_staff",
+        Target_Newsletter="tdr",
+        Original_Headline="Research open house",
+        Original_Body="Learn about Idaho's research programs at the open house.",
+        Submitter_Name="Synthetic",
+        Submitter_Email="synthetic@example.edu",
+        Links=[],
+        Created_At=datetime(2026, 11, 4, 9, 0),
+    )
+
+    result = await editor.edit_submission(None, submission, "tdr")
+
+    assert result.edited_headline == "Learn about Idaho’s research programs"
+    assert result.edited_body == "Learn about Idaho’s research programs at the open house."
+    assert any(
+        flag["rule_key"] == "headline_rules" and "same wording" in flag["message"]
+        for flag in result.flags
+    )
+    assert "Converted straight quotation marks and apostrophes to curly ones" in result.changes_made

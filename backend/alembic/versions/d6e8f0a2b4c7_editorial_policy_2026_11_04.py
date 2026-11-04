@@ -28,6 +28,27 @@ depends_on: str | Sequence[str] | None = None
 MANAGED_RULES: list[tuple[str, str, str, str, str]] = [
     (
         "shared",
+        "composition_title_format",
+        "formatting",
+        (
+            "Apply AP title capitalization to composition titles. Use single "
+            "quotation marks in headlines and double quotation marks in body "
+            "text for books, films, plays, poems, albums, songs, operas, "
+            "programs, lectures, speeches and works of art. Do not quote holy "
+            "books, reference works, software, apps, game titles or sculptures."
+            " Preserve consistent quotation and capitalization throughout the "
+            "item. When an event is named for a composition — a film screening,"
+            " play, reading, lecture or similar work — this rule governs the "
+            "title's quotation marks and capitalization and takes precedence "
+            "over event-title preservation and the ban on quoting event names "
+            "in headlines. Titles of classes, guides, articles and podcasts are"
+            " the exception: add the quotation marks but keep the submitted "
+            "words and capitalization."
+        ),
+        "error",
+    ),
+    (
+        "shared",
         "conservative_rewording",
         "voice",
         (
@@ -55,16 +76,19 @@ MANAGED_RULES: list[tuple[str, str, str, str, str]] = [
             " and podcasts still take the quotation marks the composition-title"
             " rule requires, but their words and capitalization stay as "
             "submitted. Replacing '&' with 'and' under the ampersand rule is "
-            "the only wording exception. If a protected name looks misspelled "
-            "or appears in more than one form, use the most complete submitted "
-            "form and add a warning flag whose message is '[NAME VARIES IN "
-            "SUBMISSION: CONFIRM OFFICIAL NAME]'. Venues, buildings and "
-            "organizations: when a submitted name matches a canonical form "
-            "supplied by an active rule, use that form; otherwise keep the "
-            "submitted name. Never create a new capitalized venue name, and "
-            "never add words such as 'Office', 'Department' or 'Center' to an "
-            "organization's name. If a venue is unclear, keep it as submitted "
-            "and add a warning flag whose message is '[CONFIRM VENUE NAME]'."
+            "the only wording exception. When a platform name only says how to "
+            "attend, such as 'on Zoom', follow the online rule; a platform that"
+            " is the subject, such as a Teams training, stays as submitted. If "
+            "a protected name looks misspelled or appears in more than one "
+            "form, use the most complete submitted form and add a warning flag "
+            "whose message is '[NAME VARIES IN SUBMISSION: CONFIRM OFFICIAL "
+            "NAME]'. Venues, buildings and organizations: when a submitted name"
+            " matches a canonical form supplied by an active rule, use that "
+            "form; otherwise keep the submitted name. Never create a new "
+            "capitalized venue name, and never add words such as 'Office', "
+            "'Department' or 'Center' to an organization's name. If a venue is "
+            "unclear, keep it as submitted and add a warning flag whose message"
+            " is '[CONFIRM VENUE NAME]'."
         ),
         "error",
     ),
@@ -187,12 +211,12 @@ MANAGED_RULES: list[tuple[str, str, str, str, str]] = [
         "headlines",
         (
             "The headline must not begin with the same wording as the first "
-            "sentence of the body, and must not be the first sentence or a "
-            "minor rewording of it. It may mention the same event, name or "
-            "date. Example: for a body opening 'The Example Center will hold "
-            "its pottery sale 10 a.m. to 4 p.m. Saturday, Dec. 5, in the "
-            "Example Hall.', write 'Buy handmade pottery at the Example Center "
-            "sale', not 'The Example Center will hold its pottery sale'."
+            "sentence of the body. It may mention the same event, name or date,"
+            " and it may describe the same action in other words. Example: for "
+            "a body opening 'The Example Center will hold its pottery sale 10 "
+            "a.m. to 4 p.m. Saturday, Dec. 5, in the Example Hall.', write 'Buy"
+            " handmade pottery at the Example Center sale', not 'The Example "
+            "Center will hold its pottery sale'."
         ),
         "warning",
     ),

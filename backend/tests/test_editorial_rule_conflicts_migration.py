@@ -96,6 +96,10 @@ def test_migration_matches_shared_seed_values():
         if rule["rule_key"] == "preserve_event_title_case":
             # The Aug. 20 clarification adds the mandatory ampersand exception.
             assert rule["rule_text"] != seed["rule_text"]
+        elif rule["rule_key"] == "composition_title_format":
+            # Editorial policy 2026-11-04 (d6e8f0a2b4c7, #396) adds the
+            # exception for class, guide, article and podcast titles.
+            assert seed["rule_text"].startswith(rule["rule_text"])
         else:
             assert rule["rule_text"] == seed["rule_text"]
         assert rule["category"] == seed["category"]

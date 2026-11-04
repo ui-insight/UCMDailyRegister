@@ -110,43 +110,61 @@ CURLY_QUOTES_DESCRIPTION = (
     "Converted straight quotation marks and apostrophes to curly ones"
 )
 
-_OPENING_CONTEXT = set(" \t\n([{\u2014\u2013-/\u201c\u2018")
+_OPENING_CONTEXT = set(" \t\n\u00a0([{\u2014\u2013-/\u201c\u2018")
+
+# Tags (quoted attribute values may contain ">"), entities and URLs are
+# copied through untouched; only the prose between them is converted.
+_QUOTE_SAFE_TOKEN = re.compile(
+    r"(<(?:[^<>\"']|\"[^\"]*\"|'[^']*')*>"
+    r"|&(?:#\d+|#x[0-9a-f]+|[a-z][a-z0-9]+);"
+    r"|(?:https?://|www\.)[^\s<>\"]+)",
+    re.IGNORECASE,
+)
+
+
+def _curly(char: str, previous: str, following: str) -> str:
+    opening = not previous or previous in _OPENING_CONTEXT
+    if char == '"':
+        return "\u201c" if opening else "\u201d"
+    # Apostrophes, closing quotes and '26-style years take the right mark.
+    return "\u2018" if opening and not following.isdigit() else "\u2019"
 
 
 def enforce_curly_quotes(text: str) -> tuple[str, bool]:
     """Convert straight quotes in prose to curly ones (#409).
 
-    HTML tags and entities are left alone, so attributes such as
-    href='...' keep their straight quotes. Existing curly marks are never
-    touched.
+    HTML tags (attributes included) and URLs are left alone. Entities count
+    as the character they display, and encoded straight quotes (&quot;,
+    &#39;) are converted like typed ones. Curly marks are never touched.
     """
-    parts = _HTML_OR_ENTITY_TOKEN.split(text)
+    parts = _QUOTE_SAFE_TOKEN.split(text)
     changed = False
     previous = ""
 
     for index, part in enumerate(parts):
+        if not part:
+            continue
         if index % 2 == 1:
-            # A tag or entity: an entity reads as a character, a tag does not.
+            if part.startswith("<"):
+                continue  # a tag doesn't change quote direction
             if part.startswith("&"):
-                previous = "x"
+                shown = html.unescape(part)
+                if shown in ("\"", "'"):
+                    following = parts[index + 1][:1] if index + 1 < len(parts) else ""
+                    parts[index] = _curly(shown, previous, following)
+                    changed = True
+                    previous = parts[index]
+                else:
+                    previous = shown[-1:] or previous
+                continue
+            previous = part[-1]  # a URL
             continue
-        if "'" not in part and '"' not in part:
-            if part:
-                previous = part[-1]
-            continue
-        changed = True
         out: list[str] = []
         for position, char in enumerate(part):
-            following = part[position + 1] if position + 1 < len(part) else ""
-            if char == '"':
-                char = "\u201c" if previous in _OPENING_CONTEXT or not previous else "\u201d"
-            elif char == "'":
-                opening = previous in _OPENING_CONTEXT or not previous
-                if opening and not following.isdigit():
-                    char = "\u2018"
-                else:
-                    # Apostrophes, closing quotes and '26-style years.
-                    char = "\u2019"
+            if char in ("\"", "'"):
+                following = part[position + 1] if position + 1 < len(part) else ""
+                char = _curly(char, previous, following)
+                changed = True
             out.append(char)
             previous = char
         parts[index] = "".join(out)
@@ -158,6 +176,25 @@ def strip_headline_exclamations(headline: str) -> tuple[str, bool]:
     """Headlines never end in exclamation marks (#376)."""
     stripped = re.sub(r"\s*!+\s*$", "", headline)
     return stripped, stripped != headline
+
+
+def _clean_final_copy(
+    headline: str,
+    body: str,
+    active_rule_keys: set[str],
+) -> tuple[str, str, bool]:
+    """Apply the mechanical policy fixes before the copy is analyzed.
+
+    Running these before post-analysis keeps flags, the repair pass and the
+    change notes describing the text that is actually saved.
+    """
+    if active_rule_keys & {"headline_rules", "no_exclamation_marks"}:
+        headline, _ = strip_headline_exclamations(headline)
+    if "curly_quotes" not in active_rule_keys:
+        return headline, body, False
+    headline, headline_quotes = enforce_curly_quotes(headline)
+    body, body_quotes = enforce_curly_quotes(body)
+    return headline, body, headline_quotes or body_quotes
 
 # Notes about the validation/repair mechanics, not about the copy itself.
 _INTERNAL_PROCESS_CHANGE = re.compile(
@@ -720,6 +757,10 @@ class AIEditor:
             edited_headline = to_sentence_case(edited_headline)
         else:
             edited_headline = to_title_case(edited_headline)
+        active_rule_keys = {rule["rule_key"] for rule in style_rules}
+        edited_headline, edited_body, converted_quotes = _clean_final_copy(
+            edited_headline, edited_body, active_rule_keys
+        )
 
         source_parts = [
             submission.Original_Headline,
@@ -799,6 +840,10 @@ class AIEditor:
                     edited_headline = to_sentence_case(edited_headline)
                 else:
                     edited_headline = to_title_case(edited_headline)
+                edited_headline, edited_body, repair_quotes = _clean_final_copy(
+                    edited_headline, edited_body, active_rule_keys
+                )
+                converted_quotes = converted_quotes or repair_quotes
 
                 comparison_output_parts = [edited_headline, edited_body]
                 for link in embedded_links:
@@ -815,20 +860,6 @@ class AIEditor:
                     source_comparison_output="\n".join(comparison_output_parts),
                     reference_date=submission_date,
                     newsletter_type=newsletter_type,
-                )
-
-        active_rule_keys = {rule["rule_key"] for rule in style_rules}
-        if active_rule_keys & {"headline_rules", "no_exclamation_marks"}:
-            edited_headline, _ = strip_headline_exclamations(edited_headline)
-        converted_quotes = False
-        if "curly_quotes" in active_rule_keys:
-            edited_headline, headline_quotes = enforce_curly_quotes(edited_headline)
-            edited_body, body_quotes = enforce_curly_quotes(edited_body)
-            converted_quotes = headline_quotes or body_quotes
-            comparison_output_parts = [edited_headline, edited_body]
-            for link in embedded_links:
-                comparison_output_parts.extend(
-                    [str(link.get("url", "")), str(link.get("anchor_text", ""))]
                 )
 
         headline_diff = diff_to_dict(
