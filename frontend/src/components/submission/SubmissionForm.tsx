@@ -53,24 +53,14 @@ const PUBLIC_TDR_ONLY_CATEGORY_CODES = new Set([
 
 const FALLBACK_CATEGORIES: AllowedValue[] = [
   {
-    Id: 'employee_announcement',
-    Value_Group: 'Submission_Category',
-    Code: 'employee_announcement',
-    Label: 'Employee (Faculty/Staff)',
-    Display_Order: 0,
-    Is_Active: true,
-    Visibility_Role: 'public',
-    Description: 'Announcements for all employees',
-  },
-  {
     Id: 'faculty_staff',
     Value_Group: 'Submission_Category',
     Code: 'faculty_staff',
-    Label: 'Faculty or Staff Announcement',
-    Display_Order: 1,
+    Label: 'Employee News (Faculty/Staff)',
+    Display_Order: 0,
     Is_Active: true,
     Visibility_Role: 'public',
-    Description: 'General faculty and staff announcements',
+    Description: 'News and announcements for faculty and staff',
   },
   {
     Id: 'student',
@@ -126,9 +116,7 @@ const FALLBACK_CATEGORIES: AllowedValue[] = [
 
 export default function SubmissionForm() {
   const isStaff = getSubmitterRole() === 'staff';
-  const [category, setCategory] = useState<SubmissionCategory>(
-    isStaff ? 'faculty_staff' : 'employee_announcement',
-  );
+  const [category, setCategory] = useState<SubmissionCategory>('faculty_staff');
   const [categories, setCategories] = useState<AllowedValue[]>(FALLBACK_CATEGORIES);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [targetNewsletter, setTargetNewsletter] = useState<TargetNewsletter>('tdr');
@@ -291,13 +279,10 @@ export default function SubmissionForm() {
           : cat.Visibility_Role === 'public',
     )
     .map((cat) =>
-      cat.Code === 'faculty_staff'
-        ? {
-            ...cat,
-            Label: isStaff
-              ? effectiveTargetNewsletter === 'both' ? 'News and Updates' : cat.Label
-              : 'Faculty/Staff and Student',
-          }
+      // On the staff "both newsletters" path the same code is My UI's News
+      // and Updates; the Employee News label is The Daily Register's (#441).
+      cat.Code === 'faculty_staff' && isStaff && effectiveTargetNewsletter === 'both'
+        ? { ...cat, Label: 'News and Updates' }
         : cat
     )
     .sort((a, b) => a.Display_Order - b.Display_Order);

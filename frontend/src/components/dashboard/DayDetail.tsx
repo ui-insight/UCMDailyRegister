@@ -27,7 +27,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const CATEGORY_LABELS: Record<string, string> = {
-  faculty_staff: 'Faculty/Staff',
+  faculty_staff: 'Employee News',
   student: 'Student',
   job_opportunity: 'Job Opportunity',
   kudos: 'Kudos',

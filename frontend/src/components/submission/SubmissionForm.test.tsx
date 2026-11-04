@@ -45,8 +45,8 @@ const allowedCategories: AllowedValue[] = [
     Id: 'faculty_staff',
     Value_Group: 'Submission_Category',
     Code: 'faculty_staff',
-    Label: 'Faculty/Staff',
-    Display_Order: 1,
+    Label: 'Employee News (Faculty/Staff)',
+    Display_Order: 0,
     Is_Active: true,
     Visibility_Role: 'public',
     Description: null,
@@ -148,32 +148,35 @@ afterEach(() => {
 });
 
 describe('SubmissionForm', () => {
-  it('puts Employee (Faculty/Staff) first and selects it for public submitters', async () => {
+  it('puts Employee News first, selects it, and hides UCM-only employee announcements', async () => {
     listAllowedValuesMock.mockResolvedValue([
       ...allowedCategories,
       {
         Id: 'employee_announcement',
         Value_Group: 'Submission_Category',
         Code: 'employee_announcement',
-        Label: 'Employee (Faculty/Staff)',
-        Display_Order: 0,
+        Label: 'Employee Announcement (UCM)',
+        Display_Order: 10,
         Is_Active: true,
-        Visibility_Role: 'public',
+        Visibility_Role: 'staff',
         Description: null,
       },
     ]);
 
     render(<SubmissionForm />);
 
-    const employee = await screen.findByRole('option', { name: 'Employee (Faculty/Staff)' });
-    expect(screen.getAllByRole('option')[0]).toBe(employee);
-    expect(screen.getByLabelText('Announcement Type')).toHaveValue('employee_announcement');
+    const employeeNews = await screen.findByRole('option', { name: 'Employee News (Faculty/Staff)' });
+    expect(screen.getAllByRole('option')[0]).toBe(employeeNews);
+    expect(screen.getByLabelText('Announcement Type')).toHaveValue('faculty_staff');
+    expect(
+      screen.queryByRole('option', { name: 'Employee Announcement (UCM)' }),
+    ).not.toBeInTheDocument();
   });
 
   it('does not expose staff-only Builder sections as announcement types', async () => {
     render(<SubmissionForm />);
 
-    await screen.findByRole('option', { name: 'Faculty/Staff and Student' });
+    await screen.findByRole('option', { name: 'Employee News (Faculty/Staff)' });
     expect(
       screen.queryByRole('option', { name: 'Reminders for your students' }),
     ).not.toBeInTheDocument();
@@ -183,7 +186,7 @@ describe('SubmissionForm', () => {
     const user = userEvent.setup();
     render(<SubmissionForm />);
 
-    await screen.findByRole('option', { name: 'Faculty/Staff and Student' });
+    await screen.findByRole('option', { name: 'Employee News (Faculty/Staff)' });
     expect(screen.getByRole('checkbox', { name: 'Also publish in Student newsletter' })).not.toBeChecked();
     expect(screen.queryByLabelText('Preferred Student newsletter publication date')).not.toBeInTheDocument();
     await fillStandardAnnouncement(user);
@@ -227,7 +230,7 @@ describe('SubmissionForm', () => {
     const user = userEvent.setup();
     render(<SubmissionForm />);
 
-    await screen.findByRole('option', { name: 'Faculty/Staff and Student' });
+    await screen.findByRole('option', { name: 'Employee News (Faculty/Staff)' });
     await user.selectOptions(screen.getByLabelText('Announcement Type'), 'survey');
     await user.type(screen.getByLabelText(/survey \/ event end date/i), '2026-05-30');
     await fillStandardAnnouncement(user);
@@ -245,7 +248,7 @@ describe('SubmissionForm', () => {
     const user = userEvent.setup();
     render(<SubmissionForm />);
 
-    await screen.findByRole('option', { name: 'Faculty/Staff and Student' });
+    await screen.findByRole('option', { name: 'Employee News (Faculty/Staff)' });
     await user.click(screen.getByRole('checkbox', { name: 'Also publish in Student newsletter' }));
     expect(screen.getByLabelText('Preferred Student newsletter publication date')).toHaveValue('');
     await waitFor(() => {
@@ -309,7 +312,7 @@ describe('SubmissionForm', () => {
     const user = userEvent.setup();
     render(<SubmissionForm />);
 
-    await screen.findByRole('option', { name: 'Faculty/Staff and Student' });
+    await screen.findByRole('option', { name: 'Employee News (Faculty/Staff)' });
     await user.click(screen.getByRole('checkbox', { name: 'Also publish in Student newsletter' }));
     await user.type(screen.getByLabelText('Headline'), 'Campus forum');
     await user.type(screen.getByLabelText('Body Text'), 'Join us for a campus-wide forum.');
@@ -336,7 +339,7 @@ describe('SubmissionForm', () => {
     const user = userEvent.setup();
     render(<SubmissionForm />);
 
-    await screen.findByRole('option', { name: 'Faculty/Staff and Student' });
+    await screen.findByRole('option', { name: 'Employee News (Faculty/Staff)' });
     await user.click(screen.getByRole('checkbox', { name: 'Also publish in Student newsletter' }));
     await user.type(screen.getByLabelText('Headline'), 'Campus forum');
     await user.type(screen.getByLabelText('Body Text'), 'Join us for a campus-wide forum.');
@@ -371,7 +374,7 @@ describe('SubmissionForm', () => {
     const user = userEvent.setup();
     render(<SubmissionForm />);
 
-    await screen.findByRole('option', { name: 'Faculty/Staff and Student' });
+    await screen.findByRole('option', { name: 'Employee News (Faculty/Staff)' });
     await user.type(screen.getByLabelText('Headline'), 'Campus forum');
     await user.type(screen.getByLabelText('Body Text'), 'Join us for a campus-wide forum.');
     await user.type(screen.getByLabelText('Preferred run date'), '2026-05-03');
@@ -462,7 +465,7 @@ describe('SubmissionForm', () => {
   it('focuses a linked error summary and associates required-field errors without writing', async () => {
     const user = userEvent.setup();
     render(<SubmissionForm />);
-    await screen.findByRole('option', { name: 'Faculty/Staff and Student' });
+    await screen.findByRole('option', { name: 'Employee News (Faculty/Staff)' });
     await user.click(screen.getByRole('button', { name: 'Submit Announcement' }));
     const summary = await screen.findByRole('alert');
     expect(summary).toHaveFocus();
@@ -480,7 +483,7 @@ it('preserves a complete submission after rejection and permits an explicit retr
   const user = userEvent.setup();
   createSubmissionMock.mockRejectedValueOnce(new Error('Synthetic service unavailable'));
   render(<SubmissionForm />);
-  await screen.findByRole('option', { name: 'Faculty/Staff and Student' });
+  await screen.findByRole('option', { name: 'Employee News (Faculty/Staff)' });
   await fillStandardAnnouncement(user);
   await user.click(screen.getByRole('button', { name: 'Submit Announcement' }));
   expect(await screen.findByRole('alert')).toHaveTextContent('Your entries are still here');
@@ -503,7 +506,7 @@ it('serializes repeated submit events and prevents editing an in-flight payload'
   let finish!: (value: Submission) => void;
   createSubmissionMock.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
   render(<SubmissionForm />);
-  await screen.findByRole('option', { name: 'Faculty/Staff and Student' });
+  await screen.findByRole('option', { name: 'Employee News (Faculty/Staff)' });
   await fillStandardAnnouncement(user);
   const form = screen.getByRole('form', { name: 'Newsletter announcement' });
   fireEvent.submit(form);
@@ -523,7 +526,7 @@ it('associates structured server validation with the affected field and retains 
   const { ApiError } = await import('../../api/client');
   createSubmissionMock.mockRejectedValueOnce(new ApiError(422, [{ loc: ['body', 'Submitter_Email'], msg: 'Synthetic email validation failed' }]));
   render(<SubmissionForm />);
-  await screen.findByRole('option', { name: 'Faculty/Staff and Student' });
+  await screen.findByRole('option', { name: 'Employee News (Faculty/Staff)' });
   await fillStandardAnnouncement(user);
   await user.click(screen.getByRole('button', { name: 'Submit Announcement' }));
   expect(await screen.findByRole('alert')).toHaveFocus();
@@ -535,7 +538,7 @@ it('associates structured server validation with the affected field and retains 
 it('keeps every public field named and every instruction reference resolvable', async () => {
   const user = userEvent.setup();
   render(<SubmissionForm />);
-  await screen.findByRole('option', { name: 'Faculty/Staff and Student' });
+  await screen.findByRole('option', { name: 'Employee News (Faculty/Staff)' });
   await user.click(screen.getByLabelText('My dates are somewhat flexible'));
   await user.click(screen.getByRole('button', { name: 'Submit Announcement' }));
   const form = screen.getByRole('form', { name: 'Newsletter announcement' });

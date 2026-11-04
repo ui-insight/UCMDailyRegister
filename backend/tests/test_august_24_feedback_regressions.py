@@ -43,7 +43,7 @@ def test_seed_preserves_intended_headline_action_and_complete_event_sentences():
     assert "Never separate an event from its time, date or location" in sentence_rule["rule_text"]
 
 
-def test_employee_announcement_seed_appears_first_with_requested_label():
+def test_employee_news_seed_appears_first_with_requested_label():
     categories = [
         value
         for value in json.loads(ALLOWED_VALUES_PATH.read_text())
@@ -51,8 +51,10 @@ def test_employee_announcement_seed_appears_first_with_requested_label():
     ]
     first = min(categories, key=lambda category: category["Display_Order"])
 
-    assert first["Code"] == "employee_announcement"
-    assert first["Label"] == "Employee (Faculty/Staff)"
+    # Superseded by the Nov. 2026 decision (#441, migration f1b3d5e7a9c2):
+    # Employee News leads, and employee announcements became staff-only.
+    assert first["Code"] == "faculty_staff"
+    assert first["Label"] == "Employee News (Faculty/Staff)"
 
 
 def test_feedback_migration_is_idempotent_and_matches_managed_seed_data():
