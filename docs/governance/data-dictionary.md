@@ -98,6 +98,7 @@ Retention category: `submission_source`. Extension: Communications extension.
 | `Changes_Made` | JSON list of generated or editor-facing change summaries. | Internal | Yes | — |
 | `AI_Provider` | LLM provider used for AI-generated versions. | Internal | No | — |
 | `AI_Model` | LLM model used for AI-generated versions. | Internal | No | — |
+| `Policy_Fingerprint` | Editorial policy version and hash of the active style rules behind an AI-generated version. | Internal | No | — |
 | `Editor_Instructions` | Free-text editor instructions passed into an edit run. | Confidential | Yes | — |
 | `Created_At` | Immutable version creation timestamp. | Internal | No | — |
 

@@ -14,8 +14,8 @@
   {
     "category": "voice",
     "rule_key": "no_exclamation_marks",
-    "rule_text": "Avoid exclamation marks in headlines and minimize them in body text. Use professional, neutral tone.",
-    "severity": "warning"
+    "rule_text": "Never use exclamation marks in headlines. Avoid them in body text. Use a professional, neutral tone.",
+    "severity": "error"
   },
   {
     "category": "formatting",
@@ -272,7 +272,7 @@
   {
     "category": "headlines",
     "rule_key": "headline_reader_perspective",
-    "rule_text": "Headlines must be written from the reader's perspective using verbs that accurately reflect the action the original submission asks readers to take. Preserve the primary action, purpose and intent; never substitute a different activity or transaction. When an author reads from a book, invite readers to attend a reading, not read or purchase the book. Correct headlines include 'Attend Elizabeth Bradfield's reading from SOFAR' and 'Hear Elizabeth Bradfield read from SOFAR.' Incorrect headlines include 'Read Elizabeth Bradfield's poetry collection SOFAR' and 'Purchase Elizabeth Bradfield's poetry collection.' Likewise, write 'Participate in VR research study' not 'Recruit research participants'.",
+    "rule_text": "Headlines must be written from the reader's perspective using verbs that accurately reflect the action the original submission asks readers to take. Preserve the primary action, purpose and intent; never substitute a different activity or transaction. When an author reads from a book, invite readers to hear the reading, not read or purchase the book. Correct: 'Hear Elizabeth Bradfield read from SOFAR'. Incorrect: 'Read Elizabeth Bradfield's poetry collection SOFAR' and 'Purchase Elizabeth Bradfield's poetry collection'. Likewise, write 'Participate in a VR research study', not 'Recruit research participants'.",
     "severity": "error"
   },
   {
@@ -314,7 +314,7 @@
   {
     "category": "voice",
     "rule_key": "promotional_action_benefit_lead",
-    "rule_text": "Promotional announcements must lead with the action readers should take and the benefit they can receive. Put important qualifying details early when they define the offer. Avoid passive, circular or redundant introductions such as 'The last week to have a permit reimbursed is this week.' Prefer 'This is the final week to enroll in a qualifying meal plan for a chance to have a commuter parking permit reimbursed in full.' Remove audience references that do not affect eligibility. Consolidate repeated actions into one descriptive linked call to action and shorten supporting wording rather than repeating the offer.",
+    "rule_text": "Promotional announcements must lead with the action readers should take and the benefit they can receive. Put important qualifying details early when they define the offer. Avoid passive, circular or redundant introductions such as 'The last week to have a permit reimbursed is this week.' Prefer 'This is the final week to enroll in a qualifying meal plan for a chance to have a commuter parking permit reimbursed in full.' Remove audience references that do not affect eligibility. Consolidate repeated actions into one descriptive linked call to action and shorten supporting wording rather than repeating the offer. For event items, the item sentence order rule decides where the call to action goes, and headlines follow the headline rules.",
     "severity": "error"
   },
   {
@@ -344,7 +344,7 @@
   {
     "category": "headlines",
     "rule_key": "headline_distinct_from_lead",
-    "rule_text": "The headline must not be the first sentence of the body or a minor rewording of it. Write a headline that summarizes the purpose, opportunity or benefit of the announcement so the headline and body each contribute unique information. Example: for a body opening 'Sign up for the sustainability newsletter.', write the headline 'Receive monthly sustainability updates', not 'Sign up for sustainability newsletter'.",
+    "rule_text": "The headline must not begin with the same wording as the first sentence of the body, and must not be the first sentence or a minor rewording of it. It may mention the same event, name or date. Example: for a body opening 'The Example Center will hold its pottery sale 10 a.m. to 4 p.m. Saturday, Dec. 5, in the Example Hall.', write 'Buy handmade pottery at the Example Center sale', not 'The Example Center will hold its pottery sale'.",
     "severity": "warning"
   },
   {
@@ -387,6 +387,66 @@
     "category": "content_filtering",
     "rule_key": "preserve_purpose_contact_titles",
     "rule_text": "Preserve the purpose, value and context that explain why an event, service or opportunity is offered. Preserve contact information and every official contact title supplied by the source; never remove a title solely for brevity. Capitalize a title immediately before a person's name. Prefer placing it after the name in AP-style lowercase, such as 'Danny Conklin, concessions manager,' and keep each title associated with the correct person. Shorten wording, not meaning or credentials.",
+    "severity": "error"
+  },
+  {
+    "category": "voice",
+    "rule_key": "conservative_rewording",
+    "rule_text": "Tighten wording only when it makes the item clearer and the meaning stays exactly the same. Do not rewrite a sentence that is already clear and concise just because another phrasing is possible; leave it as submitted apart from changes another active rule requires. Correct obvious spelling, capitalization and typographical errors, except inside protected names. Concise possessives and similar tightening fall under this rule, not separate requirements.",
+    "severity": "error"
+  },
+  {
+    "category": "terminology",
+    "rule_key": "protected_names",
+    "rule_text": "Keep these exactly as submitted, with no expanding, shortening, recapitalizing or correcting: website, platform and product names; event names, including any acronyms inside them; names of people, including spelling and middle initials; and titles of classes, guides, articles and podcasts. Titles of classes, guides, articles and podcasts still take the quotation marks the composition-title rule requires, but their words and capitalization stay as submitted. Replacing '&' with 'and' under the ampersand rule is the only wording exception. If a protected name looks misspelled or appears in more than one form, use the most complete submitted form and add a warning flag whose message is '[NAME VARIES IN SUBMISSION: CONFIRM OFFICIAL NAME]'. Venues, buildings and organizations: when a submitted name matches a canonical form supplied by an active rule, use that form; otherwise keep the submitted name. Never create a new capitalized venue name, and never add words such as 'Office', 'Department' or 'Center' to an organization's name. If a venue is unclear, keep it as submitted and add a warning flag whose message is '[CONFIRM VENUE NAME]'.",
+    "severity": "error"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "item_sentence_order",
+    "rule_text": "Default sentence order for event items: 1. who, what, time, day, date and place; 2. brief background with one credential; 3. the main call to action; 4. secondary events. When that order makes a sentence awkward, a natural sentence wins within these limits: event details stay in the first or second sentence; an overloaded opening splits into two complete sentences; background may move later or be cut but never comes before the event details; the call to action may move up, for example when the item is mainly about registering, as long as the event details stay near the top. For notices that are not events, such as closures, deadline changes and other updates, lead with the current facts, then mention the earlier plan only if needed, then the call to action. The time, day, date and place order inside the event details never changes.",
+    "severity": "error"
+  },
+  {
+    "category": "content_filtering",
+    "rule_key": "trim_outside_quotes",
+    "rule_text": "Trim a long quotation from an outside source to the part that supports the item, unless the submitter notes ask to keep it. Trimming must not remove facts, deadlines, requirements or the action readers should take. Do not flag a quotation you trimmed.",
+    "severity": "warning"
+  },
+  {
+    "category": "headlines",
+    "rule_key": "headline_rules",
+    "rule_text": "Every headline follows these rules. 1. Ask readers to act: start with a verb naming the specific action tied to the main call to action. 'Buy tickets', 'Register' and 'Submit' beat vague verbs such as 'Attend' when a more specific action applies. 2. Write a complete phrase, with articles and connecting words: 'Get tickets to see the Example Quartet in concert', not 'Attend Example Quartet performance'. 3. Do not begin the headline with the same wording as the first sentence of the body; it may mention the same event, name or date. 4. Use sentence case. 5. Never use exclamation marks.",
+    "severity": "error"
+  },
+  {
+    "category": "formatting",
+    "rule_key": "curly_quotes",
+    "rule_text": "Use curly quotation marks and apostrophes (‘ ’ “ ”) in headlines and body text. Never convert curly marks to straight ones, and convert straight marks from the submission to curly ones. Leave URLs and HTML attributes unchanged.",
+    "severity": "error"
+  },
+  {
+    "category": "voice",
+    "rule_key": "direct_action_wording",
+    "rule_text": "Write calls to action in the active voice, addressed to the reader: 'Register by Friday', not 'Registration should be completed by Friday'. Use 'can', not 'may', for what readers are able to do: 'Employees can enroll online', not 'Employees may enroll online'. Keep 'may' only where it means permission or possibility.",
+    "severity": "error"
+  },
+  {
+    "category": "voice",
+    "rule_key": "adverb_placement",
+    "rule_text": "With a compound verb, place the adverb before the helping verb, following AP style ('also will give', not 'will also give'), unless that changes the meaning or reads awkwardly.",
+    "severity": "warning"
+  },
+  {
+    "category": "voice",
+    "rule_key": "avoid_nearby_repetition",
+    "rule_text": "Do not repeat a distinctive word or phrase in nearby sentences. Repeating names, places and basic terms is fine when clarity requires it.",
+    "severity": "warning"
+  },
+  {
+    "category": "content_filtering",
+    "rule_key": "review_flags",
+    "rule_text": "Never put review notes, bracketed flags or questions for staff in the headline or body. Report each one in the flags list instead, with the bracketed note as the flag message, for example '[CONFIRM VENUE NAME]' or '[DATE CONFLICT: MARCH 3, 2027, IS A WEDNESDAY, NOT A TUESDAY]'. Keep the source wording in the copy where the note applies.",
     "severity": "error"
   }
 ]

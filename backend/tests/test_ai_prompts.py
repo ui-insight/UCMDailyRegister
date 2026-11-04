@@ -68,7 +68,7 @@ def test_prompt_preserves_the_source_action_and_complete_event_sentences():
     )
 
     assert "Preserve the action the original submission asks readers to take" in prompt
-    assert "attend a reading, not read or purchase the book" in prompt
+    assert "hear a reading, not read or purchase the book" in prompt
     assert "Keep the event name, time, date and location in the same complete sentence" in prompt
     assert "Never begin a separate sentence with a time, date or weekday fragment" in prompt
 
@@ -80,7 +80,7 @@ def test_length_section_has_no_stray_blank_line_for_non_jobs_categories():
         style_rules=[],
     )
 
-    assert "excessive detail.\n- Collapse bullet lists" in prompt
+    assert "repeated detail.\n- Collapse bullet lists" in prompt
 
 
 def test_jobs_guidance_line_is_embedded_cleanly_for_jobs_submissions():

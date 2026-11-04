@@ -460,6 +460,26 @@ def _first_sentence(text: str) -> str:
     return re.split(r"(?<=[.!?])\s+", visible, maxsplit=1)[0]
 
 
+_REVIEW_NOTE = re.compile(r"\[[A-Z][A-Z0-9 ,.:;'\u2019/-]{3,}\]")
+
+
+def detect_review_notes_in_copy(text: str) -> list[str]:
+    """Bracketed staff notes such as [CONFIRM VENUE NAME] left in the copy."""
+    return _REVIEW_NOTE.findall(text)
+
+
+def _leading_words(text: str, count: int) -> list[str]:
+    words = re.findall(r"[a-z0-9\u2019']+", text.casefold())
+    return words[:count]
+
+
+def detect_headline_echoes_lead(headline: str, body: str, words: int = 4) -> bool:
+    """True when the headline opens with the same words as the body (#376)."""
+    lead = _first_sentence(strip_html(body))
+    head = _leading_words(strip_html(headline), words)
+    return len(head) == words and head == _leading_words(lead, words)
+
+
 def detect_redundant_promotional_leads(text: str) -> list[str]:
     """Find narrow, high-confidence passive or circular promotional leads."""
     first_sentence = _first_sentence(text)

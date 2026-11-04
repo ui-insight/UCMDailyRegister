@@ -17,6 +17,7 @@ from app.services.ai.prompts import (
     build_compliance_repair_prompt,
     build_edit_user_prompt,
     build_system_prompt,
+    policy_fingerprint,
 )
 from app.services.ai.diff_generator import generate_word_diff, diff_to_dict
 from app.utils.text import (
@@ -29,6 +30,8 @@ from app.utils.text import (
 )
 from app.utils.hyperlinks import parse_submitter_notes
 from app.utils.style_checks import (
+    detect_headline_echoes_lead,
+    detect_review_notes_in_copy,
     strip_html,
     detect_unabbreviated_month_dates,
     detect_abbreviated_months_without_date,
@@ -102,6 +105,59 @@ def enforce_no_semicolons_in_prose(body: str) -> tuple[str, bool]:
 SEMICOLON_CLEANUP_DESCRIPTION = (
     "Replaced semicolons with periods to enforce the short-sentence rule"
 )
+
+CURLY_QUOTES_DESCRIPTION = (
+    "Converted straight quotation marks and apostrophes to curly ones"
+)
+
+_OPENING_CONTEXT = set(" \t\n([{\u2014\u2013-/\u201c\u2018")
+
+
+def enforce_curly_quotes(text: str) -> tuple[str, bool]:
+    """Convert straight quotes in prose to curly ones (#409).
+
+    HTML tags and entities are left alone, so attributes such as
+    href='...' keep their straight quotes. Existing curly marks are never
+    touched.
+    """
+    parts = _HTML_OR_ENTITY_TOKEN.split(text)
+    changed = False
+    previous = ""
+
+    for index, part in enumerate(parts):
+        if index % 2 == 1:
+            # A tag or entity: an entity reads as a character, a tag does not.
+            if part.startswith("&"):
+                previous = "x"
+            continue
+        if "'" not in part and '"' not in part:
+            if part:
+                previous = part[-1]
+            continue
+        changed = True
+        out: list[str] = []
+        for position, char in enumerate(part):
+            following = part[position + 1] if position + 1 < len(part) else ""
+            if char == '"':
+                char = "\u201c" if previous in _OPENING_CONTEXT or not previous else "\u201d"
+            elif char == "'":
+                opening = previous in _OPENING_CONTEXT or not previous
+                if opening and not following.isdigit():
+                    char = "\u2018"
+                else:
+                    # Apostrophes, closing quotes and '26-style years.
+                    char = "\u2019"
+            out.append(char)
+            previous = char
+        parts[index] = "".join(out)
+
+    return "".join(parts), changed
+
+
+def strip_headline_exclamations(headline: str) -> tuple[str, bool]:
+    """Headlines never end in exclamation marks (#376)."""
+    stripped = re.sub(r"\s*!+\s*$", "", headline)
+    return stripped, stripped != headline
 
 # Notes about the validation/repair mechanics, not about the copy itself.
 _INTERNAL_PROCESS_CHANGE = re.compile(
@@ -185,6 +241,7 @@ class EditResult:
     confidence: float = 0.0
     ai_provider: str = ""
     ai_model: str = ""
+    policy_fingerprint: str | None = None
     headline_diff: dict = field(default_factory=dict)
     body_diff: dict = field(default_factory=dict)
 
@@ -209,6 +266,7 @@ class AIEditor:
         return [
             {
                 "category": r.Category,
+                "rule_set": r.Rule_Set,
                 "rule_key": r.Rule_Key,
                 "rule_text": r.Rule_Text,
                 "severity": r.Severity,
@@ -294,6 +352,14 @@ class AIEditor:
             flag_type = "warning" if heuristic or rule["severity"] != "error" else "error"
             flags.append({"type": flag_type, "rule_key": rule_key, "message": message})
 
+        for note in detect_review_notes_in_copy(text):
+            add("review_flags", f"Move this review note to the flags list: '{note}'")
+        if detect_headline_echoes_lead(headline, body):
+            add(
+                "headline_rules",
+                "Headline begins with the same wording as the first sentence",
+                heuristic=True,
+            )
         for found in detect_unabbreviated_month_dates(text):
             add("ap_style_dates", f"Month should be abbreviated with a specific date: '{found}'")
         for found in detect_abbreviated_months_without_date(text):
@@ -751,6 +817,20 @@ class AIEditor:
                     newsletter_type=newsletter_type,
                 )
 
+        active_rule_keys = {rule["rule_key"] for rule in style_rules}
+        if active_rule_keys & {"headline_rules", "no_exclamation_marks"}:
+            edited_headline, _ = strip_headline_exclamations(edited_headline)
+        converted_quotes = False
+        if "curly_quotes" in active_rule_keys:
+            edited_headline, headline_quotes = enforce_curly_quotes(edited_headline)
+            edited_body, body_quotes = enforce_curly_quotes(edited_body)
+            converted_quotes = headline_quotes or body_quotes
+            comparison_output_parts = [edited_headline, edited_body]
+            for link in embedded_links:
+                comparison_output_parts.extend(
+                    [str(link.get("url", "")), str(link.get("anchor_text", ""))]
+                )
+
         headline_diff = diff_to_dict(
             generate_word_diff(submission.Original_Headline, edited_headline)
         )
@@ -772,6 +852,8 @@ class AIEditor:
         ]
         if replaced_semicolons and SEMICOLON_CLEANUP_DESCRIPTION not in changes_made:
             changes_made.append(SEMICOLON_CLEANUP_DESCRIPTION)
+        if converted_quotes and CURLY_QUOTES_DESCRIPTION not in changes_made:
+            changes_made.append(CURLY_QUOTES_DESCRIPTION)
 
         final_text_flags = self.pre_analyze(
             edited_headline,
@@ -816,6 +898,7 @@ class AIEditor:
             confidence=confidence,
             ai_provider=self.llm.__class__.__name__.replace("Provider", "").lower(),
             ai_model=getattr(self.llm, "model", "unknown"),
+            policy_fingerprint=policy_fingerprint(style_rules),
             headline_diff=headline_diff,
             body_diff=body_diff,
         )
@@ -857,6 +940,7 @@ class AIEditor:
             Changes_Made=edit_result.changes_made,
             AI_Provider=edit_result.ai_provider,
             AI_Model=edit_result.ai_model,
+            Policy_Fingerprint=edit_result.policy_fingerprint,
             Editor_Instructions=editor_instructions,
         )
         session.add(ai_version)

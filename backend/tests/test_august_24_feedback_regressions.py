@@ -32,7 +32,7 @@ def test_seed_preserves_intended_headline_action_and_complete_event_sentences():
     rules = seeded_rules()
 
     headline_rule = rules["headline_reader_perspective"]
-    assert "attend a reading, not read or purchase the book" in headline_rule["rule_text"]
+    assert "hear the reading, not read or purchase the book" in headline_rule["rule_text"]
     assert headline_rule["severity"] == "error"
 
     ordering_rule = rules["event_detail_ordering"]

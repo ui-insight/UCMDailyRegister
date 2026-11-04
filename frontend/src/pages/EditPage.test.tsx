@@ -95,6 +95,7 @@ function makeVersion(overrides: Partial<EditVersion> = {}): EditVersion {
     Changes_Made: null,
     AI_Provider: 'openai',
     AI_Model: 'gpt-test',
+    Policy_Fingerprint: '2026-11-04:000000000000',
     Editor_Instructions: null,
     Created_At: '2026-04-01T13:00:00Z',
     ...overrides,
@@ -120,6 +121,7 @@ function makeAIResponse(overrides: Partial<AIEditResponse> = {}): AIEditResponse
     Confidence: 0.91,
     AI_Provider: 'openai',
     AI_Model: 'gpt-test',
+    Policy_Fingerprint: '2026-11-04:000000000000',
     Headline_Diff: {
       segments: [
         {
