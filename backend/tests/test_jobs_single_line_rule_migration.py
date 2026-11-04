@@ -12,7 +12,7 @@ MIGRATION_PATH = (
     Path(__file__).parents[1]
     / "alembic"
     / "versions"
-    / "f6b8d0e2a4c1_refine_jobs_location_and_unit_format.py"
+    / "a1c3e5b7d9f2_jobs_pageup_careers_source.py"
 )
 
 
@@ -116,3 +116,17 @@ def test_seeded_job_rule_preserves_official_units_and_omits_moscow():
     assert "Institute for Modeling Collaboration and Innovation" in rule_text
     assert "Omit Moscow" in rule_text
     assert "Include a location only when it is outside Moscow" in rule_text
+
+
+def test_seeded_job_rule_uses_careers_site_and_drops_unit_codes():
+    seed_dir = Path(__file__).parents[1] / "data" / "style_rules"
+    seeded_tdr = {
+        rule["rule_key"]: rule
+        for rule in json.loads((seed_dir / "tdr_rules.json").read_text())
+    }
+    rule_text = seeded_tdr["job_posting_format"]["rule_text"]
+
+    assert "careers.uidaho.edu" in rule_text
+    assert "PeopleAdmin" not in rule_text
+    assert "Drop the code that begins the department" in rule_text
+    assert "do not add the Division/College line" in rule_text

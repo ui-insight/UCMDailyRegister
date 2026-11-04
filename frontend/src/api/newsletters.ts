@@ -66,6 +66,11 @@ export interface JobPostingCandidate {
   Selected: boolean;
 }
 
+export interface JobPostingCandidateListResponse {
+  Postings: JobPostingCandidate[];
+  Is_Complete: boolean;
+}
+
 export interface NewsletterDetailResponse extends NewsletterResponse {
   Items: NewsletterItemResponse[];
   External_Items: NewsletterExternalItemResponse[];
@@ -210,8 +215,18 @@ export async function addAcademicDate(
 
 export async function listJobPostings(
   newsletterId: string,
-): Promise<JobPostingCandidate[]> {
-  return apiFetch<JobPostingCandidate[]>(`/newsletters/${newsletterId}/job-postings`);
+): Promise<JobPostingCandidateListResponse> {
+  return apiFetch<JobPostingCandidateListResponse>(`/newsletters/${newsletterId}/job-postings`);
+}
+
+export async function lookupJobPosting(
+  newsletterId: string,
+  url: string,
+): Promise<JobPostingCandidate> {
+  return apiFetch<JobPostingCandidate>(`/newsletters/${newsletterId}/job-postings/lookup`, {
+    method: 'POST',
+    body: JSON.stringify({ Url: url }),
+  });
 }
 
 export async function addJobPosting(

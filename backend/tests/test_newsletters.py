@@ -4,6 +4,7 @@ import json
 from datetime import date, datetime
 from pathlib import Path
 
+import httpx
 import pytest
 import sqlalchemy as sa
 from httpx import AsyncClient
@@ -767,61 +768,194 @@ class TestCalendarEventParsing:
         assert end == date(2026, 3, 29)
 
 
-class TestJobPostingParsing:
-    def test_parse_peopleadmin_search_results(self):
-        html = """
-        <div class='job-item job-item-posting' data-posting-title="Business Specialist III">
-          <div class='container-fluid'>
-            <div class='row'>
-              <div class='col-md-4 col-xs-12 job-title job-title-text-wrap'>
-                <h3><a href="/postings/50999">Business Specialist III</a></h3>
-              </div>
-              <div class='col-md-8 col-xs-12 '>
-                <div class='col-md-2 col-xs-12'></div>
-                <div class='col-md-2 col-xs-12 job-title job-title-text-wrap col-md-push-2'>
-                  College of Natural Resources Admin
-                </div>
-                <div class='col-md-2 col-xs-12 job-title job-title-text-wrap col-md-push-2'>
-                  04/05/2026
-                </div>
-                <div class='col-md-2 col-xs-12 job-title job-title-text-wrap col-md-push-2'>
-                  SP005197P
-                </div>
-                <div class='col-md-2 col-xs-12 job-title job-title-text-wrap col-md-push-2'>
-                  Moscow
-                </div>
-              </div>
-            </div>
-            <div class='row'>
-              <div class='col-md-12 col-xs-12'>
-                <div class='details'>
-                  <span class='job-description'>
-                    Responsible for providing complex technical support for daily financial operations.
-                  </span>
-                  <span class='job-actions'>
-                    <a class="btn primary_button_color" href="/postings/50999">View Details</a>
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div role="navigation" aria-label="Pagination" class="pagination"></div>
-        """
+CAREERS_SITEMAP = """<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://careers.example.edu/</loc><lastmod>2026-10-22</lastmod></url>
+  <url>
+    <loc>https://careers.example.edu/jobs/records-coordinator-moscow-idaho-united-states</loc>
+    <lastmod>2026-11-02</lastmod>
+  </url>
+  <url>
+    <loc>https://careers.example.edu/jobs/field-technician-boise-idaho-united-states</loc>
+    <lastmod>2026-11-03</lastmod>
+  </url>
+</urlset>
+"""
 
-        postings = job_posting_service.parse_peopleadmin_search_results(
-            html,
-            "https://uidaho.peopleadmin.com/postings/search",
+
+def careers_job_page(
+    *,
+    working_title: str,
+    department: str,
+    location: str,
+    date_posted: str = "2026-11-02T10:00:00Z",
+    valid_through: str = "2099-01-01T00:00:00Z",
+) -> str:
+    """Build a synthetic careers-site job page with a JobPosting block."""
+    description = (
+        "<h3><strong>Appointment Information</strong></h3>\n"
+        f"<p><strong>Working Title:\u00a0</strong>{working_title}</p>\n"
+        "<p><strong>Division/College:\u00a0</strong>1234-ABCD Example Division"
+        "<strong><br></strong></p>\n"
+        f"<p><strong>Department:\u00a0</strong>{department}</p>\n"
+        f"<p><strong>Location:\u00a0</strong>{location}</p>\n"
+        "<p><strong>FTE:</strong>\u00a01</p>\n"
+        "<p><strong>Position Overview: </strong></p>\n"
+        "<p>Coordinates synthetic records for a synthetic office.</p>"
+    )
+    data = {
+        "@context": "https://schema.org/",
+        "@type": "JobPosting",
+        "title": working_title,
+        "description": description,
+        "datePosted": date_posted,
+        "validThrough": valid_through,
+        "jobLocation": [{
+            "@type": "Place",
+            "address": {"@type": "PostalAddress", "addressLocality": "Moscow"},
+        }],
+    }
+    return (
+        "<html><head><script type=\"application/ld+json\">"
+        f"{json.dumps(data)}</script></head><body></body></html>"
+    )
+
+
+class TestJobPostingParsing:
+    def test_parse_careers_sitemap_keeps_only_job_pages(self):
+        entries = job_posting_service.parse_careers_sitemap(CAREERS_SITEMAP)
+
+        assert entries == [
+            (
+                "https://careers.example.edu/jobs/records-coordinator-moscow-idaho-united-states",
+                "2026-11-02",
+            ),
+            (
+                "https://careers.example.edu/jobs/field-technician-boise-idaho-united-states",
+                "2026-11-03",
+            ),
+        ]
+
+    def test_parse_careers_job_page_reads_appointment_information(self):
+        url = "https://careers.example.edu/jobs/records-coordinator-moscow-idaho-united-states"
+        posting = job_posting_service.parse_careers_job_page(
+            careers_job_page(
+                working_title="Records Coordinator",
+                department="749-PROV Provost Office",
+                location="Moscow",
+            ),
+            url,
         )
 
-        assert len(postings) == 1
-        posting = postings[0]
-        assert posting.title == "Business Specialist III"
-        assert posting.department == "College of Natural Resources Admin"
-        assert posting.posting_number == "SP005197P"
+        assert posting is not None
+        assert posting.title == "Records Coordinator"
+        assert posting.department == "Provost Office"
         assert posting.location == "Moscow"
-        assert posting.closing_date == "04/05/2026"
-        assert posting.url == "https://uidaho.peopleadmin.com/postings/50999"
+        assert posting.url == url
+        assert posting.source_id == url
+        assert posting.summary == "Coordinates synthetic records for a synthetic office."
+        assert job_posting_service.build_job_body(posting) == (
+            f'<a href="{url}">Records coordinator, Provost Office</a>'
+        )
+
+    def test_parse_careers_job_page_skips_expired_and_unstructured_pages(self):
+        expired = careers_job_page(
+            working_title="Records Coordinator",
+            department="749-PROV Provost Office",
+            location="Moscow",
+            valid_through="2020-01-01T00:00:00Z",
+        )
+        url = "https://careers.example.edu/jobs/x"
+
+        assert job_posting_service.parse_careers_job_page(expired, url) is None
+        assert job_posting_service.parse_careers_job_page("<html></html>", url) is None
+
+    def test_listing_drops_unit_codes_and_repeated_units(self):
+        posting = job_posting_service.JobPosting(
+            source_id="https://example.com/jobs/3",
+            source_type="job_posting",
+            url="https://example.com/jobs/3",
+            title="Associate Director of Synthetic Giving, UI Foundation",
+            department="4321-FNDN UI Foundation",
+            posting_number=None,
+            location="Moscow",
+            closing_date=None,
+            summary="Synthetic.",
+        )
+
+        assert job_posting_service.build_job_listing_text(posting) == (
+            "Associate director of synthetic giving, UI Foundation"
+        )
+
+    async def test_fetch_job_postings_reads_sitemap_and_job_pages(self, monkeypatch):
+        moscow_url = "https://careers.example.edu/jobs/records-coordinator-moscow-idaho-united-states"
+        boise_url = "https://careers.example.edu/jobs/field-technician-boise-idaho-united-states"
+        pages = {
+            "https://careers.example.edu/sitemap.xml": httpx.Response(200, text=CAREERS_SITEMAP),
+            moscow_url: httpx.Response(200, text=careers_job_page(
+                working_title="Records Coordinator",
+                department="749-PROV Provost Office",
+                location="Moscow",
+                date_posted="2026-11-01T10:00:00Z",
+            )),
+            # A throttled page comes back as an empty 202 and is skipped.
+            boise_url: httpx.Response(202, text=""),
+        }
+        transport = httpx.MockTransport(lambda request: pages[str(request.url)])
+        real_client = httpx.AsyncClient
+        monkeypatch.setattr(
+            job_posting_service.httpx,
+            "AsyncClient",
+            lambda **kwargs: real_client(transport=transport, **kwargs),
+        )
+        monkeypatch.setattr(
+            job_posting_service.settings,
+            "job_postings_source_url",
+            "https://careers.example.edu/sitemap.xml",
+        )
+        job_posting_service._page_cache.clear()
+
+        result = await job_posting_service.fetch_job_postings([moscow_url])
+
+        # The throttled page stops the run, so the list is marked incomplete.
+        assert result.is_complete is False
+        assert [posting["Url"] for posting in result.postings] == [moscow_url]
+        assert result.postings[0]["Department"] == "Provost Office"
+        assert result.postings[0]["Selected"] is True
+        assert moscow_url in job_posting_service._page_cache
+        assert boise_url not in job_posting_service._page_cache
+
+        # Cached pages are not requested again.
+        pages[moscow_url] = httpx.Response(202, text="")
+        pages[boise_url] = httpx.Response(200, text=careers_job_page(
+            working_title="Field Technician",
+            department="512-CALS Southern District",
+            location="Boise",
+            date_posted="2026-11-03T10:00:00Z",
+        ))
+        refreshed = await job_posting_service.fetch_job_postings()
+        assert refreshed.is_complete is True
+        assert [posting["Url"] for posting in refreshed.postings] == [boise_url, moscow_url]
+
+        job_posting_service._page_cache.clear()
+        pages[boise_url] = httpx.Response(202, text="")
+        with pytest.raises(job_posting_service.CareersSiteBusyError):
+            await job_posting_service.fetch_job_postings()
+
+    def test_lookup_accepts_only_careers_job_links(self, monkeypatch):
+        monkeypatch.setattr(
+            job_posting_service.settings,
+            "job_postings_source_url",
+            "https://careers.example.edu/sitemap.xml",
+        )
+        accepts = job_posting_service.is_careers_job_url
+
+        assert accepts("https://careers.example.edu/jobs/records-coordinator-moscow")
+        assert accepts("https://careers.example.edu/en-US/jobs/records-coordinator-moscow")
+        assert not accepts("http://careers.example.edu/jobs/records-coordinator-moscow")
+        assert not accepts("https://careers.example.edu/jobs/search")
+        assert not accepts("https://careers.example.edu.evil.test/jobs/x")
+        assert not accepts("https://intranet.example.edu/jobs/x")
 
     def test_build_job_listing_is_one_linked_line_without_moscow(self):
         posting = job_posting_service.JobPosting(
@@ -1062,7 +1196,7 @@ class TestJobPostingEndpoints:
         nl_id = create_resp.json()["Id"]
 
         async def fake_fetch_job_postings(*args, **kwargs):
-            return [{
+            return job_posting_service.JobPostingFetchResult(postings=[{
                 "Source_Id": "https://example.com/postings/1",
                 "Source_Type": "job_posting",
                 "Url": "https://example.com/postings/1",
@@ -1073,7 +1207,7 @@ class TestJobPostingEndpoints:
                 "Closing_Date": "04/05/2026",
                 "Summary": "Responsible for providing complex technical support.",
                 "Selected": False,
-            }]
+            }], is_complete=False)
 
         monkeypatch.setattr(
             job_posting_service,
@@ -1087,8 +1221,78 @@ class TestJobPostingEndpoints:
         )
         assert resp.status_code == 200
         body = resp.json()
-        assert len(body) == 1
-        assert body[0]["Source_Type"] == "job_posting"
+        assert body["Is_Complete"] is False
+        assert len(body["Postings"]) == 1
+        assert body["Postings"][0]["Source_Type"] == "job_posting"
+
+    async def test_list_job_postings_reports_unreadable_careers_site(
+        self,
+        client: AsyncClient,
+        monkeypatch: pytest.MonkeyPatch,
+        staff_headers: dict[str, str],
+    ):
+        create_resp = await client.post(
+            "/api/v1/newsletters",
+            json=make_newsletter_data(),
+            headers=staff_headers,
+        )
+        nl_id = create_resp.json()["Id"]
+
+        async def failing_fetch(*args, **kwargs):
+            raise job_posting_service.CareersSiteBusyError("throttled")
+
+        monkeypatch.setattr(job_posting_service, "fetch_job_postings", failing_fetch)
+
+        resp = await client.get(
+            f"/api/v1/newsletters/{nl_id}/job-postings",
+            headers=staff_headers,
+        )
+        assert resp.status_code == 502
+        assert "careers site" in resp.json()["detail"]
+
+    async def test_lookup_job_posting_by_link(
+        self,
+        client: AsyncClient,
+        monkeypatch: pytest.MonkeyPatch,
+        staff_headers: dict[str, str],
+    ):
+        create_resp = await client.post(
+            "/api/v1/newsletters",
+            json=make_newsletter_data(),
+            headers=staff_headers,
+        )
+        nl_id = create_resp.json()["Id"]
+        url = "https://careers.uidaho.edu/jobs/records-coordinator-moscow-idaho-united-states"
+
+        async def fake_lookup(link: str):
+            if link != url:
+                raise ValueError("Use a job link from the University careers site.")
+            return job_posting_service.parse_careers_job_page(
+                careers_job_page(
+                    working_title="Records Coordinator",
+                    department="749-PROV Provost Office",
+                    location="Moscow",
+                ),
+                url,
+            )
+
+        monkeypatch.setattr(job_posting_service, "lookup_job_posting", fake_lookup)
+
+        resp = await client.post(
+            f"/api/v1/newsletters/{nl_id}/job-postings/lookup",
+            json={"Url": url},
+            headers=staff_headers,
+        )
+        assert resp.status_code == 200
+        assert resp.json()["Department"] == "Provost Office"
+        assert resp.json()["Selected"] is False
+
+        bad = await client.post(
+            f"/api/v1/newsletters/{nl_id}/job-postings/lookup",
+            json={"Url": "https://example.com/jobs/x"},
+            headers=staff_headers,
+        )
+        assert bad.status_code == 422
 
     async def test_import_job_posting(
         self,

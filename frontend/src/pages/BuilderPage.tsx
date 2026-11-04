@@ -7,6 +7,7 @@ import {
   listNewsletters,
   listCalendarEvents,
   listJobPostings,
+  lookupJobPosting,
   getNewsletter,
   assembleNewsletter,
   updateNewsletterStatus,
@@ -189,6 +190,152 @@ function ImportCandidatePill({
   );
 }
 
+interface JobPostingsPanelBodyProps {
+  postings: JobPostingCandidate[];
+  loading: boolean;
+  error: string | null;
+  isComplete: boolean;
+  onAdd: (posting: JobPostingCandidate) => void;
+  onAddByLink: (url: string) => Promise<void>;
+}
+
+function JobPostingsPanelBody({
+  postings,
+  loading,
+  error,
+  isComplete,
+  onAdd,
+  onAddByLink,
+}: JobPostingsPanelBodyProps) {
+  const [linkUrl, setLinkUrl] = useState('');
+  const [linkSaving, setLinkSaving] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!linkUrl.trim()) return;
+    setLinkSaving(true);
+    setLinkError(null);
+    try {
+      await onAddByLink(linkUrl.trim());
+      setLinkUrl('');
+    } catch (err) {
+      setLinkError(err instanceof Error ? err.message : 'Failed to add the job from its link');
+    } finally {
+      setLinkSaving(false);
+    }
+  };
+
+  return (
+    <>
+      <form
+        className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end"
+        onSubmit={handleSubmit}
+      >
+        <div className="min-w-0 flex-1">
+          <label
+            htmlFor="job-posting-link"
+            className="block text-xs font-medium text-gray-700"
+          >
+            Add a job from its careers link
+          </label>
+          <input
+            id="job-posting-link"
+            type="url"
+            value={linkUrl}
+            onChange={(event) => setLinkUrl(event.target.value)}
+            placeholder="https://careers.uidaho.edu/jobs/..."
+            required
+            aria-describedby={linkError ? 'job-posting-link-error' : undefined}
+            className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={linkSaving}
+          className="px-3 py-2 text-xs font-medium rounded-md bg-ui-gold-500 text-ui-black hover:bg-ui-gold-600 disabled:opacity-50"
+        >
+          {linkSaving ? 'Adding...' : 'Add job'}
+        </button>
+      </form>
+      {linkError && (
+        <p id="job-posting-link-error" className="mb-3 text-xs text-red-700">
+          {linkError}
+        </p>
+      )}
+      {error && (
+        <div className="mb-3 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
+          {error}
+        </div>
+      )}
+      {!isComplete && !error && (
+        <div className="mb-3 rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
+          The careers site limited how many jobs could be read, so this list is incomplete.
+          Refresh in a few minutes, or paste a job&rsquo;s link above.
+        </div>
+      )}
+      {postings.length === 0 ? (
+        <EmptyState
+          title={loading ? 'Loading job postings' : 'No candidate job postings found'}
+          description="Open postings from the University careers site appear here. You can also add a job from its link."
+          framed={false}
+        />
+      ) : (
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+          {postings.map((posting) => (
+            <div
+              key={posting.Source_Id}
+              className={`rounded-lg border p-3 ${
+                posting.Selected ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-white'
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-900">{posting.Title}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {[
+                      posting.Department,
+                      posting.Location,
+                      posting.Posting_Number,
+                    ].filter(Boolean).join(' • ') || 'University careers site'}
+                  </p>
+                  {posting.Closing_Date && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Closes {posting.Closing_Date}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={() => onAdd(posting)}
+                  disabled={posting.Selected}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md ${
+                    posting.Selected
+                      ? 'bg-green-100 text-green-700 cursor-default'
+                      : 'bg-ui-gold-500 text-ui-black hover:bg-ui-gold-600'
+                  }`}
+                >
+                  {posting.Selected ? 'Added' : 'Add'}
+                </button>
+              </div>
+              <p className="text-xs text-gray-600 mt-2 line-clamp-3">
+                {posting.Summary}
+              </p>
+              <a
+                href={posting.Url}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-block mt-2 text-xs text-ui-clearwater-700 hover:text-ui-clearwater-800"
+              >
+                View source
+              </a>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
 export default function BuilderPage() {
   const { requestConfirmation, confirmationDialog } = useConfirmAction();
   const [newsletterType, setNewsletterType] = useState<'tdr' | 'myui'>('tdr');
@@ -205,6 +352,7 @@ export default function BuilderPage() {
   const [calendarError, setCalendarError] = useState<string | null>(null);
   const [jobLoading, setJobLoading] = useState(false);
   const [jobError, setJobError] = useState<string | null>(null);
+  const [jobListComplete, setJobListComplete] = useState(true);
   const [academicDate, setAcademicDate] = useState('');
   const [academicTitle, setAcademicTitle] = useState('');
   const [academicDescription, setAcademicDescription] = useState('');
@@ -303,8 +451,9 @@ export default function BuilderPage() {
     setJobLoading(true);
     setJobError(null);
     try {
-      const postings = await listJobPostings(newsletterId);
-      setJobPostings(postings);
+      const result = await listJobPostings(newsletterId);
+      setJobPostings(result.Postings);
+      setJobListComplete(result.Is_Complete);
     } catch (err) {
       setJobError(err instanceof Error ? err.message : 'Failed to load job postings');
     } finally {
@@ -425,26 +574,43 @@ export default function BuilderPage() {
     }
   };
 
+  const saveJobPosting = async (newsletterId: string, posting: JobPostingCandidate) => {
+    await addJobPosting(newsletterId, {
+      Source_Id: posting.Source_Id,
+      Url: posting.Url,
+      Title: posting.Title,
+      Department: posting.Department,
+      Posting_Number: posting.Posting_Number,
+      Location: posting.Location,
+      Closing_Date: posting.Closing_Date,
+      Summary: posting.Summary,
+    });
+    const nl = await getNewsletter(newsletterId);
+    setNewsletter(nl);
+    setJobPostings((current) => {
+      const added = { ...posting, Selected: true };
+      const others = current.filter((item) => item.Source_Id !== posting.Source_Id);
+      return [added, ...others];
+    });
+    showToast('Job posting added');
+  };
+
   const handleAddJobPosting = async (posting: JobPostingCandidate) => {
     if (!newsletter) return;
     try {
-      await addJobPosting(newsletter.Id, {
-        Source_Id: posting.Source_Id,
-        Url: posting.Url,
-        Title: posting.Title,
-        Department: posting.Department,
-        Posting_Number: posting.Posting_Number,
-        Location: posting.Location,
-        Closing_Date: posting.Closing_Date,
-        Summary: posting.Summary,
-      });
-      const nl = await getNewsletter(newsletter.Id);
-      setNewsletter(nl);
-      await loadJobPostings(newsletter.Id);
-      showToast('Job posting added');
+      await saveJobPosting(newsletter.Id, posting);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to add job posting');
     }
+  };
+
+  const addJobByLink = async (newsletterId: string, url: string) => {
+    const posting = await lookupJobPosting(newsletterId, url);
+    if (posting.Selected) {
+      showToast('That job is already in this newsletter');
+      return;
+    }
+    await saveJobPosting(newsletterId, posting);
   };
 
   const handleAddAcademicDate = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -1201,69 +1367,14 @@ export default function BuilderPage() {
                   </button>
                 )}
               >
-                {jobError && (
-                  <div className="mb-3 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
-                    {jobError}
-                  </div>
-                )}
-                {jobPostings.length === 0 ? (
-                  <EmptyState
-                    title={jobLoading ? 'Loading job postings' : 'No candidate job postings found'}
-                    description="Open postings appear here when they are available from the U of I jobs source."
-                    framed={false}
-                  />
-                ) : (
-                  <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-                    {jobPostings.map((posting) => (
-                      <div
-                        key={posting.Source_Id}
-                        className={`rounded-lg border p-3 ${
-                          posting.Selected ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-white'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium text-gray-900">{posting.Title}</p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {[
-                                posting.Department,
-                                posting.Location,
-                                posting.Posting_Number,
-                              ].filter(Boolean).join(' • ') || 'University of Idaho jobs portal'}
-                            </p>
-                            {posting.Closing_Date && (
-                              <p className="text-xs text-gray-500 mt-1">
-                                Closes {posting.Closing_Date}
-                              </p>
-                            )}
-                          </div>
-                          <button
-                            onClick={() => handleAddJobPosting(posting)}
-                            disabled={posting.Selected}
-                            className={`px-3 py-1.5 text-xs font-medium rounded-md ${
-                              posting.Selected
-                                ? 'bg-green-100 text-green-700 cursor-default'
-                                : 'bg-ui-gold-500 text-ui-black hover:bg-ui-gold-600'
-                            }`}
-                          >
-                            {posting.Selected ? 'Added' : 'Add'}
-                          </button>
-                        </div>
-                        <p className="text-xs text-gray-600 mt-2 line-clamp-3">
-                          {posting.Summary}
-                        </p>
-                        <a
-                          href={posting.Url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-block mt-2 text-xs text-ui-clearwater-700 hover:text-ui-clearwater-800"
-                        >
-                          View source
-                        </a>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <JobPostingsPanelBody
+                  postings={jobPostings}
+                  loading={jobLoading}
+                  error={jobError}
+                  isComplete={jobListComplete}
+                  onAdd={handleAddJobPosting}
+                  onAddByLink={(url) => addJobByLink(newsletter.Id, url)}
+                />
               </CollapsibleCard>
               )}
 

@@ -3,6 +3,7 @@
 from datetime import datetime, time, timedelta
 import uuid
 
+import httpx
 import sqlalchemy as sa
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -24,8 +25,10 @@ from app.schemas.newsletter import (
     AcademicDateImportRequest,
     CalendarEventCandidateResponse,
     CalendarEventImportRequest,
+    JobPostingCandidateListResponse,
     JobPostingCandidateResponse,
     JobPostingImportRequest,
+    JobPostingLookupRequest,
     NewsletterCreate,
     NewsletterDetailResponse,
     NewsletterExternalItemResponse,
@@ -280,7 +283,7 @@ async def list_calendar_events(
 
 @router.get(
     "/{newsletter_id}/job-postings",
-    response_model=list[JobPostingCandidateResponse],
+    response_model=JobPostingCandidateListResponse,
 )
 async def list_job_postings(
     newsletter_id: str,
@@ -292,14 +295,62 @@ async def list_job_postings(
     if not newsletter:
         raise HTTPException(status_code=404, detail="Newsletter not found")
 
-    selected_source_ids = [
+    try:
+        result = await job_posting_service.fetch_job_postings(
+            selected_source_ids=_selected_job_source_ids(newsletter),
+        )
+    except (httpx.HTTPError, job_posting_service.CareersSiteBusyError) as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="The University careers site could not be read. Try again in a few minutes.",
+        ) from exc
+    return {"Postings": result.postings, "Is_Complete": result.is_complete}
+
+
+@router.post(
+    "/{newsletter_id}/job-postings/lookup",
+    response_model=JobPostingCandidateResponse,
+)
+async def lookup_job_posting(
+    newsletter_id: str,
+    data: JobPostingLookupRequest,
+    db: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
+):
+    """Read one job from its careers-site link so staff can add it."""
+    newsletter = await newsletter_service.get_newsletter(db, newsletter_id)
+    if not newsletter:
+        raise HTTPException(status_code=404, detail="Newsletter not found")
+
+    try:
+        posting = await job_posting_service.lookup_job_posting(data.Url)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except job_posting_service.CareersSiteBusyError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="The University careers site is busy. Try again in a minute.",
+        ) from exc
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="That job page could not be read from the University careers site.",
+        ) from exc
+    if posting is None:
+        raise HTTPException(
+            status_code=422,
+            detail="That page is not an open job posting on the University careers site.",
+        )
+    selected = posting.source_id in _selected_job_source_ids(newsletter)
+    return job_posting_service.posting_to_candidate(posting, selected)
+
+
+def _selected_job_source_ids(newsletter: Newsletter) -> list[str]:
+    return [
         item.Source_Id
         for item in newsletter.External_Items
         if item.Source_Type == "job_posting"
     ]
-    return await job_posting_service.fetch_job_postings(
-        selected_source_ids=selected_source_ids,
-    )
 
 
 @router.post(

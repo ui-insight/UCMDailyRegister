@@ -13,6 +13,7 @@ const newsletterApiMocks = vi.hoisted(() => ({
   refreshNewsletterItemFromApproved: vi.fn(),
   listCalendarEvents: vi.fn(),
   listJobPostings: vi.fn(),
+  lookupJobPosting: vi.fn(),
   listNewsletters: vi.fn(),
   listSections: vi.fn(),
   removeNewsletterExternalItem: vi.fn(),
@@ -137,7 +138,7 @@ beforeEach(() => {
   ));
   newsletterApiMocks.listNewsletters.mockResolvedValue([]);
   newsletterApiMocks.listCalendarEvents.mockResolvedValue([]);
-  newsletterApiMocks.listJobPostings.mockResolvedValue([]);
+  newsletterApiMocks.listJobPostings.mockResolvedValue({ Postings: [], Is_Complete: true });
   newsletterApiMocks.assembleNewsletter.mockImplementation(async (request) => (
     request.Newsletter_Type === 'tdr' ? tdrNewsletter : newsletter
   ));
@@ -357,5 +358,44 @@ describe('BuilderPage academic dates', () => {
         Description: 'Full-term deadline.',
       });
     });
+  });
+
+  it('warns when the job list is incomplete and adds a job from its careers link', async () => {
+    const user = userEvent.setup();
+    const jobUrl = 'https://careers.uidaho.edu/jobs/records-coordinator-moscow-idaho-united-states';
+    const candidate = {
+      Source_Id: jobUrl,
+      Source_Type: 'job_posting',
+      Url: jobUrl,
+      Title: 'Records Coordinator',
+      Department: 'Provost Office',
+      Posting_Number: null,
+      Location: 'Moscow',
+      Closing_Date: null,
+      Summary: 'Coordinates synthetic records.',
+      Selected: false,
+    };
+    newsletterApiMocks.listJobPostings.mockResolvedValue({ Postings: [], Is_Complete: false });
+    newsletterApiMocks.lookupJobPosting.mockResolvedValue(candidate);
+    newsletterApiMocks.addJobPosting.mockResolvedValue({});
+    newsletterApiMocks.getNewsletter.mockResolvedValue(tdrNewsletter);
+
+    render(<BuilderPage />);
+    await user.click(screen.getAllByRole('button', { name: 'Assemble Newsletter' })[0]);
+    await user.click(await screen.findByRole('button', { name: /\+ 0 jobs/ }));
+
+    expect(await screen.findByText(/this list is incomplete/i)).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText('Add a job from its careers link'), jobUrl);
+    await user.click(screen.getByRole('button', { name: 'Add job' }));
+
+    await waitFor(() => {
+      expect(newsletterApiMocks.addJobPosting).toHaveBeenCalledWith(
+        tdrNewsletter.Id,
+        expect.objectContaining({ Url: jobUrl, Department: 'Provost Office' }),
+      );
+    });
+    expect(newsletterApiMocks.lookupJobPosting).toHaveBeenCalledWith(tdrNewsletter.Id, jobUrl);
+    expect(await screen.findByRole('button', { name: 'Added' })).toBeDisabled();
   });
 });
