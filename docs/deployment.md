@@ -22,7 +22,7 @@ source .venv/bin/activate   # macOS/Linux
 # .venv\Scripts\activate    # Windows
 
 # Install dependencies
-pip install -e ".[dev]"
+pip install -r requirements-dev.lock && pip install --no-deps -e .
 
 # Configure environment
 cp ../.env.example .env

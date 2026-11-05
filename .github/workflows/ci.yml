@@ -46,9 +46,15 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: backend/pyproject.toml
+          cache-dependency-path: backend/requirements-dev.lock
+      - name: Lock files match pyproject.toml
+        run: |
+          pip install uv==0.9.5
+          ./scripts/lock_deps.sh --check
       - name: Install backend dependencies
-        run: pip install -e ".[dev]"
+        run: |
+          pip install --require-hashes -r requirements-dev.lock
+          pip install --no-deps -e .
       - name: Ruff
         run: ruff check .
       - name: Pytest
@@ -87,9 +93,11 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: backend/pyproject.toml
+          cache-dependency-path: backend/requirements-dev.lock
       - name: Install backend dependencies
-        run: pip install -e ".[dev,postgres]"
+        run: |
+          pip install --require-hashes -r requirements-dev.lock
+          pip install --no-deps -e .
       - name: Run Alembic migrations
         run: alembic upgrade head
       - name: Check for migration drift

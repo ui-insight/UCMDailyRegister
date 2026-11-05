@@ -7,8 +7,10 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends gcc libpq-dev && \
     rm -rf /var/lib/apt/lists/*
 
-COPY pyproject.toml .
-RUN pip install --no-cache-dir . ".[postgres]"
+# Install the locked runtime set (see scripts/lock_deps.sh). The app itself
+# runs from /app and is not installed as a package.
+COPY requirements.lock .
+RUN pip install --no-cache-dir --require-hashes -r requirements.lock
 
 COPY . .
 
