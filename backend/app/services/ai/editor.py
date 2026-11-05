@@ -357,7 +357,7 @@ class AIEditor:
 
         return flags
 
-    def post_analyze(  # noqa: C901
+    def post_analyze(  # noqa: C901  complexity-cap: 48
         self,
         headline: str,
         body: str,
