@@ -1,4 +1,7 @@
 version: 2
+
+# Weekly update PRs, Monday morning Pacific. Routine bumps are grouped so each
+# ecosystem arrives as one or two PRs; security updates still open on their own.
 updates:
   - package-ecosystem: "npm"
     directory: "/frontend"
@@ -17,3 +20,61 @@ updates:
           - "react-dom"
           - "@types/react"
           - "@types/react-dom"
+      npm-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Backend Python dependencies, locked in backend/uv.lock.
+  - package-ecosystem: "uv"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+      timezone: "America/Los_Angeles"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+    groups:
+      python-minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  # Base images in backend/Dockerfile (python, uv) and frontend/Dockerfile
+  # (node, nginx).
+  - package-ecosystem: "docker"
+    directories:
+      - "/backend"
+      - "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+      timezone: "America/Los_Angeles"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+    ignore:
+      # Moving the Python or Node runtime to a new version is a deliberate
+      # upgrade, not a routine bump.
+      - dependency-name: "python"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+      timezone: "America/Los_Angeles"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "deps"
+    groups:
+      actions:
+        patterns:
+          - "*"
