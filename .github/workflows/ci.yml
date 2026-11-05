@@ -58,6 +58,9 @@ jobs:
           pip install --no-deps -e .
       - name: Ruff
         run: ruff check .
+      - uses: ui-insight/code-health-kit/actions/complexity-caps@v1.1.0
+        with:
+          working-directory: backend
       - name: Pytest
         run: pytest --cov=app --cov-report=xml
       - uses: ui-insight/code-health-kit/actions/coverage@v1
