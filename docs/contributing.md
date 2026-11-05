@@ -3,29 +3,28 @@
 ## Development Setup
 
 1. Clone the repository and follow the [Deployment guide](deployment.md) to set up backend and frontend environments.
-2. Install the backend from the lock file: `pip install -r requirements-dev.lock && pip install --no-deps -e .` (includes test and lint tools).
+2. Install the backend from the lock file with `uv sync --extra dev` in `backend/` (includes test and lint tools).
 3. Apply migrations with `alembic upgrade head`, then seed the database with `python -m app.db.seed`.
 4. Verify both servers start cleanly before making changes.
 
 ## Backend Dependencies
 
-`backend/pyproject.toml` states which versions the app works with. The exact
-versions installed are pinned, with hashes, in two lock files:
+`backend/pyproject.toml` states which versions the app works with.
+`backend/uv.lock` pins the exact versions, with hashes, for every extra. The
+Docker image installs the runtime and `postgres` sets from it, and CI and local
+development add `dev`.
 
-- `backend/requirements.lock`: runtime plus the `postgres` extra. The Docker image installs this.
-- `backend/requirements-dev.lock`: the same plus the `dev` extra. CI and local development install this.
-
-After adding or changing a dependency in `pyproject.toml`, regenerate both and commit them:
+After changing a dependency in `pyproject.toml`, relock and commit `uv.lock`:
 
 ```bash
 cd backend
-pip install uv==0.9.5
-./scripts/lock_deps.sh                            # keeps existing pins where possible
-./scripts/lock_deps.sh --upgrade-package NAME     # move one package to its newest allowed version
-./scripts/lock_deps.sh --upgrade                  # move everything
+uv lock                            # keeps existing pins where possible
+uv lock --upgrade-package NAME     # move one package to its newest allowed version
+uv lock --upgrade                  # move everything
 ```
 
-CI runs `./scripts/lock_deps.sh --check` and fails if the locks are out of date with `pyproject.toml`.
+CI runs `uv lock --check` and fails if `uv.lock` is out of date with
+`pyproject.toml`. Dependabot proposes updates to `uv.lock` weekly.
 
 ## Code Conventions
 

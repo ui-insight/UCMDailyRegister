@@ -16,13 +16,11 @@
 ```bash
 cd backend
 
-# Create and activate virtual environment
-python -m venv .venv
+# Install uv, then create .venv from uv.lock (includes test and lint tools)
+pip install uv==0.9.5       # or: brew install uv
+uv sync --extra dev
 source .venv/bin/activate   # macOS/Linux
 # .venv\Scripts\activate    # Windows
-
-# Install dependencies
-pip install -r requirements-dev.lock && pip install --no-deps -e .
 
 # Configure environment
 cp ../.env.example .env

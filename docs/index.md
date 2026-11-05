@@ -36,8 +36,9 @@ Submission Intake --> AI Editing --> Human Review --> Newsletter Assembly --> Wo
 ```bash
 # Backend
 cd backend
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements-dev.lock && pip install --no-deps -e .
+pip install uv==0.9.5   # or: brew install uv
+uv sync --extra dev     # creates .venv from uv.lock
+source .venv/bin/activate
 alembic upgrade head
 python -m app.db.seed
 uvicorn app.main:app --port 8001 --reload

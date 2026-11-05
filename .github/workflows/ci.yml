@@ -46,14 +46,15 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: backend/requirements-dev.lock
-      - name: Lock files match pyproject.toml
+          cache-dependency-path: backend/uv.lock
+      - name: uv.lock matches pyproject.toml
         run: |
           pip install uv==0.9.5
-          ./scripts/lock_deps.sh --check
+          uv lock --check
       - name: Install backend dependencies
         run: |
-          pip install --require-hashes -r requirements-dev.lock
+          uv export --frozen --extra dev --extra postgres --no-emit-project -o "$RUNNER_TEMP/requirements.txt"
+          pip install --require-hashes -r "$RUNNER_TEMP/requirements.txt"
           pip install --no-deps -e .
       - name: Ruff
         run: ruff check .
@@ -93,10 +94,12 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: backend/requirements-dev.lock
+          cache-dependency-path: backend/uv.lock
       - name: Install backend dependencies
         run: |
-          pip install --require-hashes -r requirements-dev.lock
+          pip install uv==0.9.5
+          uv export --frozen --extra dev --extra postgres --no-emit-project -o "$RUNNER_TEMP/requirements.txt"
+          pip install --require-hashes -r "$RUNNER_TEMP/requirements.txt"
           pip install --no-deps -e .
       - name: Run Alembic migrations
         run: alembic upgrade head
