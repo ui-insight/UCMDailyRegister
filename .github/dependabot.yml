@@ -43,7 +43,8 @@ updates:
           - "patch"
 
   # Base images in backend/Dockerfile (python, uv) and frontend/Dockerfile
-  # (node, nginx).
+  # (node, nginx). The images are pinned by digest next to their tag, so a
+  # patched image under the same tag arrives as a digest-update PR.
   - package-ecosystem: "docker"
     directories:
       - "/backend"
