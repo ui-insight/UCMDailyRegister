@@ -28,8 +28,9 @@ AI-assisted newsletter production pipeline for the University of Idaho's Univers
 
 ```bash
 cd backend
-python -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
+pip install uv==0.9.5   # or: brew install uv
+uv sync --extra dev     # creates .venv from uv.lock
+source .venv/bin/activate
 cp ../.env.example .env  # Edit with your API keys
 alembic upgrade head
 python -m app.db.seed

@@ -3,9 +3,28 @@
 ## Development Setup
 
 1. Clone the repository and follow the [Deployment guide](deployment.md) to set up backend and frontend environments.
-2. Install backend with `pip install -e ".[dev]"` (includes test and lint tools).
+2. Install the backend from the lock file with `uv sync --extra dev` in `backend/` (includes test and lint tools).
 3. Apply migrations with `alembic upgrade head`, then seed the database with `python -m app.db.seed`.
 4. Verify both servers start cleanly before making changes.
+
+## Backend Dependencies
+
+`backend/pyproject.toml` states which versions the app works with.
+`backend/uv.lock` pins the exact versions, with hashes, for every extra. The
+Docker image installs the runtime and `postgres` sets from it, and CI and local
+development add `dev`.
+
+After changing a dependency in `pyproject.toml`, relock and commit `uv.lock`:
+
+```bash
+cd backend
+uv lock                            # keeps existing pins where possible
+uv lock --upgrade-package NAME     # move one package to its newest allowed version
+uv lock --upgrade                  # move everything
+```
+
+CI runs `uv lock --check` and fails if `uv.lock` is out of date with
+`pyproject.toml`. Dependabot proposes updates to `uv.lock` weekly.
 
 ## Code Conventions
 
