@@ -1,0 +1,17 @@
+# Tells the independent code health collector what this repository contains.
+# Specification: https://github.com/ui-insight/code-health-kit/blob/main/docs/manifest.md
+
+schema = 1
+project = "ucm-daily-register"
+
+[[component]]
+name = "backend"
+language = "python"
+source = ["backend/app"]
+tests = ["backend/tests"]
+
+[[component]]
+name = "frontend"
+language = "typescript"
+source = ["frontend/src"]
+tests = ["frontend/src/**/*.test.ts", "frontend/src/**/*.test.tsx", "frontend/src/test"]

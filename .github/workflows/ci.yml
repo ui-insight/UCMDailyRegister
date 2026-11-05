@@ -24,6 +24,16 @@ jobs:
       - name: Strict documentation build
         run: mkdocs build --strict
 
+  code-health:
+    name: Code health
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ui-insight/code-health-kit/actions/manifest@v1
+      - uses: ui-insight/code-health-kit/actions/secret-scan@v1
+
   backend:
     name: Backend
     runs-on: ubuntu-latest
@@ -42,7 +52,12 @@ jobs:
       - name: Ruff
         run: ruff check .
       - name: Pytest
-        run: pytest
+        run: pytest --cov=app --cov-report=xml
+      - uses: ui-insight/code-health-kit/actions/coverage@v1
+        with:
+          component: backend
+          report: backend/coverage.xml
+          min: 78
 
   backend-postgres:
     name: Backend Postgres
@@ -112,6 +127,11 @@ jobs:
       - name: ESLint
         run: npm run lint -- --max-warnings=0
       - name: Vitest
-        run: npm test
+        run: npm run test:coverage
+      - uses: ui-insight/code-health-kit/actions/coverage@v1
+        with:
+          component: frontend
+          report: frontend/coverage/coverage-summary.json
+          min: 74
       - name: Build
         run: npm run build

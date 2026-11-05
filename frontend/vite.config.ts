@@ -20,6 +20,15 @@ export default defineConfig(({ mode }) => {
       // Pin the newsletter's own timezone (Moscow, Idaho) so local-date tests
       // behave the same on a UTC CI runner as on a staff laptop.
       env: { TZ: 'America/Los_Angeles' },
+      // `npm run test:coverage` writes coverage/coverage-summary.json, which CI
+      // publishes for the code health collector. Include all of src so files
+      // with no tests count against coverage instead of being left out.
+      coverage: {
+        provider: 'v8',
+        include: ['src/**/*.{ts,tsx}'],
+        exclude: ['src/**/*.test.{ts,tsx}', 'src/test/**', 'src/**/*.d.ts'],
+        reporter: ['text-summary', 'json-summary'],
+      },
     },
     server: {
       proxy: {
