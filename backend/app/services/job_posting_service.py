@@ -1,9 +1,10 @@
-"""Fetch and normalize University of Idaho job postings from the careers site.
+"""Read and normalize a University of Idaho job posting from its careers link.
 
 The University moved from PeopleAdmin to PageUp in fall 2026. Open jobs now
-live at careers.uidaho.edu. Its search page sits behind a bot check, so this
-service reads the public sitemap for job URLs and then each job's own page,
-which carries a schema.org JobPosting block. The "Appointment Information"
+live at careers.uidaho.edu. UCM runs only jobs people submit, so the tool
+never lists the careers site's jobs; staff can paste a submitted job's link
+in the Builder, and this service reads that one page, which carries a
+schema.org JobPosting block. The "Appointment Information"
 lines in that block give the working title, department and location UCM
 uses for the one-line Jobs listing.
 """
@@ -18,9 +19,7 @@ import json
 import logging
 import re
 import time
-from typing import Iterable
 from urllib.parse import urljoin, urlsplit
-from xml.etree import ElementTree
 
 import httpx
 
@@ -28,7 +27,6 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-_SITEMAP_NS = "{http://www.sitemaps.org/schemas/sitemap/0.9}"
 _JOB_PATH_RE = re.compile(r"^https://[^/]+/(?:[a-z]{2}-[A-Z]{2}/)?jobs/(?!search$)[^/?#]+$")
 _LD_JSON_RE = re.compile(
     r"<script[^>]*type=[\"']application/ld\+json[\"'][^>]*>(?P<body>.*?)</script>",
@@ -60,7 +58,6 @@ _OFFICIAL_UNIT_EXPANSIONS = {
 }
 _DEFAULT_SUMMARY = "Imported from the University of Idaho careers site."
 _SUMMARY_MAX_LENGTH = 300
-_CACHE_TTL_SECONDS = 6 * 60 * 60
 # After the careers site throttles a request, every caller waits this long
 # before asking it for job pages again.
 _THROTTLE_BACKOFF_SECONDS = 120
@@ -83,18 +80,7 @@ class JobPosting:
     date_posted: str | None = None
 
 
-@dataclass(slots=True)
-class _CachedPage:
-    lastmod: str | None
-    fetched_at: float
-    fetched_on: str  # UTC date, comparable with sitemap lastmod dates
-    posting: JobPosting | None
-
-
-# Job pages rarely change, and the careers site throttles bursts, so parsed
-# pages (and confirmed closed ones, as None) are shared across callers until
-# the sitemap's lastmod changes or the TTL ends.
-_page_cache: dict[str, _CachedPage] = {}
+# Concurrent lookups of the same job page share one request.
 _in_flight: dict[str, asyncio.Task] = {}
 _throttled_until = 0.0
 _fetch_limit: tuple[asyncio.AbstractEventLoop, asyncio.Semaphore] | None = None
@@ -108,56 +94,6 @@ class CareersSiteBusyError(CareersSiteError):
     """The careers site answered with its empty throttling response."""
 
 
-@dataclass(slots=True)
-class JobPostingFetchResult:
-    postings: list[dict]
-    is_complete: bool
-
-
-async def fetch_job_postings(selected_source_ids: Iterable[str] = ()) -> JobPostingFetchResult:
-    """Fetch open job postings from the University of Idaho careers site.
-
-    The careers site throttles bursts with an empty HTTP 202. Once that
-    happens, no caller requests job pages for a short backoff; postings
-    already read (or cached) are returned and the result is marked
-    incomplete, as it is for any page that could not be read or a sitemap
-    longer than the listing cap.
-    """
-    timeout = settings.job_postings_request_timeout_seconds
-    async with httpx.AsyncClient(timeout=timeout, follow_redirects=False) as client:
-        sitemap = await _get_careers_page(client, settings.job_postings_source_url)
-        try:
-            all_entries = parse_careers_sitemap(sitemap.text)
-        except ElementTree.ParseError as exc:
-            raise CareersSiteError("The careers sitemap could not be parsed") from exc
-        entries = all_entries[: settings.job_postings_max_listings]
-        truncated = len(all_entries) > len(entries)
-
-        results = await asyncio.gather(
-            *(_load_job_page(client, url, lastmod) for url, lastmod in entries)
-        )
-
-    unread = sum(1 for read, _ in results if not read)
-    postings = [posting for read, posting in results if read and posting is not None]
-    if unread or truncated:
-        logger.warning(
-            "Job listing incomplete: %s of %s pages unread, %s beyond the cap",
-            unread,
-            len(entries),
-            len(all_entries) - len(entries),
-        )
-    if entries and unread == len(entries):
-        raise CareersSiteBusyError("No job pages could be read from the careers site")
-    # Newest at top, matching the Jobs section rule.
-    postings.sort(key=lambda posting: posting.date_posted or "", reverse=True)
-
-    selected = set(selected_source_ids)
-    return JobPostingFetchResult(
-        postings=[posting_to_candidate(posting, posting.source_id in selected) for posting in postings],
-        is_complete=not unread and not truncated,
-    )
-
-
 async def lookup_job_posting(url: str) -> JobPosting | None:
     """Read one job page that staff pasted into the Builder."""
     canonical = canonical_job_url(url)
@@ -165,7 +101,7 @@ async def lookup_job_posting(url: str) -> JobPosting | None:
         raise ValueError("Use a job link from the University careers site.")
     timeout = settings.job_postings_request_timeout_seconds
     async with httpx.AsyncClient(timeout=timeout, follow_redirects=False) as client:
-        read, posting = await _load_job_page(client, canonical, None, force=True)
+        read, posting = await _load_job_page(client, canonical)
     if not read:
         if time.monotonic() < _throttled_until:
             raise CareersSiteBusyError(canonical)
@@ -211,16 +147,6 @@ def posting_to_candidate(posting: JobPosting, selected: bool = False) -> dict:
     }
 
 
-def _cache_is_fresh(cached: _CachedPage, lastmod: str | None) -> bool:
-    if time.monotonic() - cached.fetched_at >= _CACHE_TTL_SECONDS:
-        return False
-    if lastmod is None or cached.lastmod == lastmod:
-        return True
-    # A page cached by a link lookup has no sitemap revision: reuse it only
-    # if it was read after the sitemap's last change.
-    return cached.lastmod is None and cached.fetched_on > lastmod
-
-
 def _shared_fetch_limit() -> asyncio.Semaphore:
     """One request limit for every caller on this event loop."""
     global _fetch_limit
@@ -233,31 +159,23 @@ def _shared_fetch_limit() -> asyncio.Semaphore:
 async def _load_job_page(
     client: httpx.AsyncClient,
     url: str,
-    lastmod: str | None,
-    *,
-    force: bool = False,
 ) -> tuple[bool, JobPosting | None]:
     """Return (read, posting). read is False when the page couldn't be read.
 
     A posting of None with read True means the page is closed or has no
     job data. Concurrent callers asking for the same page share one request.
     """
-    cached = _page_cache.get(url)
-    if cached and not force and _cache_is_fresh(cached, lastmod):
-        return True, cached.posting
-
     task = _in_flight.get(url)
     if task is None:
-        task = asyncio.ensure_future(_fetch_and_cache(client, url, lastmod))
+        task = asyncio.ensure_future(_fetch_job_page(client, url))
         _in_flight[url] = task
         task.add_done_callback(lambda _task, key=url: _in_flight.pop(key, None))
     return await asyncio.shield(task)
 
 
-async def _fetch_and_cache(
+async def _fetch_job_page(
     client: httpx.AsyncClient,
     url: str,
-    lastmod: str | None,
 ) -> tuple[bool, JobPosting | None]:
     global _throttled_until
     async with _shared_fetch_limit():
@@ -274,12 +192,6 @@ async def _fetch_and_cache(
     posting = parse_careers_job_page(response.text, url)
     if posting is None:
         logger.info("Job page %s has no open JobPosting data", url)
-    _page_cache[url] = _CachedPage(
-        lastmod=lastmod,
-        fetched_at=time.monotonic(),
-        fetched_on=datetime.now(timezone.utc).date().isoformat(),
-        posting=posting,
-    )
     return True, posting
 
 
@@ -301,24 +213,6 @@ async def _get_careers_page(client: httpx.AsyncClient, url: str) -> httpx.Respon
         response.raise_for_status()
         return response
     raise CareersSiteError(f"Too many redirects reading {url}")
-
-
-def parse_careers_sitemap(xml_text: str) -> list[tuple[str, str | None]]:
-    """Return (job URL, lastmod) pairs for job pages listed in the sitemap."""
-    root = ElementTree.fromstring(xml_text)
-    entries: list[tuple[str, str | None]] = []
-    seen: set[str] = set()
-    for url_node in root.iter(f"{_SITEMAP_NS}url"):
-        loc = (url_node.findtext(f"{_SITEMAP_NS}loc") or "").strip()
-        if not _JOB_PATH_RE.match(loc):
-            continue
-        loc = canonical_job_url(loc) or loc
-        if loc in seen:
-            continue
-        seen.add(loc)
-        lastmod = (url_node.findtext(f"{_SITEMAP_NS}lastmod") or "").strip() or None
-        entries.append((loc, lastmod))
-    return entries
 
 
 def parse_careers_job_page(html_text: str, url: str) -> JobPosting | None:

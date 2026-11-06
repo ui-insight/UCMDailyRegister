@@ -106,7 +106,7 @@ contain no secrets. API responses, permission tests, and the
    editorial notes columns are not explicitly inserted, but personal data in
    content is not automatically sanitized. Returned copy, flags, change summaries,
    model/provider and editor instructions may persist in edit history.
-3. Trumba calendar pages/feed and job postings from the PageUp careers site (careers.uidaho.edu sitemap and job pages) are fetched on demand.
+3. Trumba calendar pages/feed and a single PageUp careers-site job page (careers.uidaho.edu), read only when staff paste a submitted job's link, are fetched on demand.
    SLC harvesting upserts structured JSON-feed occurrences in `harvested_events`.
    SLC flagging promotes an event into a submission and records its provenance.
 4. A harvest queues ops classification in the background. A separate MindRouter

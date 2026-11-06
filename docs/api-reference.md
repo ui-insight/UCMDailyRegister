@@ -126,7 +126,7 @@ The edit response includes `AI_Provider` and `AI_Model` fields so the UI can dis
 | POST   | `/api/v1/newsletters/{id}/recurring-messages/{recurring_message_id}/skip` | Skip a recurring message for this issue |
 | GET    | `/api/v1/newsletters/{id}/calendar-events`                            | List candidate calendar events              |
 | POST   | `/api/v1/newsletters/{id}/calendar-events`                            | Import a calendar event                     |
-| GET    | `/api/v1/newsletters/{id}/job-postings`                               | List candidate job postings                 |
+| POST   | `/api/v1/newsletters/{id}/job-postings/lookup`                        | Read a submitted job from its careers link  |
 | POST   | `/api/v1/newsletters/{id}/job-postings`                               | Import a job posting                        |
 
 ### Assembly & Export

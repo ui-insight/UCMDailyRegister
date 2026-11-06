@@ -6,7 +6,6 @@ import {
   addCalendarEvent,
   listNewsletters,
   listCalendarEvents,
-  listJobPostings,
   lookupJobPosting,
   getNewsletter,
   assembleNewsletter,
@@ -191,22 +190,10 @@ function ImportCandidatePill({
 }
 
 interface JobPostingsPanelBodyProps {
-  postings: JobPostingCandidate[];
-  loading: boolean;
-  error: string | null;
-  isComplete: boolean;
-  onAdd: (posting: JobPostingCandidate) => void;
   onAddByLink: (url: string) => Promise<void>;
 }
 
-function JobPostingsPanelBody({
-  postings,
-  loading,
-  error,
-  isComplete,
-  onAdd,
-  onAddByLink,
-}: JobPostingsPanelBodyProps) {
+function JobPostingsPanelBody({ onAddByLink }: JobPostingsPanelBodyProps) {
   const [linkUrl, setLinkUrl] = useState('');
   const [linkSaving, setLinkSaving] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
@@ -237,7 +224,7 @@ function JobPostingsPanelBody({
             htmlFor="job-posting-link"
             className="block text-xs font-medium text-gray-700"
           >
-            Add a job from its careers link
+            Add a submitted job from its careers link
           </label>
           <input
             id="job-posting-link"
@@ -263,75 +250,6 @@ function JobPostingsPanelBody({
           {linkError}
         </p>
       )}
-      {error && (
-        <div className="mb-3 rounded-md bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
-          {error}
-        </div>
-      )}
-      {!isComplete && !error && (
-        <div className="mb-3 rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-800">
-          The careers site limited how many jobs could be read, so this list is incomplete.
-          Refresh in a few minutes, or paste a job&rsquo;s link above.
-        </div>
-      )}
-      {postings.length === 0 ? (
-        <EmptyState
-          title={loading ? 'Loading job postings' : 'No candidate job postings found'}
-          description="Open postings from the University careers site appear here. You can also add a job from its link."
-          framed={false}
-        />
-      ) : (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
-          {postings.map((posting) => (
-            <div
-              key={posting.Source_Id}
-              className={`rounded-lg border p-3 ${
-                posting.Selected ? 'border-green-200 bg-green-50' : 'border-gray-200 bg-white'
-              }`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-gray-900">{posting.Title}</p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {[
-                      posting.Department,
-                      posting.Location,
-                      posting.Posting_Number,
-                    ].filter(Boolean).join(' • ') || 'University careers site'}
-                  </p>
-                  {posting.Closing_Date && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      Closes {posting.Closing_Date}
-                    </p>
-                  )}
-                </div>
-                <button
-                  onClick={() => onAdd(posting)}
-                  disabled={posting.Selected}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md ${
-                    posting.Selected
-                      ? 'bg-green-100 text-green-700 cursor-default'
-                      : 'bg-ui-gold-500 text-ui-black hover:bg-ui-gold-600'
-                  }`}
-                >
-                  {posting.Selected ? 'Added' : 'Add'}
-                </button>
-              </div>
-              <p className="text-xs text-gray-600 mt-2 line-clamp-3">
-                {posting.Summary}
-              </p>
-              <a
-                href={posting.Url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-block mt-2 text-xs text-ui-clearwater-700 hover:text-ui-clearwater-800"
-              >
-                View source
-              </a>
-            </div>
-          ))}
-        </div>
-      )}
     </>
   );
 }
@@ -345,14 +263,10 @@ export default function BuilderPage() {
   const [sections, setSections] = useState<NewsletterSection[]>([]);
   const [recurringMessages, setRecurringMessages] = useState<RecurringMessageIssueCandidate[]>([]);
   const [calendarEvents, setCalendarEvents] = useState<CalendarEventCandidate[]>([]);
-  const [jobPostings, setJobPostings] = useState<JobPostingCandidate[]>([]);
   const [recurringLoading, setRecurringLoading] = useState(false);
   const [recurringError, setRecurringError] = useState<string | null>(null);
   const [calendarLoading, setCalendarLoading] = useState(false);
   const [calendarError, setCalendarError] = useState<string | null>(null);
-  const [jobLoading, setJobLoading] = useState(false);
-  const [jobError, setJobError] = useState<string | null>(null);
-  const [jobListComplete, setJobListComplete] = useState(true);
   const [academicDate, setAcademicDate] = useState('');
   const [academicTitle, setAcademicTitle] = useState('');
   const [academicDescription, setAcademicDescription] = useState('');
@@ -399,13 +313,10 @@ export default function BuilderPage() {
       setRecurringError(null);
       setCalendarEvents([]);
       setCalendarError(null);
-      setJobPostings([]);
-      setJobError(null);
       return;
     }
     void loadRecurringMessages(newsletterId);
     void loadCalendarEvents(newsletterId);
-    void loadJobPostings(newsletterId);
   }, [newsletterId]);
 
   useEffect(() => {
@@ -444,20 +355,6 @@ export default function BuilderPage() {
       setCalendarError(err instanceof Error ? err.message : 'Failed to load calendar events');
     } finally {
       setCalendarLoading(false);
-    }
-  };
-
-  const loadJobPostings = async (newsletterId: string) => {
-    setJobLoading(true);
-    setJobError(null);
-    try {
-      const result = await listJobPostings(newsletterId);
-      setJobPostings(result.Postings);
-      setJobListComplete(result.Is_Complete);
-    } catch (err) {
-      setJobError(err instanceof Error ? err.message : 'Failed to load job postings');
-    } finally {
-      setJobLoading(false);
     }
   };
 
@@ -546,7 +443,6 @@ export default function BuilderPage() {
       setNewsletter(nl);
       await loadRecurringMessages(newsletter.Id);
       await loadCalendarEvents(newsletter.Id);
-      await loadJobPostings(newsletter.Id);
       showToast('Imported item removed');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to remove imported item');
@@ -587,21 +483,7 @@ export default function BuilderPage() {
     });
     const nl = await getNewsletter(newsletterId);
     setNewsletter(nl);
-    setJobPostings((current) => {
-      const added = { ...posting, Selected: true };
-      const others = current.filter((item) => item.Source_Id !== posting.Source_Id);
-      return [added, ...others];
-    });
     showToast('Job posting added');
-  };
-
-  const handleAddJobPosting = async (posting: JobPostingCandidate) => {
-    if (!newsletter) return;
-    try {
-      await saveJobPosting(newsletter.Id, posting);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to add job posting');
-    }
   };
 
   const addJobByLink = async (newsletterId: string, url: string) => {
@@ -612,6 +494,10 @@ export default function BuilderPage() {
     }
     await saveJobPosting(newsletterId, posting);
   };
+
+  const addedJobCount = newsletter
+    ? newsletter.External_Items.filter((item) => item.Source_Type === 'job_posting').length
+    : 0;
 
   const handleAddAcademicDate = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -1153,8 +1039,8 @@ export default function BuilderPage() {
                 />
                 <ImportCandidatePill
                   label="jobs"
-                  count={jobPostings.length}
-                  loading={jobLoading}
+                  count={addedJobCount}
+                  loading={false}
                   isOpen={panelOpen.jobPostings}
                   onClick={() => togglePanel('jobPostings')}
                 />
@@ -1351,28 +1237,14 @@ export default function BuilderPage() {
               {panelOpen.jobPostings && (
               <CollapsibleCard
                 title="Job Postings"
-                subtitle={`Import U of I job postings into the ${
+                subtitle={`Add submitted jobs to the ${
                   newsletterType === 'tdr' ? 'Job Opportunities' : 'Help Wanted'
-                } section.`}
-                meta={`${jobPostings.length} candidate${jobPostings.length !== 1 ? 's' : ''}`}
+                } section from their careers-site links.`}
+                meta={`${addedJobCount} added`}
                 isOpen
                 onToggle={() => togglePanel('jobPostings')}
-                actions={(
-                  <button
-                    onClick={() => loadJobPostings(newsletter.Id)}
-                    disabled={jobLoading}
-                    className="px-3 py-1.5 text-xs font-medium rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                  >
-                    {jobLoading ? 'Refreshing...' : 'Refresh Jobs'}
-                  </button>
-                )}
               >
                 <JobPostingsPanelBody
-                  postings={jobPostings}
-                  loading={jobLoading}
-                  error={jobError}
-                  isComplete={jobListComplete}
-                  onAdd={handleAddJobPosting}
                   onAddByLink={(url) => addJobByLink(newsletter.Id, url)}
                 />
               </CollapsibleCard>
