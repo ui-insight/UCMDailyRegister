@@ -20,6 +20,7 @@ from app.services.ai.prompts import (
     policy_fingerprint,
 )
 from app.services.ai.diff_generator import generate_word_diff, diff_to_dict
+from app.services.ai.post_checks import CheckContext, run_checks
 from app.utils.text import (
     to_sentence_case,
     to_title_case,
@@ -30,48 +31,8 @@ from app.utils.text import (
 )
 from app.utils.hyperlinks import parse_submitter_notes
 from app.utils.style_checks import (
-    detect_headline_echoes_lead,
-    detect_review_notes_in_copy,
     strip_html,
-    detect_unabbreviated_month_dates,
-    detect_abbreviated_months_without_date,
-    detect_nonstandard_meridiems,
-    detect_twelve_oclock_meridiems,
-    detect_cross_period_hyphen_ranges,
-    detect_event_detail_order_violations,
-    detect_standalone_event_detail_fragments,
-    detect_changed_event_call_to_action,
-    detect_disallowed_ampersands,
-    detect_platform_names,
-    detect_undefined_acronyms,
-    detect_unneeded_acronym_definitions,
-    never_spell_out_acronyms,
-    detect_repeated_cta_phrases,
-    detect_redundant_promotional_leads,
-    detect_generic_destination_references,
-    detect_indirect_contact_language,
-    detect_missing_source_contacts,
-    detect_new_contact_channels,
-    detect_new_contact_names,
-    detect_changed_official_names,
-    detect_missing_anchored_requirements,
-    detect_missing_contact_titles,
-    detect_missing_information_options,
-    detect_missing_near_term_weekdays,
-    detect_missing_protected_organizations,
-    detect_missing_specific_audience_lead,
-    detect_missing_broad_audience,
-    detect_introduced_audience_groups,
-    detect_unformatted_composition_titles,
-    detect_noncanonical_campus_locations,
-    detect_missing_approved_venue_addresses,
-    detect_weekday_date_mismatches,
-    detect_weekday_date_conflicts,
-    detect_changed_source_date_conflicts,
-    detect_headline_date_conflicts,
-    detect_inserted_weekday_mismatches,
     change_contradicts_final_dates,
-    detect_missing_relative_date_components,
 )
 
 logger = logging.getLogger(__name__)
@@ -357,7 +318,7 @@ class AIEditor:
 
         return flags
 
-    def post_analyze(  # noqa: C901  complexity-cap: 48
+    def post_analyze(
         self,
         headline: str,
         body: str,
@@ -373,320 +334,34 @@ class AIEditor:
         """Run deterministic rule checks on the AI-edited output.
 
         Prompt injection alone does not guarantee compliance, so the
-        mechanically verifiable rules are re-checked here. Each check runs
-        only while its rule is active, so deactivating a rule in the app
-        also silences its deterministic check. Exact-match checks flag at
-        the rule's severity; heuristic checks always flag as warnings.
+        mechanically verifiable rules are re-checked here; the checks live
+        in ``post_checks``. Each finding is kept only while its rule is
+        active, so deactivating a rule in the app also silences its check.
+        Exact checks flag at the rule's severity; heuristic checks always
+        flag as warnings.
         """
         active = {rule["rule_key"]: rule for rule in style_rules}
-        flags: list[dict] = []
-        text = strip_html(f"{headline}\n{body}")
-
-        def add(rule_key: str, message: str, *, heuristic: bool = False) -> None:
-            rule = active.get(rule_key)
-            if rule is None:
-                return
-            flag_type = "warning" if heuristic or rule["severity"] != "error" else "error"
-            flags.append({"type": flag_type, "rule_key": rule_key, "message": message})
-
-        for note in detect_review_notes_in_copy(text):
-            add("review_flags", f"Move this review note to the flags list: '{note}'")
-        if detect_headline_echoes_lead(headline, body):
-            add(
-                "headline_rules",
-                "Headline begins with the same wording as the first sentence",
-                heuristic=True,
-            )
-        for found in detect_unabbreviated_month_dates(text):
-            add("ap_style_dates", f"Month should be abbreviated with a specific date: '{found}'")
-        for found in detect_abbreviated_months_without_date(text):
-            add("ap_style_dates", f"Month without a specific date should be spelled out: '{found}'")
-        inserted_weekdays = (
-            detect_inserted_weekday_mismatches(
-                source_text,
-                text,
-                reference_date=reference_date,
-            )
-            if source_text
-            else {}
-        )
-        conflicts = detect_weekday_date_conflicts(text, reference_date=reference_date)
-        for found in detect_weekday_date_mismatches(text, reference_date=reference_date):
-            if found not in inserted_weekdays:
-                add(
-                    "ap_style_dates",
-                    f"Weekday does not match the calendar date: '{found}' "
-                    f"[{conflicts[found]}]",
-                )
-            elif inserted_weekdays[found] is None:
-                add("ap_style_dates", f"Added weekday is paired with a date that does not exist: '{found}'")
-            else:
-                add(
-                    "ap_style_dates",
-                    f"Added weekday does not match the calendar date: '{found}' "
-                    f"falls on a {inserted_weekdays[found]}",
-                )
-        if source_text:
-            for found, note in detect_changed_source_date_conflicts(
-                source_text,
-                text,
-                reference_date=reference_date,
-            ).items():
-                add(
-                    "date_conflicts",
-                    f"Keep the submitted weekday and date as written: '{found}' [{note}]",
-                )
-        for found in detect_headline_date_conflicts(headline, body):
-            add(
-                "date_conflicts",
-                f"Headline date does not appear in the body [DATE CONFLICT: HEADLINE SAYS "
-                f"{found.upper()}]",
-                heuristic=True,
-            )
-        for found in detect_missing_near_term_weekdays(
-            text,
+        context = CheckContext(
+            headline=headline,
+            body=body,
+            category=category,
+            newsletter_type=newsletter_type,
             reference_date=reference_date,
-        ):
-            add(
-                "day_of_week_with_dates",
-                f"Near-term date is missing its weekday: '{found}'",
-            )
-
-        for found in detect_nonstandard_meridiems(text):
-            add("ap_style_times", f"Time should use lowercase a.m./p.m. with periods: '{found}'")
-        for found in detect_twelve_oclock_meridiems(text):
-            add("ap_style_times", f"Use noon or midnight instead of '{found}'")
-        for found in detect_cross_period_hyphen_ranges(text):
-            add(
-                "ap_style_times",
-                f"Use 'to' for a time range that crosses a.m./p.m.: '{found}'",
-            )
-
-        for sentence in detect_event_detail_order_violations(body):
-            add(
-                "event_detail_ordering",
-                f"Event details must put the time before the day and date: '{sentence}'",
-            )
-        for fragment in detect_standalone_event_detail_fragments(body):
-            add(
-                "event_detail_ordering",
-                "Keep event details in the same complete sentence as the event: "
-                f"'{fragment}'",
-                heuristic=True,
-            )
-
-        ampersands = detect_disallowed_ampersands(text)
-        if ampersands:
-            add(
-                "ampersand_to_and",
-                "Replace '&' with 'and'; Q&A is the only exception",
-            )
-
-        platforms = detect_platform_names(text)
-        if platforms:
-            names = ", ".join(f"'{name}'" for name in sorted(set(platforms)))
-            add(
-                "online_not_platform",
-                f"Platform name(s) {names} found — use 'online' unless the platform is essential",
-                heuristic=True,
-            )
-
-        standalone = never_spell_out_acronyms(newsletter_type)
-        acronyms = detect_undefined_acronyms(strip_html(body), standalone)
-        if acronyms:
-            listed = ", ".join(acronyms[:5])
-            add(
-                "spell_out_acronyms",
-                f"Acronym(s) never defined in the body as Full Name (ACRONYM): {listed}",
-                heuristic=True,
-            )
-        for token in detect_unneeded_acronym_definitions(
-            strip_html(headline), strip_html(body), standalone
-        ):
-            reason = (
-                "is on the never-spell-out list; use it alone"
-                if token in standalone
-                else "is not used again; write the full name alone"
-            )
-            add("spell_out_acronyms", f"Acronym '{token}' {reason}", heuristic=True)
-
-        repeated = detect_repeated_cta_phrases(text)
-        if repeated:
-            listed = ", ".join(f"'{phrase}'" for phrase in repeated)
-            add(
-                "single_cta",
-                f"Call-to-action phrase(s) repeated: {listed}",
-                heuristic=True,
-            )
-
-        for lead in detect_redundant_promotional_leads(body):
-            add(
-                "promotional_action_benefit_lead",
-                f"Promotional lead is passive or redundant: '{lead}'",
-            )
-
-        for reference in detect_generic_destination_references(body):
-            add(
-                "cta_structure",
-                f"Replace generic destination reference with descriptive linked text: '{reference}'",
-            )
-
-        for phrase in detect_indirect_contact_language(body):
-            add(
-                "cta_structure",
-                f"Use direct information-first contact language instead of '{phrase}'",
-            )
-
-        if category == "job_opportunity":
-            if headline.strip():
-                add("job_posting_format", "Jobs listing includes a headline — keep it body-only")
-            if re.search(r"\bMoscow\b", text):
-                add("job_posting_format", "Jobs listing mentions Moscow — omit the default location")
-            if "\n" in body.strip():
-                add("job_posting_format", "Jobs listing spans multiple lines — keep it on one line")
-
-        if source_text:
-            comparison_output = source_comparison_output or f"{headline}\n{body}"
-            body_source = source_body or source_text
-            for changed_action in detect_changed_event_call_to_action(body_source, headline):
-                add(
-                    "headline_reader_perspective",
-                    "Headline changes the source event's intended action: "
-                    f'"{changed_action}"',
-                    heuristic=True,
-                )
-            missing_contacts = detect_missing_source_contacts(
-                source_text,
-                comparison_output,
-            )
-            if missing_contacts:
-                listed = ", ".join(f"'{contact}'" for contact in missing_contacts[:5])
-                add(
-                    "preserve_purpose_contact_titles",
-                    f"Source contact information missing from AI edit: {listed}",
-                )
-
-            new_contact_channels = detect_new_contact_channels(
-                source_text,
-                comparison_output,
-            )
-            if new_contact_channels:
-                listed = ", ".join(
-                    f"'{contact}'" for contact in new_contact_channels[:5]
-                )
-                add(
-                    "no_fabricated_content",
-                    f"Contact information not found in submitted content: {listed}",
-                )
-
-            new_contact_names = detect_new_contact_names(source_text, comparison_output)
-            if new_contact_names:
-                listed = ", ".join(f"'{name}'" for name in new_contact_names[:5])
-                add(
-                    "no_fabricated_content",
-                    f"Contact name(s) not found in submitted content: {listed}",
-                )
-
-            changed_names = detect_changed_official_names(
-                source_text,
-                comparison_output,
-            )
-            if changed_names:
-                listed = ", ".join(f"'{name}'" for name in changed_names[:5])
-                add(
-                    "preserve_event_title_case",
-                    f"Official or branded source name(s) changed or removed: {listed}",
-                )
-
-            for organization in detect_missing_protected_organizations(
-                body_source,
-                body,
-            ):
-                add(
-                    "preserve_organizational_context",
-                    f"Source organization missing from AI-edited body: '{organization}'",
-                )
-
-            missing_titles = detect_missing_contact_titles(body_source, body)
-            if missing_titles:
-                listed = ", ".join(f"'{title}'" for title in missing_titles[:5])
-                add(
-                    "preserve_purpose_contact_titles",
-                    f"Source contact title(s) missing from AI edit: {listed}",
-                )
-
-            for option in detect_missing_information_options(body_source, body):
-                add(
-                    "preserve_information_options",
-                    f"Source information-seeking option missing from AI edit: '{option}'",
-                )
-
-            for requirement in detect_missing_anchored_requirements(body_source, body):
-                add(
-                    "preserve_action_deadlines",
-                    f"Source requirement missing from AI edit: '{requirement}'",
-                )
-
-            missing_audience_context = detect_missing_specific_audience_lead(
-                body_source,
-                body,
-            )
-            if missing_audience_context:
-                listed = ", ".join(
-                    f"'{detail}'" for detail in missing_audience_context[:5]
-                )
-                add(
-                    "preserve_audience_scope",
-                    f"Specific source audience context missing from first sentence: {listed}",
-                )
-
-            for broad_audience in detect_missing_broad_audience(body_source, body):
-                add(
-                    "preserve_audience_scope",
-                    f"Broad source invitation was narrowed or removed: '{broad_audience}'",
-                )
-
-            for audience in detect_introduced_audience_groups(source_text, body):
-                add(
-                    "preserve_audience_scope",
-                    f"AI edit introduced an audience not stated in the source: '{audience}'",
-                )
-
-            for date_reference in detect_missing_relative_date_components(
-                body_source,
-                body,
-            ):
-                add(
-                    "today_tomorrow",
-                    "Retain both the relative date and its explicit calendar date: "
-                    f"'{date_reference}'",
-                )
-
-            for title in detect_unformatted_composition_titles(
-                source_text,
-                headline,
-                body,
-            ):
-                add(
-                    "composition_title_format",
-                    f"Composition title needs AP quotation formatting: '{title}'",
-                )
-
-            for location in detect_noncanonical_campus_locations(body):
-                add(
-                    "building_room_order",
-                    f"Use canonical building-before-room location: '{location}'",
-                )
-
-            for venue in detect_missing_approved_venue_addresses(
-                source_text,
-                body,
-            ):
-                add(
-                    "approved_off_campus_addresses",
-                    f"Approved venue is missing its canonical address: '{venue}'",
-                )
-
+            source_text=source_text,
+            source_body=source_body,
+            source_comparison_output=source_comparison_output,
+        )
+        flags = []
+        for finding in run_checks(context):
+            rule = active.get(finding.rule_key)
+            if rule is None:
+                continue
+            exact_error = not finding.heuristic and rule["severity"] == "error"
+            flags.append({
+                "type": "error" if exact_error else "warning",
+                "rule_key": finding.rule_key,
+                "message": finding.message,
+            })
         return flags
 
     async def edit_submission(
