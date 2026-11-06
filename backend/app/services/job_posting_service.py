@@ -58,7 +58,6 @@ _OFFICIAL_UNIT_EXPANSIONS = {
 }
 _DEFAULT_SUMMARY = "Imported from the University of Idaho careers site."
 _SUMMARY_MAX_LENGTH = 300
-_CACHE_TTL_SECONDS = 6 * 60 * 60
 # After the careers site throttles a request, every caller waits this long
 # before asking it for job pages again.
 _THROTTLE_BACKOFF_SECONDS = 120
@@ -81,18 +80,7 @@ class JobPosting:
     date_posted: str | None = None
 
 
-@dataclass(slots=True)
-class _CachedPage:
-    lastmod: str | None
-    fetched_at: float
-    fetched_on: str  # UTC date, comparable with sitemap lastmod dates
-    posting: JobPosting | None
-
-
-# Job pages rarely change, and the careers site throttles bursts, so parsed
-# pages (and confirmed closed ones, as None) are shared across callers until
-# the sitemap's lastmod changes or the TTL ends.
-_page_cache: dict[str, _CachedPage] = {}
+# Concurrent lookups of the same job page share one request.
 _in_flight: dict[str, asyncio.Task] = {}
 _throttled_until = 0.0
 _fetch_limit: tuple[asyncio.AbstractEventLoop, asyncio.Semaphore] | None = None
@@ -113,7 +101,7 @@ async def lookup_job_posting(url: str) -> JobPosting | None:
         raise ValueError("Use a job link from the University careers site.")
     timeout = settings.job_postings_request_timeout_seconds
     async with httpx.AsyncClient(timeout=timeout, follow_redirects=False) as client:
-        read, posting = await _load_job_page(client, canonical, None, force=True)
+        read, posting = await _load_job_page(client, canonical)
     if not read:
         if time.monotonic() < _throttled_until:
             raise CareersSiteBusyError(canonical)
@@ -159,16 +147,6 @@ def posting_to_candidate(posting: JobPosting, selected: bool = False) -> dict:
     }
 
 
-def _cache_is_fresh(cached: _CachedPage, lastmod: str | None) -> bool:
-    if time.monotonic() - cached.fetched_at >= _CACHE_TTL_SECONDS:
-        return False
-    if lastmod is None or cached.lastmod == lastmod:
-        return True
-    # A page cached by a link lookup has no sitemap revision: reuse it only
-    # if it was read after the sitemap's last change.
-    return cached.lastmod is None and cached.fetched_on > lastmod
-
-
 def _shared_fetch_limit() -> asyncio.Semaphore:
     """One request limit for every caller on this event loop."""
     global _fetch_limit
@@ -181,31 +159,23 @@ def _shared_fetch_limit() -> asyncio.Semaphore:
 async def _load_job_page(
     client: httpx.AsyncClient,
     url: str,
-    lastmod: str | None,
-    *,
-    force: bool = False,
 ) -> tuple[bool, JobPosting | None]:
     """Return (read, posting). read is False when the page couldn't be read.
 
     A posting of None with read True means the page is closed or has no
     job data. Concurrent callers asking for the same page share one request.
     """
-    cached = _page_cache.get(url)
-    if cached and not force and _cache_is_fresh(cached, lastmod):
-        return True, cached.posting
-
     task = _in_flight.get(url)
     if task is None:
-        task = asyncio.ensure_future(_fetch_and_cache(client, url, lastmod))
+        task = asyncio.ensure_future(_fetch_job_page(client, url))
         _in_flight[url] = task
         task.add_done_callback(lambda _task, key=url: _in_flight.pop(key, None))
     return await asyncio.shield(task)
 
 
-async def _fetch_and_cache(
+async def _fetch_job_page(
     client: httpx.AsyncClient,
     url: str,
-    lastmod: str | None,
 ) -> tuple[bool, JobPosting | None]:
     global _throttled_until
     async with _shared_fetch_limit():
@@ -222,12 +192,6 @@ async def _fetch_and_cache(
     posting = parse_careers_job_page(response.text, url)
     if posting is None:
         logger.info("Job page %s has no open JobPosting data", url)
-    _page_cache[url] = _CachedPage(
-        lastmod=lastmod,
-        fetched_at=time.monotonic(),
-        fetched_on=datetime.now(timezone.utc).date().isoformat(),
-        posting=posting,
-    )
     return True, posting
 
 

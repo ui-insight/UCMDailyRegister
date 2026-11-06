@@ -812,9 +812,8 @@ def careers_job_page(
 def careers_site(monkeypatch):
     """A mocked careers site; resets the importer's shared state."""
     site = SimpleNamespace(
-        sitemap_url="https://careers.example.edu/sitemap.xml",
+        source_url="https://careers.example.edu/sitemap.xml",
         moscow_url="https://careers.example.edu/jobs/records-coordinator-moscow-idaho-united-states",
-        boise_url="https://careers.example.edu/jobs/field-technician-boise-idaho-united-states",
         pages={},
         requests=[],
     )
@@ -831,12 +830,10 @@ def careers_site(monkeypatch):
         "AsyncClient",
         lambda **kwargs: real_client(transport=transport, **kwargs),
     )
-    monkeypatch.setattr(job_posting_service.settings, "job_postings_source_url", site.sitemap_url)
+    monkeypatch.setattr(job_posting_service.settings, "job_postings_source_url", site.source_url)
     monkeypatch.setattr(job_posting_service, "_throttled_until", 0.0)
-    job_posting_service._page_cache.clear()
     job_posting_service._in_flight.clear()
     yield site
-    job_posting_service._page_cache.clear()
     job_posting_service._in_flight.clear()
 
 
@@ -903,6 +900,14 @@ class TestJobPostingParsing:
             await job_posting_service.lookup_job_posting(careers_site.moscow_url)
         assert careers_site.requests == []
 
+        # Once the backoff ends, the same link is read again.
+        job_posting_service._throttled_until = 0.0
+        careers_site.pages[careers_site.moscow_url] = httpx.Response(200, text=careers_job_page(
+            working_title="Records Coordinator", department="Provost Office", location="Moscow",
+        ))
+        posting = await job_posting_service.lookup_job_posting(careers_site.moscow_url)
+        assert posting is not None and posting.department == "Provost Office"
+
     async def test_concurrent_lookups_share_one_request(self, careers_site):
         careers_site.pages[careers_site.moscow_url] = httpx.Response(200, text=careers_job_page(
             working_title="Records Coordinator", department="749-PROV Provost Office", location="Moscow",
@@ -933,7 +938,6 @@ class TestJobPostingParsing:
             "https://169.254.169.254/latest/meta-data",
             "http://careers.example.edu/jobs/records-coordinator-moved",
         ):
-            job_posting_service._page_cache.clear()
             careers_site.requests.clear()
             careers_site.pages[careers_site.moscow_url] = httpx.Response(
                 302, headers={"location": target}
@@ -1233,9 +1237,21 @@ class TestJobPostingEndpoints:
     async def test_lookup_job_posting_by_link(
         self,
         client: AsyncClient,
+        db: AsyncSession,
         monkeypatch: pytest.MonkeyPatch,
         staff_headers: dict[str, str],
     ):
+        db.add(
+            NewsletterSection(
+                Newsletter_Type="tdr",
+                Name="Job Opportunities",
+                Slug="job-opportunities",
+                Display_Order=8,
+                Is_Active=True,
+            )
+        )
+        await db.commit()
+
         create_resp = await client.post(
             "/api/v1/newsletters",
             json=make_newsletter_data(),
@@ -1266,6 +1282,25 @@ class TestJobPostingEndpoints:
         assert resp.status_code == 200
         assert resp.json()["Department"] == "Provost Office"
         assert resp.json()["Selected"] is False
+
+        imported = await client.post(
+            f"/api/v1/newsletters/{nl_id}/job-postings",
+            json={
+                "Source_Id": url,
+                "Url": url,
+                "Title": "Records coordinator",
+                "Department": "Provost Office",
+                "Summary": "Synthetic job.",
+            },
+            headers=staff_headers,
+        )
+        assert imported.status_code == 201, imported.text
+        again = await client.post(
+            f"/api/v1/newsletters/{nl_id}/job-postings/lookup",
+            json={"Url": url},
+            headers=staff_headers,
+        )
+        assert again.json()["Selected"] is True
 
         bad = await client.post(
             f"/api/v1/newsletters/{nl_id}/job-postings/lookup",

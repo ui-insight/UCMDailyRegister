@@ -114,6 +114,9 @@ class Settings(BaseSettings):
     # redirects must stay on it.
     job_postings_source_url: str = "https://careers.uidaho.edu/sitemap.xml"
     job_postings_request_timeout_seconds: float = 10.0
+    # Retired with the careers-site job list (#474). Kept, unused, so an
+    # older .env that still sets JOB_POSTINGS_MAX_LISTINGS keeps loading.
+    job_postings_max_listings: int | None = None
     job_postings_fetch_concurrency: int = Field(2, ge=1, le=8)
     slc_trumba_feed_url: str = "https://www.trumba.com/calendars/university-of-idaho.json"
     slc_trumba_request_timeout_seconds: float = 15.0

@@ -375,7 +375,21 @@ describe('BuilderPage academic dates', () => {
     };
     newsletterApiMocks.lookupJobPosting.mockResolvedValue(candidate);
     newsletterApiMocks.addJobPosting.mockResolvedValue({});
-    newsletterApiMocks.getNewsletter.mockResolvedValue(tdrNewsletter);
+    newsletterApiMocks.getNewsletter.mockResolvedValue({
+      ...tdrNewsletter,
+      External_Items: [{
+        ...academicDateItem,
+        Id: 'job-item-1',
+        Newsletter_Id: tdrNewsletter.Id,
+        Section_Id: 'section-job-opportunities',
+        Source_Type: 'job_posting',
+        Source_Id: jobUrl,
+        Source_Url: jobUrl,
+        Event_Start: null,
+        Final_Headline: '',
+        Final_Body: 'Records coordinator, Provost Office',
+      }],
+    });
 
     render(<BuilderPage />);
     await user.click(screen.getAllByRole('button', { name: 'Assemble Newsletter' })[0]);
@@ -396,5 +410,6 @@ describe('BuilderPage academic dates', () => {
     });
     expect(newsletterApiMocks.lookupJobPosting).toHaveBeenCalledWith(tdrNewsletter.Id, jobUrl);
     expect(await screen.findByText('Job posting added')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /\+ 1 jobs/ })).toBeInTheDocument();
   });
 });
