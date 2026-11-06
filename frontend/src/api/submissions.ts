@@ -1,6 +1,5 @@
-import { apiFetch, formatApiError } from './client';
+import { apiFetch, apiUpload } from './client';
 import type { Submission, SubmissionCreate, SubmissionScheduleRequest } from '../types/submission';
-import { getSubmitterRoleHeaders } from '../utils/submitterRole';
 
 interface SubmissionListResponse {
   Items: Submission[];
@@ -120,14 +119,5 @@ export async function deleteScheduleRequest(
 export async function uploadImage(submissionId: string, file: File): Promise<Submission> {
   const formData = new FormData();
   formData.append('file', file);
-  const res = await fetch(`/api/v1/submissions/${submissionId}/image`, {
-    method: 'POST',
-    body: formData,
-    headers: getSubmitterRoleHeaders(),
-  });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({ detail: res.statusText }));
-    throw new Error(formatApiError(error.detail ?? error));
-  }
-  return res.json();
+  return apiUpload<Submission>(`/submissions/${submissionId}/image`, formData);
 }

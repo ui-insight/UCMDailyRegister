@@ -76,17 +76,15 @@ async function sendRequest(
   options: RequestInit | undefined,
   contentHeaders: HeadersInit,
 ): Promise<Response> {
+  // Caller headers may add to or override the content type, but never drop
+  // the credentials: a later spread of `options` would replace them all.
+  const headers = new Headers(contentHeaders);
+  new Headers(options?.headers).forEach((value, key) => headers.set(key, value));
+  new Headers(getSubmitterRoleHeaders()).forEach((value, key) => headers.set(key, value));
+  new Headers(getAuthHeaders()).forEach((value, key) => headers.set(key, value));
   let res: Response;
   try {
-    res = await fetch(`${BASE_URL}${path}`, {
-      headers: {
-        ...contentHeaders,
-        ...getSubmitterRoleHeaders(),
-        ...getAuthHeaders(),
-        ...options?.headers,
-      },
-      ...options,
-    });
+    res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') throw error;
     throw new Error(
@@ -134,6 +132,15 @@ export interface DownloadedFile {
  * Fetch a file with the caller's credentials. A plain link can't carry the
  * SSO bearer token, so downloads of protected files go through here (#476).
  */
+/**
+ * Send form data (for example a file upload) with the caller's credentials.
+ * No Content-Type is set, so the browser adds the multipart boundary.
+ */
+export async function apiUpload<T>(path: string, body: FormData): Promise<T> {
+  const res = await sendRequest(path, { method: 'POST', body }, {});
+  return res.json();
+}
+
 export async function apiDownload(path: string): Promise<DownloadedFile> {
   const res = await sendRequest(path, undefined, {});
   return {
