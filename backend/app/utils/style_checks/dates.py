@@ -360,3 +360,56 @@ def detect_missing_near_term_weekdays(
             findings.append(match.group().rstrip("."))
 
     return findings
+
+
+DATE_HAS_PASSED = "DATE HAS PASSED: CONFIRM DATE"
+CONFIRM_YEAR = "CONFIRM YEAR"
+DAY_OF_WEEK_NOT_VERIFIED = "DAY OF WEEK NOT VERIFIED"
+
+
+def detect_unconfirmed_dates(
+    source_text: str,
+    text: str,
+    *,
+    reference_date: date | None = None,
+    passed_window_days: int = 60,
+    year_unclear_after_days: int = 180,
+) -> dict[str, str]:
+    """Dates without a year that an editor must confirm, with the flag to show (#410).
+
+    A date without a year means its next occurrence after the submission
+    date, and is kept as written. It is flagged when:
+
+    - it fell within ``passed_window_days`` before the submission date
+      (likely already passed rather than next year): DATE HAS PASSED;
+    - its next occurrence is more than ``year_unclear_after_days`` after
+      the submission date, so the intended year is unclear: CONFIRM YEAR.
+
+    If the edit paired a weekday with a flagged date that the submission
+    didn't, that weekday rests on a guessed year: DAY OF WEEK NOT VERIFIED
+    is added. Dates with an explicit year are never flagged here.
+    """
+    reference = reference_date or date.today()
+    source_weekdays = {key[1:] for key in map(_weekday_date_key, _weekday_date_matches(source_text))}
+    edited_weekdays = {key[1:] for key in map(_weekday_date_key, _weekday_date_matches(text))}
+    findings: dict[str, str] = {}
+    for match in _MONTH_DAY.finditer(strip_html(text)):
+        month = _MONTH_NUMBERS.get(match.group("month").lower().rstrip("."))
+        if match.group("year") or month is None:
+            continue
+        day = int(match.group("day"))
+        try:
+            this_year = date(reference.year, month, day)
+            upcoming = this_year if this_year >= reference else date(reference.year + 1, month, day)
+        except ValueError:
+            continue
+        if -passed_window_days <= (this_year - reference).days < 0:
+            note = DATE_HAS_PASSED
+        elif (upcoming - reference).days > year_unclear_after_days:
+            note = CONFIRM_YEAR
+        else:
+            continue
+        if (month, day) in edited_weekdays - source_weekdays:
+            note = f"{note}; {DAY_OF_WEEK_NOT_VERIFIED}"
+        findings.setdefault(match.group().rstrip("."), note)
+    return findings

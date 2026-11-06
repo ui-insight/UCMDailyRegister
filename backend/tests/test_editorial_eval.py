@@ -120,8 +120,8 @@ async def test_model_error_is_reported_not_raised():
 
 @pytest.mark.asyncio
 async def test_summary_keeps_pending_cases_out_of_the_pass_rate():
-    passed_case, pending_case = case("composition-title-protected"), case("date-has-passed")
-    assert pending_case.get("pending")
+    passed_case = case("composition-title-protected")
+    pending_case = {**case("year-unclear"), "pending": "Synthetic pending marker."}
     llm = ScriptedLLM({
         "edited_headline": "Listen to the new podcast episode",
         "edited_body": passed_case["body"],
@@ -143,4 +143,4 @@ async def test_summary_keeps_pending_cases_out_of_the_pass_rate():
     }
     report = render_markdown(meta, summary, runs)
     assert "| composition-title-protected | #396 | pass |" in report
-    assert "| date-has-passed | #410 | pending |" in report
+    assert "| year-unclear | #410 | pending |" in report

@@ -21,6 +21,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import NamedTuple
 
+from app.config import settings
 from app.utils.style_checks import (
     detect_abbreviated_months_without_date,
     detect_changed_event_call_to_action,
@@ -57,6 +58,7 @@ from app.utils.style_checks import (
     detect_twelve_oclock_meridiems,
     detect_unabbreviated_month_dates,
     detect_undefined_acronyms,
+    detect_unconfirmed_dates,
     detect_unformatted_composition_titles,
     detect_unneeded_acronym_definitions,
     detect_weekday_date_conflicts,
@@ -217,6 +219,25 @@ def headline_date_conflicts(ctx: CheckContext) -> list[Finding]:
             heuristic=True,
         )
         for found in detect_headline_date_conflicts(ctx.headline, ctx.body)
+    ]
+
+
+def unconfirmed_dates(ctx: CheckContext) -> list[Finding]:
+    """Dates without a year that have passed or whose year is unclear (#410)."""
+    found = detect_unconfirmed_dates(
+        ctx.source_text,
+        ctx.text,
+        reference_date=ctx.reference_date,
+        passed_window_days=settings.date_passed_window_days,
+        year_unclear_after_days=settings.year_unclear_after_days,
+    )
+    return [
+        Finding(
+            "date_conflicts",
+            f"Confirm this date with the submitter: '{found_date}' [{note}]",
+            heuristic=True,
+        )
+        for found_date, note in found.items()
     ]
 
 
@@ -475,6 +496,7 @@ OUTPUT_CHECKS: list[Check] = [
     weekday_date_mismatches,
     changed_source_date_conflicts,
     headline_date_conflicts,
+    unconfirmed_dates,
     missing_near_term_weekdays,
     time_formats,
     event_detail_order,

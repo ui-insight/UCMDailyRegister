@@ -39,6 +39,10 @@ from app.utils.style_checks.dates import (
     detect_headline_date_conflicts,
     change_contradicts_final_dates,
     detect_missing_near_term_weekdays,
+    DATE_HAS_PASSED,
+    CONFIRM_YEAR,
+    DAY_OF_WEEK_NOT_VERIFIED,
+    detect_unconfirmed_dates,
 )
 from app.utils.style_checks.events import (
     detect_event_detail_order_violations,
@@ -99,6 +103,10 @@ __all__ = [
     "detect_headline_date_conflicts",
     "change_contradicts_final_dates",
     "detect_missing_near_term_weekdays",
+    "DATE_HAS_PASSED",
+    "CONFIRM_YEAR",
+    "DAY_OF_WEEK_NOT_VERIFIED",
+    "detect_unconfirmed_dates",
     "detect_event_detail_order_violations",
     "detect_standalone_event_detail_fragments",
     "detect_changed_event_call_to_action",

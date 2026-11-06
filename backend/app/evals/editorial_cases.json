@@ -384,7 +384,6 @@
       "submitted": "2026-11-06",
       "headline": "Benefits enrollment reminder",
       "body": "Open enrollment for employee benefits ends Oct. 15. Review your choices in the Example Benefits Portal.",
-      "pending": "#410 date-passed flag is not built yet.",
       "expect": {
         "contains": [
           "Oct. 15"
@@ -405,7 +404,6 @@
       "submitted": "2026-11-06",
       "headline": "Save the date for the teaching conference",
       "body": "The Example Teaching Conference returns Aug. 20 with sessions on course design and student engagement.",
-      "pending": "#410 confirm-year flag is not built yet.",
       "expect": {
         "contains": [
           "Aug. 20"

@@ -101,6 +101,18 @@ After the LLM returns its suggested edit, deterministic post-processing ensures 
 - **Headline case enforcement** -- the title is re-cased according to the `Headline_Case` setting for the target newsletter (Title Case or Sentence Case).
 - **Diff generation** -- a structured diff between the original text and the AI suggestion is computed and stored as `Diff_JSON` on the EditVersion record.
 - **Whitespace normalization** -- trailing spaces, double spaces, and inconsistent line breaks are cleaned up.
+- **Rule checks** -- the mechanically verifiable rules are re-checked on the final copy, because the prompt alone doesn't guarantee the model follows them. Each check is a small function in `backend/app/services/ai/post_checks.py` built on the detectors in `backend/app/utils/style_checks/` (one module per topic). A check flags only while its rule is active. If an error-level rule fails, the model gets one repair pass.
+
+### Dates without a year (#410)
+
+A date without a year means its next occurrence after the submission date, and it is kept as written. Two cases get a warning flag for the editor:
+
+| Situation | Flag | Setting (default) |
+| --- | --- | --- |
+| The date fell shortly before the submission date | `DATE HAS PASSED: CONFIRM DATE` | `DATE_PASSED_WINDOW_DAYS` (60) |
+| The next occurrence is far enough out that the year is unclear | `CONFIRM YEAR` | `YEAR_UNCLEAR_AFTER_DAYS` (180) |
+
+If the AI added a weekday to one of these dates, `DAY OF WEEK NOT VERIFIED` is added too, since that weekday depends on the guessed year. Dates with an explicit year aren't flagged. The defaults are provisional until UCM confirms them.
 
 ## Editor Review Modes
 
