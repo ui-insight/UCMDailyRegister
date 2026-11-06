@@ -54,6 +54,7 @@ nav:
       - ADR-001 Entra SSO: adr/001-entra-sso.md
       - ADR-002 Everyone signs in: adr/002-everyone-signs-in.md
   - GitHub Enterprise Migration: github-enterprise-migration.md
+  - OIT Security Review Prep: oit-security-review-prep.md
   - Data Governance: data-governance.md
   - Governance Artifacts:
       - Data Dictionary: governance/data-dictionary.md

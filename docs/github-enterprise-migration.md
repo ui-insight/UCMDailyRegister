@@ -38,6 +38,9 @@ The immediate risks are instead:
 This inventory was verified on August 6, 2026. Recheck it immediately before a
 transfer or migration.
 
+A partial recheck on November 6, 2026 is recorded in
+[OIT Security Review Prep](oit-security-review-prep.md#workstream-a-repository-transfer).
+
 | Area | Current state | Migration significance |
 |---|---|---|
 | Repository | Public `ui-insight/UCMDailyRegister`, default branch `main` | Eligible for a normal GitHub.com organization-to-organization transfer |
