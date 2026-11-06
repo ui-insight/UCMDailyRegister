@@ -3,7 +3,8 @@
 import html
 import logging
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
+from functools import partial
 from datetime import date
 
 import sqlalchemy as sa
@@ -20,6 +21,7 @@ from app.services.ai.prompts import (
     policy_fingerprint,
 )
 from app.services.ai.diff_generator import generate_word_diff, diff_to_dict
+from app.services.ai.post_checks import CheckContext, run_checks
 from app.utils.text import (
     to_sentence_case,
     to_title_case,
@@ -30,48 +32,8 @@ from app.utils.text import (
 )
 from app.utils.hyperlinks import parse_submitter_notes
 from app.utils.style_checks import (
-    detect_headline_echoes_lead,
-    detect_review_notes_in_copy,
     strip_html,
-    detect_unabbreviated_month_dates,
-    detect_abbreviated_months_without_date,
-    detect_nonstandard_meridiems,
-    detect_twelve_oclock_meridiems,
-    detect_cross_period_hyphen_ranges,
-    detect_event_detail_order_violations,
-    detect_standalone_event_detail_fragments,
-    detect_changed_event_call_to_action,
-    detect_disallowed_ampersands,
-    detect_platform_names,
-    detect_undefined_acronyms,
-    detect_unneeded_acronym_definitions,
-    never_spell_out_acronyms,
-    detect_repeated_cta_phrases,
-    detect_redundant_promotional_leads,
-    detect_generic_destination_references,
-    detect_indirect_contact_language,
-    detect_missing_source_contacts,
-    detect_new_contact_channels,
-    detect_new_contact_names,
-    detect_changed_official_names,
-    detect_missing_anchored_requirements,
-    detect_missing_contact_titles,
-    detect_missing_information_options,
-    detect_missing_near_term_weekdays,
-    detect_missing_protected_organizations,
-    detect_missing_specific_audience_lead,
-    detect_missing_broad_audience,
-    detect_introduced_audience_groups,
-    detect_unformatted_composition_titles,
-    detect_noncanonical_campus_locations,
-    detect_missing_approved_venue_addresses,
-    detect_weekday_date_mismatches,
-    detect_weekday_date_conflicts,
-    detect_changed_source_date_conflicts,
-    detect_headline_date_conflicts,
-    detect_inserted_weekday_mismatches,
     change_contradicts_final_dates,
-    detect_missing_relative_date_components,
 )
 
 logger = logging.getLogger(__name__)
@@ -262,6 +224,95 @@ def dedupe_flags(flags: list[dict]) -> list[dict]:
     return unique
 
 
+@dataclass
+class _Draft:
+    """One model draft of an edit, as it moves through tidy-up and repair."""
+
+    headline: str
+    body: str
+    changes: list[str]
+    flags: list[dict]
+    links: list[dict]
+    confidence: float
+    replaced_semicolons: bool = False
+    converted_quotes: bool = False
+
+    @classmethod
+    def from_model(cls, result: dict, *, headline: str, body: str) -> "_Draft":
+        """The first draft; missing fields fall back to the submission."""
+        return cls(
+            headline=result.get("edited_headline", headline),
+            body=result.get("edited_body", body),
+            changes=list(result.get("changes_made", []) or []),
+            flags=result.get("flags", []),
+            links=result.get("embedded_links", []),
+            confidence=result.get("confidence", 0.5),
+        )
+
+    def revised_by(self, result: dict) -> "_Draft":
+        """Apply a repair response on top of this draft.
+
+        The repair prompt asks for the complete list of changes for the
+        corrected draft, so a non-empty list replaces this draft's list.
+        """
+        return replace(
+            self,
+            headline=result.get("edited_headline", self.headline),
+            body=result.get("edited_body", self.body),
+            changes=list(result.get("changes_made", []) or []) or self.changes,
+            flags=result.get("flags", []),
+            links=result.get("embedded_links", []),
+            confidence=result.get("confidence", self.confidence),
+        )
+
+    def comparison_output(self) -> str:
+        """Edited text plus embedded link URLs and anchor text."""
+        parts = [self.headline, self.body]
+        for link in self.links:
+            parts.extend([str(link.get("url", "")), str(link.get("anchor_text", ""))])
+        return "\n".join(parts)
+
+
+def _tidy_draft(
+    draft: _Draft,
+    *,
+    short_sentences: bool,
+    headline_case: str,
+    active_rule_keys: set[str],
+) -> _Draft:
+    """Apply the deterministic clean-up every draft gets."""
+    body, replaced_semicolons = (
+        enforce_no_semicolons_in_prose(draft.body)
+        if short_sentences
+        else (draft.body, False)
+    )
+    headline = (
+        to_sentence_case(draft.headline)
+        if headline_case == "sentence_case"
+        else to_title_case(draft.headline)
+    )
+    headline, body, converted_quotes = _clean_final_copy(headline, body, active_rule_keys)
+    return replace(
+        draft,
+        headline=headline,
+        body=body,
+        replaced_semicolons=draft.replaced_semicolons or replaced_semicolons,
+        converted_quotes=draft.converted_quotes or converted_quotes,
+    )
+
+
+def _source_text(submission: Submission) -> str:
+    """Everything the submitter supplied, for checks that compare with it."""
+    parts = [
+        submission.Original_Headline,
+        submission.Original_Body,
+        submission.Submitter_Notes or "",
+    ]
+    for link in submission.Links:
+        parts.extend([link.Url, link.Anchor_Text or ""])
+    return "\n".join(parts)
+
+
 class AIEditError(Exception):
     """Raised when the LLM provider cannot produce an edit suggestion."""
 
@@ -357,7 +408,7 @@ class AIEditor:
 
         return flags
 
-    def post_analyze(  # noqa: C901  complexity-cap: 48
+    def post_analyze(
         self,
         headline: str,
         body: str,
@@ -373,320 +424,34 @@ class AIEditor:
         """Run deterministic rule checks on the AI-edited output.
 
         Prompt injection alone does not guarantee compliance, so the
-        mechanically verifiable rules are re-checked here. Each check runs
-        only while its rule is active, so deactivating a rule in the app
-        also silences its deterministic check. Exact-match checks flag at
-        the rule's severity; heuristic checks always flag as warnings.
+        mechanically verifiable rules are re-checked here; the checks live
+        in ``post_checks``. Each finding is kept only while its rule is
+        active, so deactivating a rule in the app also silences its check.
+        Exact checks flag at the rule's severity; heuristic checks always
+        flag as warnings.
         """
         active = {rule["rule_key"]: rule for rule in style_rules}
-        flags: list[dict] = []
-        text = strip_html(f"{headline}\n{body}")
-
-        def add(rule_key: str, message: str, *, heuristic: bool = False) -> None:
-            rule = active.get(rule_key)
-            if rule is None:
-                return
-            flag_type = "warning" if heuristic or rule["severity"] != "error" else "error"
-            flags.append({"type": flag_type, "rule_key": rule_key, "message": message})
-
-        for note in detect_review_notes_in_copy(text):
-            add("review_flags", f"Move this review note to the flags list: '{note}'")
-        if detect_headline_echoes_lead(headline, body):
-            add(
-                "headline_rules",
-                "Headline begins with the same wording as the first sentence",
-                heuristic=True,
-            )
-        for found in detect_unabbreviated_month_dates(text):
-            add("ap_style_dates", f"Month should be abbreviated with a specific date: '{found}'")
-        for found in detect_abbreviated_months_without_date(text):
-            add("ap_style_dates", f"Month without a specific date should be spelled out: '{found}'")
-        inserted_weekdays = (
-            detect_inserted_weekday_mismatches(
-                source_text,
-                text,
-                reference_date=reference_date,
-            )
-            if source_text
-            else {}
-        )
-        conflicts = detect_weekday_date_conflicts(text, reference_date=reference_date)
-        for found in detect_weekday_date_mismatches(text, reference_date=reference_date):
-            if found not in inserted_weekdays:
-                add(
-                    "ap_style_dates",
-                    f"Weekday does not match the calendar date: '{found}' "
-                    f"[{conflicts[found]}]",
-                )
-            elif inserted_weekdays[found] is None:
-                add("ap_style_dates", f"Added weekday is paired with a date that does not exist: '{found}'")
-            else:
-                add(
-                    "ap_style_dates",
-                    f"Added weekday does not match the calendar date: '{found}' "
-                    f"falls on a {inserted_weekdays[found]}",
-                )
-        if source_text:
-            for found, note in detect_changed_source_date_conflicts(
-                source_text,
-                text,
-                reference_date=reference_date,
-            ).items():
-                add(
-                    "date_conflicts",
-                    f"Keep the submitted weekday and date as written: '{found}' [{note}]",
-                )
-        for found in detect_headline_date_conflicts(headline, body):
-            add(
-                "date_conflicts",
-                f"Headline date does not appear in the body [DATE CONFLICT: HEADLINE SAYS "
-                f"{found.upper()}]",
-                heuristic=True,
-            )
-        for found in detect_missing_near_term_weekdays(
-            text,
+        context = CheckContext(
+            headline=headline,
+            body=body,
+            category=category,
+            newsletter_type=newsletter_type,
             reference_date=reference_date,
-        ):
-            add(
-                "day_of_week_with_dates",
-                f"Near-term date is missing its weekday: '{found}'",
-            )
-
-        for found in detect_nonstandard_meridiems(text):
-            add("ap_style_times", f"Time should use lowercase a.m./p.m. with periods: '{found}'")
-        for found in detect_twelve_oclock_meridiems(text):
-            add("ap_style_times", f"Use noon or midnight instead of '{found}'")
-        for found in detect_cross_period_hyphen_ranges(text):
-            add(
-                "ap_style_times",
-                f"Use 'to' for a time range that crosses a.m./p.m.: '{found}'",
-            )
-
-        for sentence in detect_event_detail_order_violations(body):
-            add(
-                "event_detail_ordering",
-                f"Event details must put the time before the day and date: '{sentence}'",
-            )
-        for fragment in detect_standalone_event_detail_fragments(body):
-            add(
-                "event_detail_ordering",
-                "Keep event details in the same complete sentence as the event: "
-                f"'{fragment}'",
-                heuristic=True,
-            )
-
-        ampersands = detect_disallowed_ampersands(text)
-        if ampersands:
-            add(
-                "ampersand_to_and",
-                "Replace '&' with 'and'; Q&A is the only exception",
-            )
-
-        platforms = detect_platform_names(text)
-        if platforms:
-            names = ", ".join(f"'{name}'" for name in sorted(set(platforms)))
-            add(
-                "online_not_platform",
-                f"Platform name(s) {names} found — use 'online' unless the platform is essential",
-                heuristic=True,
-            )
-
-        standalone = never_spell_out_acronyms(newsletter_type)
-        acronyms = detect_undefined_acronyms(strip_html(body), standalone)
-        if acronyms:
-            listed = ", ".join(acronyms[:5])
-            add(
-                "spell_out_acronyms",
-                f"Acronym(s) never defined in the body as Full Name (ACRONYM): {listed}",
-                heuristic=True,
-            )
-        for token in detect_unneeded_acronym_definitions(
-            strip_html(headline), strip_html(body), standalone
-        ):
-            reason = (
-                "is on the never-spell-out list; use it alone"
-                if token in standalone
-                else "is not used again; write the full name alone"
-            )
-            add("spell_out_acronyms", f"Acronym '{token}' {reason}", heuristic=True)
-
-        repeated = detect_repeated_cta_phrases(text)
-        if repeated:
-            listed = ", ".join(f"'{phrase}'" for phrase in repeated)
-            add(
-                "single_cta",
-                f"Call-to-action phrase(s) repeated: {listed}",
-                heuristic=True,
-            )
-
-        for lead in detect_redundant_promotional_leads(body):
-            add(
-                "promotional_action_benefit_lead",
-                f"Promotional lead is passive or redundant: '{lead}'",
-            )
-
-        for reference in detect_generic_destination_references(body):
-            add(
-                "cta_structure",
-                f"Replace generic destination reference with descriptive linked text: '{reference}'",
-            )
-
-        for phrase in detect_indirect_contact_language(body):
-            add(
-                "cta_structure",
-                f"Use direct information-first contact language instead of '{phrase}'",
-            )
-
-        if category == "job_opportunity":
-            if headline.strip():
-                add("job_posting_format", "Jobs listing includes a headline — keep it body-only")
-            if re.search(r"\bMoscow\b", text):
-                add("job_posting_format", "Jobs listing mentions Moscow — omit the default location")
-            if "\n" in body.strip():
-                add("job_posting_format", "Jobs listing spans multiple lines — keep it on one line")
-
-        if source_text:
-            comparison_output = source_comparison_output or f"{headline}\n{body}"
-            body_source = source_body or source_text
-            for changed_action in detect_changed_event_call_to_action(body_source, headline):
-                add(
-                    "headline_reader_perspective",
-                    "Headline changes the source event's intended action: "
-                    f'"{changed_action}"',
-                    heuristic=True,
-                )
-            missing_contacts = detect_missing_source_contacts(
-                source_text,
-                comparison_output,
-            )
-            if missing_contacts:
-                listed = ", ".join(f"'{contact}'" for contact in missing_contacts[:5])
-                add(
-                    "preserve_purpose_contact_titles",
-                    f"Source contact information missing from AI edit: {listed}",
-                )
-
-            new_contact_channels = detect_new_contact_channels(
-                source_text,
-                comparison_output,
-            )
-            if new_contact_channels:
-                listed = ", ".join(
-                    f"'{contact}'" for contact in new_contact_channels[:5]
-                )
-                add(
-                    "no_fabricated_content",
-                    f"Contact information not found in submitted content: {listed}",
-                )
-
-            new_contact_names = detect_new_contact_names(source_text, comparison_output)
-            if new_contact_names:
-                listed = ", ".join(f"'{name}'" for name in new_contact_names[:5])
-                add(
-                    "no_fabricated_content",
-                    f"Contact name(s) not found in submitted content: {listed}",
-                )
-
-            changed_names = detect_changed_official_names(
-                source_text,
-                comparison_output,
-            )
-            if changed_names:
-                listed = ", ".join(f"'{name}'" for name in changed_names[:5])
-                add(
-                    "preserve_event_title_case",
-                    f"Official or branded source name(s) changed or removed: {listed}",
-                )
-
-            for organization in detect_missing_protected_organizations(
-                body_source,
-                body,
-            ):
-                add(
-                    "preserve_organizational_context",
-                    f"Source organization missing from AI-edited body: '{organization}'",
-                )
-
-            missing_titles = detect_missing_contact_titles(body_source, body)
-            if missing_titles:
-                listed = ", ".join(f"'{title}'" for title in missing_titles[:5])
-                add(
-                    "preserve_purpose_contact_titles",
-                    f"Source contact title(s) missing from AI edit: {listed}",
-                )
-
-            for option in detect_missing_information_options(body_source, body):
-                add(
-                    "preserve_information_options",
-                    f"Source information-seeking option missing from AI edit: '{option}'",
-                )
-
-            for requirement in detect_missing_anchored_requirements(body_source, body):
-                add(
-                    "preserve_action_deadlines",
-                    f"Source requirement missing from AI edit: '{requirement}'",
-                )
-
-            missing_audience_context = detect_missing_specific_audience_lead(
-                body_source,
-                body,
-            )
-            if missing_audience_context:
-                listed = ", ".join(
-                    f"'{detail}'" for detail in missing_audience_context[:5]
-                )
-                add(
-                    "preserve_audience_scope",
-                    f"Specific source audience context missing from first sentence: {listed}",
-                )
-
-            for broad_audience in detect_missing_broad_audience(body_source, body):
-                add(
-                    "preserve_audience_scope",
-                    f"Broad source invitation was narrowed or removed: '{broad_audience}'",
-                )
-
-            for audience in detect_introduced_audience_groups(source_text, body):
-                add(
-                    "preserve_audience_scope",
-                    f"AI edit introduced an audience not stated in the source: '{audience}'",
-                )
-
-            for date_reference in detect_missing_relative_date_components(
-                body_source,
-                body,
-            ):
-                add(
-                    "today_tomorrow",
-                    "Retain both the relative date and its explicit calendar date: "
-                    f"'{date_reference}'",
-                )
-
-            for title in detect_unformatted_composition_titles(
-                source_text,
-                headline,
-                body,
-            ):
-                add(
-                    "composition_title_format",
-                    f"Composition title needs AP quotation formatting: '{title}'",
-                )
-
-            for location in detect_noncanonical_campus_locations(body):
-                add(
-                    "building_room_order",
-                    f"Use canonical building-before-room location: '{location}'",
-                )
-
-            for venue in detect_missing_approved_venue_addresses(
-                source_text,
-                body,
-            ):
-                add(
-                    "approved_off_campus_addresses",
-                    f"Approved venue is missing its canonical address: '{venue}'",
-                )
-
+            source_text=source_text,
+            source_body=source_body,
+            source_comparison_output=source_comparison_output,
+        )
+        flags = []
+        for finding in run_checks(context):
+            rule = active.get(finding.rule_key)
+            if rule is None:
+                continue
+            exact_error = not finding.heuristic and rule["severity"] == "error"
+            flags.append({
+                "type": "error" if exact_error else "warning",
+                "rule_key": finding.rule_key,
+                "message": finding.message,
+            })
         return flags
 
     async def edit_submission(
@@ -696,7 +461,12 @@ class AIEditor:
         newsletter_type: str,
         editor_instructions: str | None = None,
     ) -> EditResult:
-        """Run the full AI editing pipeline on a submission."""
+        """Run the full AI editing pipeline on a submission.
+
+        The model drafts an edit, which is tidied and checked. If an
+        error-level rule still fails, the model gets one repair pass with
+        those findings. The final draft is then reconciled into the result.
+        """
         headline_case = "sentence_case"
 
         style_rules = await self.load_style_rules(session, newsletter_type)
@@ -737,54 +507,35 @@ class AIEditor:
             logger.error("LLM call failed submission_id=%s error_type=%s", submission.Id, type(e).__name__)
             raise AIEditError("AI editing failed. Try again or contact the maintainer.") from e
 
-        edited_headline = ai_result.get("edited_headline", submission.Original_Headline)
-        edited_body = ai_result.get("edited_body", submission.Original_Body)
-        changes_made = list(ai_result.get("changes_made", []) or [])
-        ai_flags = ai_result.get("flags", [])
-        embedded_links = ai_result.get("embedded_links", [])
-        confidence = ai_result.get("confidence", 0.5)
-
-        short_sentence_rule_active = any(
-            rule["rule_key"] == "short_sentences" for rule in style_rules
+        tidy = partial(
+            _tidy_draft,
+            short_sentences=any(rule["rule_key"] == "short_sentences" for rule in style_rules),
+            headline_case=headline_case,
+            active_rule_keys={rule["rule_key"] for rule in style_rules},
         )
-        edited_body, replaced_semicolons = (
-            enforce_no_semicolons_in_prose(edited_body)
-            if short_sentence_rule_active
-            else (edited_body, False)
-        )
+        source_text = _source_text(submission)
 
-        if headline_case == "sentence_case":
-            edited_headline = to_sentence_case(edited_headline)
-        else:
-            edited_headline = to_title_case(edited_headline)
-        active_rule_keys = {rule["rule_key"] for rule in style_rules}
-        edited_headline, edited_body, converted_quotes = _clean_final_copy(
-            edited_headline, edited_body, active_rule_keys
-        )
-
-        source_parts = [
-            submission.Original_Headline,
-            submission.Original_Body,
-            submission.Submitter_Notes or "",
-        ]
-        for link in submission.Links:
-            source_parts.extend([link.Url, link.Anchor_Text or ""])
-        comparison_output_parts = [edited_headline, edited_body]
-        for link in embedded_links:
-            comparison_output_parts.extend(
-                [str(link.get("url", "")), str(link.get("anchor_text", ""))]
+        def check(draft: _Draft) -> list[dict]:
+            return self.post_analyze(
+                draft.headline,
+                draft.body,
+                submission.Category,
+                style_rules,
+                source_text=source_text,
+                source_body=submission.Original_Body,
+                source_comparison_output=draft.comparison_output(),
+                reference_date=submission_date,
+                newsletter_type=newsletter_type,
             )
-        post_flags = self.post_analyze(
-            edited_headline,
-            edited_body,
-            submission.Category,
-            style_rules,
-            source_text="\n".join(source_parts),
-            source_body=submission.Original_Body,
-            source_comparison_output="\n".join(comparison_output_parts),
-            reference_date=submission_date,
-            newsletter_type=newsletter_type,
+
+        draft = tidy(
+            _Draft.from_model(
+                ai_result,
+                headline=submission.Original_Headline,
+                body=submission.Original_Body,
+            )
         )
+        post_flags = check(draft)
 
         mandatory_rule_keys = {
             rule["rule_key"]
@@ -795,84 +546,67 @@ class AIEditor:
             flag for flag in post_flags if flag["rule_key"] in mandatory_rule_keys
         ]
         if repair_findings:
-            repair_prompt = build_compliance_repair_prompt(
-                user_prompt,
-                edited_headline,
-                edited_body,
-                repair_findings,
+            repair_result = await self._request_repair(
+                system_prompt, user_prompt, draft, repair_findings, submission.Id
             )
-            try:
-                repair_result = await self.llm.complete_json(
-                    system_prompt=system_prompt,
-                    user_prompt=repair_prompt,
-                    temperature=0.0,
-                    max_tokens=3000,
-                )
-            except Exception as error:
-                logger.warning(
-                    "Compliance repair failed submission_id=%s error_type=%s",
-                    submission.Id,
-                    type(error).__name__,
-                )
-            else:
-                edited_headline = repair_result.get(
-                    "edited_headline",
-                    edited_headline,
-                )
-                edited_body = repair_result.get("edited_body", edited_body)
-                # The repair prompt asks for the complete list for the
-                # corrected draft, so it replaces the first draft's list.
-                repair_changes = list(repair_result.get("changes_made", []) or [])
-                if repair_changes:
-                    changes_made = repair_changes
-                ai_flags = repair_result.get("flags", [])
-                embedded_links = repair_result.get("embedded_links", [])
-                confidence = repair_result.get("confidence", confidence)
+            if repair_result is not None:
+                draft = tidy(draft.revised_by(repair_result))
+                post_flags = check(draft)
 
-                edited_body, replaced_repair_semicolons = (
-                    enforce_no_semicolons_in_prose(edited_body)
-                    if short_sentence_rule_active
-                    else (edited_body, False)
-                )
-                replaced_semicolons = replaced_semicolons or replaced_repair_semicolons
+        return self._build_result(
+            submission, draft, post_flags, headline_case, style_rules
+        )
 
-                if headline_case == "sentence_case":
-                    edited_headline = to_sentence_case(edited_headline)
-                else:
-                    edited_headline = to_title_case(edited_headline)
-                edited_headline, edited_body, repair_quotes = _clean_final_copy(
-                    edited_headline, edited_body, active_rule_keys
-                )
-                converted_quotes = converted_quotes or repair_quotes
+    async def _request_repair(
+        self,
+        system_prompt: str,
+        user_prompt: str,
+        draft: _Draft,
+        findings: list[dict],
+        submission_id: str,
+    ) -> dict | None:
+        """Ask the model to fix error-level findings; None if the call fails."""
+        repair_prompt = build_compliance_repair_prompt(
+            user_prompt,
+            draft.headline,
+            draft.body,
+            findings,
+        )
+        try:
+            return await self.llm.complete_json(
+                system_prompt=system_prompt,
+                user_prompt=repair_prompt,
+                temperature=0.0,
+                max_tokens=3000,
+            )
+        except Exception as error:
+            logger.warning(
+                "Compliance repair failed submission_id=%s error_type=%s",
+                submission_id,
+                type(error).__name__,
+            )
+            return None
 
-                comparison_output_parts = [edited_headline, edited_body]
-                for link in embedded_links:
-                    comparison_output_parts.extend(
-                        [str(link.get("url", "")), str(link.get("anchor_text", ""))]
-                    )
-                post_flags = self.post_analyze(
-                    edited_headline,
-                    edited_body,
-                    submission.Category,
-                    style_rules,
-                    source_text="\n".join(source_parts),
-                    source_body=submission.Original_Body,
-                    source_comparison_output="\n".join(comparison_output_parts),
-                    reference_date=submission_date,
-                    newsletter_type=newsletter_type,
-                )
-
+    def _build_result(
+        self,
+        submission: Submission,
+        draft: _Draft,
+        post_flags: list[dict],
+        headline_case: str,
+        style_rules: list[dict],
+    ) -> EditResult:
+        """Reconcile the final draft's explanations and flags into a result."""
         headline_diff = diff_to_dict(
-            generate_word_diff(submission.Original_Headline, edited_headline)
+            generate_word_diff(submission.Original_Headline, draft.headline)
         )
         body_diff = diff_to_dict(
-            generate_word_diff(submission.Original_Body, edited_body)
+            generate_word_diff(submission.Original_Body, draft.body)
         )
 
         # Explanations and flags must describe the final saved text, not
         # the first draft or the source problems the edit already resolved.
-        final_output = "\n".join(comparison_output_parts)
-        changes_made = reconcile_changes(changes_made, final_output)
+        final_output = draft.comparison_output()
+        changes_made = reconcile_changes(draft.changes, final_output)
         date_contradictions = [
             change
             for change in changes_made
@@ -881,24 +615,47 @@ class AIEditor:
         changes_made = [
             change for change in changes_made if change not in date_contradictions
         ]
-        if replaced_semicolons and SEMICOLON_CLEANUP_DESCRIPTION not in changes_made:
+        if draft.replaced_semicolons and SEMICOLON_CLEANUP_DESCRIPTION not in changes_made:
             changes_made.append(SEMICOLON_CLEANUP_DESCRIPTION)
-        if converted_quotes and CURLY_QUOTES_DESCRIPTION not in changes_made:
+        if draft.converted_quotes and CURLY_QUOTES_DESCRIPTION not in changes_made:
             changes_made.append(CURLY_QUOTES_DESCRIPTION)
 
-        final_text_flags = self.pre_analyze(
-            edited_headline,
-            edited_body,
-            submission.Category,
-            None,
+        final_text_flags = self._final_text_flags(
+            submission, draft, final_output, date_contradictions
         )
+        all_flags = dedupe_flags(final_text_flags + draft.flags + post_flags)
+
+        return EditResult(
+            edited_headline=draft.headline,
+            edited_body=draft.body,
+            headline_case=headline_case,
+            changes_made=changes_made,
+            flags=all_flags,
+            embedded_links=draft.links,
+            confidence=draft.confidence,
+            ai_provider=self.llm.__class__.__name__.replace("Provider", "").lower(),
+            ai_model=getattr(self.llm, "model", "unknown"),
+            policy_fingerprint=policy_fingerprint(style_rules),
+            headline_diff=headline_diff,
+            body_diff=body_diff,
+        )
+
+    def _final_text_flags(
+        self,
+        submission: Submission,
+        draft: _Draft,
+        final_output: str,
+        date_contradictions: list[str],
+    ) -> list[dict]:
+        """Flags about the final copy itself: text checks, links and dropped notes."""
+        flags = self.pre_analyze(draft.headline, draft.body, submission.Category, None)
         unembedded_links = [
             link
             for link in parse_submitter_notes(submission.Submitter_Notes or "")
             if link.url not in final_output
         ]
         if unembedded_links:
-            final_text_flags.append({
+            flags.append({
                 "type": "info",
                 "rule_key": "link_embedding",
                 "message": (
@@ -908,7 +665,7 @@ class AIEditor:
             })
 
         for change in date_contradictions:
-            final_text_flags.append({
+            flags.append({
                 "type": "warning",
                 "rule_key": "ap_style_dates",
                 "message": (
@@ -916,23 +673,7 @@ class AIEditor:
                     f"date; confirm the date in the edit: '{change}'"
                 ),
             })
-
-        all_flags = dedupe_flags(final_text_flags + ai_flags + post_flags)
-
-        return EditResult(
-            edited_headline=edited_headline,
-            edited_body=edited_body,
-            headline_case=headline_case,
-            changes_made=changes_made,
-            flags=all_flags,
-            embedded_links=embedded_links,
-            confidence=confidence,
-            ai_provider=self.llm.__class__.__name__.replace("Provider", "").lower(),
-            ai_model=getattr(self.llm, "model", "unknown"),
-            policy_fingerprint=policy_fingerprint(style_rules),
-            headline_diff=headline_diff,
-            body_diff=body_diff,
-        )
+        return flags
 
     async def save_edit_versions(
         self,

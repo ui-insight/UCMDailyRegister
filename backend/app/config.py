@@ -44,6 +44,13 @@ class Settings(BaseSettings):
     ops_classifier_endpoint_url: str = ""
     ops_classifier_api_key: str = ""
 
+    # Dates without a year (#410). A date that fell up to this many days
+    # before the submission date is flagged DATE HAS PASSED; one whose next
+    # occurrence is more than this many days after it is flagged CONFIRM YEAR.
+    # Provisional values pending UCM review.
+    date_passed_window_days: int = 60
+    year_unclear_after_days: int = 180
+
     # App
     environment: str = "development"
     upload_dir: str = "./uploads"

@@ -1,0 +1,471 @@
+{
+  "about": "Synthetic cases for the editorial model evaluation (#411). Every name, venue and event here is invented; never copy submissions from the app into this file. Each case states the decision it tests and what the final AI edit must show. A case marked pending tests a rule that is not built yet; its result is reported but does not count toward the pass rate.",
+  "cases": [
+    {
+      "id": "clear-notice-untouched",
+      "issues": [
+        396
+      ],
+      "decision": "Clear, concise wording is not rewritten.",
+      "newsletter": "tdr",
+      "category": "faculty_staff",
+      "submitted": "2026-11-06",
+      "headline": "Plan for the early Example Library closing",
+      "body": "The Example Library will close at 3 p.m. Friday, Nov. 20, for building maintenance. Regular hours resume Saturday, Nov. 21.",
+      "expect": {
+        "body_unchanged": true
+      }
+    },
+    {
+      "id": "product-names-protected",
+      "issues": [
+        396
+      ],
+      "decision": "Website, platform and product names stay exactly as submitted.",
+      "newsletter": "tdr",
+      "category": "faculty_staff",
+      "submitted": "2026-11-06",
+      "headline": "New timesheet system",
+      "body": "Starting Dec. 1, employees will record hours in TimeTrack Pro instead of the old paper forms. Training videos are available in the LearnHub+ portal.",
+      "expect": {
+        "contains": [
+          "TimeTrack Pro",
+          "LearnHub+"
+        ]
+      }
+    },
+    {
+      "id": "person-and-event-names-protected",
+      "issues": [
+        396
+      ],
+      "decision": "Names of people, including middle initials, and event names, including acronyms inside them, stay as submitted.",
+      "newsletter": "tdr",
+      "category": "faculty_staff",
+      "submitted": "2026-11-06",
+      "headline": "SPARK Showcase keynote",
+      "body": "Dr. Jordan Q. Example will give the keynote at the Annual SPARK Showcase at 1 p.m. Tuesday, Nov. 17, in the Example Commons Ballroom.",
+      "expect": {
+        "contains": [
+          "Jordan Q. Example",
+          "SPARK Showcase"
+        ],
+        "body_not_matches": [
+          "SPARK \\(",
+          "\\(SPARK\\)"
+        ]
+      }
+    },
+    {
+      "id": "composition-title-protected",
+      "issues": [
+        396
+      ],
+      "decision": "Titles of classes, guides, articles and podcasts stay as submitted.",
+      "newsletter": "tdr",
+      "category": "faculty_staff",
+      "submitted": "2026-11-06",
+      "headline": "New podcast episode",
+      "body": "The newest episode of the Notes From the Greenhouse podcast features two plant scientists talking about winter crops.",
+      "expect": {
+        "contains": [
+          "Notes From the Greenhouse"
+        ]
+      }
+    },
+    {
+      "id": "organization-name-not-extended",
+      "issues": [
+        396
+      ],
+      "decision": "Never add words such as \"Office\" to an organization's name.",
+      "newsletter": "tdr",
+      "category": "faculty_staff",
+      "submitted": "2026-11-06",
+      "headline": "Research council seeks members",
+      "body": "The Example Research Council is looking for two faculty members to serve three-year terms. Nominations are due Nov. 30.",
+      "expect": {
+        "contains": [
+          "Example Research Council"
+        ],
+        "body_not_matches": [
+          "Example Research Council Office",
+          "Office of the Example Research Council"
+        ]
+      }
+    },
+    {
+      "id": "unclear-venue-flagged",
+      "issues": [
+        396,
+        385
+      ],
+      "decision": "An unclear venue is flagged, never invented.",
+      "newsletter": "tdr",
+      "category": "faculty_staff",
+      "submitted": "2026-11-06",
+      "headline": "Book club meets",
+      "body": "The staff book club meets in the usual room at noon Tuesday, Nov. 17, to discuss the final chapters.",
+      "expect": {
+        "body_not_matches": [
+          "\\b(Room\\s+\\d+|Hall|Building|Center|Library|Commons)\\b"
+        ],
+        "flag_matches": [
+          "(?i)venue|location|room"
+        ]
+      }
+    },
+    {
+      "id": "acronym-used-once",
+      "issues": [
+        381
+      ],
+      "decision": "An acronym that is not used again is left out; write the full name alone.",
+      "newsletter": "tdr",
+      "category": "faculty_staff",
+      "submitted": "2026-11-06",
+      "headline": "Seed grant applications open",
+      "body": "The Office of Example Research Programs (OERP) is accepting seed grant applications through Dec. 4.",
+      "expect": {
+        "contains": [
+          "Example Research Programs"
+        ],
+        "not_contains": [
+          "OERP"
+        ]
+      }
+    },
+    {
+      "id": "acronym-reused",
+      "issues": [
+        381
+      ],
+      "decision": "An acronym used again is spelled out once with the acronym in parentheses, then used alone.",
+      "newsletter": "tdr",
+      "category": "faculty_staff",
+      "submitted": "2026-11-06",
+      "headline": "Data science consultations",
+      "body": "CEDS offers free consultations for faculty starting research projects. The Center for Example Data Science also runs monthly workshops. Contact CEDS to book a session.",
+      "expect": {
+        "body_matches": [
+          "Center for Example Data Science \\(CEDS\\)",
+          "CEDS[^)]"
+        ]
+      }
+    },
+    {
+      "id": "never-spell-out-tdr",
+      "issues": [
+        381
+      ],
+      "decision": "IMCI and COBRE are used alone in The Daily Register, even on first reference.",
+      "newsletter": "tdr",
+      "category": "faculty_staff",
+      "submitted": "2026-11-06",
+      "headline": "Modeling seminar",
+      "body": "IMCI and COBRE are cohosting a seminar on disease modeling at 3:30 p.m. Thursday, Nov. 19, in the Example Life Sciences Building.",
+      "expect": {
+        "contains": [
+          "IMCI",
+          "COBRE"
+        ],
+        "body_not_matches": [
+          "(?i)Institute for Modeling",
+          "(?i)Biomedical Research Excellence"
+        ]
+      }
+    },
+    {
+      "id": "never-spell-out-myui-only",
+      "issues": [
+        381
+      ],
+      "decision": "CALS is used alone in My UI.",
+      "newsletter": "myui",
+      "category": "student",
+      "submitted": "2026-11-06",
+      "headline": "Study abroad info session",
+      "body": "CALS is hosting a study abroad info session for students at 4 p.m. Thursday, Nov. 19, in the Example Agricultural Sciences Building.",
+      "expect": {
+        "contains": [
+          "CALS"
+        ],
+        "body_not_matches": [
+          "(?i)College of Agricultural and Life Sciences"
+        ]
+      }
+    },
+    {
+      "id": "familiar-acronym-ai",
+      "issues": [
+        399
+      ],
+      "decision": "Widely known acronyms such as AI follow AP style and are not spelled out.",
+      "newsletter": "tdr",
+      "category": "faculty_staff",
+      "submitted": "2026-11-06",
+      "headline": "AI tools workshop",
+      "body": "A hands-on workshop will show faculty how to use AI tools to draft course materials at 10 a.m. Thursday, Nov. 19, in the Example Teaching Center.",
+      "expect": {
+        "body_matches": [
+          "\\bAI\\b"
+        ],
+        "body_not_matches": [
+          "(?i)artificial intelligence"
+        ]
+      }
+    },
+    {
+      "id": "event-detail-order",
+      "issues": [
+        373
+      ],
+      "decision": "Event details run time, day, date, place.",
+      "newsletter": "tdr",
+      "category": "faculty_staff",
+      "submitted": "2026-11-06",
+      "headline": "Winter choir concert",
+      "body": "Join the Example Choir on Tuesday, Dec. 8 at 7:30 p.m. in the Example Recital Hall for a winter concert. Tickets are $10 and available at the door.",
+      "expect": {
+        "body_matches": [
+          "7:30 p\\.m\\. Tuesday, Dec\\. 8,? in (the )?Example Recital Hall"
+        ],
+        "contains": [
+          "$10"
+        ]
+      }
+    },
+    {
+      "id": "headline-rules",
+      "issues": [
+        376
+      ],
+      "decision": "Headlines ask readers to act, are complete phrases in sentence case, don't echo the first sentence and have no exclamation points.",
+      "newsletter": "tdr",
+      "category": "faculty_staff",
+      "submitted": "2026-11-06",
+      "headline": "WINTER CONCERT TICKETS ON SALE NOW!!",
+      "body": "Tickets for the Example Orchestra winter concert at 7 p.m. Friday, Dec. 11, in the Example Performing Arts Center are on sale now. Buy tickets online by Dec. 10.",
+      "expect": {
+        "headline_matches": [
+          "^(Buy|Get|Reserve|Register|Hear|See|Join|Enjoy|Celebrate|Listen|Grab|Order|Purchase)\\b"
+        ],
+        "headline_not_matches": [
+          "!",
+          "\\b[A-Z]{2,}\\b(?<!AI)"
+        ],
+        "headline_not_echo_lead": true
+      }
+    },
+    {
+      "id": "curly-quotes",
+      "issues": [
+        409
+      ],
+      "decision": "Use curly quotation marks and apostrophes; convert straight ones.",
+      "newsletter": "tdr",
+      "category": "faculty_staff",
+      "submitted": "2026-11-06",
+      "headline": "Lecture on soil health",
+      "body": "The college's fall lecture, \"Soil and Society,\" is at 4 p.m. Thursday, Nov. 19, in the Example Agricultural Sciences Building.",
+      "expect": {
+        "no_straight_quotes": true
+      }
+    },
+    {
+      "id": "can-not-may",
+      "issues": [
+        409
+      ],
+      "decision": "Write calls to action in the active voice and use \"can,\" not \"may,\" for what readers are able to do.",
+      "newsletter": "tdr",
+      "category": "faculty_staff",
+      "submitted": "2026-11-06",
+      "headline": "Flu shot clinic",
+      "body": "A flu shot clinic will be held for employees at 9 a.m. Thursday, Nov. 19, in the Example Student Health Center. Employees may register through the Example Wellness Portal.",
+      "expect": {
+        "body_not_matches": [
+          "(?i)\\bmay (register|sign up|enroll)\\b"
+        ],
+        "contains": [
+          "Example Wellness Portal"
+        ]
+      }
+    },
+    {
+      "id": "meaning-and-eligibility-kept",
+      "issues": [
+        377
+      ],
+      "decision": "Tightening must keep meaning and eligibility.",
+      "newsletter": "tdr",
+      "category": "faculty_staff",
+      "submitted": "2026-11-06",
+      "headline": "Service awards nominations",
+      "body": "Nominations are open for the annual staff service awards. The awards are open to full-time staff with at least one year of service. Supervisors and coworkers can submit nominations through Dec. 4.",
+      "expect": {
+        "contains": [
+          "full-time",
+          "at least one year",
+          "Dec. 4"
+        ]
+      }
+    },
+    {
+      "id": "weekday-date-conflict-kept-and-flagged",
+      "issues": [
+        384
+      ],
+      "decision": "When a weekday and date don't match, keep both as written and flag the conflict.",
+      "newsletter": "tdr",
+      "category": "faculty_staff",
+      "submitted": "2026-11-06",
+      "headline": "Grant writing workshop",
+      "body": "A grant writing workshop for new faculty is at 10 a.m. Tuesday, Dec. 3, in the Example Teaching Center.",
+      "expect": {
+        "body_matches": [
+          "Tuesday, Dec\\. 3"
+        ],
+        "body_not_matches": [
+          "Thursday, Dec\\. 3",
+          "Tuesday, Dec\\. 1\\b",
+          "Tuesday, Dec\\. 8"
+        ],
+        "flag_matches": [
+          "(?i)date[ _]conflict|does not match|thursday"
+        ]
+      }
+    },
+    {
+      "id": "headline-body-date-conflict",
+      "issues": [
+        384
+      ],
+      "decision": "When the headline and body give different dates, keep the body date and flag the conflict.",
+      "newsletter": "tdr",
+      "category": "faculty_staff",
+      "submitted": "2026-11-06",
+      "headline": "Register for the Dec. 10 safety training",
+      "body": "A lab safety training for graduate assistants is at 1 p.m. Thursday, Dec. 3, in the Example Chemistry Building. Register by Dec. 1.",
+      "expect": {
+        "body_matches": [
+          "Thursday, Dec\\. 3"
+        ],
+        "flag_matches": [
+          "(?i)headline|date[ _]conflict|dec\\. 10"
+        ]
+      }
+    },
+    {
+      "id": "added-weekday-is-correct",
+      "issues": [
+        410
+      ],
+      "decision": "A missing weekday is calculated from the calendar for the right year, never guessed.",
+      "newsletter": "tdr",
+      "category": "faculty_staff",
+      "submitted": "2026-11-06",
+      "headline": "Spring kickoff",
+      "body": "Join colleagues Jan. 14 at 9 a.m. in the Example Commons Ballroom for the spring semester kickoff breakfast.",
+      "expect": {
+        "body_not_matches": [
+          "(Monday|Tuesday|Wednesday|Friday|Saturday|Sunday),? Jan\\. 14"
+        ]
+      }
+    },
+    {
+      "id": "date-has-passed",
+      "issues": [
+        410
+      ],
+      "decision": "A date that has already passed is kept and flagged.",
+      "newsletter": "tdr",
+      "category": "faculty_staff",
+      "submitted": "2026-11-06",
+      "headline": "Benefits enrollment reminder",
+      "body": "Open enrollment for employee benefits ends Oct. 15. Review your choices in the Example Benefits Portal.",
+      "expect": {
+        "contains": [
+          "Oct. 15"
+        ],
+        "flag_matches": [
+          "(?i)date has passed"
+        ]
+      }
+    },
+    {
+      "id": "year-unclear",
+      "issues": [
+        410
+      ],
+      "decision": "A date far enough out that the year is unclear is kept and flagged.",
+      "newsletter": "tdr",
+      "category": "faculty_staff",
+      "submitted": "2026-11-06",
+      "headline": "Save the date for the teaching conference",
+      "body": "The Example Teaching Conference returns Aug. 20 with sessions on course design and student engagement.",
+      "expect": {
+        "contains": [
+          "Aug. 20"
+        ],
+        "flag_matches": [
+          "(?i)confirm year"
+        ]
+      }
+    },
+    {
+      "id": "no-invented-speaker",
+      "issues": [
+        378
+      ],
+      "decision": "Revising first-person copy must not invent a speaker.",
+      "newsletter": "tdr",
+      "category": "faculty_staff",
+      "submitted": "2026-11-06",
+      "headline": "Drought research talk",
+      "body": "I'm excited to share our lab's findings on drought-tolerant wheat at noon Thursday, Nov. 19, in the Example Plant Sciences Building, Room 101.",
+      "expect": {
+        "body_not_matches": [
+          "\\b(Dr\\.|Professor|Prof\\.)\\s+[A-Z]",
+          "Room 101, "
+        ],
+        "contains": [
+          "drought-tolerant wheat",
+          "Example Plant Sciences Building"
+        ],
+        "body_matches": [
+          "Example Plant Sciences Building (Room )?101"
+        ]
+      }
+    },
+    {
+      "id": "job-listing-format",
+      "issues": [
+        387
+      ],
+      "decision": "Jobs listings are one body-only line: job title in sentence case, then the unit, without the default Moscow location.",
+      "newsletter": "tdr",
+      "category": "job_opportunity",
+      "submitted": "2026-11-06",
+      "headline": "Program Coordinator",
+      "body": "Program Coordinator, Example Department, Moscow. Apply by Dec. 1.",
+      "expect": {
+        "headline_matches": [
+          "^\\s*$"
+        ],
+        "not_contains": [
+          "Moscow"
+        ],
+        "body_not_matches": [
+          "\\n"
+        ],
+        "contains": [
+          "Example Department"
+        ],
+        "body_matches": [
+          "^Program coordinator, Example Department"
+        ]
+      }
+    }
+  ]
+}
