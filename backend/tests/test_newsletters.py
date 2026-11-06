@@ -770,21 +770,6 @@ class TestCalendarEventParsing:
         assert end == date(2026, 3, 29)
 
 
-CAREERS_SITEMAP = """<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>https://careers.example.edu/</loc><lastmod>2026-10-22</lastmod></url>
-  <url>
-    <loc>https://careers.example.edu/jobs/records-coordinator-moscow-idaho-united-states</loc>
-    <lastmod>2026-11-02</lastmod>
-  </url>
-  <url>
-    <loc>https://careers.example.edu/jobs/field-technician-boise-idaho-united-states</loc>
-    <lastmod>2026-11-03</lastmod>
-  </url>
-</urlset>
-"""
-
-
 def careers_job_page(
     *,
     working_title: str,
@@ -833,7 +818,6 @@ def careers_site(monkeypatch):
         pages={},
         requests=[],
     )
-    site.pages[site.sitemap_url] = httpx.Response(200, text=CAREERS_SITEMAP)
 
     def respond(request: httpx.Request) -> httpx.Response:
         url = str(request.url)
@@ -857,20 +841,6 @@ def careers_site(monkeypatch):
 
 
 class TestJobPostingParsing:
-    def test_parse_careers_sitemap_keeps_only_job_pages(self):
-        entries = job_posting_service.parse_careers_sitemap(CAREERS_SITEMAP)
-
-        assert entries == [
-            (
-                "https://careers.example.edu/jobs/records-coordinator-moscow-idaho-united-states",
-                "2026-11-02",
-            ),
-            (
-                "https://careers.example.edu/jobs/field-technician-boise-idaho-united-states",
-                "2026-11-03",
-            ),
-        ]
-
     def test_parse_careers_job_page_reads_appointment_information(self):
         url = "https://careers.example.edu/jobs/records-coordinator-moscow-idaho-united-states"
         posting = job_posting_service.parse_careers_job_page(
@@ -922,94 +892,30 @@ class TestJobPostingParsing:
             "Associate director of synthetic giving, UI Foundation"
         )
 
-    async def test_fetch_job_postings_reads_sitemap_and_job_pages(self, careers_site):
-        moscow_url, boise_url = careers_site.moscow_url, careers_site.boise_url
-        careers_site.pages[moscow_url] = httpx.Response(200, text=careers_job_page(
-            working_title="Records Coordinator",
-            department="749-PROV Provost Office",
-            location="Moscow",
-            date_posted="2026-11-01T10:00:00Z",
-        ))
-        # A throttled page comes back as an empty 202.
-        careers_site.pages[boise_url] = httpx.Response(202, text="")
-
-        result = await job_posting_service.fetch_job_postings([moscow_url])
-
-        assert result.is_complete is False
-        assert [posting["Url"] for posting in result.postings] == [moscow_url]
-        assert result.postings[0]["Department"] == "Provost Office"
-        assert result.postings[0]["Selected"] is True
-
-        # During the backoff nobody asks the site for pages again.
-        careers_site.requests.clear()
-        again = await job_posting_service.fetch_job_postings()
-        assert again.is_complete is False
-        assert careers_site.requests == [careers_site.sitemap_url]
-
-        # After the backoff, only the unread page is requested; cached
-        # pages are reused.
-        job_posting_service._throttled_until = 0.0
-        careers_site.requests.clear()
-        careers_site.pages[boise_url] = httpx.Response(200, text=careers_job_page(
-            working_title="Field Technician",
-            department="512-CALS Southern District",
-            location="Boise",
-            date_posted="2026-11-03T10:00:00Z",
-        ))
-        refreshed = await job_posting_service.fetch_job_postings()
-        assert refreshed.is_complete is True
-        assert [posting["Url"] for posting in refreshed.postings] == [boise_url, moscow_url]
-        assert careers_site.requests == [careers_site.sitemap_url, boise_url]
-
-    async def test_no_readable_pages_raises_busy(self, careers_site):
+    async def test_throttled_lookup_is_busy_and_backs_off(self, careers_site):
         careers_site.pages[careers_site.moscow_url] = httpx.Response(202, text="")
-        careers_site.pages[careers_site.boise_url] = httpx.Response(202, text="")
         with pytest.raises(job_posting_service.CareersSiteBusyError):
-            await job_posting_service.fetch_job_postings()
+            await job_posting_service.lookup_job_posting(careers_site.moscow_url)
 
-    async def test_unreadable_page_or_truncation_marks_list_incomplete(
-        self, careers_site, monkeypatch
-    ):
+        # During the backoff nobody asks the site for the page again.
+        careers_site.requests.clear()
+        with pytest.raises(job_posting_service.CareersSiteBusyError):
+            await job_posting_service.lookup_job_posting(careers_site.moscow_url)
+        assert careers_site.requests == []
+
+    async def test_concurrent_lookups_share_one_request(self, careers_site):
         careers_site.pages[careers_site.moscow_url] = httpx.Response(200, text=careers_job_page(
-            working_title="Records Coordinator", department="Provost Office", location="Moscow",
+            working_title="Records Coordinator", department="749-PROV Provost Office", location="Moscow",
         ))
-        careers_site.pages[careers_site.boise_url] = httpx.Response(503, text="Unavailable")
-        result = await job_posting_service.fetch_job_postings()
-        assert result.is_complete is False
-        assert len(result.postings) == 1
 
-        # A closed posting (no job data) is read, so it doesn't count as missing.
-        careers_site.pages[careers_site.boise_url] = httpx.Response(200, text="<html></html>")
-        complete = await job_posting_service.fetch_job_postings()
-        assert complete.is_complete is True
-        assert len(complete.postings) == 1
-
-        monkeypatch.setattr(job_posting_service.settings, "job_postings_max_listings", 1)
-        truncated = await job_posting_service.fetch_job_postings()
-        assert truncated.is_complete is False
-
-    async def test_sitemap_bot_check_and_bad_xml_are_site_errors(self, careers_site):
-        careers_site.pages[careers_site.sitemap_url] = httpx.Response(202, text="")
-        with pytest.raises(job_posting_service.CareersSiteBusyError):
-            await job_posting_service.fetch_job_postings()
-
-        careers_site.pages[careers_site.sitemap_url] = httpx.Response(200, text="<urlset")
-        with pytest.raises(job_posting_service.CareersSiteError):
-            await job_posting_service.fetch_job_postings()
-
-    async def test_concurrent_callers_share_page_requests(self, careers_site):
-        for url in (careers_site.moscow_url, careers_site.boise_url):
-            careers_site.pages[url] = httpx.Response(200, text=careers_job_page(
-                working_title="Records Coordinator", department="Provost Office", location="Moscow",
-            ))
-
-        await asyncio.gather(
-            job_posting_service.fetch_job_postings(),
-            job_posting_service.fetch_job_postings(),
+        first, second = await asyncio.gather(
+            job_posting_service.lookup_job_posting(careers_site.moscow_url),
+            job_posting_service.lookup_job_posting(careers_site.moscow_url),
         )
 
+        assert first is not None and first.department == "Provost Office"
+        assert second == first
         assert careers_site.requests.count(careers_site.moscow_url) == 1
-        assert careers_site.requests.count(careers_site.boise_url) == 1
 
     async def test_lookup_follows_redirects_only_on_the_careers_site(self, careers_site):
         moved = "https://careers.example.edu/jobs/records-coordinator-moved"
@@ -1052,22 +958,6 @@ class TestJobPostingParsing:
         too_long = "https://careers.example.edu/jobs/" + "x" * 240
         with pytest.raises(ValueError):
             await job_posting_service.lookup_job_posting(too_long)
-
-    async def test_lookup_cache_is_refreshed_when_the_sitemap_changes(self, careers_site):
-        careers_site.pages[careers_site.moscow_url] = httpx.Response(200, text=careers_job_page(
-            working_title="Records Coordinator", department="Provost Office", location="Moscow",
-        ))
-        careers_site.pages[careers_site.boise_url] = httpx.Response(200, text="<html></html>")
-        await job_posting_service.lookup_job_posting(careers_site.moscow_url)
-        # Pretend the lookup ran before the sitemap's 2026-11-02 change.
-        job_posting_service._page_cache[careers_site.moscow_url].fetched_on = "2026-11-01"
-        careers_site.pages[careers_site.moscow_url] = httpx.Response(200, text=careers_job_page(
-            working_title="Records Coordinator", department="Registrar", location="Moscow",
-        ))
-
-        result = await job_posting_service.fetch_job_postings()
-
-        assert result.postings[0]["Department"] == "Registrar"
 
     def test_listing_keeps_units_named_mid_title(self):
         posting = job_posting_service.JobPosting(
@@ -1321,12 +1211,12 @@ class TestAcademicDateEndpoints:
 
 @pytest.mark.asyncio
 class TestJobPostingEndpoints:
-    async def test_list_job_posting_candidates(
+    async def test_tool_does_not_list_careers_site_jobs(
         self,
         client: AsyncClient,
-        monkeypatch: pytest.MonkeyPatch,
         staff_headers: dict[str, str],
     ):
+        """UCM runs only submitted jobs; there is no careers-site job list."""
         create_resp = await client.post(
             "/api/v1/newsletters",
             json=make_newsletter_data(),
@@ -1334,60 +1224,11 @@ class TestJobPostingEndpoints:
         )
         nl_id = create_resp.json()["Id"]
 
-        async def fake_fetch_job_postings(*args, **kwargs):
-            return job_posting_service.JobPostingFetchResult(postings=[{
-                "Source_Id": "https://example.com/postings/1",
-                "Source_Type": "job_posting",
-                "Url": "https://example.com/postings/1",
-                "Title": "Business Specialist III",
-                "Department": "College of Natural Resources Admin",
-                "Posting_Number": "SP005197P",
-                "Location": "Moscow",
-                "Closing_Date": "04/05/2026",
-                "Summary": "Responsible for providing complex technical support.",
-                "Selected": False,
-            }], is_complete=False)
-
-        monkeypatch.setattr(
-            job_posting_service,
-            "fetch_job_postings",
-            fake_fetch_job_postings,
-        )
-
         resp = await client.get(
             f"/api/v1/newsletters/{nl_id}/job-postings",
             headers=staff_headers,
         )
-        assert resp.status_code == 200
-        body = resp.json()
-        assert body["Is_Complete"] is False
-        assert len(body["Postings"]) == 1
-        assert body["Postings"][0]["Source_Type"] == "job_posting"
-
-    async def test_list_job_postings_reports_unreadable_careers_site(
-        self,
-        client: AsyncClient,
-        monkeypatch: pytest.MonkeyPatch,
-        staff_headers: dict[str, str],
-    ):
-        create_resp = await client.post(
-            "/api/v1/newsletters",
-            json=make_newsletter_data(),
-            headers=staff_headers,
-        )
-        nl_id = create_resp.json()["Id"]
-
-        async def failing_fetch(*args, **kwargs):
-            raise job_posting_service.CareersSiteBusyError("throttled")
-
-        monkeypatch.setattr(job_posting_service, "fetch_job_postings", failing_fetch)
-
-        resp = await client.get(
-            f"/api/v1/newsletters/{nl_id}/job-postings",
-            headers=staff_headers,
-        )
-        assert resp.status_code == 502
-        assert "careers site" in resp.json()["detail"]
+        assert resp.status_code in (404, 405)
 
     async def test_lookup_job_posting_by_link(
         self,

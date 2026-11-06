@@ -25,7 +25,6 @@ from app.schemas.newsletter import (
     AcademicDateImportRequest,
     CalendarEventCandidateResponse,
     CalendarEventImportRequest,
-    JobPostingCandidateListResponse,
     JobPostingCandidateResponse,
     JobPostingImportRequest,
     JobPostingLookupRequest,
@@ -279,32 +278,6 @@ async def list_calendar_events(
         is_weekly=is_weekly,
         extra_days=extra_days,
     )
-
-
-@router.get(
-    "/{newsletter_id}/job-postings",
-    response_model=JobPostingCandidateListResponse,
-)
-async def list_job_postings(
-    newsletter_id: str,
-    db: AsyncSession = Depends(get_db),
-    _staff: None = Depends(require_staff),
-):
-    """Fetch candidate job postings for a newsletter issue."""
-    newsletter = await newsletter_service.get_newsletter(db, newsletter_id)
-    if not newsletter:
-        raise HTTPException(status_code=404, detail="Newsletter not found")
-
-    try:
-        result = await job_posting_service.fetch_job_postings(
-            selected_source_ids=_selected_job_source_ids(newsletter),
-        )
-    except (httpx.HTTPError, job_posting_service.CareersSiteError) as exc:
-        raise HTTPException(
-            status_code=502,
-            detail="The University careers site could not be read. Try again in a few minutes.",
-        ) from exc
-    return {"Postings": result.postings, "Is_Complete": result.is_complete}
 
 
 @router.post(

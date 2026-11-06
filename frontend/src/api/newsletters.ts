@@ -66,11 +66,6 @@ export interface JobPostingCandidate {
   Selected: boolean;
 }
 
-export interface JobPostingCandidateListResponse {
-  Postings: JobPostingCandidate[];
-  Is_Complete: boolean;
-}
-
 export interface NewsletterDetailResponse extends NewsletterResponse {
   Items: NewsletterItemResponse[];
   External_Items: NewsletterExternalItemResponse[];
@@ -211,12 +206,6 @@ export async function addAcademicDate(
     method: 'POST',
     body: JSON.stringify(data),
   });
-}
-
-export async function listJobPostings(
-  newsletterId: string,
-): Promise<JobPostingCandidateListResponse> {
-  return apiFetch<JobPostingCandidateListResponse>(`/newsletters/${newsletterId}/job-postings`);
 }
 
 export async function lookupJobPosting(

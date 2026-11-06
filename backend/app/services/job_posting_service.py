@@ -1,9 +1,10 @@
-"""Fetch and normalize University of Idaho job postings from the careers site.
+"""Read and normalize a University of Idaho job posting from its careers link.
 
 The University moved from PeopleAdmin to PageUp in fall 2026. Open jobs now
-live at careers.uidaho.edu. Its search page sits behind a bot check, so this
-service reads the public sitemap for job URLs and then each job's own page,
-which carries a schema.org JobPosting block. The "Appointment Information"
+live at careers.uidaho.edu. UCM runs only jobs people submit, so the tool
+never lists the careers site's jobs; staff can paste a submitted job's link
+in the Builder, and this service reads that one page, which carries a
+schema.org JobPosting block. The "Appointment Information"
 lines in that block give the working title, department and location UCM
 uses for the one-line Jobs listing.
 """
@@ -18,9 +19,7 @@ import json
 import logging
 import re
 import time
-from typing import Iterable
 from urllib.parse import urljoin, urlsplit
-from xml.etree import ElementTree
 
 import httpx
 
@@ -28,7 +27,6 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
-_SITEMAP_NS = "{http://www.sitemaps.org/schemas/sitemap/0.9}"
 _JOB_PATH_RE = re.compile(r"^https://[^/]+/(?:[a-z]{2}-[A-Z]{2}/)?jobs/(?!search$)[^/?#]+$")
 _LD_JSON_RE = re.compile(
     r"<script[^>]*type=[\"']application/ld\+json[\"'][^>]*>(?P<body>.*?)</script>",
@@ -106,56 +104,6 @@ class CareersSiteError(RuntimeError):
 
 class CareersSiteBusyError(CareersSiteError):
     """The careers site answered with its empty throttling response."""
-
-
-@dataclass(slots=True)
-class JobPostingFetchResult:
-    postings: list[dict]
-    is_complete: bool
-
-
-async def fetch_job_postings(selected_source_ids: Iterable[str] = ()) -> JobPostingFetchResult:
-    """Fetch open job postings from the University of Idaho careers site.
-
-    The careers site throttles bursts with an empty HTTP 202. Once that
-    happens, no caller requests job pages for a short backoff; postings
-    already read (or cached) are returned and the result is marked
-    incomplete, as it is for any page that could not be read or a sitemap
-    longer than the listing cap.
-    """
-    timeout = settings.job_postings_request_timeout_seconds
-    async with httpx.AsyncClient(timeout=timeout, follow_redirects=False) as client:
-        sitemap = await _get_careers_page(client, settings.job_postings_source_url)
-        try:
-            all_entries = parse_careers_sitemap(sitemap.text)
-        except ElementTree.ParseError as exc:
-            raise CareersSiteError("The careers sitemap could not be parsed") from exc
-        entries = all_entries[: settings.job_postings_max_listings]
-        truncated = len(all_entries) > len(entries)
-
-        results = await asyncio.gather(
-            *(_load_job_page(client, url, lastmod) for url, lastmod in entries)
-        )
-
-    unread = sum(1 for read, _ in results if not read)
-    postings = [posting for read, posting in results if read and posting is not None]
-    if unread or truncated:
-        logger.warning(
-            "Job listing incomplete: %s of %s pages unread, %s beyond the cap",
-            unread,
-            len(entries),
-            len(all_entries) - len(entries),
-        )
-    if entries and unread == len(entries):
-        raise CareersSiteBusyError("No job pages could be read from the careers site")
-    # Newest at top, matching the Jobs section rule.
-    postings.sort(key=lambda posting: posting.date_posted or "", reverse=True)
-
-    selected = set(selected_source_ids)
-    return JobPostingFetchResult(
-        postings=[posting_to_candidate(posting, posting.source_id in selected) for posting in postings],
-        is_complete=not unread and not truncated,
-    )
 
 
 async def lookup_job_posting(url: str) -> JobPosting | None:
@@ -301,24 +249,6 @@ async def _get_careers_page(client: httpx.AsyncClient, url: str) -> httpx.Respon
         response.raise_for_status()
         return response
     raise CareersSiteError(f"Too many redirects reading {url}")
-
-
-def parse_careers_sitemap(xml_text: str) -> list[tuple[str, str | None]]:
-    """Return (job URL, lastmod) pairs for job pages listed in the sitemap."""
-    root = ElementTree.fromstring(xml_text)
-    entries: list[tuple[str, str | None]] = []
-    seen: set[str] = set()
-    for url_node in root.iter(f"{_SITEMAP_NS}url"):
-        loc = (url_node.findtext(f"{_SITEMAP_NS}loc") or "").strip()
-        if not _JOB_PATH_RE.match(loc):
-            continue
-        loc = canonical_job_url(loc) or loc
-        if loc in seen:
-            continue
-        seen.add(loc)
-        lastmod = (url_node.findtext(f"{_SITEMAP_NS}lastmod") or "").strip() or None
-        entries.append((loc, lastmod))
-    return entries
 
 
 def parse_careers_job_page(html_text: str, url: str) -> JobPosting | None:

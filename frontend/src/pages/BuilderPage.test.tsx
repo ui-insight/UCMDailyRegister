@@ -12,7 +12,6 @@ const newsletterApiMocks = vi.hoisted(() => ({
   keepNewsletterItemEditionCopy: vi.fn(),
   refreshNewsletterItemFromApproved: vi.fn(),
   listCalendarEvents: vi.fn(),
-  listJobPostings: vi.fn(),
   lookupJobPosting: vi.fn(),
   listNewsletters: vi.fn(),
   listSections: vi.fn(),
@@ -138,7 +137,6 @@ beforeEach(() => {
   ));
   newsletterApiMocks.listNewsletters.mockResolvedValue([]);
   newsletterApiMocks.listCalendarEvents.mockResolvedValue([]);
-  newsletterApiMocks.listJobPostings.mockResolvedValue({ Postings: [], Is_Complete: true });
   newsletterApiMocks.assembleNewsletter.mockImplementation(async (request) => (
     request.Newsletter_Type === 'tdr' ? tdrNewsletter : newsletter
   ));
@@ -360,7 +358,7 @@ describe('BuilderPage academic dates', () => {
     });
   });
 
-  it('warns when the job list is incomplete and adds a job from its careers link', async () => {
+  it('offers no careers-site job list and adds a submitted job from its link', async () => {
     const user = userEvent.setup();
     const jobUrl = 'https://careers.uidaho.edu/jobs/records-coordinator-moscow-idaho-united-states';
     const candidate = {
@@ -375,7 +373,6 @@ describe('BuilderPage academic dates', () => {
       Summary: 'Coordinates synthetic records.',
       Selected: false,
     };
-    newsletterApiMocks.listJobPostings.mockResolvedValue({ Postings: [], Is_Complete: false });
     newsletterApiMocks.lookupJobPosting.mockResolvedValue(candidate);
     newsletterApiMocks.addJobPosting.mockResolvedValue({});
     newsletterApiMocks.getNewsletter.mockResolvedValue(tdrNewsletter);
@@ -384,9 +381,11 @@ describe('BuilderPage academic dates', () => {
     await user.click(screen.getAllByRole('button', { name: 'Assemble Newsletter' })[0]);
     await user.click(await screen.findByRole('button', { name: /\+ 0 jobs/ }));
 
-    expect(await screen.findByText(/this list is incomplete/i)).toBeInTheDocument();
+    // UCM runs only submitted jobs: no list of careers-site jobs is offered.
+    expect(screen.queryByText(/Open postings from the University careers site/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Refresh Jobs' })).not.toBeInTheDocument();
 
-    await user.type(screen.getByLabelText('Add a job from its careers link'), jobUrl);
+    await user.type(screen.getByLabelText('Add a submitted job from its careers link'), jobUrl);
     await user.click(screen.getByRole('button', { name: 'Add job' }));
 
     await waitFor(() => {
@@ -396,6 +395,6 @@ describe('BuilderPage academic dates', () => {
       );
     });
     expect(newsletterApiMocks.lookupJobPosting).toHaveBeenCalledWith(tdrNewsletter.Id, jobUrl);
-    expect(await screen.findByRole('button', { name: 'Added' })).toBeDisabled();
+    expect(await screen.findByText('Job posting added')).toBeInTheDocument();
   });
 });

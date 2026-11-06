@@ -284,13 +284,6 @@ class JobPostingCandidateResponse(BaseModel):
     Selected: bool
 
 
-class JobPostingCandidateListResponse(BaseModel):
-    """Candidate jobs; Is_Complete is false when the careers site throttled reads."""
-
-    Postings: list[JobPostingCandidateResponse]
-    Is_Complete: bool
-
-
 class JobPostingLookupRequest(BaseModel):
     Url: str = Field(..., min_length=1, max_length=500)
 
