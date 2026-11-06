@@ -175,6 +175,12 @@
   },
   {
     "category": "formatting",
+    "rule_key": "unconfirmed_dates",
+    "rule_text": "Keep a date without a year exactly as written; never add a year or move it to a different date. When a date appears to have already passed by the submission date, flag it DATE HAS PASSED: CONFIRM DATE. When its next occurrence is far enough out that the intended year is unclear, flag it CONFIRM YEAR. Do not add a weekday to either kind of date; if one is added, flag it DAY OF WEEK NOT VERIFIED. Report these flags in the flags list for the editor; do not write them into the headline or body.",
+    "severity": "warning"
+  },
+  {
+    "category": "formatting",
     "rule_key": "events_free_default",
     "rule_text": "Events are assumed to be free unless otherwise noted. If an event has a cost, include the price. Do not write 'free' unless the original submission explicitly states it.",
     "severity": "warning"

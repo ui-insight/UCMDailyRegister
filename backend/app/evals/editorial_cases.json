@@ -108,7 +108,7 @@
       "body": "The staff book club meets in the usual room at noon Tuesday, Nov. 17, to discuss the final chapters.",
       "expect": {
         "body_not_matches": [
-          "\\b(Room \\d|Hall|Building|Center|Library|Commons)\\b"
+          "\\b(Room\\s+\\d+|Hall|Building|Center|Library|Commons)\\b"
         ],
         "flag_matches": [
           "(?i)venue|location|room"

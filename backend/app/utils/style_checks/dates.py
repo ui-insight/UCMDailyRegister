@@ -362,9 +362,37 @@ def detect_missing_near_term_weekdays(
     return findings
 
 
+# The rest of a date range that ends with a year: "May 26-30, 2027",
+# "Dec. 30-Jan. 2, 2027". The year applies to the start of the range too.
+_RANGE_YEAR = re.compile(
+    rf"\s*[-\u2013\u2014]\s*(?:(?:{_MONTH_NAME})\.?\s+)?\d{{1,2}},\s*\d{{4}}\b",
+    re.IGNORECASE,
+)
+
 DATE_HAS_PASSED = "DATE HAS PASSED: CONFIRM DATE"
 CONFIRM_YEAR = "CONFIRM YEAR"
 DAY_OF_WEEK_NOT_VERIFIED = "DAY OF WEEK NOT VERIFIED"
+
+
+def _surrounding_occurrences(
+    month: int, day: int, reference: date
+) -> tuple[date | None, date | None]:
+    """The last occurrence before ``reference`` and the next on or after it.
+
+    Searches eight years each way so Feb. 29 finds its leap years; either
+    side is None when the month and day never occur (Feb. 30).
+    """
+    previous = upcoming = None
+    for year in range(reference.year - 8, reference.year + 9):
+        try:
+            candidate = date(year, month, day)
+        except ValueError:
+            continue
+        if candidate < reference:
+            previous = candidate
+        elif upcoming is None:
+            upcoming = candidate
+    return previous, upcoming
 
 
 def detect_unconfirmed_dates(
@@ -392,20 +420,17 @@ def detect_unconfirmed_dates(
     reference = reference_date or date.today()
     source_weekdays = {key[1:] for key in map(_weekday_date_key, _weekday_date_matches(source_text))}
     edited_weekdays = {key[1:] for key in map(_weekday_date_key, _weekday_date_matches(text))}
+    plain = strip_html(text)
     findings: dict[str, str] = {}
-    for match in _MONTH_DAY.finditer(strip_html(text)):
+    for match in _MONTH_DAY.finditer(plain):
         month = _MONTH_NUMBERS.get(match.group("month").lower().rstrip("."))
-        if match.group("year") or month is None:
+        if match.group("year") or month is None or _RANGE_YEAR.match(plain, match.end()):
             continue
         day = int(match.group("day"))
-        try:
-            this_year = date(reference.year, month, day)
-            upcoming = this_year if this_year >= reference else date(reference.year + 1, month, day)
-        except ValueError:
-            continue
-        if -passed_window_days <= (this_year - reference).days < 0:
+        previous, upcoming = _surrounding_occurrences(month, day, reference)
+        if previous and (reference - previous).days <= passed_window_days:
             note = DATE_HAS_PASSED
-        elif (upcoming - reference).days > year_unclear_after_days:
+        elif upcoming and (upcoming - reference).days > year_unclear_after_days:
             note = CONFIRM_YEAR
         else:
             continue

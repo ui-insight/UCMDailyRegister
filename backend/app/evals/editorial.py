@@ -37,6 +37,8 @@ SEED_FILES = {"shared": "shared_rules.json", "tdr": "tdr_rules.json", "myui": "m
 
 _STRAIGHTEN = str.maketrans({"‘": "'", "’": "'", "“": '"', "”": '"'})
 _SPACES = re.compile(r"\s+")
+# Tags that end a line in rendered copy; the one-line Jobs check needs them.
+_LINE_BREAK = re.compile(r"<br\s*/?>|</(?:p|div|li|h[1-6])\s*>", re.IGNORECASE)
 
 
 @dataclass(frozen=True)
@@ -69,6 +71,12 @@ def straight(text: str) -> str:
     return visible(text).translate(_STRAIGHTEN)
 
 
+def lines(text: str) -> str:
+    """Visible text that keeps line breaks, including <br> and block ends."""
+    text = _LINE_BREAK.sub("\n", text.strip())
+    return html.unescape(strip_html(text)).translate(_STRAIGHTEN).strip()
+
+
 def load_cases(path: Path = CASES_PATH) -> list[dict]:
     return json.loads(path.read_text(encoding="utf-8"))["cases"]
 
@@ -87,8 +95,8 @@ def score(case: dict, headline: str, body: str, flags: list[dict]) -> list[Check
     expect = case["expect"]
     head, text = straight(headline), straight(body)
     both = f"{head}\n{text}"
-    # The body may span lines in HTML; keep newlines for the one-line check.
-    raw_body = html.unescape(strip_html(body)).translate(_STRAIGHTEN).strip()
+    # Keep line breaks (newlines, <br>, block ends) for the one-line Jobs check.
+    raw_body = lines(body)
     flag_text = [f"{flag.get('rule_key', '')}: {flag.get('message', '')}" for flag in flags]
 
     def found(pattern: str, target: str) -> bool:
@@ -190,36 +198,44 @@ async def run_case(editor: AIEditor, session, case: dict, run: int) -> CaseRun:
     return result
 
 
+def expected_checks(case: dict) -> list[str]:
+    """Names of a case's checks; they don't depend on the model's output."""
+    return [check.name for check in score(case, "", "", [])]
+
+
 def summarize(cases: list[dict], runs: list[CaseRun]) -> dict:
-    """Pass rate per expectation, per case and overall (pending cases apart)."""
+    """Pass rate per expectation, per case and overall (pending cases apart).
+
+    Every expected check counts once per run. A run whose model call failed
+    fails all of its case's checks, and is also counted under ``errors``.
+    """
     by_case: dict[str, list[CaseRun]] = {}
     for run in runs:
         by_case.setdefault(run.case_id, []).append(run)
     summary = {"cases": [], "checks_passed": 0, "checks_total": 0}
     for case in cases:
         case_runs = by_case.get(case["id"], [])
-        rates: dict[str, list[bool]] = {}
-        for run in case_runs:
-            for check in run.checks:
-                rates.setdefault(check.name, []).append(check.passed)
+        checks = []
+        for name in expected_checks(case):
+            passed = sum(
+                1
+                for run in case_runs
+                if not run.error and any(c.name == name and c.passed for c in run.checks)
+            )
+            checks.append({"name": name, "passed": passed, "runs": len(case_runs)})
         errors = sum(1 for run in case_runs if run.error)
-        checks = [
-            {"name": name, "passed": sum(results), "runs": len(case_runs)}
-            for name, results in rates.items()
-        ]
-        all_passed = errors == 0 and all(c["passed"] == c["runs"] for c in checks)
         entry = {
             "id": case["id"],
             "issues": case["issues"],
             "decision": case["decision"],
             "pending": case.get("pending"),
             "errors": errors,
-            "all_passed": all_passed,
+            "all_passed": errors == 0 and all(c["passed"] == c["runs"] for c in checks),
             "checks": checks,
         }
         summary["cases"].append(entry)
         if not case.get("pending"):
-            summary["checks_total"] += sum(c["runs"] for c in checks) + errors
+            summary["checks_total"] += sum(c["runs"] for c in checks)
             summary["checks_passed"] += sum(c["passed"] for c in checks)
     return summary
 

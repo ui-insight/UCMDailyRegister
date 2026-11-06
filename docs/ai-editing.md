@@ -105,7 +105,7 @@ After the LLM returns its suggested edit, deterministic post-processing ensures 
 
 ### Dates without a year (#410)
 
-A date without a year means its next occurrence after the submission date, and it is kept as written. Two cases get a warning flag for the editor:
+A date without a year means its next occurrence after the submission date, and it is kept as written. Two cases get a flag for the editor under the `unconfirmed_dates` rule. That rule is warning-level, so these flags never trigger a repair pass, and staff can switch it off in Settings:
 
 | Situation | Flag | Setting (default) |
 | --- | --- | --- |

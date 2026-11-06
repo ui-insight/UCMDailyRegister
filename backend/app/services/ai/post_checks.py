@@ -233,7 +233,7 @@ def unconfirmed_dates(ctx: CheckContext) -> list[Finding]:
     )
     return [
         Finding(
-            "date_conflicts",
+            "unconfirmed_dates",
             f"Confirm this date with the submitter: '{found_date}' [{note}]",
             heuristic=True,
         )

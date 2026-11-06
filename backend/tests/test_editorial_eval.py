@@ -10,6 +10,9 @@ from datetime import date
 import pytest
 
 from app.evals.editorial import (
+    CaseRun,
+    Check,
+    expected_checks,
     SeedRulesEditor,
     load_cases,
     run_case,
@@ -144,3 +147,35 @@ async def test_summary_keeps_pending_cases_out_of_the_pass_rate():
     report = render_markdown(meta, summary, runs)
     assert "| composition-title-protected | #396 | pass |" in report
     assert "| year-unclear | #410 | pending |" in report
+
+
+def test_html_paragraphs_and_breaks_count_as_lines():
+    job = case("job-listing-format")
+    for body in (
+        "<p>Program coordinator, Example Department</p><p>Second line</p>",
+        "Program coordinator, Example Department<br>Second line",
+    ):
+        failed = [c.name for c in score(job, "", body, []) if not c.passed]
+        assert "body_not_matches: \\n" in failed, body
+
+
+def test_invented_multi_digit_room_fails_the_venue_case():
+    venue = case("unclear-venue-flagged")
+    body = "The staff book club meets at noon Tuesday, Nov. 17, in Room 214."
+    flags = [{"rule_key": "protected_names", "message": "[CONFIRM VENUE NAME]"}]
+    assert not all(c.passed for c in score(venue, "", body, flags))
+
+
+def test_summary_counts_each_check_once_per_run_and_errors_as_failures():
+    product = case("product-names-protected")
+    names = expected_checks(product)
+    assert len(names) == 2
+    good = CaseRun(product["id"], 1, checks=[Check(n, True) for n in names])
+    failed = CaseRun(product["id"], 2, error="TimeoutError: synthetic")
+    mixed = summarize([product], [good, failed])
+    assert (mixed["checks_passed"], mixed["checks_total"]) == (2, 4)
+    assert mixed["cases"][0]["errors"] == 1 and not mixed["cases"][0]["all_passed"]
+
+    all_errors = summarize([product], [failed, CaseRun(product["id"], 3, error="x")])
+    assert (all_errors["checks_passed"], all_errors["checks_total"]) == (0, 4)
+    assert [c["name"] for c in all_errors["cases"][0]["checks"]] == names

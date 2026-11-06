@@ -5,12 +5,15 @@ Submission date for every case: Friday, Nov. 6, 2026.
 
 from datetime import date
 
+import pytest
+
 from app.services.ai.editor import AIEditor
 from app.utils.style_checks import detect_unconfirmed_dates
 
 SUBMITTED = date(2026, 11, 6)
 DATE_RULES = [
     {"rule_key": "date_conflicts", "severity": "error", "category": "dates", "rule_text": "x"},
+    {"rule_key": "unconfirmed_dates", "severity": "warning", "category": "dates", "rule_text": "x"},
 ]
 
 
@@ -73,6 +76,27 @@ def test_impossible_and_html_dates():
     }
 
 
+def test_a_date_just_before_new_year_has_passed():
+    found = detect_unconfirmed_dates(
+        "Ended Dec. 31.", "Ended Dec. 31.", reference_date=date(2027, 1, 5)
+    )
+    assert found == {"Dec. 31": "DATE HAS PASSED: CONFIRM DATE"}
+
+
+def test_leap_day_uses_its_real_occurrences():
+    assert unconfirmed("Leap day party Feb. 29.") == {"Feb. 29": "CONFIRM YEAR"}
+    found = detect_unconfirmed_dates(
+        "Feb. 29", "Feb. 29", reference_date=date(2028, 3, 1)
+    )
+    assert found == {"Feb. 29": "DATE HAS PASSED: CONFIRM DATE"}
+
+
+def test_a_range_ending_in_a_year_is_not_yearless():
+    assert unconfirmed("The clinic is closed May 26-30, 2027.") == {}
+    assert unconfirmed("Closed Dec. 30\u2013Jan. 2, 2028.") == {}
+    assert unconfirmed("The clinic is closed May 26\u201330.") == {"May 26": "CONFIRM YEAR"}
+
+
 def test_post_analyze_flags_as_a_warning_so_it_never_triggers_repair():
     flags = AIEditor(None).post_analyze(
         "Review benefits before enrollment ends",
@@ -84,7 +108,7 @@ def test_post_analyze_flags_as_a_warning_so_it_never_triggers_repair():
     )
     assert {
         "type": "warning",
-        "rule_key": "date_conflicts",
+        "rule_key": "unconfirmed_dates",
         "message": (
             "Confirm this date with the submitter: 'Oct. 15' "
             "[DATE HAS PASSED: CONFIRM DATE; DAY OF WEEK NOT VERIFIED]"
@@ -96,3 +120,41 @@ def test_inactive_rule_silences_the_flag():
     assert AIEditor(None).post_analyze(
         "", "Open enrollment ends Oct. 15.", "faculty_staff", [], reference_date=SUBMITTED
     ) == []
+
+
+@pytest.mark.asyncio
+async def test_unconfirmed_date_warning_does_not_send_the_model_into_repair():
+    from app.models.submission import Submission
+    from datetime import datetime, timezone
+
+    calls = []
+
+    class OneDraft:
+        model = "scripted"
+
+        async def complete_json(self, **kwargs):
+            calls.append(kwargs)
+            return {
+                "edited_headline": "Review benefits before enrollment ends",
+                "edited_body": "Open enrollment ends Oct. 15.",
+                "flags": [],
+            }
+
+    class Editor(AIEditor):
+        async def load_style_rules(self, session, newsletter_type):
+            return DATE_RULES
+
+    submission = Submission(
+        Id="synthetic",
+        Category="faculty_staff",
+        Target_Newsletter="tdr",
+        Original_Headline="Benefits",
+        Original_Body="Open enrollment ends Oct. 15.",
+        Submitter_Name="Synthetic",
+        Submitter_Email="synthetic@example.edu",
+        Created_At=datetime(2026, 11, 6, 9, tzinfo=timezone.utc),
+        Links=[],
+    )
+    result = await Editor(OneDraft()).edit_submission(None, submission, "tdr")
+    assert len(calls) == 1
+    assert any(flag["rule_key"] == "unconfirmed_dates" for flag in result.flags)
