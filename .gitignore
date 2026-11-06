@@ -68,3 +68,6 @@ site/
 .claude/worktrees/
 .claude/skills/
 .claude/.DS_Store
+
+# On-demand AI evaluation reports (python -m app.evals.editorial)
+eval-results/

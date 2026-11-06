@@ -46,6 +46,9 @@ nav:
   - Data Model: data-model.md
   - UDM Alignment: udm-alignment.md
   - AI Editing: ai-editing.md
+  - AI Model Evaluation:
+      - How It Works: evaluations/index.md
+      - 2026-11-06 Baseline: evaluations/editorial-2026-11-06.md
   - UI Branding: branding.md
   - Accessible Controls: control-accessibility.md
   - API Reference: api-reference.md
