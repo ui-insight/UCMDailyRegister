@@ -1,4 +1,4 @@
-import { apiFetch } from './client';
+import { apiDownload, apiFetch, type DownloadedFile } from './client';
 import type { LinkFinding, NewsletterSection, UpstreamChange } from '../types/newsletter';
 
 interface NewsletterResponse {
@@ -261,8 +261,9 @@ export async function reorderNewsletterItems(
   });
 }
 
-export function getExportUrl(newsletterId: string): string {
-  return `/api/v1/newsletters/${newsletterId}/export`;
+/** Download the edition as a Word document, with the caller's credentials. */
+export async function downloadNewsletterExport(newsletterId: string): Promise<DownloadedFile> {
+  return apiDownload(`/newsletters/${newsletterId}/export`);
 }
 
 export async function listSections(newsletterType?: string): Promise<NewsletterSection[]> {

@@ -13,12 +13,13 @@ import {
   removeNewsletterExternalItem,
   removeNewsletterItem,
   reorderNewsletterItems,
-  getExportUrl,
+  downloadNewsletterExport,
   keepNewsletterItemEditionCopy,
   listSections,
   refreshNewsletterItemFromApproved,
   updateNewsletterItem,
 } from '../api/newsletters';
+import { saveDownloadedFile } from '../api/client';
 import {
   addRecurringMessageToNewsletter,
   listRecurringMessageCandidates,
@@ -278,6 +279,7 @@ export default function BuilderPage() {
   });
   const [sectionOpen, setSectionOpen] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [metadataError, setMetadataError] = useState<string | null>(null);
   const { toast, showToast, dismissToast } = useToast();
@@ -399,6 +401,27 @@ export default function BuilderPage() {
       setError(err instanceof Error ? err.message : 'Assembly failed');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExport = async () => {
+    if (!newsletter) return;
+    setExporting(true);
+    setError(null);
+    try {
+      const file = await downloadNewsletterExport(newsletter.Id);
+      saveDownloadedFile(
+        file,
+        `${newsletter.Newsletter_Type}_${newsletter.Publish_Date}.docx`,
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? `The Word document couldn't be exported: ${err.message}`
+          : "The Word document couldn't be exported.",
+      );
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -951,13 +974,14 @@ export default function BuilderPage() {
           </button>
           {newsletter && (
             <>
-              <a
-                href={getExportUrl(newsletter.Id)}
-                className="px-4 py-2 text-sm font-medium rounded-md bg-ui-clearwater-600 text-white hover:bg-ui-clearwater-700"
-                download
+              <button
+                type="button"
+                onClick={handleExport}
+                disabled={exporting}
+                className="px-4 py-2 text-sm font-medium rounded-md bg-ui-clearwater-600 text-white hover:bg-ui-clearwater-700 disabled:opacity-50"
               >
-                Export Word Doc
-              </a>
+                {exporting ? 'Exporting...' : 'Export Word Doc'}
+              </button>
               {itemsWithUpstreamChanges > 0 && (
                 <span className="rounded-full bg-status-warning-100 px-3 py-1 text-xs font-medium text-status-warning-800">
                   {itemsWithUpstreamChanges === 1
