@@ -1,0 +1,15 @@
+/* University of Idaho Pride Gold as MkDocs Material primary color */
+:root,
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color: #B58900;
+  --md-primary-fg-color--light: #F1B300;
+  --md-primary-fg-color--dark: #8A6A00;
+  --md-accent-fg-color: #008080;
+}
+
+[data-md-color-scheme="slate"] {
+  --md-primary-fg-color: #F1B300;
+  --md-primary-fg-color--light: #FBCD48;
+  --md-primary-fg-color--dark: #D49B00;
+  --md-accent-fg-color: #29B8B8;
+}
