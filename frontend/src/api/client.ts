@@ -67,21 +67,24 @@ export function formatApiError(detail: unknown): string {
   return 'Request failed';
 }
 
-export async function apiFetch<T>(
+/**
+ * Send an API request with the caller's credentials (SSO bearer token or
+ * trusted-role headers) and turn an error response into an ApiError.
+ */
+async function sendRequest(
   path: string,
-  options?: RequestInit,
-): Promise<T> {
+  options: RequestInit | undefined,
+  contentHeaders: HeadersInit,
+): Promise<Response> {
+  // Caller headers may add to or override the content type, but never drop
+  // the credentials: a later spread of `options` would replace them all.
+  const headers = new Headers(contentHeaders);
+  new Headers(options?.headers).forEach((value, key) => headers.set(key, value));
+  new Headers(getSubmitterRoleHeaders()).forEach((value, key) => headers.set(key, value));
+  new Headers(getAuthHeaders()).forEach((value, key) => headers.set(key, value));
   let res: Response;
   try {
-    res = await fetch(`${BASE_URL}${path}`, {
-      headers: {
-        'Content-Type': 'application/json',
-        ...getSubmitterRoleHeaders(),
-        ...getAuthHeaders(),
-        ...options?.headers,
-      },
-      ...options,
-    });
+    res = await fetch(`${BASE_URL}${path}`, { ...options, headers });
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') throw error;
     throw new Error(
@@ -100,6 +103,14 @@ export async function apiFetch<T>(
     const error = await res.json().catch(() => ({ detail: res.statusText }));
     throw new ApiError(res.status, error.detail ?? error);
   }
+  return res;
+}
+
+export async function apiFetch<T>(
+  path: string,
+  options?: RequestInit,
+): Promise<T> {
+  const res = await sendRequest(path, options, { 'Content-Type': 'application/json' });
   if (res.status === 204 || res.status === 205) {
     return undefined as T;
   }
@@ -109,4 +120,57 @@ export async function apiFetch<T>(
   }
 
   return res.json();
+}
+
+/** A file returned by the API, with the name the server suggested. */
+export interface DownloadedFile {
+  blob: Blob;
+  filename: string | null;
+}
+
+/**
+ * Fetch a file with the caller's credentials. A plain link can't carry the
+ * SSO bearer token, so downloads of protected files go through here (#476).
+ */
+/**
+ * Send form data (for example a file upload) with the caller's credentials.
+ * No Content-Type is set, so the browser adds the multipart boundary.
+ */
+export async function apiUpload<T>(path: string, body: FormData): Promise<T> {
+  const res = await sendRequest(path, { method: 'POST', body }, {});
+  return res.json();
+}
+
+export async function apiDownload(path: string): Promise<DownloadedFile> {
+  const res = await sendRequest(path, undefined, {});
+  return {
+    blob: await res.blob(),
+    filename: filenameFromDisposition(res.headers.get('content-disposition')),
+  };
+}
+
+export function filenameFromDisposition(header: string | null): string | null {
+  if (!header) return null;
+  const encoded = /filename\*=UTF-8''([^;]+)/i.exec(header);
+  if (encoded) {
+    try {
+      return decodeURIComponent(encoded[1].trim());
+    } catch {
+      // Fall through to the plain filename.
+    }
+  }
+  const plain = /filename="?([^";]+)"?/i.exec(header);
+  return plain ? plain[1].trim() : null;
+}
+
+/** Hand a downloaded file to the browser to save. */
+export function saveDownloadedFile(file: DownloadedFile, fallbackName: string): void {
+  const url = URL.createObjectURL(file.blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = file.filename ?? fallbackName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
 }

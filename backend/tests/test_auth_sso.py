@@ -106,6 +106,22 @@ class TestBearerTokenAuthorization:
         resp = await client.get("/api/v1/ops/harvested-events", headers=_bearer(_token("ops")))
         assert resp.status_code == 200
 
+    async def test_word_export_needs_the_bearer_token(self, client: AsyncClient):
+        """Under SSO the export only works with the session token (#476)."""
+        staff = _bearer(_token("staff"))
+        created = await client.post("/api/v1/newsletters", json=make_newsletter_data(), headers=staff)
+        export_path = f"/api/v1/newsletters/{created.json()['Id']}/export"
+
+        resp = await client.get(export_path, headers=staff)
+        assert resp.status_code == 200
+        assert resp.headers["content-type"].startswith(
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        )
+        assert 'filename="' in resp.headers["content-disposition"]
+
+        # A plain browser link sends no token, so it is refused.
+        assert (await client.get(export_path)).status_code in (401, 403)
+
     async def test_invalid_token_is_401_not_public(self, client: AsyncClient):
         """A bad token must not fall through to anonymous access."""
         resp = await client.get("/api/v1/submissions/", headers=_bearer("not-a-token"))

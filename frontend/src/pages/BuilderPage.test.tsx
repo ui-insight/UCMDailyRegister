@@ -8,6 +8,7 @@ const newsletterApiMocks = vi.hoisted(() => ({
   addCalendarEvent: vi.fn(),
   addJobPosting: vi.fn(),
   assembleNewsletter: vi.fn(),
+  downloadNewsletterExport: vi.fn(),
   getNewsletter: vi.fn(),
   keepNewsletterItemEditionCopy: vi.fn(),
   refreshNewsletterItemFromApproved: vi.fn(),
@@ -22,9 +23,12 @@ const newsletterApiMocks = vi.hoisted(() => ({
   updateNewsletterStatus: vi.fn(),
 }));
 
-vi.mock('../api/newsletters', () => ({
-  ...newsletterApiMocks,
-  getExportUrl: (newsletterId: string) => `/api/v1/newsletters/${newsletterId}/export`,
+vi.mock('../api/newsletters', () => newsletterApiMocks);
+
+const saveDownloadedFile = vi.hoisted(() => vi.fn());
+vi.mock('../api/client', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../api/client')>()),
+  saveDownloadedFile,
 }));
 
 vi.mock('../api/recurringMessages', () => ({
@@ -411,5 +415,38 @@ describe('BuilderPage academic dates', () => {
     expect(newsletterApiMocks.lookupJobPosting).toHaveBeenCalledWith(tdrNewsletter.Id, jobUrl);
     expect(await screen.findByText('Job posting added')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /\+ 1 jobs/ })).toBeInTheDocument();
+  });
+});
+
+
+describe('BuilderPage Word export', () => {
+  it('downloads the Word document with the signed-in session', async () => {
+    const user = userEvent.setup();
+    const file = { blob: new Blob(['docx']), filename: 'myui_2026-08-24.docx' };
+    newsletterApiMocks.downloadNewsletterExport.mockResolvedValue(file);
+
+    render(<BuilderPage />);
+    await user.click(screen.getAllByRole('button', { name: 'Assemble Newsletter' })[0]);
+    await user.click(await screen.findByRole('button', { name: 'Export Word Doc' }));
+
+    await waitFor(() => {
+      expect(saveDownloadedFile).toHaveBeenCalledWith(file, expect.stringMatching(/\.docx$/));
+    });
+    expect(newsletterApiMocks.downloadNewsletterExport).toHaveBeenCalledWith(expect.any(String));
+    expect(screen.queryByRole('link', { name: 'Export Word Doc' })).not.toBeInTheDocument();
+  });
+
+  it('shows a readable error instead of saving one', async () => {
+    const user = userEvent.setup();
+    newsletterApiMocks.downloadNewsletterExport.mockRejectedValue(new Error('Staff access required'));
+
+    render(<BuilderPage />);
+    await user.click(screen.getAllByRole('button', { name: 'Assemble Newsletter' })[0]);
+    await user.click(await screen.findByRole('button', { name: 'Export Word Doc' }));
+
+    expect(
+      await screen.findByText("The Word document couldn't be exported: Staff access required"),
+    ).toBeInTheDocument();
+    expect(saveDownloadedFile).not.toHaveBeenCalled();
   });
 });
