@@ -3,6 +3,7 @@
 import re
 from datetime import date, timedelta
 
+from app.utils.clock import local_today
 from app.utils.style_checks.text import (
     _MONTH_ABBREV,
     _MONTH_DAY,
@@ -164,7 +165,7 @@ def detect_weekday_date_mismatches(
     reference_date: date | None = None,
 ) -> list[str]:
     """Find weekday/month/day combinations that disagree with the calendar."""
-    reference = reference_date or date.today()
+    reference = reference_date or local_today()
     findings: list[str] = []
     for match in _weekday_date_matches(text):
         resolved = _resolve_calendar_date(match, reference)
@@ -189,7 +190,7 @@ def detect_inserted_weekday_mismatches(
     source are left to the general mismatch check. The value is the calendar
     weekday, or None when the month and day do not exist.
     """
-    reference = reference_date or date.today()
+    reference = reference_date or local_today()
     source_pairs = {_weekday_date_key(match) for match in _weekday_date_matches(source_text)}
     findings: dict[str, str | None] = {}
     for match in _weekday_date_matches(edited_text):
@@ -226,7 +227,7 @@ def detect_weekday_date_conflicts(
     reference_date: date | None = None,
 ) -> dict[str, str]:
     """Map each mismatched weekday/date pair to its conflict note."""
-    reference = reference_date or date.today()
+    reference = reference_date or local_today()
     return {
         match.group().rstrip("."): date_conflict_note(match, reference)
         for match in _weekday_date_matches(text)
@@ -247,7 +248,7 @@ def detect_changed_source_date_conflicts(
     conflict instead of choosing a correction (#384). A conflicting source
     pair missing from the edit means the AI changed or dropped one of them.
     """
-    reference = reference_date or date.today()
+    reference = reference_date or local_today()
     edited_pairs = {_weekday_date_key(match) for match in _weekday_date_matches(edited_text)}
     return {
         match.group().rstrip("."): date_conflict_note(match, reference)
@@ -330,7 +331,7 @@ def detect_missing_near_term_weekdays(
     Dates without a year use the same year-boundary resolution as the weekday
     consistency check.
     """
-    reference = reference_date or date.today()
+    reference = reference_date or local_today()
     findings: list[str] = []
     plain_text = strip_html(text)
 
@@ -417,7 +418,7 @@ def detect_unconfirmed_dates(
     didn't, that weekday rests on a guessed year: DAY OF WEEK NOT VERIFIED
     is added. Dates with an explicit year are never flagged here.
     """
-    reference = reference_date or date.today()
+    reference = reference_date or local_today()
     source_weekdays = {key[1:] for key in map(_weekday_date_key, _weekday_date_matches(source_text))}
     edited_weekdays = {key[1:] for key in map(_weekday_date_key, _weekday_date_matches(text))}
     plain = strip_html(text)

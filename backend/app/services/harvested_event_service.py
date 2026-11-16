@@ -53,6 +53,7 @@ from app.config import settings
 from app.models.harvested_event import HarvestedEvent
 from app.models.submission import Submission, SubmissionScheduleRequest
 from app.services.calendar_event_service import _clean_html
+from app.utils.clock import local_now
 
 TRUMBA_SOURCE_TYPE = "trumba"
 TRIAGE_NAME = "SLC event triage"
@@ -335,7 +336,8 @@ async def _select_disappeared_flagged_events(
                 HarvestedEvent.Ops_Review_Status == "reviewed",
             ),
             HarvestedEvent.Is_Canceled.is_(False),
-            HarvestedEvent.Event_Start > datetime.now(),
+            # Event_Start is naive Pacific wall-clock time (see _parse_feed_datetime).
+            HarvestedEvent.Event_Start > local_now().replace(tzinfo=None),
             HarvestedEvent.Event_Start <= coverage_end,
             HarvestedEvent.Source_Id.not_in(seen_ids),
         )

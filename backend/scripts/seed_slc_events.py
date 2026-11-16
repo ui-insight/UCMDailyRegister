@@ -10,6 +10,7 @@ from pathlib import Path
 
 from app.db.engine import async_session_factory
 from app.services.slc_event_import_service import import_records, load_import_plan
+from app.utils.clock import local_today
 
 
 def _iso_date(value: str) -> date:
@@ -36,7 +37,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--from-date",
         type=_iso_date,
-        default=date.today(),
+        default=local_today(),
         help="Ignore events that end before this date (default: today)",
     )
     parser.add_argument(

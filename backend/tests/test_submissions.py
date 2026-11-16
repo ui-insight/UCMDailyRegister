@@ -11,9 +11,10 @@ from tests.conftest import make_submission_data
 
 
 # Freeze the clock for date-sensitive tests. Recurrence previews filter past
-# occurrences via date.today(); the expected Occurrence_Dates assertions below
-# were written assuming "today" falls in early April 2026.
-FROZEN_TODAY = "2026-04-01"
+# occurrences via local_today(); the expected Occurrence_Dates assertions below
+# were written assuming "today" falls in early April 2026. Noon Pacific (UTC
+# 19:00), so the newsletter-local date is April 1 as well (#492).
+FROZEN_TODAY = "2026-04-01 19:00:00"
 
 
 @pytest.mark.asyncio

@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, require_staff
 from app.services import schedule_service
+from app.utils.clock import local_today
 from app.schemas.newsletter import (
     BlackoutDateCreate,
     BlackoutDateResponse,
@@ -42,7 +43,7 @@ async def get_active_config(
     if not config:
         raise HTTPException(status_code=404, detail="No active schedule config found")
 
-    publish_date = schedule_service.get_next_publish_date(config, for_date or date.today())
+    publish_date = schedule_service.get_next_publish_date(config, for_date or local_today())
     deadline = schedule_service.get_submission_deadline(config, publish_date)
 
     # Include override info if active
