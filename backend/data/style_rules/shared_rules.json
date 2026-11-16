@@ -205,8 +205,8 @@
   },
   {
     "category": "terminology",
-    "rule_key": "vandal_gear_capitalization",
-    "rule_text": "Always write 'Vandal Gear' as two capitalized words. Replace 'VandalGear', 'Vandal gear' or other variants with 'Vandal Gear'.",
+    "rule_key": "vandal_terms",
+    "rule_text": "Write these U of I Vandal terms in their official form: 'Vandal Alert' (two words, each capitalized); 'VandalCard' (one word, two capitals, no space); 'VandalCARE' (one word, Vandal capitalized and CARE in all capitals); 'VandalChat' (one word, two capitals, no space); 'Vandal Connect' (two words); 'Vandal Family' (two capitalized words); 'Vandal Gear' (two capitalized words); 'VandalMail' (one word, Vandal and Mail capitalized, no space); 'VandalStore' (one word, two capitals, no space). Replace any other spacing, hyphenation or capitalization of these terms, such as 'Vandal Card', 'Vandalmail', 'VandalAlert', 'Vandal Care' or 'VandalGear', with the official form, even when the submitter wrote the variant. This rule takes precedence over keeping product and program names as submitted. Leave web and email addresses unchanged.",
     "severity": "error"
   },
   {
