@@ -286,6 +286,22 @@ describe('body link editing', () => {
     expect(linkSaveProblem('Register or sign up.', links)).toMatch(/^Link "sign up" goes to the same place/);
   });
 
+  it('flags links whose words overlap another link (PR #507 review)', () => {
+    const overlapping = [
+      { Url: 'https://example.edu/a', Anchor_Text: 'Register now' },
+      { Url: 'https://example.edu/b', Anchor_Text: 'now' },
+    ];
+    expect(linkSaveProblem('Register now', overlapping)).toMatch(/^Link text "now" overlaps/);
+
+    const competing = [
+      { Url: 'https://example.edu/a', Anchor_Text: 'Register' },
+      { Url: 'https://example.edu/b', Anchor_Text: 'Register' },
+    ];
+    expect(linkSaveProblem('Register today.', competing)).toMatch(/overlaps another link/);
+    // A second mention gives the second link its own words.
+    expect(linkSaveProblem('Register today. Register later.', competing)).toBeNull();
+  });
+
   it('has no save problem when every link will be kept', () => {
     expect(linkSaveProblem('Register or email Ana Lopez.', [
       { Url: 'https://uidaho.edu/r', Anchor_Text: 'Register' },

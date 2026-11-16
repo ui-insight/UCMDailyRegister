@@ -266,6 +266,11 @@ export function linkSaveProblem(body: string, links: EditableBodyLink[]): string
     return `Link ${duplicates.map(linkName).join(', ')} goes to the same place as another link, `
       + 'so it would be lost. Give it a different destination or remove it.';
   }
+  const crowded = placeLinks(body, normalizedBodyLinks(links, body)).unplaced;
+  if (crowded.length) {
+    return `Link text ${crowded.map(linkName).join(', ')} overlaps another link's words, so the link would be lost. `
+      + 'Put each link on its own words, or clear one of them.';
+  }
   return null;
 }
 
@@ -372,27 +377,22 @@ function safeAttributeValue(value: string): string {
   return value.replace(/["'<>]/g, (character) => encodeURIComponent(character));
 }
 
-export function buildLinkedBody(body: string, links: EditableBodyLink[]): string {
-  const seenDestinations = new Set<string>();
-  const validLinks = links
-    .map((link, index) => ({
-      ...link,
-      Url: normalizeEditableLinkUrl(link.Url),
-      Display_Order: index,
-    }))
-    .filter((link) => {
-      if (!link.Url || !isSafeLinkDestination(link.Url)) return false;
-      const canonicalUrl = canonicalLinkDestination(link.Url);
-      if (seenDestinations.has(canonicalUrl)) return false;
-      seenDestinations.add(canonicalUrl);
-      return true;
-    });
+interface LinkPlacement {
+  replacements: Array<{ start: number; end: number; markup: string }>;
+  unplaced: EditableBodyLink[];
+}
 
+/** Find a free mention for each link; links whose words are all taken are unplaced. */
+function placeLinks(body: string, validLinks: EditableBodyLink[]): LinkPlacement {
   const occupiedRanges: Array<{ start: number; end: number }> = [];
   const replacements: Array<{ start: number; end: number; markup: string }> = [];
+  const unplaced: EditableBodyLink[] = [];
   for (const link of validLinks) {
     const label = linkLabel(link);
-    if (!label) continue;
+    if (!label) {
+      unplaced.push(link);
+      continue;
+    }
 
     const searchableBody = body.toLocaleLowerCase();
     const searchableLabel = label.toLocaleLowerCase();
@@ -418,8 +418,30 @@ export function buildLinkedBody(body: string, links: EditableBodyLink[]): string
         end: matchIndex + label.length,
         markup,
       });
+    } else {
+      unplaced.push(link);
     }
   }
+  return { replacements, unplaced };
+}
+
+export function buildLinkedBody(body: string, links: EditableBodyLink[]): string {
+  const seenDestinations = new Set<string>();
+  const validLinks = links
+    .map((link, index) => ({
+      ...link,
+      Url: normalizeEditableLinkUrl(link.Url),
+      Display_Order: index,
+    }))
+    .filter((link) => {
+      if (!link.Url || !isSafeLinkDestination(link.Url)) return false;
+      const canonicalUrl = canonicalLinkDestination(link.Url);
+      if (seenDestinations.has(canonicalUrl)) return false;
+      seenDestinations.add(canonicalUrl);
+      return true;
+    });
+
+  const { replacements } = placeLinks(body, validLinks);
 
   let linkedBody = body;
   for (const replacement of replacements.sort((left, right) => right.start - left.start)) {

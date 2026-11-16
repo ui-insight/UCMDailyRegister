@@ -233,3 +233,24 @@ async def test_jobs_stay_newest_first_whatever_dates_they_name(
     newsletter = await _assemble(client, staff_headers)
 
     assert _order(newsletter, "tdr-jobs") == [newer, older]
+
+
+@pytest.mark.parametrize(
+    ("text", "publish", "expected"),
+    [
+        # PR #507 review: a trailing year applies to both ends of a range.
+        ("Workshop Nov. 18-20, 2027", date(2026, 11, 16), date(2027, 11, 18)),
+        ("Workshop Nov. 18–20, 2027", date(2026, 11, 16), date(2027, 11, 18)),
+        # A range under way on the publish date is actionable now.
+        ("Workshop Nov. 16-20", date(2026, 11, 18), date(2026, 11, 18)),
+        ("Book drive Nov. 30–Dec. 2", date(2026, 11, 16), date(2026, 11, 30)),
+        ("Closure Dec. 30 - Jan. 2, 2027", date(2026, 11, 16), date(2026, 12, 30)),
+        ("Closure Dec. 30 to Jan. 2", date(2027, 1, 1), date(2027, 1, 1)),
+        # A finished range is not actionable.
+        ("Workshop Nov. 2-4", date(2026, 11, 16), None),
+        # A time range after a date isn't a date range.
+        ("Talk Nov. 20, 3-5 p.m.", date(2026, 11, 16), date(2026, 11, 20)),
+    ],
+)
+def test_date_ranges_are_read_as_a_unit(text, publish, expected):
+    assert earliest_actionable_date([text], publish) == expected
