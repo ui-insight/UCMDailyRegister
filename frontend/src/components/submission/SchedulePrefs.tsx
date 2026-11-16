@@ -67,6 +67,12 @@ function validateMyUIDate(dateStr: string): string | null {
   return null;
 }
 
+function recurrenceEndHint(recurrenceType: ScheduleEntry['Recurrence_Type']): string {
+  return recurrenceType === 'once'
+    ? 'Not used for one-time requests'
+    : 'Required. The last date this can run.';
+}
+
 function getMinDate(): string {
   return addDaysISO(1);
 }
@@ -346,6 +352,7 @@ export default function SchedulePrefs({
                 aria-describedby={[recurrenceEndError ? 'submission-recurrence-end-date-error' : 'submission-recurrence-end-date-hint'].filter(Boolean).join(' ')}
               type="date"
               value={schedule.Recurrence_End_Date}
+              required={schedule.Recurrence_Type !== 'once'}
               onChange={(e) => update('Recurrence_End_Date', e.target.value)}
               disabled={schedule.Recurrence_Type === 'once'}
               min={schedule.Requested_Date || getMinDate()}
@@ -360,7 +367,7 @@ export default function SchedulePrefs({
             )}
             {!recurrenceEndError && (
               <p id="submission-recurrence-end-date-hint" className="text-xs text-gray-600 mt-1">
-                Optional. Leave blank to keep running.
+                {recurrenceEndHint(schedule.Recurrence_Type)}
               </p>
             )}
           </div>

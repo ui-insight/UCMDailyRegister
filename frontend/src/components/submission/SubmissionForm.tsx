@@ -427,7 +427,11 @@ export default function SubmissionForm() {
         }
       });
     }
-    if (hasRecurrenceEndError()) addFieldError(problems, form, 'submission-recurrence-end-date', 'Please choose a recurrence end date on or after the first run date.');
+    if (isStaff && !isJobOpportunity && schedule.Recurrence_Type !== 'once' && !schedule.Recurrence_End_Date) {
+      addFieldError(problems, form, 'submission-recurrence-end-date', 'Please choose the date this schedule stops repeating.');
+    } else if (hasRecurrenceEndError()) {
+      addFieldError(problems, form, 'submission-recurrence-end-date', 'Please choose a recurrence end date on or after the first run date.');
+    }
     setFieldErrors(problems);
     setError(null);
     if (Object.keys(problems).length) {

@@ -209,7 +209,7 @@ describe('SubmissionMeta schedule management', () => {
     });
   });
 
-  it('adds an indefinite recurring run date when a first run date is selected', async () => {
+  it('refuses a recurring run date without an end date', async () => {
     const user = userEvent.setup();
     const onAddScheduleDate = vi.fn().mockResolvedValue(undefined);
     render(
@@ -228,13 +228,26 @@ describe('SubmissionMeta schedule management', () => {
     });
     await user.click(screen.getByRole('button', { name: 'Save' }));
 
-    await waitFor(() => {
-      expect(onAddScheduleDate).toHaveBeenCalledWith('tdr', '2026-05-06', {
-        Recurrence_Type: 'weekly',
-        Recurrence_Interval: 6,
-        Recurrence_End_Date: undefined,
-      });
-    });
+    expect(await screen.findByText('Choose the date this schedule stops repeating.')).toBeInTheDocument();
+    expect(onAddScheduleDate).not.toHaveBeenCalled();
+  });
+
+  it('notes that an open-ended repeat runs only on its requested date', () => {
+    const submission = makeSubmission();
+    render(
+      <SubmissionMeta
+        submission={{
+          ...submission,
+          Schedule_Requests: [{
+            ...submission.Schedule_Requests[0],
+            Recurrence_Type: 'weekly',
+            Recurrence_End_Date: null,
+          }],
+        }}
+      />,
+    );
+
+    expect(screen.getByText(/No end date, so this runs only on its requested date/)).toBeInTheDocument();
   });
 
   it('explains that a recurring schedule needs a first run date', async () => {

@@ -46,6 +46,12 @@ const TARGET_LABELS: Record<string, string> = {
   both: 'Both Newsletters',
 };
 
+/** Repeating schedules saved without an end date run only on their requested date (#477). */
+function isOpenEndedRepeat(req: Submission['Schedule_Requests'][number]): boolean {
+  return ['weekly', 'monthly_date', 'monthly_nth_weekday'].includes(req.Recurrence_Type)
+    && !req.Recurrence_End_Date;
+}
+
 const RECURRENCE_LABELS: Record<string, string> = {
   once: 'One time',
   weekly: 'Weekly',
@@ -150,6 +156,10 @@ export default function SubmissionMeta({
     if (!validDatesSet.has(addDateValue)) {
       const label = nl === 'myui' ? 'My UI (Mondays only)' : 'The Daily Register';
       setAddDateError(`Not a valid publication date for ${label}.`);
+      return;
+    }
+    if (addRecurrenceType !== 'once' && !addRecurrenceEnd) {
+      setAddDateError('Choose the date this schedule stops repeating.');
       return;
     }
     if (
@@ -322,6 +332,12 @@ export default function SubmissionMeta({
                 {req.Recurrence_End_Date && (
                   <div className="text-xs text-gray-500 font-normal mt-0.5">
                     Ends: {parseISODate(req.Recurrence_End_Date).toLocaleDateString()}
+                  </div>
+                )}
+                {isOpenEndedRepeat(req) && (
+                  <div className="text-xs text-amber-800 font-normal mt-0.5">
+                    No end date, so this runs only on its requested date. To repeat it,
+                    remove this schedule and add a run date with an end date.
                   </div>
                 )}
                 {req.Excluded_Dates.length > 0 && (
@@ -546,12 +562,13 @@ export default function SubmissionMeta({
                       htmlFor="add-date-recurrence-end"
                       className="block text-[10px] text-gray-500 mb-0.5"
                     >
-                      Ends on (leave blank to repeat until removed)
+                      Ends on (required)
                     </label>
                     <input
                       id="add-date-recurrence-end"
                       type="date"
                       value={addRecurrenceEnd}
+                      required
                       min={addDateValue || getMinDate()}
                       onChange={(e) => { setAddRecurrenceEnd(e.target.value); setAddDateError(''); }}
                       className="w-full rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"

@@ -1,10 +1,29 @@
-"""Helpers for expanding recurring schedules into concrete issue dates."""
+"""Helpers for expanding recurring schedules into concrete issue dates.
+
+A repeating schedule (weekly or monthly) must say when it stops. Requests saved
+before that rule may have no end date; those run only on their requested
+date(s) instead of repeating into every future edition (#477). Staff see a note
+on the submission and can replace the schedule with one that has an end date.
+"""
 
 from __future__ import annotations
 
 from datetime import date, timedelta
 
 from app.models.submission import SubmissionScheduleRequest
+
+REPEATING_RECURRENCE_TYPES = frozenset({"weekly", "monthly_date", "monthly_nth_weekday"})
+
+
+def effective_recurrence_type(schedule_request: SubmissionScheduleRequest) -> str:
+    """Return the recurrence type to expand, treating open-ended repeats as one-time."""
+    recurrence_type = schedule_request.Recurrence_Type or "once"
+    if (
+        recurrence_type in REPEATING_RECURRENCE_TYPES
+        and schedule_request.Recurrence_End_Date is None
+    ):
+        return "once"
+    return recurrence_type
 
 
 def expand_schedule_request(
@@ -20,7 +39,7 @@ def expand_schedule_request(
 
     occurrences = expand_recurrence(
         anchor=recurrence_anchor,
-        recurrence_type=schedule_request.Recurrence_Type or "once",
+        recurrence_type=effective_recurrence_type(schedule_request),
         interval=max(schedule_request.Recurrence_Interval or 1, 1),
         from_date=from_date,
         to_date=to_date,

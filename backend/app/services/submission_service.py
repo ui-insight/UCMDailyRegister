@@ -502,7 +502,7 @@ def _expand_schedule_request_for_newsletter(
     if anchor is not None:
         return recurrence_service.expand_recurrence(
             anchor=anchor,
-            recurrence_type=schedule_request.Recurrence_Type or "once",
+            recurrence_type=recurrence_service.effective_recurrence_type(schedule_request),
             interval=max(schedule_request.Recurrence_Interval or 1, 1),
             from_date=from_date,
             to_date=to_date,
