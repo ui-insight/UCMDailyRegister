@@ -85,6 +85,9 @@ class EditVersionResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+EDITOR_MAX_LINKS = 10
+
+
 class EditorFinalCreate(BaseModel):
     """Request to save the editor's final version."""
 
@@ -94,7 +97,9 @@ class EditorFinalCreate(BaseModel):
     Body: str = Field(..., min_length=1)
     Headline_Case: str | None = Field(None, pattern=r"^(sentence_case|title_case)$")
     Approve_For_Newsletter: bool = False
-    Links: list[LinkCreate] | None = Field(None, max_length=3)
+    # Submitters send up to three links; staff may add more while editing
+    # (#505). Keep in step with EDITOR_MAX_LINKS in frontend/src/utils/bodyLinks.ts.
+    Links: list[LinkCreate] | None = Field(None, max_length=EDITOR_MAX_LINKS)
     # The Staff_Revision_Id the editor's view was loaded with (null when
     # there was none). When sent, a save is rejected with 409 if another
     # staff save has landed since.

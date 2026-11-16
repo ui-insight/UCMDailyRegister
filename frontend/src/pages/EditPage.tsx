@@ -30,7 +30,8 @@ import {
   normalizedBodyLinks,
   prepareBodyForEditing,
   synchronizeLinksWithBodyChange,
-  unattachedLinks,
+  EDITOR_MAX_LINKS,
+  linkSaveProblem,
 } from '../utils/bodyLinks';
 import { buildEditorScheduleRequest } from '../utils/editorSchedule';
 import { Button, SegmentedToggle, Toast, useToast } from '../components/common';
@@ -254,14 +255,10 @@ export default function EditPage() {
 
   const handleFinalize = async (approveForNewsletter: boolean, baseOverride?: string | null) => {
     if (!id) return;
-    const missing = unattachedLinks(editBody, editLinks);
-    if (missing.length) {
-      // Saving would silently drop these links and their destinations.
-      const words = missing.map((link) => `"${link.Anchor_Text.trim() || link.Url.trim()}"`).join(', ');
-      setError(
-        `Link text ${words} isn't in the body, so the link would be lost. `
-          + 'Add the words to the body, change the link text, or clear the link.',
-      );
+    // Saving would otherwise silently drop these links and their destinations.
+    const linkProblem = linkSaveProblem(editBody, editLinks);
+    if (linkProblem) {
+      setError(linkProblem);
       return;
     }
     setFinalizationAction(approveForNewsletter ? 'approve' : 'draft');
@@ -570,8 +567,10 @@ export default function EditPage() {
           onAnchorCommit={handleLinkAnchorCommit}
           body={editBody}
           onMentionChange={handleLinkMentionChange}
+          allowAddRemove
+          maxLinks={EDITOR_MAX_LINKS}
           label="Links and CTA text"
-          description="Link text stays readable in the body while its destination is edited here. Add a secure web URL or an email address."
+          description="Link text stays readable in the body while its destination is edited here. Add a secure web URL (https://) or an email address."
         />
       </div>
       {editLinks.some((link) => link.Url.trim()) && (
