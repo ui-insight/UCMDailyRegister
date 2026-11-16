@@ -2,6 +2,7 @@
 
 import re
 
+from app.utils.body_links import ANCHOR_PATTERN, BARE_URL_PATTERN, link_key
 from app.utils.style_checks.names import _ORGANIZATION_SUFFIXES
 from app.utils.style_checks.text import comparable_words, contains_words, strip_html
 
@@ -150,11 +151,36 @@ def detect_missing_contact_titles(source_text: str, edited_text: str) -> list[st
     return findings
 
 
+def _linked_sentence(text: str, start: int, linked: set[str]) -> bool:
+    """True when the sentence around ``start`` gives an address the edit links."""
+    sentence_start = max(text.rfind(". ", 0, start), text.rfind("\n", 0, start)) + 1
+    found = re.search(r"\.(?:\s|$)|\n", text[start:])
+    sentence = text[sentence_start:start + (found.start() if found else len(text))]
+    return any(
+        link_key(match.group()) in linked for match in BARE_URL_PATTERN.finditer(sentence)
+    )
+
+
 def detect_missing_information_options(source_text: str, edited_text: str) -> list[str]:
-    """Find an explicit information-seeking option removed from edited copy."""
+    """Find an explicit information-seeking option removed from edited copy.
+
+    One URL with one call to action is a single call to action, even when
+    its words name more than one action (#478): "Learn more and sign up at
+    <address>" is satisfied by any linked call to action to that address.
+    """
+    # Show each source anchor's address next to its words.
+    source = strip_html(ANCHOR_PATTERN.sub(
+        lambda m: f"{m.group(4)} {next(g for g in m.groups()[:3] if g is not None)}",
+        source_text,
+    ))
+    linked = {
+        link_key(next(g for g in m.groups()[:3] if g is not None))
+        for m in ANCHOR_PATTERN.finditer(edited_text)
+    }
     source_matches = [
         re.sub(r"\s+", " ", match.group()).strip()
-        for match in _INFORMATION_OPTION.finditer(strip_html(source_text))
+        for match in _INFORMATION_OPTION.finditer(source)
+        if not _linked_sentence(source, match.start(), linked)
     ]
     if not source_matches or _INFORMATION_OPTION.search(strip_html(edited_text)):
         return []

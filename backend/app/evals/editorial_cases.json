@@ -466,6 +466,37 @@
           "^Program coordinator, Example Department"
         ]
       }
+    },
+    {
+      "id": "repeated-url-cta-carries-link",
+      "issues": [
+        478
+      ],
+      "decision": "When the body repeats the link-field URL, the written-out URL is removed and the submitter's call-to-action words carry the one link, kept together.",
+      "newsletter": "tdr",
+      "category": "faculty_staff",
+      "submitted": "2026-11-06",
+      "headline": "Example Garden volunteer day",
+      "body": "The Example Garden needs volunteers to plant bulbs 9 a.m. to noon Saturday, Nov. 21, at the Example Garden. Learn more and sign up at https://www.uidaho.edu/example-event.",
+      "links": [
+        {
+          "url": "https://www.uidaho.edu/example-event",
+          "anchor_text": "Learn more and sign up"
+        }
+      ],
+      "expect": {
+        "links": [
+          {
+            "text": "Learn more and sign up",
+            "url": "https://www.uidaho.edu/example-event"
+          }
+        ],
+        "not_contains": [
+          "https://",
+          "www.",
+          "uidaho.edu/example-event"
+        ]
+      }
     }
   ]
 }

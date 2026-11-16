@@ -33,6 +33,7 @@ KNOWN_EXPECTATIONS = {
     "body_unchanged",
     "no_straight_quotes",
     "headline_not_echo_lead",
+    "links",
 }
 CASES = load_cases()
 

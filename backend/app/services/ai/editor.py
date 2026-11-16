@@ -31,6 +31,7 @@ from app.utils.text import (
     is_event_category,
 )
 from app.utils.hyperlinks import parse_submitter_notes
+from app.utils.link_repair import link_problems, repair_links
 from app.utils.style_checks import (
     strip_html,
     change_contradicts_final_dates,
@@ -281,6 +282,7 @@ class _Draft:
     confidence: float
     replaced_semicolons: bool = False
     converted_quotes: bool = False
+    link_notes: tuple[str, ...] = ()
 
     @classmethod
     def from_model(cls, result: dict, *, headline: str, body: str) -> "_Draft":
@@ -324,6 +326,7 @@ def _tidy_draft(
     short_sentences: bool,
     headline_case: str,
     active_rule_keys: set[str],
+    links: list[dict] | None = None,
 ) -> _Draft:
     """Apply the deterministic clean-up every draft gets."""
     body, replaced_semicolons = (
@@ -337,12 +340,18 @@ def _tidy_draft(
         else to_title_case(draft.headline)
     )
     headline, body, converted_quotes = _clean_final_copy(headline, body, active_rule_keys)
+    link_notes = draft.link_notes
+    if "link_embedding" in active_rule_keys:
+        # One link per page, on the call-to-action words (#478).
+        body, repaired = repair_links(body, links or [])
+        link_notes += tuple(note for note in repaired if note not in link_notes)
     return replace(
         draft,
         headline=headline,
         body=body,
         replaced_semicolons=draft.replaced_semicolons or replaced_semicolons,
         converted_quotes=draft.converted_quotes or converted_quotes,
+        link_notes=link_notes,
     )
 
 
@@ -557,6 +566,7 @@ class AIEditor:
             short_sentences=any(rule["rule_key"] == "short_sentences" for rule in style_rules),
             headline_case=headline_case,
             active_rule_keys={rule["rule_key"] for rule in style_rules},
+            links=links,
         )
         source_text = _source_text(submission)
 
@@ -664,9 +674,14 @@ class AIEditor:
             changes_made.append(SEMICOLON_CLEANUP_DESCRIPTION)
         if draft.converted_quotes and CURLY_QUOTES_DESCRIPTION not in changes_made:
             changes_made.append(CURLY_QUOTES_DESCRIPTION)
+        changes_made += [note for note in draft.link_notes if note not in changes_made]
 
         final_text_flags = self._final_text_flags(
-            submission, draft, final_output, date_contradictions
+            submission,
+            draft,
+            final_output,
+            date_contradictions,
+            check_links=any(rule["rule_key"] == "link_embedding" for rule in style_rules),
         )
         model_flags = reconcile_flags(draft.flags, final_output)
         all_flags = dedupe_flags(final_text_flags + model_flags + post_flags)
@@ -692,9 +707,17 @@ class AIEditor:
         draft: _Draft,
         final_output: str,
         date_contradictions: list[str],
+        *,
+        check_links: bool = False,
     ) -> list[dict]:
         """Flags about the final copy itself: text checks, links and dropped notes."""
         flags = self.pre_analyze(draft.headline, draft.body, submission.Category, None)
+        if check_links:
+            # What repair_links couldn't fix safely is left for staff (#478).
+            flags += [
+                {"type": "warning", "rule_key": "link_embedding", "message": problem}
+                for problem in link_problems(draft.body)
+            ]
         unembedded_links = [
             link
             for link in parse_submitter_notes(submission.Submitter_Notes or "")

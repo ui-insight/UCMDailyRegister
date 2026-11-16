@@ -178,6 +178,25 @@ words are no longer in the body, the link shows a warning and saving is
 blocked until the words are restored, changed, or the link is cleared, so a
 link is never dropped silently.
 
+### Repeated URLs and call-to-action words
+
+When a submitter gives a link with call-to-action words and also pastes the
+same URL into the body, the AI edit keeps one link, on the call-to-action
+words (#478). After the model's edit, the pipeline removes the written-out
+URL ("Learn more and sign up at https://..." becomes "Learn more and sign
+up", linked) and joins a call to action the model split across two links.
+URLs match whatever their scheme, `www.`, trailing slash or letter case.
+When it can't rework a sentence safely, such as "Visit https://... to sign
+up", it leaves the text alone and adds a `link_embedding` flag. It also
+flags a URL used as link text and a page linked more than once. One URL with
+one call to action counts as a single call to action, even when the words
+name more than one action, so the information-options check doesn't flag
+it.
+
+On rare occasions UCM runs a URL as written. Staff can put it back in
+Final Edit; the AI clean-up never runs on staff copy. Switching off the
+`link_embedding` rule turns off the clean-up and these flags.
+
 ## Edit Version Storage
 
 Each pipeline run creates an `EditVersion` record with `Version_Type = AI_Suggested`. The original submission text is stored in a separate `Original` version. When an editor finalizes the copy, an `Editor_Final` version is created. No version is ever modified after creation.
