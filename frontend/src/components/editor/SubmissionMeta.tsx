@@ -2,6 +2,7 @@ import useConfirmAction from '../common/useConfirmAction';
 import { useCallback, useEffect, useState } from 'react';
 import type { Submission, TargetNewsletter } from '../../types/submission';
 import { getValidDates } from '../../api/schedule';
+import ScheduleRequestSummary from './ScheduleRequestSummary';
 import { parseAPIDateTime, parseISODate, addDaysISO } from '../../utils/date';
 
 export interface ScheduleRecurrence {
@@ -45,29 +46,6 @@ const TARGET_LABELS: Record<string, string> = {
   myui: 'My UI',
   both: 'Both Newsletters',
 };
-
-/** Repeating schedules saved without an end date run only on their requested date (#477). */
-function isOpenEndedRepeat(req: Submission['Schedule_Requests'][number]): boolean {
-  return ['weekly', 'monthly_date', 'monthly_nth_weekday'].includes(req.Recurrence_Type)
-    && !req.Recurrence_End_Date;
-}
-
-const RECURRENCE_LABELS: Record<string, string> = {
-  once: 'One time',
-  weekly: 'Weekly',
-  monthly_date: 'Monthly',
-  monthly_nth_weekday: 'Monthly (nth weekday)',
-  date_range: 'Two-week listing window',
-};
-
-function formatPublicationDate(value: string): string {
-  return parseISODate(value).toLocaleDateString(undefined, {
-    weekday: 'short',
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-}
 
 export default function SubmissionMeta({
   submission,
@@ -275,79 +253,27 @@ export default function SubmissionMeta({
             </dt>
             {submission.Schedule_Requests.map((req) => (
               <dd key={req.Id} className="mt-1 text-gray-900 font-medium">
-                <div>
-                  {submission.Target_Newsletter === 'both' ? (
-                    <div className="space-y-0.5">
-                      {req.Requested_Date && (
-                        <div>
-                          <span className="font-normal text-gray-500">Daily Register: </span>
-                          {formatPublicationDate(req.Requested_Date)}
-                        </div>
-                      )}
-                      {req.Second_Requested_Date && (
-                        <div>
-                          <span className="font-normal text-gray-500">My UI: </span>
-                          {formatPublicationDate(req.Second_Requested_Date)}
-                        </div>
-                      )}
-                      {!req.Requested_Date && !req.Second_Requested_Date && 'No specific date'}
-                    </div>
-                  ) : req.Requested_Date ? (
-                    formatPublicationDate(req.Requested_Date)
-                  ) : (
-                    'No specific date'
-                  )}
-                  {req.Repeat_Count > 1 && (
-                    <span className="font-normal text-gray-500"> &middot; Run {req.Repeat_Count}x</span>
-                  )}
-                  {req.Recurrence_Type !== 'once' && (
-                    <span className="font-normal text-gray-500">
-                      {' '}
-                      &middot; {RECURRENCE_LABELS[req.Recurrence_Type] || req.Recurrence_Type}
-                      {req.Recurrence_Interval > 1 ? ` every ${req.Recurrence_Interval}` : ''}
-                    </span>
-                  )}
-                  {req.Is_Flexible && (
-                    <span className="ml-1 inline-block px-1.5 py-0.5 text-xs font-normal bg-amber-100 text-amber-700 rounded">Flexible</span>
-                  )}
-                  {req.Repeat_Note && (
-                    <span className="font-normal text-gray-500"> ({req.Repeat_Note})</span>
-                  )}
-                  {onRemoveScheduleRequest && (
-                    <button
-                      type="button"
-                      aria-label={`Remove schedule ${req.Requested_Date || 'without a date'}`}
-                      onClick={() => requestConfirmation({
-                        title: 'Remove run schedule?', confirmLabel: 'Remove schedule',
-                        description: `Remove the schedule starting ${req.Requested_Date || 'without a fixed date'} for “${submission.Original_Headline}”. ${req.Recurrence_Type !== 'once' ? 'This removes every occurrence in this schedule, not just one date. ' : ''}The submission is kept. Use Add run date to recreate the schedule; exclusions must be entered again.`,
-                        action: () => handleRemoveScheduleRequest(req.Id),
-                      })}
-                      disabled={removingScheduleId === req.Id}
-                      className="ml-2 text-xs font-normal text-status-error-800 hover:text-red-700 underline disabled:opacity-50"
-                    >
-                      {removingScheduleId === req.Id ? 'Removing...' : 'Remove'}
-                    </button>
-                  )}
-                </div>
-                {req.Recurrence_End_Date && (
-                  <div className="text-xs text-gray-500 font-normal mt-0.5">
-                    Ends: {parseISODate(req.Recurrence_End_Date).toLocaleDateString()}
-                  </div>
-                )}
-                {isOpenEndedRepeat(req) && (
-                  <div className="text-xs text-amber-800 font-normal mt-0.5">
-                    No end date, so this runs only on its requested date. To repeat it,
-                    remove this schedule and add a run date with an end date.
-                  </div>
-                )}
-                {req.Excluded_Dates.length > 0 && (
-                  <div className="text-xs text-gray-500 font-normal mt-0.5">
-                    Skips: {req.Excluded_Dates.join(', ')}
-                  </div>
-                )}
-                {req.Is_Flexible && req.Flexible_Deadline && (
-                  <div className="text-xs text-gray-500 font-normal mt-0.5">Deadline: {req.Flexible_Deadline}</div>
-                )}
+                <ScheduleRequestSummary
+                  request={req}
+                  targetNewsletter={submission.Target_Newsletter}
+                  actions={
+                    onRemoveScheduleRequest && (
+                      <button
+                        type="button"
+                        aria-label={`Remove schedule ${req.Requested_Date || 'without a date'}`}
+                        onClick={() => requestConfirmation({
+                          title: 'Remove run schedule?', confirmLabel: 'Remove schedule',
+                          description: `Remove the schedule starting ${req.Requested_Date || 'without a fixed date'} for “${submission.Original_Headline}”. ${req.Recurrence_Type !== 'once' ? 'This removes every occurrence in this schedule, not just one date. ' : ''}The submission is kept. Use Add run date to recreate the schedule; exclusions must be entered again.`,
+                          action: () => handleRemoveScheduleRequest(req.Id),
+                        })}
+                        disabled={removingScheduleId === req.Id}
+                        className="ml-2 text-xs font-normal text-status-error-800 hover:text-red-700 underline disabled:opacity-50"
+                      >
+                        {removingScheduleId === req.Id ? 'Removing...' : 'Remove'}
+                      </button>
+                    )
+                  }
+                />
                 {req.Occurrence_Dates.length > 0 && (
                   <div className="mt-2 rounded-md bg-gray-50 p-2">
                     <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-0.5">
