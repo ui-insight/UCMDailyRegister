@@ -191,6 +191,27 @@ class TestFlaggedCases:
         ]
 
 
+class TestAddressAsInformation:
+    """PR #506 review: an address that is the sentence's information stays."""
+
+    @pytest.mark.parametrize(
+        "sentence",
+        [
+            f"The required access code is {URL}.",
+            f"The meeting is at {URL}.",
+            f"Paste {URL} into the form.",
+        ],
+    )
+    def test_address_that_carries_information_is_kept_and_flagged(self, sentence):
+        body = f"{LEAD}{linked(CTA)}. {sentence}"
+
+        repaired, notes = repair_links(body, LINKS)
+
+        assert repaired == body
+        assert REPAIR_DESCRIPTION not in notes
+        assert link_problems(repaired)
+
+
 class TestInformationOptions:
     """Rule 3: one URL with one CTA is a single call to action."""
 

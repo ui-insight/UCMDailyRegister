@@ -274,3 +274,22 @@ def test_downgrade_restores_the_vandal_gear_rule():
     assert set(by_key) == {"vandal_gear_capitalization"}
     assert by_key["vandal_gear_capitalization"]["Id"] == "gear"
     assert by_key["vandal_gear_capitalization"]["Rule_Text"] == migration.SUPERSEDED_RULE_TEXT
+
+
+def test_slash_separated_variants_are_still_detected():
+    # PR #506 review: a slash in prose isn't a web address.
+    found = detect_vandal_term_variants("Use your Vandalcard/Vandalmail login.")
+
+    assert found == [("Vandalcard", "VandalCard"), ("Vandalmail", "VandalMail")]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Email vandalcard@example.edu for help.",
+        "See https://www.example.edu/vandal-card/vandalmail for details.",
+        "Go to vandalstore.example.com today.",
+    ],
+)
+def test_addresses_are_still_excluded(text):
+    assert detect_vandal_term_variants(text) == []

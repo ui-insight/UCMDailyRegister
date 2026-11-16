@@ -68,6 +68,15 @@ _CONNECTOR = re.compile(
     r"(?:\s+here)?(?:,?\s+(?:online\s+)?(?:at|via)|\s*[:–—]|\s+-)\s*$",
     re.IGNORECASE,
 )
+# Words that may stand before "at|via|: <address>" when the address goes:
+# the call to action itself, which then carries the link.
+_CTA_ENDING = re.compile(
+    r"\b(?:learn\s+more|read\s+more|find\s+out\s+more|sign\s+up|register|"
+    r"apply|rsvp|enroll|donate|subscribe|reserve\s+(?:a\s+|your\s+)?(?:spot|seat|space)|"
+    r"(?:get|buy|purchase)\s+(?:your\s+)?tickets|more\s+(?:information|info|details)|"
+    r"details|information|registration|tickets)\W*$",
+    re.IGNORECASE,
+)
 _MID_CONNECTOR = re.compile(r",?\s+(?:online\s+)?(?:at|via)\s*$", re.IGNORECASE)
 _SENTENCE_END = re.compile(r"[.!?](?=\s|$)|\n")
 
@@ -238,7 +247,23 @@ def _occurrences(pieces: list[_Piece], key: str) -> list[tuple[int, int]]:
     return spans
 
 
-def _removal_span(visible: str, start: int, end: int) -> tuple[int, int] | None:
+_QUOTE_FOLD = str.maketrans({"\u2019": "'", "\u2018": "'", "\u201c": '"', "\u201d": '"'})
+
+
+def _ends_with_cta(kept: str, cta_texts: list[str]) -> bool:
+    """Whether the words kept before a removed address are a call to action."""
+    def fold(text: str) -> str:
+        return " ".join(text.translate(_QUOTE_FOLD).lower().split())
+
+    tail = fold(kept)
+    if any(cta.strip() and tail.endswith(fold(cta)) for cta in cta_texts):
+        return True
+    return bool(_CTA_ENDING.search(kept))
+
+
+def _removal_span(
+    visible: str, start: int, end: int, cta_texts: list[str] | None = None
+) -> tuple[int, int] | None:
     """The visible span to delete with the address, or None when unsure.
 
     Handles: the address in parentheses; a sentence that only points at the
@@ -268,18 +293,16 @@ def _removal_span(visible: str, start: int, end: int) -> tuple[int, int] | None:
         lead = len(visible[:sentence_start]) - len(visible[:sentence_start].rstrip(" \t"))
         return sentence_start - lead, sentence_end
 
+    # Otherwise only "<call to action> at|via|: <address>" is reworked. An
+    # address that is the sentence's information ("The code is <address>",
+    # "The meeting is at <address>") stays, and link_problems flags it.
     connector = (_CONNECTOR if at_end else _MID_CONNECTOR).search(left)
-    if connector:
-        kept = left[: connector.start()]
-        cut = sentence_start + connector.start()
-    elif at_end:
-        kept = left.rstrip()
-        cut = sentence_start + len(kept)
-    else:
+    if not connector:
         return None
-    if not kept.strip() or _DANGLING.search(kept):
+    kept = left[: connector.start()]
+    if not kept.strip() or _DANGLING.search(kept) or not _ends_with_cta(kept, cta_texts or []):
         return None
-    return cut, end
+    return sentence_start + connector.start(), end
 
 
 def _repair_key(
@@ -303,7 +326,7 @@ def _repair_key(
     removed = False
     # Last first, so the earlier spans keep their offsets.
     for start, end in reversed(_occurrences(work, key)):
-        span = _removal_span(_visible(work), start, end)
+        span = _removal_span(_visible(work), start, end, [cta for _href, cta in ctas])
         candidate = None if span is None else _delete(work, *span, key)
         if candidate is not None:
             work, removed = candidate, True

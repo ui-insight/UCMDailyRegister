@@ -255,16 +255,24 @@ def detect_changed_official_names(source_text: str, edited_text: str) -> list[st
     return findings
 
 
+_ADDRESS_SPAN = re.compile(
+    r"(?:https?://|www\.)\S+"  # web address
+    r"|[\w.+-]+@[\w-]+(?:\.[\w-]+)+"  # email address
+    r"|\b[\w-]+(?:\.[\w-]+)*\.(?:edu|com|org|net|gov|io|us)\b(?:/\S*)?",  # bare domain
+    re.IGNORECASE,
+)
+
+
 def _in_web_or_email_address(text: str, start: int, end: int) -> bool:
-    """True when the span sits inside a URL, domain or email address."""
-    token_start = start
-    while token_start > 0 and not text[token_start - 1].isspace():
-        token_start -= 1
-    token_end = end
-    while token_end < len(text) and not text[token_end].isspace():
-        token_end += 1
-    token = text[token_start:token_end]
-    return bool(re.search(r"[@/]|\.[A-Za-z0-9]", token))
+    """True when the span sits inside a URL, domain or email address.
+
+    Only real address spans count, so slash-separated prose such as
+    "VandalCard/VandalMail" is still checked.
+    """
+    return any(
+        match.start() <= start and end <= match.end()
+        for match in _ADDRESS_SPAN.finditer(text)
+    )
 
 
 def _vandal_term_matches(text: str):

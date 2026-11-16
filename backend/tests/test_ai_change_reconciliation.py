@@ -204,6 +204,31 @@ def test_reconcile_flags_drops_removal_claims_the_final_copy_contradicts():
     ) == [real_removal, unrelated_quote, no_claim]
 
 
+def test_reconcile_flags_keeps_flags_that_quote_a_subject_not_the_lost_content():
+    # PR #506 review: the quoted words can name whose detail is missing.
+    final = "Contact the Event Coordinator for details. All are welcome."
+    subject_quote = {
+        "type": "warning",
+        "rule_key": "preserve_source_contacts",
+        "message": 'Contact email missing for "Event Coordinator"',
+    }
+    mixed = {
+        "type": "warning",
+        "rule_key": "preserve_source_contacts",
+        "message": 'Removed "all are welcome" and missing "Event Coordinator" phone',
+    }
+    named_removal = {
+        "type": "warning",
+        "rule_key": "preserve_audience_scope",
+        "message": "Removed the phrase “all are welcome”",
+    }
+
+    assert reconcile_flags([subject_quote, mixed, named_removal], final) == [
+        subject_quote,
+        mixed,
+    ]
+
+
 class ContradictedFlagProvider:
     """Single pass whose own flag says it removed a phrase it kept."""
 

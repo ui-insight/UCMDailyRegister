@@ -210,10 +210,31 @@ def reconcile_changes(changes: list, final_text: str) -> list[str]:
 
 
 # A flag claiming source content was lost: "'All are welcome' was removed".
-_REMOVAL_CLAIM = re.compile(
-    r"\b(?:removed|omitted|missing|dropped|deleted|narrowed|lost|"
-    r"no\s+longer|not\s+(?:included|kept|preserved|present|retained))\b",
+_REMOVAL_WORDS = (
+    r"(?:removed|omitted|dropped|deleted|narrowed|lost|missing|cut|"
+    r"no\s+longer\s+(?:included|present|kept)|"
+    r"not\s+(?:included|kept|preserved|present|retained))"
+)
+_REMOVAL_CLAIM = re.compile(rf"\b{_REMOVAL_WORDS}\b", re.IGNORECASE)
+# The quoted phrase must be what the claim says was lost: either the claim
+# follows it ("'X' was removed") or names it directly ("Removed 'X'",
+# "Removed the phrase 'X'"). "Contact email missing for 'X'" names X only as
+# the subject of something else that is missing, so it doesn't qualify.
+_CLAIM_AFTER_QUOTE = re.compile(
+    rf"^\s*(?:(?:was|were|is|are|has\s+been|have\s+been)\s+)?"
+    rf"(?:(?:narrowed|shortened|changed)\s+or\s+)?{_REMOVAL_WORDS}\b",
     re.IGNORECASE,
+)
+_CLAIM_BEFORE_QUOTE = re.compile(
+    r"\b(?:removed|omitted|dropped|deleted|cut|lost|missing)"
+    r"(?:\s+(?:the|broad|source|original))*"
+    r"(?:\s+(?:phrase|wording|text|line|sentence|invitation|statement))?\s*:?\s*$",
+    re.IGNORECASE,
+)
+# After "Removed 'X'" the phrase must end the claim, so "missing 'X' phone"
+# (a missing phone number) doesn't count as a claim about X.
+_CLAIM_OBJECT_ENDS = re.compile(
+    r"^\s*(?:$|[.,;:)!]|(?:from|in|of|and|or|which|that)\b)", re.IGNORECASE
 )
 _QUOTED_PHRASE = re.compile(
     r"\"(?P<double>[^\"]+)\"|“(?P<curly_double>[^”]+)”|‘(?P<curly_single>[^’]+)’|"
@@ -222,20 +243,35 @@ _QUOTED_PHRASE = re.compile(
 
 
 def _flag_contradicted_by_final(flag: dict, final_text: str) -> bool:
-    """Whether a removal flag quotes only phrases the final copy still has.
+    """Whether a removal flag claims only that quoted phrases the final copy has were lost.
 
-    Single-word quotes are ignored: "Missing end time for 'noon'" quotes a
-    word that is present but claims something else is missing.
+    Every quoted phrase must be the object of the removal claim, have two or
+    more words, and appear in the final copy. Anything else keeps the flag:
+    "Missing end time for 'noon'" and "Contact email missing for 'Event
+    Coordinator'" quote a subject, not the content claimed lost.
     """
     message = str(flag.get("message", ""))
     if not _REMOVAL_CLAIM.search(message):
         return False
-    phrases = [
-        next(group for group in match.groups() if group)
-        for match in _QUOTED_PHRASE.finditer(message)
-    ]
-    phrases = [phrase for phrase in phrases if len(comparable_words(phrase).split()) >= 2]
-    return bool(phrases) and all(contains_words(final_text, phrase) for phrase in phrases)
+    matches = list(_QUOTED_PHRASE.finditer(message))
+    if not matches:
+        return False
+    for match in matches:
+        phrase = next(group for group in match.groups() if group)
+        is_claimed_lost = bool(
+            _CLAIM_AFTER_QUOTE.match(message[match.end():])
+            or (
+                _CLAIM_BEFORE_QUOTE.search(message[: match.start()])
+                and _CLAIM_OBJECT_ENDS.match(message[match.end():])
+            )
+        )
+        if (
+            not is_claimed_lost
+            or len(comparable_words(phrase).split()) < 2
+            or not contains_words(final_text, phrase)
+        ):
+            return False
+    return True
 
 
 def reconcile_flags(flags: list, final_text: str) -> list[dict]:
