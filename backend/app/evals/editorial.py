@@ -29,6 +29,7 @@ from datetime import date, datetime, timezone
 from pathlib import Path
 
 from app.services.ai.editor import AIEditor, EditResult
+from app.utils.body_links import link_key, parse_body
 from app.utils.style_checks import detect_headline_echoes_lead, strip_html
 
 CASES_PATH = Path(__file__).with_name("editorial_cases.json")
@@ -134,6 +135,18 @@ def score(case: dict, headline: str, body: str, flags: list[dict]) -> list[Check
                 "" if text == straight(case["body"]) else text,
             )
         )
+    if "links" in expect:
+        # Exactly these links, in order: words and destination (#478).
+        actual = [
+            (straight(segment.text).casefold(), link_key(segment.href))
+            for segment in parse_body(body)
+            if segment.href
+        ]
+        wanted = [
+            (straight(link["text"]).casefold(), link_key(link["url"]))
+            for link in expect["links"]
+        ]
+        checks.append(Check("links", actual == wanted, "" if actual == wanted else repr(actual)))
     if expect.get("no_straight_quotes"):
         leftover = re.findall(r"[\"']", visible(f"{headline}\n{body}"))
         checks.append(Check("no_straight_quotes", not leftover, "".join(leftover)))

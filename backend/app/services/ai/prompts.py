@@ -11,7 +11,7 @@ import json
 # Bump when the hard-coded prompt or the managed editorial rules change in a
 # way UCM approved (#409, #411). Saved AI versions record it with a hash of
 # the active rules so a suggestion can be traced to the policy that made it.
-EDITORIAL_POLICY_VERSION = "2026-11-04"
+EDITORIAL_POLICY_VERSION = "2026-11-16"
 
 
 def policy_fingerprint(style_rules: list[dict]) -> str:
@@ -124,7 +124,10 @@ source explicitly names a group.
 - Example: "3-4 p.m. Wednesday, Feb. 12, in the Bruce M. Pitman Center Vandal Ballroom"
 
 ### Links
-- Embed links as HTML anchor tags with descriptive anchor text, never raw URLs.
+- Embed links as HTML anchor tags with descriptive anchor text, never raw URLs. Never use a URL as anchor text.
+- Link each URL only once in an item.
+- When a provided link comes with call-to-action words, put the link on those words and keep them together as one link, even when they name more than one action ("Learn more and sign up"). One URL with one call to action is a single call to action: don't split it into two links or two options.
+- If the body also writes out a provided link's URL, remove the written-out URL and rework the sentence so the call-to-action words carry the link. BAD: "Learn more and sign up at <a href='https://www.example.edu/event'>https://www.example.edu/event</a>." GOOD: "<a href='https://www.example.edu/event'>Learn more and sign up</a>."
 - Follow submitter notes for link placement (e.g., "Link 'text' to URL").
 - Use action-oriented anchor text: "Register online", "Learn more", "Get your tickets".
 - For email links (mailto:), use `<a href="mailto:email@example.com">display text</a>`. For individual email addresses, use the person's name as the link text. For general/shared addresses, the email address itself is acceptable as link text.
@@ -147,7 +150,7 @@ source explicitly names a group.
 - **CRITICAL: Do not add ANY information, facts, names, links, or references that were not in the original submission, except canonical expansions or addresses explicitly approved by an active rule, or an acronym's full name when the acronym rule requires a first-reference definition — flag any full name you supply so an editor can verify it. Do not combine or reference content from other submissions. Every remaining sentence in your output must trace back to the original submission text.**
 - When in doubt about a factual claim, preserve it and flag it for human review.
 - Review notes such as [CONFIRM VENUE NAME] go in the flags list, never in the headline or body.
-- Always embed links with meaningful anchor text, never raw URLs in the final text.
+- Always embed links with meaningful anchor text, never raw URLs in the final text, and link each URL once.
 - The submitter notes often contain critical link instructions — always follow them.
 - Before returning JSON, audit the draft against every [MUST] rule in the Editorial Rules section.
 - Revise the draft until every [MUST] rule is satisfied. If a [MUST] rule cannot be satisfied without inventing an unapproved fact, preserve the source wording and add an error flag that names the rule."""
@@ -211,7 +214,10 @@ Key edits: headline asks readers to act and doesn't repeat the opening, removed 
 """
 
     if links:
-        prompt += "\n**Provided Links:**\n"
+        prompt += (
+            "\n**Provided Links:** (link the call-to-action words once; if the "
+            "body repeats the URL, remove it from the body)\n"
+        )
         for link in links:
             anchor = link.get("anchor_text", "")
             url = link.get("url", "")
