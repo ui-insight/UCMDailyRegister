@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  commitLinkLabel,
   duplicateLinks,
   findMentions,
   invalidLinks,
@@ -175,7 +176,7 @@ describe('body link editing', () => {
       'Reserve a seat.',
       '',
       'Register now',
-    )).toBe('Reserve a seat.\nRegister now');
+    )).toBe('Reserve a seat. Register now');
   });
 
   it('replaces link text in place when its link field is edited', () => {
@@ -298,6 +299,19 @@ describe('body link editing', () => {
     expect(looksLikeWebAddress(' www.uidaho.edu')).toBe(true);
     expect(looksLikeWebAddress('ana@uidaho.edu')).toBe(false);
     expect(looksLikeWebAddress('ana')).toBe(false);
+  });
+
+  it('keeps a link restored from its link field through save and reload (#397)', () => {
+    const removed = { Url: 'https://example.com/register', Anchor_Text: 'Register now' };
+    // Staff deleted the words from the body; the link fields still hold them.
+    const restored = commitLinkLabel('Reserve a seat.', { ...removed, Anchor_Text: '' }, 'Register now');
+    const saved = buildLinkedBody(restored.body, [restored.link]);
+    expect(saved).toBe('Reserve a seat. <a href="https://example.com/register">Register now</a>');
+
+    const reloaded = prepareBodyForEditing(saved, [{ ...removed, Display_Order: 0 }]);
+    expect(reloaded.body).toBe(restored.body);
+    expect(linkSaveProblem(reloaded.body, reloaded.links)).toBeNull();
+    expect(buildLinkedBody(reloaded.body, reloaded.links)).toBe(saved);
   });
 
   it('keeps every link in the body for editing, not just the first three', () => {

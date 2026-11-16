@@ -27,6 +27,11 @@ interface Props {
   body?: string;
   onMentionChange?: (index: number, start: number) => void;
   /**
+   * Put a link's words back into `body` when they are missing from it, so a
+   * removed link can be restored without retyping (#397).
+   */
+  onRestoreWords?: (index: number) => void;
+  /**
    * Show only the links given, with Add and Remove buttons, instead of a
    * fixed set of slots. Staff use this on the Edit page (#505).
    */
@@ -84,6 +89,7 @@ export default function LinkEditor({
   onAnchorCommit,
   body,
   onMentionChange,
+  onRestoreWords,
   allowAddRemove = false,
   maxLinks = MAX_LINKS,
   label = 'Links to Embed',
@@ -129,6 +135,7 @@ export default function LinkEditor({
             onRemove={allowAddRemove ? removeLink : undefined}
             onAnchorCommit={onAnchorCommit}
             onMentionChange={onMentionChange}
+            onRestoreWords={onRestoreWords}
           />
         ))}
         {allowAddRemove && slots.length === 0 && (
@@ -163,6 +170,7 @@ function LinkRow({
   onRemove,
   onAnchorCommit,
   onMentionChange,
+  onRestoreWords,
 }: {
   index: number;
   link: LinkEntry;
@@ -173,6 +181,7 @@ function LinkRow({
   onRemove?: (index: number) => void;
   onAnchorCommit?: (index: number, previousValue: string, nextValue: string) => void;
   onMentionChange?: (index: number, start: number) => void;
+  onRestoreWords?: (index: number) => void;
 }) {
   const emailMode = isEmailLink(link.Url);
 
@@ -289,6 +298,7 @@ function LinkRow({
           body={body}
           link={link}
           onMentionChange={onMentionChange}
+          onRestoreWords={onRestoreWords}
         />
       )}
       {emailMode && (
@@ -305,11 +315,13 @@ function LinkPlacement({
   body,
   link,
   onMentionChange,
+  onRestoreWords,
 }: {
   index: number;
   body: string;
   link: LinkEntry;
   onMentionChange?: (index: number, start: number) => void;
+  onRestoreWords?: (index: number) => void;
 }) {
   const words = link.Anchor_Text.trim();
   const mentions = findMentions(body, words);
@@ -317,10 +329,21 @@ function LinkPlacement({
 
   if (mentions.length === 0) {
     return hasDestination(link.Url) ? (
-      <p role="status" className="mt-2 text-xs text-status-warning-800">
-        These words aren&apos;t in the body, so this link can&apos;t be saved. Add them to the body,
-        or change them to words that are there.
-      </p>
+      <div className="mt-2">
+        <p role="status" className="text-xs text-status-warning-800">
+          These words aren&apos;t in the body, so this link can&apos;t be saved. Add them to the body,
+          or change them to words that are there.
+        </p>
+        {onRestoreWords && (
+          <button
+            type="button"
+            onClick={() => onRestoreWords(index)}
+            className="mt-1.5 rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50"
+          >
+            Add these words to the body
+          </button>
+        )}
+      </div>
     ) : null;
   }
 

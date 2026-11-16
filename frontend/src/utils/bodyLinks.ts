@@ -280,8 +280,12 @@ export function synchronizeBodyWithLinkLabel(
 
 /**
  * Apply an edit to a link's words: rewrite them at the link's own mention,
- * or, for words not yet in the body, add them visibly on a new line. Returns
- * the new body and the link pointing at its words.
+ * or, for words not yet in the body, add them visibly at the end of the last
+ * paragraph. Returns the new body and the link pointing at its words.
+ *
+ * Not on a line of their own: prepareBodyForEditing drops a trailing line
+ * that is only a link (what older builds appended), so words added there
+ * would vanish on the next load and the link with them (#397).
  */
 export function commitLinkLabel(
   body: string,
@@ -309,7 +313,7 @@ export function commitLinkLabel(
   const existing = findMentions(body, next);
   if (existing.length) return placed(body, existing[0]);
   const trimmed = body.trimEnd();
-  const appended = [trimmed, next].filter(Boolean).join('\n');
+  const appended = [trimmed, next].filter(Boolean).join(' ');
   return placed(appended, appended.length - next.length);
 }
 

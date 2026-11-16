@@ -987,6 +987,128 @@ describe('EditPage', () => {
     });
   });
 
+  describe('restoring a removed link (#397)', () => {
+    const registerLink = {
+      Id: 'link-1',
+      Url: 'https://example.com/register',
+      Anchor_Text: 'Register now',
+      Display_Order: 0,
+    };
+
+    /** After Save Draft, the page reloads what the server now holds. */
+    function serverSaves(headline: string) {
+      saveEditorFinalMock.mockImplementation(async (_id, data) => {
+        const saved = makeVersion({
+          Id: 'version-saved',
+          Version_Type: 'editor_final',
+          Headline: headline,
+          Body: data.Body,
+        });
+        getSubmissionMock.mockResolvedValue(makeSubmission({
+          Working_Version_Id: 'version-saved',
+          Staff_Revision_Id: 'version-saved',
+          Links: (data.Links ?? []).map((link, index) => ({
+            Id: `saved-${index}`,
+            Url: link.Url,
+            Anchor_Text: link.Anchor_Text ?? null,
+            Display_Order: link.Display_Order ?? index,
+          })),
+        }));
+        listEditVersionsMock.mockResolvedValue([saved]);
+        return saved;
+      });
+    }
+
+    it('puts the link words back with one click and keeps them through Save Draft and reload', async () => {
+      const user = userEvent.setup();
+      getSubmissionMock.mockResolvedValue(makeSubmission({
+        Working_Version_Id: 'version-1',
+        Links: [registerLink],
+      }));
+      listEditVersionsMock.mockResolvedValue([
+        makeVersion({
+          Version_Type: 'editor_final',
+          Headline: 'Final event headline',
+          Body: 'Reserve a seat. <a href="https://example.com/register">Register now</a>.',
+        }),
+      ]);
+      serverSaves('Final event headline');
+
+      renderEditPage();
+
+      const body = await screen.findByPlaceholderText('Enter body text...');
+      await user.clear(body);
+      await user.type(body, 'Reserve a seat.');
+      await user.tab();
+      const link1 = screen.getByRole('group', { name: 'Link 1' });
+      expect(within(link1).getByRole('status')).toHaveTextContent("These words aren't in the body");
+
+      await user.click(within(link1).getByRole('button', { name: 'Add these words to the body' }));
+      expect(body).toHaveValue('Reserve a seat. Register now');
+      expect(within(link1).queryByRole('status')).not.toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: /save draft/i }));
+
+      const savedBody = 'Reserve a seat. <a href="https://example.com/register">Register now</a>';
+      await waitFor(() => {
+        expect(saveEditorFinalMock).toHaveBeenCalledWith('submission-1', expect.objectContaining({
+          Body: savedBody,
+          Links: [{ Url: 'https://example.com/register', Anchor_Text: 'Register now', Display_Order: 0 }],
+        }));
+      });
+
+      // Reloaded from the saved version: words and link are still attached, once.
+      await waitFor(() => {
+        expect(screen.getByPlaceholderText('Enter body text...')).toHaveValue('Reserve a seat. Register now');
+      });
+      expect(within(screen.getByRole('group', { name: 'Link 1' })).queryByRole('status'))
+        .not.toBeInTheDocument();
+      const preview = screen.getByRole('region', { name: 'Newsletter body preview' });
+      expect(within(preview).getByRole('link', { name: 'Register now' }))
+        .toHaveAttribute('href', 'https://example.com/register');
+
+      await user.click(screen.getByRole('button', { name: /save draft/i }));
+      await waitFor(() => expect(saveEditorFinalMock).toHaveBeenCalledTimes(2));
+      expect(saveEditorFinalMock).toHaveBeenLastCalledWith('submission-1', expect.objectContaining({
+        Body: savedBody,
+        Base_Staff_Revision_Id: 'version-saved',
+      }));
+    });
+
+    it('links words staff choose in the body when the AI dropped the link', async () => {
+      const user = userEvent.setup();
+      getSubmissionMock.mockResolvedValue(makeSubmission({
+        Working_Version_Id: 'version-1',
+        Links: [registerLink],
+      }));
+      listEditVersionsMock.mockResolvedValue([
+        makeVersion({ Body: 'Reserve a seat for the fall forum today.' }),
+      ]);
+
+      renderEditPage();
+
+      await screen.findByRole('button', { name: 'Final Edit' });
+      await user.click(screen.getByRole('button', { name: 'Final Edit' }));
+      const link1 = screen.getByRole('group', { name: 'Link 1' });
+      expect(within(link1).getByLabelText('URL')).toHaveValue('https://example.com/register');
+      expect(within(link1).getByRole('status')).toHaveTextContent("These words aren't in the body");
+
+      const words = within(link1).getByLabelText(/Words to link the URL to/);
+      await user.clear(words);
+      await user.type(words, 'Reserve a seat');
+      await user.tab();
+      expect(screen.getByPlaceholderText('Enter body text...'))
+        .toHaveValue('Reserve a seat for the fall forum today.');
+      await user.click(screen.getByRole('button', { name: /save draft/i }));
+
+      await waitFor(() => {
+        expect(saveEditorFinalMock).toHaveBeenCalledWith('submission-1', expect.objectContaining({
+          Body: '<a href="https://example.com/register">Reserve a seat</a> for the fall forum today.',
+          Links: [{ Url: 'https://example.com/register', Anchor_Text: 'Reserve a seat', Display_Order: 0 }],
+        }));
+      });
+    });
+  });
+
   it('keeps a link on its mention when staff type the same words earlier', async () => {
     const user = userEvent.setup();
     getSubmissionMock.mockResolvedValue(makeSubmission({ Working_Version_Id: 'version-1' }));
@@ -1245,7 +1367,7 @@ describe('EditPage', () => {
       await waitFor(() => {
         expect(saveEditorFinalMock).toHaveBeenCalledWith('submission-1', expect.objectContaining({
           Body: 'Join us Friday. Contact <a href="mailto:ana@example.edu">Ana Lopez</a> or '
-            + '<a href="mailto:events@example.edu">events@example.edu</a>.\n'
+            + '<a href="mailto:events@example.edu">events@example.edu</a>. '
             + '<a href="https://example.com/tickets">Buy tickets</a>',
           Links: expect.arrayContaining([
             { Url: 'https://example.com/tickets', Anchor_Text: 'Buy tickets', Display_Order: 0 },
@@ -1278,7 +1400,7 @@ describe('EditPage', () => {
         expect(saveEditorFinalMock).toHaveBeenCalledWith('submission-1', expect.objectContaining({
           Body: '<a href="https://example.com/map">Join us Friday</a>. '
             + '<a href="https://example.com/register">Register now</a>. '
-            + 'Contact <a href="mailto:ana@example.edu">Ana Lopez</a> or events@example.edu.\n'
+            + 'Contact <a href="mailto:ana@example.edu">Ana Lopez</a> or events@example.edu. '
             + '<a href="mailto:events@example.edu">UCM events</a>',
           Links: [
             { Url: 'https://example.com/register', Anchor_Text: 'Register now', Display_Order: 0 },
