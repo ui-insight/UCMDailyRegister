@@ -14,6 +14,7 @@ from docx.text.paragraph import Paragraph
 from app.utils.body_links import parse_body
 
 LINK_COLOR = "0056B3"
+NO_EVENTS_TEXT = "No events."
 
 
 def export_newsletter_docx(
@@ -29,6 +30,8 @@ def export_newsletter_docx(
         sections: List of section dicts, each with:
             - name: Section name
             - items: List of item dicts with 'Final_Headline', 'Final_Body'
+            - empty_text (optional): shown under the heading when there are
+              no items; sections with neither are left out
 
     Returns:
         BytesIO buffer containing the .docx file
@@ -60,13 +63,18 @@ def export_newsletter_docx(
     doc.add_paragraph()  # Spacer
 
     for section in sections:
-        if not section.get("items"):
+        if not section.get("items") and not section.get("empty_text"):
             continue
 
         # Section heading
         heading = doc.add_heading(section["name"], level=1)
         for run in heading.runs:
             run.font.color.rgb = RGBColor(0x8C, 0x6E, 0x1A)  # Dark gold
+
+        if not section.get("items"):
+            doc.add_paragraph(section["empty_text"])
+            doc.add_paragraph()  # Spacer
+            continue
 
         # Items
         for item in section["items"]:

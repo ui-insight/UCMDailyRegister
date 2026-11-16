@@ -46,6 +46,43 @@ import { formatAPDate, parseISODate, todayISO, toISODate } from '../utils/date';
 const ACADEMIC_DATES_SOURCE_URL = 'https://www.uidaho.edu/registrar/dates-deadlines';
 const ACADEMIC_DATES_WINDOW_DAYS = 30;
 
+// Section that imported calendar events go to; mirrors the backend's
+// get_calendar_section_slug. Its heading stays in place when empty (#443).
+const CALENDAR_SECTION_SLUGS: Record<'tdr' | 'myui', string> = {
+  tdr: 'todays-events',
+  myui: 'weekly-events',
+};
+
+function calendarSectionName(
+  sections: NewsletterSection[],
+  newsletterType: 'tdr' | 'myui',
+): string {
+  const section = sections.find((s) => s.Slug === CALENDAR_SECTION_SLUGS[newsletterType]);
+  return section ? section.Name : 'events';
+}
+
+function emptySectionMessage(
+  section: NewsletterSection,
+  newsletterType: 'tdr' | 'myui',
+): { title: string; hint: string } {
+  if (newsletterType === 'myui' && section.Slug === 'academic-dates-and-deadlines') {
+    return {
+      title: 'No academic dates added',
+      hint: 'Use the form above to add a Registrar deadline, or move an approved submission here.',
+    };
+  }
+  if (section.Slug === CALENDAR_SECTION_SLUGS[newsletterType]) {
+    return {
+      title: 'No events.',
+      hint: 'Add events from Import Calendar Events, or move an approved submission here. The export shows "No events." under this heading until you do.',
+    };
+  }
+  return {
+    title: 'No items in this section',
+    hint: 'Approved submissions can be moved here before export.',
+  };
+}
+
 interface BuilderSectionItemBase {
   Id: string;
   Section_Id: string;
@@ -1175,7 +1212,7 @@ export default function BuilderPage() {
               <CollapsibleCard
                 title="Import Calendar Events"
                 subtitle={`Pull upcoming events from the U of I events calendar into the ${
-                  newsletterType === 'tdr' ? "Today's Events" : 'Weekly Events'
+                  calendarSectionName(sections, newsletterType)
                 } section. These are external calendar events, not submitted announcements.`}
                 meta={`${calendarEvents.length} candidate${calendarEvents.length !== 1 ? 's' : ''}`}
                 isOpen
@@ -1428,14 +1465,10 @@ export default function BuilderPage() {
                             )}
                             <div className="rounded-md border border-dashed border-gray-200 px-4 py-4 text-center">
                               <p className="text-xs font-medium text-gray-500">
-                                {isAcademicDatesSection
-                                  ? 'No academic dates added'
-                                  : 'No items in this section'}
+                                {emptySectionMessage(section, newsletterType).title}
                               </p>
                               <p className="mt-1 text-xs text-gray-600">
-                                {isAcademicDatesSection
-                                  ? 'Use the form above to add a Registrar deadline, or move an approved submission here.'
-                                  : 'Approved submissions can be moved here before export.'}
+                                {emptySectionMessage(section, newsletterType).hint}
                               </p>
                             </div>
                           </div>
