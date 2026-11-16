@@ -189,6 +189,31 @@ describe('BuilderPage staff-only sections', () => {
     ).toHaveValue('section-student-reminders');
   });
 
+  it('keeps the empty events heading in place with "No events."', async () => {
+    const user = userEvent.setup();
+    const eventsSection = {
+      ...tdrSections[0],
+      Id: 'section-upcoming-events',
+      Name: 'Upcoming events',
+      Slug: 'todays-events',
+      Display_Order: 2,
+    };
+    newsletterApiMocks.listSections.mockResolvedValue([eventsSection, ...tdrSections]);
+    render(<BuilderPage />);
+
+    const publishDateInput = document.querySelector<HTMLInputElement>('input[type="date"]');
+    await user.clear(publishDateInput!);
+    await user.type(publishDateInput!, '2026-08-25');
+    await user.click(screen.getAllByRole('button', { name: 'Assemble Newsletter' })[0]);
+
+    const sectionHeadings = await screen.findAllByRole('heading', { level: 4 });
+    expect(sectionHeadings[0]).toHaveTextContent('Upcoming events');
+    const eventsDropZone = document.querySelector<HTMLElement>(
+      '[data-builder-section-id="section-upcoming-events"]',
+    );
+    expect(within(eventsDropZone!).getByText('No events.')).toBeInTheDocument();
+  });
+
   it.each([
     ['Use approved copy', 'refreshNewsletterItemFromApproved', 'Edition updated to the approved copy'],
     ['Keep edition copy', 'keepNewsletterItemEditionCopy', 'Edition copy kept'],

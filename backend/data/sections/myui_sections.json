@@ -8,7 +8,7 @@
     "image_dimensions": "600x600"
   },
   {
-    "name": "Weekly Events",
+    "name": "Events this week",
     "slug": "weekly-events",
     "display_order": 2,
     "description": "Student-specific events from university calendar. Permalink links. Non-Moscow events indicate location. Chronological by day, Monday through following Sunday. Exclude thesis defenses, student recitals, non-local competitions.",
