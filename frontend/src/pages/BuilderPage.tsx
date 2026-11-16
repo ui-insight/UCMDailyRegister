@@ -35,12 +35,10 @@ import type { RecurringMessageIssueCandidate } from '../types/recurringMessage';
 import { EmptyState, Toast, useToast } from '../components/common';
 import RichBody from '../components/editor/RichBody';
 import LinkCheck from '../components/newsletter/LinkCheck';
-import OriginalEntryPanel from '../components/newsletter/OriginalEntryPanel';
-import {
-  buildLinkedBody,
-  prepareBodyForEditing,
-  type EditableBodyLink,
-} from '../utils/bodyLinks';
+import BuilderItemEditForm, {
+  type BuilderItemEditDraft,
+} from '../components/newsletter/BuilderItemEditForm';
+import { linkedBodyForSave, prepareBodyForEditing } from '../utils/bodyLinks';
 import { formatAPDate, parseISODate, todayISO, toISODate } from '../utils/date';
 
 const ACADEMIC_DATES_SOURCE_URL = 'https://www.uidaho.edu/registrar/dates-deadlines';
@@ -67,13 +65,6 @@ interface SubmissionDragState {
   width: number;
   height: number;
   title: string;
-}
-
-interface NewsletterItemEditDraft {
-  Item_Id: string;
-  Headline: string;
-  Body: string;
-  Links: EditableBodyLink[];
 }
 
 type BuilderSectionItem =
@@ -286,7 +277,7 @@ export default function BuilderPage() {
   const [metadataError, setMetadataError] = useState<string | null>(null);
   const { toast, showToast, dismissToast } = useToast();
   const [dragState, setDragState] = useState<SubmissionDragState | null>(null);
-  const [itemEditDraft, setItemEditDraft] = useState<NewsletterItemEditDraft | null>(null);
+  const [itemEditDraft, setItemEditDraft] = useState<BuilderItemEditDraft | null>(null);
   const [itemEditSaving, setItemEditSaving] = useState(false);
   const [upstreamActionItemId, setUpstreamActionItemId] = useState<string | null>(null);
   const dragStateRef = useRef<SubmissionDragState | null>(null);
@@ -679,8 +670,8 @@ export default function BuilderPage() {
     });
   };
 
-  const handleSaveNewsletterItem = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  // BuilderItemEditForm has already checked that no link would be lost (#490).
+  const handleSaveNewsletterItem = async () => {
     if (!newsletter || !itemEditDraft) return;
 
     const headline = itemEditDraft.Headline.trim();
@@ -695,7 +686,7 @@ export default function BuilderPage() {
     try {
       await updateNewsletterItem(newsletter.Id, itemEditDraft.Item_Id, {
         Final_Headline: headline,
-        Final_Body: buildLinkedBody(body, itemEditDraft.Links),
+        Final_Body: linkedBodyForSave(itemEditDraft.Body, itemEditDraft.Links),
       });
       const refreshed = await getNewsletter(newsletter.Id);
       setNewsletter(refreshed);
@@ -1650,74 +1641,15 @@ export default function BuilderPage() {
                                       </div>
                                     </div>
                                     {item.Kind === 'submission' && itemEditDraft?.Item_Id === item.Id && (
-                                      <form
-                                        onSubmit={(event) => void handleSaveNewsletterItem(event)}
-                                        className="mt-4 space-y-3 border-t border-gray-200 pt-4"
-                                      >
-                                        <OriginalEntryPanel submissionId={item.Submission_Id} />
-                                        <div>
-                                          <label
-                                            htmlFor={`builder-item-${item.Id}-headline`}
-                                            className="mb-1 block text-xs font-medium text-gray-600"
-                                          >
-                                            Newsletter headline
-                                          </label>
-                                          <input
-                                            id={`builder-item-${item.Id}-headline`}
-                                            type="text"
-                                            value={itemEditDraft.Headline}
-                                            onChange={(event) => setItemEditDraft((current) => (
-                                              current ? { ...current, Headline: event.target.value } : current
-                                            ))}
-                                            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
-                                          />
-                                        </div>
-                                        <div>
-                                          <label
-                                            htmlFor={`builder-item-${item.Id}-body`}
-                                            className="mb-1 block text-xs font-medium text-gray-600"
-                                          >
-                                            Newsletter body
-                                          </label>
-                                          <textarea
-                                            id={`builder-item-${item.Id}-body`}
-                                            value={itemEditDraft.Body}
-                                            onChange={(event) => setItemEditDraft((current) => (
-                                              current ? { ...current, Body: event.target.value } : current
-                                            ))}
-                                            rows={6}
-                                            className="w-full resize-y rounded-md border border-gray-300 px-3 py-2 text-sm leading-6 focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
-                                          />
-                                        </div>
-                                        {itemEditDraft.Links.length > 0 && (
-                                          <div className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
-                                            <p className="mb-1 text-[11px] font-medium text-gray-500">
-                                              Live link preview
-                                            </p>
-                                            <RichBody
-                                              text={buildLinkedBody(itemEditDraft.Body, itemEditDraft.Links)}
-                                              className="text-xs leading-5 text-gray-700"
-                                            />
-                                          </div>
-                                        )}
-                                        <div className="flex justify-end gap-2">
-                                          <button
-                                            type="button"
-                                            onClick={() => setItemEditDraft(null)}
-                                            disabled={itemEditSaving}
-                                            className="rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                                          >
-                                            Cancel
-                                          </button>
-                                          <button
-                                            type="submit"
-                                            disabled={itemEditSaving}
-                                            className="rounded-md bg-ui-clearwater-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-ui-clearwater-800 disabled:opacity-50"
-                                          >
-                                            {itemEditSaving ? 'Saving...' : 'Save newsletter text'}
-                                          </button>
-                                        </div>
-                                      </form>
+                                      <BuilderItemEditForm
+                                        itemId={item.Id}
+                                        submissionId={item.Submission_Id}
+                                        draft={itemEditDraft}
+                                        onDraftChange={(change) => setItemEditDraft((current) => (current ? change(current) : current))}
+                                        saving={itemEditSaving}
+                                        onCancel={() => setItemEditDraft(null)}
+                                        onSave={() => void handleSaveNewsletterItem()}
+                                      />
                                     )}
                                   </div>
                                   {showIndicatorAfter && (

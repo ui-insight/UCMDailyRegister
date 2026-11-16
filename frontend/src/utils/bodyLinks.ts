@@ -425,6 +425,15 @@ export function buildLinkedBody(body: string, links: EditableBodyLink[]): string
   return linkedBody.trimEnd();
 }
 
+/**
+ * The stored body for an edit: plain text with each link written back as an
+ * inline anchor, which is what the Word export reads. Check `linkSaveProblem`
+ * first, so no link with a destination is left out (#490).
+ */
+export function linkedBodyForSave(body: string, links: EditableBodyLink[]): string {
+  return buildLinkedBody(body, normalizedBodyLinks(links, body)).trim();
+}
+
 export function normalizedBodyLinks(
   links: EditableBodyLink[],
   body?: string,
