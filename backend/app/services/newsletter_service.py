@@ -455,9 +455,8 @@ def _in_default_order(submissions: list[Submission], publish_date: date) -> list
     """Order submissions for placement by earliest actionable date (#388).
 
     ``submissions`` arrive oldest-first. Items whose copy names an upcoming
-    event date or deadline go in by that date; items with none count as
-    actionable on the edition's run date, the publish date. Ties keep
-    submission order. Job listings keep their oldest-first walk, which the
+    event date or deadline go in by that date; items with none go last.
+    Ties keep submission order. Job listings keep their oldest-first walk, which the
     assembly loop turns into newest-first.
 
     This only decides where newly placed items go. Assembly never moves
@@ -466,12 +465,13 @@ def _in_default_order(submissions: list[Submission], publish_date: date) -> list
     jobs = [sub for sub in submissions if sub.Category == "job_opportunity"]
     others = [sub for sub in submissions if sub.Category != "job_opportunity"]
 
-    def actionable(sub: Submission) -> date:
+    def actionable(sub: Submission) -> tuple[bool, date]:
         headline, body, _ = editorial_content.publishable_text(sub)
         earliest = earliest_actionable_date(
             (headline, body), publish_date, known_dates=(sub.Survey_End_Date,)
         )
-        return earliest or publish_date
+        # Undated items go after every dated one (Joy, 2026-11-16).
+        return (earliest is None, earliest or publish_date)
 
     return sorted(others, key=actionable) + jobs
 
