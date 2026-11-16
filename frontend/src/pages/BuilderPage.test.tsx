@@ -305,6 +305,14 @@ describe('BuilderPage staff-only sections', () => {
       'Please remind students to register. This is the complete approved entry. Review registration details.',
     );
     expect(body).not.toHaveValue(expect.stringContaining('<a'));
+    expect(screen.getByRole('button', { name: 'View original entry' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
+    expect(screen.getByRole('link', { name: /Open full submission/ })).toHaveAttribute(
+      'href',
+      `/edit/${tdrNewsletter.Items[0].Submission_Id}`,
+    );
 
     await user.clear(headline);
     await user.type(headline, 'Updated registration reminder');
