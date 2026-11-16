@@ -94,6 +94,10 @@ export default function EditPage() {
   const [editHeadline, setEditHeadline] = useState('');
   const [editBody, setEditBody] = useState('');
   const [editLinks, setEditLinks] = useState<LinkEntry[]>([]);
+  // The staff revision the editor text was loaded from. A sidebar refresh can
+  // bring in a newer Staff_Revision_Id without the text that goes with it, so
+  // saves are checked against this one, never the refreshed submission's.
+  const [editBaseRevisionId, setEditBaseRevisionId] = useState<string | null>(null);
   const [assignedEditor, setAssignedEditor] = useState('');
   const [editorialNotes, setEditorialNotes] = useState('');
   const isStaff = getSubmitterRole() === 'staff';
@@ -107,6 +111,7 @@ export default function EditPage() {
       setSubmission(sub);
       setAssignedEditor(sub.Assigned_Editor || '');
       setEditorialNotes(sub.Editorial_Notes || '');
+      setEditBaseRevisionId(sub.Staff_Revision_Id ?? null);
 
       try {
         const vers = await listEditVersions(id);
@@ -154,6 +159,21 @@ export default function EditPage() {
     void loadData();
   }, [loadData]);
 
+  /**
+   * Re-read the submission after a sidebar action (status, newsletter, run
+   * dates). Those actions never change the text, so the editor's unsaved
+   * headline, body, links and workflow notes stay as they are (#489).
+   */
+  const refreshSubmission = useCallback(async () => {
+    if (!id) return;
+    try {
+      setSubmission(await getSubmission(id));
+    } catch (err) {
+      // The action itself succeeded; only the re-read failed.
+      setError(err instanceof Error ? err.message : 'Failed to reload submission');
+    }
+  }, [id]);
+
   const handleTriggerEdit = async (
     newsletterType: 'tdr' | 'myui',
     editorInstructions?: string,
@@ -182,9 +202,10 @@ export default function EditPage() {
       setEditLinks(editable.links);
       setFinalEditSource(null);
       setActiveTab('ai_edit');
-      // Refresh data
+      // Refresh data; the editor now holds the AI text, so it starts from the current revision.
       const sub = await getSubmission(id);
       setSubmission(sub);
+      setEditBaseRevisionId(sub.Staff_Revision_Id ?? null);
       const vers = await listEditVersions(id);
       setVersions(vers);
       showToast(editorInstructions ? 'AI revision complete' : 'AI edit complete');
@@ -247,6 +268,11 @@ export default function EditPage() {
     )));
   };
 
+  // Put a link's missing words back at the end of the body (#397).
+  const handleLinkWordsRestore = (index: number) => {
+    handleLinkAnchorCommit(index, '', editLinks[index]?.Anchor_Text ?? '');
+  };
+
   const handleLinkMentionChange = (index: number, start: number) => {
     setEditLinks((links) => links.map((link, linkIndex) => (
       linkIndex === index ? { ...link, Start: start } : link
@@ -279,7 +305,7 @@ export default function EditPage() {
         // The staff revision this view was based on; a newer save makes this a conflict.
         Base_Staff_Revision_Id: baseOverride !== undefined
           ? baseOverride
-          : submission?.Staff_Revision_Id ?? null,
+          : editBaseRevisionId,
         // Start is editor state; the saved body already records each link's place.
         ...((submission?.Links.length ?? 0) > 0 || links.length > 0
           ? {
@@ -373,7 +399,7 @@ export default function EditPage() {
     try {
       await updateSubmission(id, { Status: 'pending_info' } as Partial<Submission>);
       showToast('Status updated to Pending Info');
-      await loadData();
+      await refreshSubmission();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update status');
     }
@@ -384,7 +410,7 @@ export default function EditPage() {
     try {
       await updateSubmission(id, { Status: 'in_review' } as Partial<Submission>);
       showToast('Status changed back to In Review');
-      await loadData();
+      await refreshSubmission();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update status');
     }
@@ -395,7 +421,7 @@ export default function EditPage() {
     try {
       await updateSubmission(id, { Target_Newsletter: target } as Partial<Submission>);
       showToast(`Newsletter changed to ${target === 'tdr' ? 'Daily Register' : target === 'myui' ? 'My UI' : 'Both'}`);
-      await loadData();
+      await refreshSubmission();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to change newsletter');
     }
@@ -407,7 +433,7 @@ export default function EditPage() {
     try {
       await skipScheduleOccurrence(id, scheduleId, occurrenceDate);
       showToast(`Skipped occurrence on ${new Date(`${occurrenceDate}T12:00:00`).toLocaleDateString()}`);
-      await loadData();
+      await refreshSubmission();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to skip occurrence');
     } finally {
@@ -427,7 +453,7 @@ export default function EditPage() {
       showToast(
         `Moved ${new Date(`${occurrenceDate}T12:00:00`).toLocaleDateString()} to ${new Date(`${newDate}T12:00:00`).toLocaleDateString()}`,
       );
-      await loadData();
+      await refreshSubmission();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to move occurrence');
     } finally {
@@ -461,14 +487,14 @@ export default function EditPage() {
         ? `Added recurring run date starting ${dateLabel} for ${newsletterLabel}`
         : `Added run date ${dateLabel} for ${newsletterLabel}`,
     );
-    await loadData();
+    await refreshSubmission();
   };
 
   const handleRemoveScheduleRequest = async (scheduleId: string) => {
     if (!id) return;
     await deleteScheduleRequest(id, scheduleId);
     showToast('Removed run date schedule');
-    await loadData();
+    await refreshSubmission();
   };
 
   if (loading) {
@@ -567,6 +593,7 @@ export default function EditPage() {
           onAnchorCommit={handleLinkAnchorCommit}
           body={editBody}
           onMentionChange={handleLinkMentionChange}
+          onRestoreWords={handleLinkWordsRestore}
           allowAddRemove
           maxLinks={EDITOR_MAX_LINKS}
           label="Links and CTA text"

@@ -12,6 +12,7 @@ from app.models.submission import Submission, SubmissionLink, SubmissionSchedule
 from app.models.ai_edit_task import AIEditTask
 from app.schemas.submission import SubmissionCreate, SubmissionUpdate
 from app.services import recurrence_service, schedule_service
+from app.utils.clock import local_today
 
 
 @dataclass
@@ -110,7 +111,7 @@ async def get_submission(db: AsyncSession, submission_id: str) -> Submission | N
     if not submission:
         return None
 
-    preview_from = date.today()
+    preview_from = local_today()
     preview_to = preview_from + timedelta(days=365)
     await hydrate_submission_occurrences(db, submission, preview_from, preview_to)
     return submission
@@ -159,7 +160,7 @@ async def list_submissions(
     query = query.order_by(Submission.Created_At.desc())
 
     if date_from or date_to:
-        effective_from = date_from or date.today()
+        effective_from = date_from or local_today()
         effective_to = date_to or effective_from
         recurrence_filter = Submission.Schedule_Requests.any(
             sa.or_(
@@ -205,7 +206,7 @@ async def list_submissions(
     total = (await db.execute(count_query)).scalar() or 0
     items = list((await db.execute(query.offset(offset).limit(limit))).scalars().all())
 
-    preview_from = date.today()
+    preview_from = local_today()
     preview_to = preview_from + timedelta(days=180)
     occurrence_cache = OccurrenceFilterCache()
     for submission in items:

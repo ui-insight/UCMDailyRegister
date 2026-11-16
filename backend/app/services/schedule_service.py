@@ -10,6 +10,7 @@ from app.models.custom_publish_date import CustomPublishDate
 from app.models.schedule_config import ScheduleConfig
 from app.models.schedule_mode_override import ScheduleModeOverride
 from app.schemas.newsletter import BlackoutDateCreate
+from app.utils.clock import local_today
 
 
 # ---------------------------------------------------------------------------
@@ -24,7 +25,7 @@ async def get_active_override(
 ) -> ScheduleModeOverride | None:
     """Return the active mode override for a newsletter type on a given date."""
     if for_date is None:
-        for_date = date.today()
+        for_date = local_today()
     result = await db.execute(
         sa.select(ScheduleModeOverride).where(
             ScheduleModeOverride.Newsletter_Type == newsletter_type,
@@ -100,7 +101,7 @@ async def get_active_config(
     Checks for mode overrides first, then falls back to month-based detection.
     """
     if for_date is None:
-        for_date = date.today()
+        for_date = local_today()
 
     # Check for manual mode override
     override = await get_active_override(db, newsletter_type, for_date)
@@ -139,7 +140,7 @@ def get_next_publish_date(
 ) -> date:
     """Calculate the next publish date based on the schedule config."""
     if from_date is None:
-        from_date = date.today()
+        from_date = local_today()
 
     if config.Is_Daily:
         next_day = from_date + timedelta(days=1)

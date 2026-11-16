@@ -2,6 +2,7 @@ import json
 import logging
 from typing import Any, Literal, Self
 from urllib.parse import urlparse
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings
@@ -50,6 +51,11 @@ class Settings(BaseSettings):
     # Provisional values pending UCM review.
     date_passed_window_days: int = 60
     year_unclear_after_days: int = 180
+
+    # IANA time zone that decides "today" for schedules, recurrence previews
+    # and dates without a year (#492). The containers run in UTC; the Moscow
+    # campus is on Pacific time. Stored timestamps stay UTC.
+    newsletter_timezone: str = "America/Los_Angeles"
 
     # App
     environment: str = "development"
@@ -150,6 +156,18 @@ class Settings(BaseSettings):
             return origins or None
 
         raise ValueError("CORS_ORIGINS must be comma-separated or a JSON array")
+
+    @field_validator("newsletter_timezone")
+    @classmethod
+    def validate_newsletter_timezone(cls, value: str) -> str:
+        value = value.strip()
+        try:
+            ZoneInfo(value)
+        except (ZoneInfoNotFoundError, ValueError) as exc:
+            raise ValueError(
+                f"NEWSLETTER_TIMEZONE must be an IANA time zone name, got {value!r}"
+            ) from exc
+        return value
 
     @property
     def is_production(self) -> bool:

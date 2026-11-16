@@ -7,24 +7,24 @@
     "requires_image": false
   },
   {
+    "name": "Upcoming events",
+    "slug": "todays-events",
+    "display_order": 2,
+    "description": "Copy/paste from Events Calendar with permalink links. Indicate time zones for non-Moscow events. Exclude thesis defenses, most student recitals, non-local sports.",
+    "requires_image": false
+  },
+  {
     "name": "Feature Stories",
     "slug": "feature-stories",
-    "display_order": 2,
+    "display_order": 3,
     "description": "Feature stories, videos, podcasts from college or central pages. Use first paragraph with CTA. One photo/screenshot may be included.",
     "requires_image": false
   },
   {
     "name": "U of I in the News",
     "slug": "uofi-in-the-news",
-    "display_order": 3,
-    "description": "Curated by UCM. Stories run as appropriate.",
-    "requires_image": false
-  },
-  {
-    "name": "Today's Events",
-    "slug": "todays-events",
     "display_order": 4,
-    "description": "Copy/paste from Events Calendar with permalink links. Indicate time zones for non-Moscow events. Exclude thesis defenses, most student recitals, non-local sports.",
+    "description": "Curated by UCM. Stories run as appropriate.",
     "requires_image": false
   },
   {

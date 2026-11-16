@@ -73,6 +73,10 @@ DATABASE_URL=sqlite+aiosqlite:///./ucm_newsletter.db
 # App environment
 ENVIRONMENT=development
 
+# Time zone that decides "today" for schedules and date checks. The containers
+# run in UTC; this keeps the date from rolling over at 4-5 p.m. Pacific.
+NEWSLETTER_TIMEZONE=America/Los_Angeles
+
 # LLM Provider ("claude", "openai", or "mindrouter")
 LLM_PROVIDER=claude
 

@@ -30,6 +30,7 @@ from app.utils.text import (
     check_event_details,
     is_event_category,
 )
+from app.utils.clock import local_date, local_today
 from app.utils.hyperlinks import parse_submitter_notes
 from app.utils.link_repair import link_problems, repair_links
 from app.utils.style_checks import (
@@ -562,7 +563,7 @@ class AIEditor:
         style_rules = await self.load_style_rules(session, newsletter_type)
         # Dates without a year resolve from when the item was submitted (#410).
         submission_date = (
-            submission.Created_At.date() if submission.Created_At else date.today()
+            local_date(submission.Created_At) if submission.Created_At else local_today()
         )
 
         system_prompt = build_system_prompt(

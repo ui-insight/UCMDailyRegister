@@ -3,7 +3,7 @@
 import asyncio
 import os
 from collections.abc import AsyncGenerator
-from datetime import date
+from datetime import UTC, date, datetime, time
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -16,6 +16,7 @@ from app.api.deps import get_db
 from app.main import app as fastapi_app
 import app.models  # noqa: F401 — register all models
 from app.models.allowed_value import AllowedValue
+from app.utils import clock
 
 
 # In-memory SQLite by default; CI also runs the suite against PostgreSQL by
@@ -176,24 +177,32 @@ async def seed_submission_categories(setup_db, db: AsyncSession):
 
 
 @pytest.fixture
-def freeze_today(monkeypatch):
-    """Freeze ``date.today()`` inside services that preview recurrence occurrences.
+def freeze_clock(monkeypatch):
+    """Pin the app clock (``app.utils.clock.utc_now``) to an instant (#492).
 
-    Recurrence expansion filters out occurrences earlier than ``date.today()``,
-    so tests with hardcoded recurrence dates become time-dependent once real-world
-    time advances past them. Call ``freeze_today(date(Y, M, D))`` to pin today.
+    Call ``freeze_clock(datetime(Y, M, D, H, M, tzinfo=UTC))``. Everything that
+    asks ``local_today()`` or ``local_now()`` sees that instant converted to
+    the newsletter's time zone.
+    """
+    def _freeze(instant: datetime) -> None:
+        if instant.tzinfo is None:
+            raise ValueError("freeze_clock needs a timezone-aware datetime")
+        monkeypatch.setattr(clock, "utc_now", lambda: instant.astimezone(UTC))
+
+    return _freeze
+
+
+@pytest.fixture
+def freeze_today(freeze_clock):
+    """Freeze the newsletter-local "today" seen by services.
+
+    Recurrence expansion filters out occurrences earlier than today, so tests
+    with hardcoded recurrence dates become time-dependent once real-world time
+    advances past them. Call ``freeze_today(date(Y, M, D))`` to pin today; the
+    clock is set to noon local time on that date.
     """
     def _freeze(frozen: date) -> None:
-        class _FrozenDate(date):
-            @classmethod
-            def today(cls) -> date:
-                return frozen
-
-        for module_path in (
-            "app.services.submission_service",
-            "app.services.schedule_service",
-        ):
-            monkeypatch.setattr(f"{module_path}.date", _FrozenDate)
+        freeze_clock(datetime.combine(frozen, time(12), tzinfo=clock.local_zone()))
 
     return _freeze
 

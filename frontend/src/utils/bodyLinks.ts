@@ -266,6 +266,11 @@ export function linkSaveProblem(body: string, links: EditableBodyLink[]): string
     return `Link ${duplicates.map(linkName).join(', ')} goes to the same place as another link, `
       + 'so it would be lost. Give it a different destination or remove it.';
   }
+  const crowded = placeLinks(body, normalizedBodyLinks(links, body)).unplaced;
+  if (crowded.length) {
+    return `Link text ${crowded.map(linkName).join(', ')} overlaps another link's words, so the link would be lost. `
+      + 'Put each link on its own words, or clear one of them.';
+  }
   return null;
 }
 
@@ -280,8 +285,12 @@ export function synchronizeBodyWithLinkLabel(
 
 /**
  * Apply an edit to a link's words: rewrite them at the link's own mention,
- * or, for words not yet in the body, add them visibly on a new line. Returns
- * the new body and the link pointing at its words.
+ * or, for words not yet in the body, add them visibly at the end of the last
+ * paragraph. Returns the new body and the link pointing at its words.
+ *
+ * Not on a line of their own: prepareBodyForEditing drops a trailing line
+ * that is only a link (what older builds appended), so words added there
+ * would vanish on the next load and the link with them (#397).
  */
 export function commitLinkLabel(
   body: string,
@@ -309,7 +318,7 @@ export function commitLinkLabel(
   const existing = findMentions(body, next);
   if (existing.length) return placed(body, existing[0]);
   const trimmed = body.trimEnd();
-  const appended = [trimmed, next].filter(Boolean).join('\n');
+  const appended = [trimmed, next].filter(Boolean).join(' ');
   return placed(appended, appended.length - next.length);
 }
 
@@ -368,27 +377,22 @@ function safeAttributeValue(value: string): string {
   return value.replace(/["'<>]/g, (character) => encodeURIComponent(character));
 }
 
-export function buildLinkedBody(body: string, links: EditableBodyLink[]): string {
-  const seenDestinations = new Set<string>();
-  const validLinks = links
-    .map((link, index) => ({
-      ...link,
-      Url: normalizeEditableLinkUrl(link.Url),
-      Display_Order: index,
-    }))
-    .filter((link) => {
-      if (!link.Url || !isSafeLinkDestination(link.Url)) return false;
-      const canonicalUrl = canonicalLinkDestination(link.Url);
-      if (seenDestinations.has(canonicalUrl)) return false;
-      seenDestinations.add(canonicalUrl);
-      return true;
-    });
+interface LinkPlacement {
+  replacements: Array<{ start: number; end: number; markup: string }>;
+  unplaced: EditableBodyLink[];
+}
 
+/** Find a free mention for each link; links whose words are all taken are unplaced. */
+function placeLinks(body: string, validLinks: EditableBodyLink[]): LinkPlacement {
   const occupiedRanges: Array<{ start: number; end: number }> = [];
   const replacements: Array<{ start: number; end: number; markup: string }> = [];
+  const unplaced: EditableBodyLink[] = [];
   for (const link of validLinks) {
     const label = linkLabel(link);
-    if (!label) continue;
+    if (!label) {
+      unplaced.push(link);
+      continue;
+    }
 
     const searchableBody = body.toLocaleLowerCase();
     const searchableLabel = label.toLocaleLowerCase();
@@ -414,8 +418,30 @@ export function buildLinkedBody(body: string, links: EditableBodyLink[]): string
         end: matchIndex + label.length,
         markup,
       });
+    } else {
+      unplaced.push(link);
     }
   }
+  return { replacements, unplaced };
+}
+
+export function buildLinkedBody(body: string, links: EditableBodyLink[]): string {
+  const seenDestinations = new Set<string>();
+  const validLinks = links
+    .map((link, index) => ({
+      ...link,
+      Url: normalizeEditableLinkUrl(link.Url),
+      Display_Order: index,
+    }))
+    .filter((link) => {
+      if (!link.Url || !isSafeLinkDestination(link.Url)) return false;
+      const canonicalUrl = canonicalLinkDestination(link.Url);
+      if (seenDestinations.has(canonicalUrl)) return false;
+      seenDestinations.add(canonicalUrl);
+      return true;
+    });
+
+  const { replacements } = placeLinks(body, validLinks);
 
   let linkedBody = body;
   for (const replacement of replacements.sort((left, right) => right.start - left.start)) {
@@ -423,6 +449,15 @@ export function buildLinkedBody(body: string, links: EditableBodyLink[]): string
   }
 
   return linkedBody.trimEnd();
+}
+
+/**
+ * The stored body for an edit: plain text with each link written back as an
+ * inline anchor, which is what the Word export reads. Check `linkSaveProblem`
+ * first, so no link with a destination is left out (#490).
+ */
+export function linkedBodyForSave(body: string, links: EditableBodyLink[]): string {
+  return buildLinkedBody(body, normalizedBodyLinks(links, body)).trim();
 }
 
 export function normalizedBodyLinks(

@@ -39,7 +39,7 @@ from app.schemas.newsletter import (
     AssembleRequest,
 )
 from app.schemas.recurring_message import RecurringMessageIssueCandidateResponse
-from app.utils.export import export_newsletter_docx
+from app.utils.export import NO_EVENTS_TEXT, export_newsletter_docx
 
 router = APIRouter(prefix="/newsletters", tags=["newsletters"])
 
@@ -674,7 +674,9 @@ async def export_newsletter(
     )
     sections = list(sections_result.scalars().all())
 
-    # Organize items by section
+    # Organize items by section. Empty sections are left out, except the
+    # events heading, which stays in place with "No events." (#443).
+    calendar_slug = newsletter_service.get_calendar_section_slug(newsletter.Newsletter_Type)
     export_sections = []
     for section in sections:
         section_items = sorted(
@@ -684,13 +686,14 @@ async def export_newsletter(
             ],
             key=lambda it: it.Position,
         )
-        if section_items:
+        if section_items or section.Slug == calendar_slug:
             export_sections.append({
                 "name": section.Name,
                 "items": [
                     {"Final_Headline": it.Final_Headline, "Final_Body": it.Final_Body}
                     for it in section_items
                 ],
+                "empty_text": NO_EVENTS_TEXT if section.Slug == calendar_slug else None,
             })
 
     buffer = export_newsletter_docx(
