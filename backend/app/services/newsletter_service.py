@@ -11,6 +11,7 @@ from app.models.newsletter import Newsletter, NewsletterExternalItem, Newsletter
 from app.models.section import NewsletterSection
 from app.models.submission import Submission
 from app.services import editorial_content, recurring_message_service, submission_service
+from app.utils.actionable_dates import earliest_actionable_date
 
 logger = logging.getLogger(__name__)
 
@@ -364,7 +365,7 @@ async def assemble_newsletter(
         )
         .order_by(Submission.Created_At.asc())
     )
-    submissions = list(subs_result.scalars().all())
+    submissions = _in_default_order(list(subs_result.scalars().all()), publish_date)
 
     existing_items_by_sub = {item.Submission_Id: item for item in newsletter.Items}
 
@@ -448,6 +449,31 @@ async def assemble_newsletter(
     await recurring_message_service.sync_newsletter_recurring_messages(db, newsletter)
     await db.commit()
     return await get_newsletter(db, newsletter.Id)
+
+
+def _in_default_order(submissions: list[Submission], publish_date: date) -> list[Submission]:
+    """Order submissions for placement by earliest actionable date (#388).
+
+    ``submissions`` arrive oldest-first. Items whose copy names an upcoming
+    event date or deadline go in by that date; items with none count as
+    actionable on the edition's run date, the publish date. Ties keep
+    submission order. Job listings keep their oldest-first walk, which the
+    assembly loop turns into newest-first.
+
+    This only decides where newly placed items go. Assembly never moves
+    items already in the edition, so staff reordering is kept.
+    """
+    jobs = [sub for sub in submissions if sub.Category == "job_opportunity"]
+    others = [sub for sub in submissions if sub.Category != "job_opportunity"]
+
+    def actionable(sub: Submission) -> date:
+        headline, body, _ = editorial_content.publishable_text(sub)
+        earliest = earliest_actionable_date(
+            (headline, body), publish_date, known_dates=(sub.Survey_End_Date,)
+        )
+        return earliest or publish_date
+
+    return sorted(others, key=actionable) + jobs
 
 
 def _get_category_section_map(newsletter_type: str) -> dict[str, str]:
