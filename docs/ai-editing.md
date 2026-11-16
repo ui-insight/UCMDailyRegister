@@ -114,6 +114,10 @@ A date without a year means its next occurrence after the submission date, and i
 
 If the AI added a weekday to one of these dates, `DAY OF WEEK NOT VERIFIED` is added too, since that weekday depends on the guessed year. Dates with an explicit year aren't flagged. The defaults are provisional until UCM confirms them.
 
+### Vandal terms (#480)
+
+The error-level `vandal_terms` rule gives the official forms of nine U of I terms: Vandal Alert, VandalCard, VandalCARE, VandalChat, Vandal Connect, Vandal Family, Vandal Gear, VandalMail and VandalStore. It replaced the earlier `vandal_gear_capitalization` rule. A variant of any of them left in the edited copy (for example "Vandal Card", "Vandalmail" or "VandalAlert") is flagged, and the model gets a repair pass. Web and email addresses such as `vandalcard@example.edu` are not checked. The list lives in `OFFICIAL_VANDAL_TERMS` in `backend/app/utils/style_checks/names.py`, so adding a term needs a code change until the editable approved-terms list (#461) exists.
+
 ## Editor Review Modes
 
 Once the AI pipeline produces an edit, the editor reviews changes on the **AI Suggested** tab using one of three modes, selectable via a toggle:
