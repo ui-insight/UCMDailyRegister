@@ -35,6 +35,7 @@ from app.utils.style_checks import (
     strip_html,
     change_contradicts_final_dates,
 )
+from app.utils.style_checks.text import comparable_words, contains_words
 
 logger = logging.getLogger(__name__)
 
@@ -205,6 +206,50 @@ def reconcile_changes(changes: list, final_text: str) -> list[str]:
         seen.add(key)
         reconciled.append(change)
     return reconciled
+
+
+# A flag claiming source content was lost: "'All are welcome' was removed".
+_REMOVAL_CLAIM = re.compile(
+    r"\b(?:removed|omitted|missing|dropped|deleted|narrowed|lost|"
+    r"no\s+longer|not\s+(?:included|kept|preserved|present|retained))\b",
+    re.IGNORECASE,
+)
+_QUOTED_PHRASE = re.compile(
+    r"\"(?P<double>[^\"]+)\"|“(?P<curly_double>[^”]+)”|‘(?P<curly_single>[^’]+)’|"
+    r"(?<!\w)'(?P<single>[^']+)'(?!\w)"
+)
+
+
+def _flag_contradicted_by_final(flag: dict, final_text: str) -> bool:
+    """Whether a removal flag quotes only phrases the final copy still has.
+
+    Single-word quotes are ignored: "Missing end time for 'noon'" quotes a
+    word that is present but claims something else is missing.
+    """
+    message = str(flag.get("message", ""))
+    if not _REMOVAL_CLAIM.search(message):
+        return False
+    phrases = [
+        next(group for group in match.groups() if group)
+        for match in _QUOTED_PHRASE.finditer(message)
+    ]
+    phrases = [phrase for phrase in phrases if len(comparable_words(phrase).split()) >= 2]
+    return bool(phrases) and all(contains_words(final_text, phrase) for phrase in phrases)
+
+
+def reconcile_flags(flags: list, final_text: str) -> list[dict]:
+    """Drop model-written flags that say quoted content was removed when it wasn't.
+
+    The model may write a flag against an earlier draft, or misread its own
+    edit (#479). A flag is dropped only when it claims a removal and every
+    multiword phrase it quotes appears in the final copy, ignoring case,
+    punctuation and spacing. Other flags pass through unchanged.
+    """
+    return [
+        flag
+        for flag in flags
+        if not (isinstance(flag, dict) and _flag_contradicted_by_final(flag, final_text))
+    ]
 
 
 def dedupe_flags(flags: list[dict]) -> list[dict]:
@@ -623,7 +668,8 @@ class AIEditor:
         final_text_flags = self._final_text_flags(
             submission, draft, final_output, date_contradictions
         )
-        all_flags = dedupe_flags(final_text_flags + draft.flags + post_flags)
+        model_flags = reconcile_flags(draft.flags, final_output)
+        all_flags = dedupe_flags(final_text_flags + model_flags + post_flags)
 
         return EditResult(
             edited_headline=draft.headline,

@@ -2,7 +2,7 @@
 
 import re
 
-from app.utils.style_checks.text import _first_sentence, strip_html
+from app.utils.style_checks.text import _first_sentence, contains_words, strip_html
 
 _RECRUITMENT_CONTEXT = re.compile(
     r"\b(?:seeking|recruiting|recruit|inviting|invites?|looking\s+for|open\s+to|"
@@ -111,11 +111,14 @@ def detect_missing_specific_audience_lead(
 
 
 def detect_missing_broad_audience(source_body: str, edited_body: str) -> list[str]:
-    """Find a broad invitation narrowed or removed from the edited lead.
+    """Find a broad invitation narrowed or removed from the edited copy.
 
-    A direct imperative such as ``Attend the reception`` preserves open access
-    without repeating ``all are welcome``. Audience-prefixed rewrites such as
-    ``Employees are invited`` do not.
+    The invitation counts as kept anywhere in the final edit, whatever its
+    case, punctuation or spacing, so moving ``all are welcome`` into its own
+    sentence is not a removal (#479). A lead opening with a direct imperative
+    such as ``Attend the reception`` also preserves open access without
+    repeating the phrase. Audience-prefixed rewrites such as ``Employees are
+    invited`` do not.
     """
     source = strip_html(source_body)
     edited_lead = _first_sentence(edited_body)
@@ -124,7 +127,9 @@ def detect_missing_broad_audience(source_body: str, edited_body: str) -> list[st
     for display, pattern in _BROAD_AUDIENCE_PHRASES:
         if not pattern.search(source):
             continue
-        if pattern.search(edited_lead) or _DIRECT_INVITATION_LEAD.search(edited_lead):
+        if contains_words(edited_body, display) or _DIRECT_INVITATION_LEAD.search(
+            edited_lead
+        ):
             continue
         findings.append(display)
 

@@ -51,3 +51,19 @@ def _leading_words(text: str) -> list[str]:
 def _normalized_visible_text(text: str) -> str:
     """Collapse visible text for case-insensitive source-fidelity comparisons."""
     return re.sub(r"\s+", " ", strip_html(text)).strip().casefold()
+
+
+def comparable_words(text: str) -> str:
+    """Reduce text to its words for checks that ask whether content was kept.
+
+    Markup, case, punctuation and spacing are dropped and ``&`` reads as
+    ``and``, so ``All are welcome.`` and ``all are welcome`` compare equal.
+    """
+    visible = strip_html(text).replace("&", " and ").casefold()
+    return " ".join(re.findall(r"[^\W_]+", visible))
+
+
+def contains_words(text: str, phrase: str) -> bool:
+    """Whether ``phrase`` appears in ``text`` as whole words (see ``comparable_words``)."""
+    wanted = comparable_words(phrase)
+    return bool(wanted) and f" {wanted} " in f" {comparable_words(text)} "
