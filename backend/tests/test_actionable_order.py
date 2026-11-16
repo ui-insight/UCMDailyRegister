@@ -161,14 +161,14 @@ async def test_assembly_orders_items_by_earliest_actionable_date(
 
     newsletter = await _assemble(client, staff_headers)
 
-    # Undated items run "today" and keep submission order; dated items follow
-    # by their earliest upcoming date.
+    # Dated items go by their earliest upcoming date; undated items always
+    # go last, in submission order.
     assert _order(newsletter, "tdr-employee-news") == [
-        undated,
-        passed_only,
         soon_event,
         survey,
         late_deadline,
+        undated,
+        passed_only,
     ]
 
 
