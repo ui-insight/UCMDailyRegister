@@ -358,6 +358,105 @@ describe('BuilderPage staff-only sections', () => {
   });
 });
 
+async function openRegistrationReminderEditor(user: ReturnType<typeof userEvent.setup>) {
+  newsletterApiMocks.getNewsletter.mockResolvedValue(tdrNewsletter);
+  newsletterApiMocks.updateNewsletterItem.mockResolvedValue(tdrNewsletter.Items[0]);
+  render(<BuilderPage />);
+  const publishDateInput = document.querySelector<HTMLInputElement>('input[type="date"]');
+  await user.clear(publishDateInput!);
+  await user.type(publishDateInput!, '2026-08-25');
+  await user.click(screen.getAllByRole('button', { name: 'Assemble Newsletter' })[0]);
+  await user.click(await screen.findByRole('button', { name: /edit registration reminder/i }));
+  return screen.getByLabelText('Newsletter body');
+}
+
+function expectSavedBody(finalBody: string) {
+  return waitFor(() => {
+    expect(newsletterApiMocks.updateNewsletterItem).toHaveBeenCalledWith(
+      'tdr-newsletter-1',
+      'newsletter-item-1',
+      { Final_Headline: 'Registration reminder', Final_Body: finalBody },
+    );
+  });
+}
+
+describe('BuilderPage inline edit keeps links (#490)', () => {
+  it('blocks a save when the linked words are reworded away, then keeps the link on new words', async () => {
+    const user = userEvent.setup();
+    const body = await openRegistrationReminderEditor(user);
+
+    await user.clear(body);
+    await user.type(body, 'Please remind students to register. See the registration guide.');
+    await user.click(screen.getByRole('button', { name: 'Save newsletter text' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /Link text "Review registration details" isn't in the body, so the link would be lost/,
+    );
+    expect(newsletterApiMocks.updateNewsletterItem).not.toHaveBeenCalled();
+
+    // Staff re-attach the link to the new words.
+    const linkText = screen.getByLabelText(/Words to link the URL to/);
+    expect(linkText).toHaveValue('Review registration details');
+    await user.clear(linkText);
+    await user.type(linkText, 'registration guide');
+    await user.click(screen.getByRole('button', { name: 'Save newsletter text' }));
+
+    await expectSavedBody(
+      'Please remind students to register. See the <a href="https://example.com/register">registration guide</a>.',
+    );
+  });
+
+  it('moves the link onto linked words that are rewritten in place', async () => {
+    const user = userEvent.setup();
+    const body = await openRegistrationReminderEditor(user);
+
+    await user.clear(body);
+    await user.type(
+      body,
+      'Please remind students to register. This is the complete approved entry. Read the registration guide.',
+    );
+    await user.click(screen.getByRole('button', { name: 'Save newsletter text' }));
+
+    await expectSavedBody(
+      'Please remind students to register. This is the complete approved entry. <a href="https://example.com/register">Read the registration guide</a>.',
+    );
+  });
+
+  it('blocks a save when the linked words are deleted until staff remove the link', async () => {
+    const user = userEvent.setup();
+    const body = await openRegistrationReminderEditor(user);
+
+    await user.clear(body);
+    await user.type(body, 'Please remind students to register.');
+    await user.click(screen.getByRole('button', { name: 'Save newsletter text' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /"Review registration details" isn't in the body/,
+    );
+    expect(newsletterApiMocks.updateNewsletterItem).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole('button', { name: 'Remove link 1' }));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Save newsletter text' }));
+
+    await expectSavedBody('Please remind students to register.');
+  });
+
+  it('keeps the link when its words are unchanged', async () => {
+    const user = userEvent.setup();
+    const body = await openRegistrationReminderEditor(user);
+
+    await user.clear(body);
+    await user.type(body, 'Students must register soon. Review registration details.');
+    await user.click(screen.getByRole('button', { name: 'Save newsletter text' }));
+
+    await expectSavedBody(
+      'Students must register soon. <a href="https://example.com/register">Review registration details</a>.',
+    );
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+});
+
 describe('BuilderPage academic dates', () => {
   it('lets a My UI editor paste and add a registrar deadline', async () => {
     const user = userEvent.setup();
