@@ -953,6 +953,78 @@ class TestFinalizePreservesOriginal:
             }
         ]
 
+    async def test_finalize_lets_staff_add_links_and_switch_email_to_web(
+        self,
+        client: AsyncClient,
+        staff_headers: dict[str, str],
+    ):
+        """#505: staff may go past the submitter's three links and change an email to a URL."""
+        submission_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(
+                Links=[
+                    {"Url": "https://example.com/register", "Anchor_Text": "Register"},
+                    {"Url": "ana@example.edu", "Anchor_Text": "Ana Lopez"},
+                    {"Url": "events@example.edu", "Anchor_Text": "events team"},
+                ],
+            ),
+        )
+        submission_id = submission_resp.json()["Id"]
+        links = [
+            {"Url": "https://example.com/register", "Anchor_Text": "Register", "Display_Order": 0},
+            {"Url": "https://example.com/ana", "Anchor_Text": "Ana Lopez", "Display_Order": 1},
+            {"Url": "mailto:events@example.edu", "Anchor_Text": "events team", "Display_Order": 2},
+            {"Url": "https://example.com/map", "Anchor_Text": "campus map", "Display_Order": 3},
+        ]
+
+        finalize_resp = await client.post(
+            f"/api/v1/ai-edits/{submission_id}/finalize",
+            json={
+                "Headline": "Editor headline",
+                "Body": (
+                    '<a href="https://example.com/register">Register</a>, see '
+                    '<a href="https://example.com/ana">Ana Lopez</a>, the '
+                    '<a href="mailto:events@example.edu">events team</a> and the '
+                    '<a href="https://example.com/map">campus map</a>.'
+                ),
+                "Links": links,
+            },
+            headers=staff_headers,
+        )
+
+        assert finalize_resp.status_code == 200
+        detail = (
+            await client.get(f"/api/v1/submissions/{submission_id}", headers=staff_headers)
+        ).json()
+        assert [
+            {key: link[key] for key in ("Url", "Anchor_Text", "Display_Order")}
+            for link in sorted(detail["Links"], key=lambda link: link["Display_Order"])
+        ] == links
+
+    async def test_finalize_rejects_more_links_than_staff_may_add(
+        self,
+        client: AsyncClient,
+        staff_headers: dict[str, str],
+    ):
+        submission_resp = await client.post(
+            "/api/v1/submissions/",
+            json=make_submission_data(),
+        )
+        finalize_resp = await client.post(
+            f"/api/v1/ai-edits/{submission_resp.json()['Id']}/finalize",
+            json={
+                "Headline": "Editor headline",
+                "Body": "Body.",
+                "Links": [
+                    {"Url": f"https://example.com/{index}", "Anchor_Text": f"link {index}"}
+                    for index in range(11)
+                ],
+            },
+            headers=staff_headers,
+        )
+
+        assert finalize_resp.status_code == 422
+
     async def test_finalize_without_prior_ai_edit_keeps_original_and_snapshots_it(
         self,
         client: AsyncClient,

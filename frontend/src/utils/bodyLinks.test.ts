@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  duplicateLinks,
   findMentions,
+  invalidLinks,
+  linkSaveProblem,
+  looksLikeWebAddress,
   resolvedLinkStart,
   unattachedLinks,
   buildLinkedBody,
@@ -246,5 +250,64 @@ describe('body link editing', () => {
       { Url: 'mailto:', Anchor_Text: 'blank email slot' },
     ];
     expect(unattachedLinks('See the event page.', links)).toEqual([links[0]]);
+  });
+
+  // #505: a link whose destination wasn't https or an email address was
+  // filtered out on save without a word, leaving blank link fields on reload.
+  it('flags destinations that are neither https nor an email address', () => {
+    const links = [
+      { Url: 'https://uidaho.edu/r', Anchor_Text: 'Register' },
+      { Url: 'www.uidaho.edu/events', Anchor_Text: 'events' },
+      { Url: 'http://uidaho.edu/old', Anchor_Text: 'old page' },
+      { Url: 'mailto:https://uidaho.edu/ana', Anchor_Text: 'Ana Lopez' },
+      { Url: 'events@uidaho.edu', Anchor_Text: 'events team' },
+      { Url: 'mailto:', Anchor_Text: 'blank email slot' },
+      { Url: '', Anchor_Text: 'unused' },
+    ];
+    expect(invalidLinks(links)).toEqual([links[1], links[2], links[3]]);
+    // normalizedBodyLinks drops exactly these, so saving must be blocked first.
+    const body = 'Register for events, see the old page, or email Ana Lopez or the events team.';
+    expect(normalizedBodyLinks(links, body).map((link) => link.Anchor_Text)).toEqual([
+      'Register',
+      'events team',
+    ]);
+    expect(linkSaveProblem(body, links)).toMatch(
+      /^Link destination "www\.uidaho\.edu\/events", "http:\/\/uidaho\.edu\/old", "https:\/\/uidaho\.edu\/ana" isn't a web address starting with https:\/\//,
+    );
+  });
+
+  it('flags a second link to the same destination', () => {
+    const links = [
+      { Url: 'https://uidaho.edu/r', Anchor_Text: 'Register' },
+      { Url: 'https://uidaho.edu/r', Anchor_Text: 'sign up' },
+    ];
+    expect(duplicateLinks(links)).toEqual([links[1]]);
+    expect(linkSaveProblem('Register or sign up.', links)).toMatch(/^Link "sign up" goes to the same place/);
+  });
+
+  it('has no save problem when every link will be kept', () => {
+    expect(linkSaveProblem('Register or email Ana Lopez.', [
+      { Url: 'https://uidaho.edu/r', Anchor_Text: 'Register' },
+      { Url: 'ana@uidaho.edu', Anchor_Text: 'Ana Lopez' },
+      { Url: '', Anchor_Text: '' },
+    ])).toBeNull();
+  });
+
+  it('tells a typed web address from an email address', () => {
+    expect(looksLikeWebAddress('https://uidaho.edu')).toBe(true);
+    expect(looksLikeWebAddress(' www.uidaho.edu')).toBe(true);
+    expect(looksLikeWebAddress('ana@uidaho.edu')).toBe(false);
+    expect(looksLikeWebAddress('ana')).toBe(false);
+  });
+
+  it('keeps every link in the body for editing, not just the first three', () => {
+    const editable = prepareBodyForEditing(
+      'See <a href="https://example.com/a">one</a>, <a href="https://example.com/b">two</a>, '
+        + '<a href="mailto:c@example.edu">three</a> and <a href="https://example.com/d">four</a>.',
+    );
+    expect(editable.links.map((link) => link.Anchor_Text)).toEqual(['one', 'two', 'three', 'four']);
+    expect(buildLinkedBody(editable.body, editable.links)).toContain(
+      '<a href="https://example.com/d">four</a>',
+    );
   });
 });
