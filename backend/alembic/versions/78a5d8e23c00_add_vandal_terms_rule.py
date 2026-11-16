@@ -1,7 +1,7 @@
 """add official Vandal terms rule
 
 Revision ID: 78a5d8e23c00
-Revises: a8c0e2f4b6d9
+Revises: b3d5f7a9c1e4
 Create Date: 2026-11-16 12:00:00.000000
 
 Joy gave the official forms of nine U of I Vandal terms (#480): Vandal
@@ -21,7 +21,7 @@ import sqlalchemy as sa
 
 
 revision: str = "78a5d8e23c00"
-down_revision: str | Sequence[str] | None = "a8c0e2f4b6d9"
+down_revision: str | Sequence[str] | None = "b3d5f7a9c1e4"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
