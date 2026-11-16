@@ -268,6 +268,11 @@ export default function EditPage() {
     )));
   };
 
+  // Put a link's missing words back at the end of the body (#397).
+  const handleLinkWordsRestore = (index: number) => {
+    handleLinkAnchorCommit(index, '', editLinks[index]?.Anchor_Text ?? '');
+  };
+
   const handleLinkMentionChange = (index: number, start: number) => {
     setEditLinks((links) => links.map((link, linkIndex) => (
       linkIndex === index ? { ...link, Start: start } : link
@@ -588,6 +593,7 @@ export default function EditPage() {
           onAnchorCommit={handleLinkAnchorCommit}
           body={editBody}
           onMentionChange={handleLinkMentionChange}
+          onRestoreWords={handleLinkWordsRestore}
           allowAddRemove
           maxLinks={EDITOR_MAX_LINKS}
           label="Links and CTA text"
