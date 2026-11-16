@@ -3,7 +3,7 @@
 import re
 
 from app.utils.style_checks.names import _ORGANIZATION_SUFFIXES
-from app.utils.style_checks.text import strip_html
+from app.utils.style_checks.text import comparable_words, contains_words, strip_html
 
 _EMAIL = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
 _PHONE = re.compile(
@@ -87,10 +87,33 @@ def detect_new_contact_names(source_text: str, edited_text: str) -> list[str]:
     return findings
 
 
+def _named_near(words: str, name: str, title: str, max_gap: int = 20) -> bool:
+    """Whether ``name`` and ``title`` sit within ``max_gap`` words, either order.
+
+    All three arguments are ``comparable_words`` output. AP style puts a
+    formal title before the name (``Concessions Manager Pat Example``) and a
+    descriptive one after it, so both orders count as kept.
+    """
+    if not name or not title:
+        return False
+    gap = rf"(?: [^ ]+){{0,{max_gap}}}"
+    name_pattern = re.escape(name)
+    title_pattern = re.escape(title)
+    return bool(
+        re.search(rf"(?:^| ){name_pattern}{gap} {title_pattern}(?= |$)", words)
+        or re.search(rf"(?:^| ){title_pattern}{gap} {name_pattern}(?= |$)", words)
+    )
+
+
 def detect_missing_contact_titles(source_text: str, edited_text: str) -> list[str]:
-    """Find parenthetical or comma-style source contact titles missing in edits."""
+    """Find parenthetical or comma-style source contact titles missing in edits.
+
+    A title counts as kept when it appears near the contact's name anywhere in
+    the edit, before or after the name, ignoring case, punctuation and
+    spacing, so ``&`` rewritten as ``and`` is not a removal (#479).
+    """
     source = strip_html(source_text)
-    edited = re.sub(r"\s+", " ", strip_html(edited_text)).strip()
+    edited = comparable_words(edited_text)
     findings: list[str] = []
 
     matches = [
@@ -118,13 +141,7 @@ def detect_missing_contact_titles(source_text: str, edited_text: str) -> list[st
         if title.isupper() and len(title) <= 10:
             # Parenthetical acronyms are definitions, not contact titles.
             continue
-        name_pattern = r"\s+".join(re.escape(word) for word in name.split())
-        title_pattern = r"\s+".join(re.escape(word) for word in title.split())
-        if re.search(
-            rf"\b{name_pattern}\b[^.!?]{{0,120}}\b{title_pattern}\b",
-            edited,
-            re.IGNORECASE,
-        ):
+        if _named_near(edited, comparable_words(name), comparable_words(title)):
             continue
         display = f"{name}, {title.lower()}"
         if display not in findings:
@@ -152,13 +169,11 @@ def detect_missing_anchored_requirements(
 
     Only clauses with stable anchors such as an age, GPA or certification
     acronym are checked. Requirements without those anchors remain prompt-only
-    protections instead of relying on a noisy semantic guess.
+    protections instead of relying on a noisy semantic guess. Each anchor
+    counts as kept anywhere in the edit, ignoring case and punctuation, so an
+    all-caps source word such as ``MUST`` is kept by ``must`` (#479).
     """
     edited = strip_html(edited_text)
-    edited_anchors = {
-        anchor.rstrip("+").casefold()
-        for anchor in _REQUIREMENT_ANCHOR.findall(edited)
-    }
     edited_has_requirement = bool(_REQUIREMENT_MARKER.search(edited))
     findings: list[str] = []
 
@@ -167,12 +182,14 @@ def detect_missing_anchored_requirements(
         if not sentence or not _REQUIREMENT_MARKER.search(sentence):
             continue
         anchors = {
-            anchor.rstrip("+").casefold()
+            anchor.rstrip("+")
             for anchor in _REQUIREMENT_ANCHOR.findall(sentence)
         }
         if not anchors:
             continue
-        if not edited_has_requirement or not anchors.issubset(edited_anchors):
+        if not edited_has_requirement or not all(
+            contains_words(edited, anchor) for anchor in anchors
+        ):
             findings.append(sentence)
 
     return findings

@@ -419,6 +419,54 @@ class TestSourceFidelity:
 
         assert detect_missing_broad_audience(source, edited) == []
 
+    def test_accepts_broad_invitation_moved_into_its_own_sentence(self):
+        # #479: the phrase is kept, just moved and recapitalized.
+        source = "The talk is free and all are welcome."
+        edited = "The free talk is at noon. All are welcome."
+
+        assert detect_missing_broad_audience(source, edited) == []
+
+    def test_accepts_broad_invitation_with_changed_punctuation_and_spacing(self):
+        source = "Everyone is invited to the open house."
+        edited = "The open house is at noon in the Example Hall.<br>Everyone\nis  invited!"
+
+        assert detect_missing_broad_audience(source, edited) == []
+
+    def test_flags_broad_invitation_removed_from_whole_edit(self):
+        source = "The talk is free and all are welcome."
+        edited = "The free talk is at noon. Employees are invited."
+
+        assert detect_missing_broad_audience(source, edited) == ["all are welcome"]
+
+    def test_accepts_contact_title_moved_before_name_with_and(self):
+        # #479: AP puts a formal title before the name, and the ampersand rule
+        # rewrites "&" as "and"; neither removes the title.
+        source = (
+            "Email Pat Example, Program Advisor & Outreach Coordinator, at "
+            "pexample@example.edu."
+        )
+        edited = (
+            "Email Program Advisor and Outreach Coordinator Pat Example at "
+            "pexample@example.edu."
+        )
+
+        assert detect_missing_contact_titles(source, edited) == []
+
+    def test_flags_contact_title_still_missing_when_name_is_kept(self):
+        source = "Contact Pat Example (Program Advisor) at pexample@example.edu."
+        edited = "Contact Pat Example at pexample@example.edu."
+
+        assert detect_missing_contact_titles(source, edited) == [
+            "Pat Example, program advisor"
+        ]
+
+    def test_accepts_requirement_whose_all_caps_word_is_lowercased(self):
+        # #479: "MUST" is an anchor; the edit keeps it as "must".
+        assert detect_missing_anchored_requirements(
+            "Volunteers MUST be 18 or older.",
+            "Volunteers must be 18 or older.",
+        ) == []
+
     def test_flags_audience_group_introduced_by_edit(self):
         assert detect_introduced_audience_groups(
             "Attend the workshop online.",
