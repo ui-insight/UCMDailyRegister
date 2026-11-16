@@ -113,7 +113,8 @@ def test_migration_values_match_shared_style_rule_seed():
         seeded["event_detail_ordering"]["rule_text"]
     )
     assert seeded["event_detail_ordering"]["severity"] == "error"
-    assert seeded["vandal_gear_capitalization"]["rule_text"] == (
-        migration.VANDAL_GEAR_RULE_TEXT
-    )
-    assert seeded["vandal_gear_capitalization"]["severity"] == "error"
+    # The Vandal terms rule (#480) replaces the Vandal Gear-only rule and
+    # still covers Vandal Gear. Its focused migration test verifies parity.
+    assert "vandal_gear_capitalization" not in seeded
+    assert "'Vandal Gear' (two capitalized words)" in seeded["vandal_terms"]["rule_text"]
+    assert seeded["vandal_terms"]["severity"] == "error"

@@ -10,6 +10,12 @@ export interface EditableBodyLink {
   Start?: number;
 }
 
+/**
+ * Most links staff can keep on one item. Submitters add up to three; staff may
+ * add more on the Edit page (#505). Mirrors EditorFinalCreate.Links on the API.
+ */
+export const EDITOR_MAX_LINKS = 10;
+
 const EMAIL_ADDRESS_PATTERN = /^[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?(?:\.[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?)+$/i;
 const ANCHOR_PATTERN = /<a\s+href=["']([^"']+)["'][^>]*>([^<]+)<\/a>/gi;
 
@@ -164,7 +170,8 @@ export function prepareBodyForEditing(
     });
   }
 
-  return { body: plainBody, links: links.slice(0, 3) };
+  // No cap here: a link left out of the editor would be dropped on save.
+  return { body: plainBody, links };
 }
 
 /** Start offsets of every case-insensitive, non-overlapping mention of `label`. */
@@ -202,6 +209,64 @@ export function unattachedLinks(body: string, links: EditableBodyLink[]): Editab
     && normalizeEditableLinkUrl(link.Url) !== 'mailto:'
     && resolvedLinkStart(body, link) === null
   ));
+}
+
+/** A typed destination that is a web address, not an email address. */
+export function looksLikeWebAddress(value: string): boolean {
+  const trimmed = value.trim();
+  return /^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed) || /^www\./i.test(trimmed);
+}
+
+/**
+ * Links with a destination that can't be saved: not an https:// address or an
+ * email address. Saving would otherwise drop them without a word (#505).
+ */
+export function invalidLinks(links: EditableBodyLink[]): EditableBodyLink[] {
+  return links.filter((link) => (
+    link.Url.trim()
+    && normalizeEditableLinkUrl(link.Url) !== 'mailto:'
+    && !isSafeLinkDestination(link.Url)
+  ));
+}
+
+/** Later links that repeat an earlier link's destination (only the first is kept). */
+export function duplicateLinks(links: EditableBodyLink[]): EditableBodyLink[] {
+  const seen = new Set<string>();
+  return links.filter((link) => {
+    if (!link.Url.trim() || !isSafeLinkDestination(link.Url)) return false;
+    const canonicalUrl = canonicalLinkDestination(link.Url);
+    if (seen.has(canonicalUrl)) return true;
+    seen.add(canonicalUrl);
+    return false;
+  });
+}
+
+function linkName(link: EditableBodyLink): string {
+  return `"${link.Anchor_Text.trim() || link.Url.trim()}"`;
+}
+
+/**
+ * Why saving these links would lose one, as a message for staff, or null when
+ * every link with a destination will be saved.
+ */
+export function linkSaveProblem(body: string, links: EditableBodyLink[]): string | null {
+  const invalid = invalidLinks(links);
+  if (invalid.length) {
+    const destinations = invalid.map((link) => `"${link.Url.trim().replace(/^mailto:/, '')}"`).join(', ');
+    return `Link destination ${destinations} isn't a web address starting with https:// `
+      + 'or an email address, so the link would be lost. Fix the destination or clear the link.';
+  }
+  const missing = unattachedLinks(body, links);
+  if (missing.length) {
+    return `Link text ${missing.map(linkName).join(', ')} isn't in the body, so the link would be lost. `
+      + 'Add the words to the body, change the link text, or clear the link.';
+  }
+  const duplicates = duplicateLinks(links);
+  if (duplicates.length) {
+    return `Link ${duplicates.map(linkName).join(', ')} goes to the same place as another link, `
+      + 'so it would be lost. Give it a different destination or remove it.';
+  }
+  return null;
 }
 
 export function synchronizeBodyWithLinkLabel(

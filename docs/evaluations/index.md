@@ -22,6 +22,8 @@ expectations, for example:
 - `flag_matches`: a flag whose rule key or message matches
 - `body_unchanged`: clear copy must not be rewritten
 - `no_straight_quotes`, `headline_not_echo_lead`
+- `links`: the body's links, exactly and in order, as linked words and
+  destination (addresses compare without scheme, `www.` or trailing slash)
 
 A case marked `pending` tests a rule that isn't built yet. Its result is
 shown but left out of the pass rate; when it starts passing, remove the

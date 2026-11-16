@@ -20,7 +20,7 @@ from urllib.parse import urlsplit
 
 from app.utils.hyperlinks import URL_PATTERN, unwrap_tracking_url
 
-_ANCHOR = re.compile(
+ANCHOR_PATTERN = re.compile(
     r"""<a\b[^>]*?\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))[^>]*>(.*?)</a\s*>""",
     re.IGNORECASE | re.DOTALL,
 )
@@ -77,7 +77,7 @@ def parse_body(body: str) -> list[BodySegment]:
     """Split a body into plain and linked segments, in order."""
     segments: list[BodySegment] = []
     last_end = 0
-    for match in _ANCHOR.finditer(body):
+    for match in ANCHOR_PATTERN.finditer(body):
         if match.start() > last_end:
             segments.append(BodySegment(_plain(body[last_end : match.start()])))
         raw_href = next(group for group in match.groups()[:3] if group is not None)
@@ -92,8 +92,45 @@ def parse_body(body: str) -> list[BodySegment]:
     return [segment for segment in segments if segment.text]
 
 
+# A web address written out as text: with a scheme, or starting "www.".
+BARE_URL_PATTERN = re.compile(r"(?:https?://|www\.)[^\s<>\"']+", re.IGNORECASE)
+_URL_TRAILING_PUNCTUATION = ".,;:!?)]}\u201d\u2019"
+
+
+def trim_url(text: str) -> str:
+    """A written-out address without the sentence punctuation that follows it."""
+    return text.rstrip(_URL_TRAILING_PUNCTUATION)
+
+
+def link_key(url: str) -> str:
+    """Compare two destinations as readers would: the same page is the same link.
+
+    Ignores the scheme (http or https), a leading ``www.``, a trailing slash,
+    letter case and any email security wrapper, so a written-out address
+    matches the link it repeats (#478).
+    """
+    url = unwrap_tracking_url(trim_url(url.strip())).strip()
+    if url.lower().startswith("mailto:"):
+        return url.lower()
+    if url.lower().startswith("www."):
+        url = f"https://{url}"
+    try:
+        parts = urlsplit(url)
+    except ValueError:
+        return url.rstrip("/").lower()
+    host = (parts.hostname or "").removeprefix("www.")
+    if parts.port:
+        host = f"{host}:{parts.port}"
+    key = f"{host}{parts.path.rstrip('/')}"
+    if parts.query:
+        key += f"?{parts.query}"
+    if parts.fragment:
+        key += f"#{parts.fragment}"
+    return key.lower()
+
+
 def _canonical(url: str) -> str:
-    return unwrap_tracking_url(url.strip()).rstrip("/").lower()
+    return link_key(url)
 
 
 def check_body(body: str, submitted_urls: Iterable[str] = ()) -> list[LinkFinding]:
@@ -109,7 +146,7 @@ def check_body(body: str, submitted_urls: Iterable[str] = ()) -> list[LinkFindin
     """
     findings: list[LinkFinding] = []
     linked: set[str] = set()
-    for match in _ANCHOR.finditer(body):
+    for match in ANCHOR_PATTERN.finditer(body):
         raw_href = next(group for group in match.groups()[:3] if group is not None)
         href = html.unescape(raw_href).strip()
         words = _INNER_TAG.sub("", match.group(4))

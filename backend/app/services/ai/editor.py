@@ -31,10 +31,12 @@ from app.utils.text import (
     is_event_category,
 )
 from app.utils.hyperlinks import parse_submitter_notes
+from app.utils.link_repair import link_problems, repair_links
 from app.utils.style_checks import (
     strip_html,
     change_contradicts_final_dates,
 )
+from app.utils.style_checks.text import comparable_words, contains_words
 
 logger = logging.getLogger(__name__)
 
@@ -207,6 +209,86 @@ def reconcile_changes(changes: list, final_text: str) -> list[str]:
     return reconciled
 
 
+# A flag claiming source content was lost: "'All are welcome' was removed".
+_REMOVAL_WORDS = (
+    r"(?:removed|omitted|dropped|deleted|narrowed|lost|missing|cut|"
+    r"no\s+longer\s+(?:included|present|kept)|"
+    r"not\s+(?:included|kept|preserved|present|retained))"
+)
+_REMOVAL_CLAIM = re.compile(rf"\b{_REMOVAL_WORDS}\b", re.IGNORECASE)
+# The quoted phrase must be what the claim says was lost: either the claim
+# follows it ("'X' was removed") or names it directly ("Removed 'X'",
+# "Removed the phrase 'X'"). "Contact email missing for 'X'" names X only as
+# the subject of something else that is missing, so it doesn't qualify.
+_CLAIM_AFTER_QUOTE = re.compile(
+    rf"^\s*(?:(?:was|were|is|are|has\s+been|have\s+been)\s+)?"
+    rf"(?:(?:narrowed|shortened|changed)\s+or\s+)?{_REMOVAL_WORDS}\b",
+    re.IGNORECASE,
+)
+_CLAIM_BEFORE_QUOTE = re.compile(
+    r"\b(?:removed|omitted|dropped|deleted|cut|lost|missing)"
+    r"(?:\s+(?:the|broad|source|original))*"
+    r"(?:\s+(?:phrase|wording|text|line|sentence|invitation|statement))?\s*:?\s*$",
+    re.IGNORECASE,
+)
+# After "Removed 'X'" the phrase must end the claim, so "missing 'X' phone"
+# (a missing phone number) doesn't count as a claim about X.
+_CLAIM_OBJECT_ENDS = re.compile(
+    r"^\s*(?:$|[.,;:)!]|(?:from|in|of|and|or|which|that)\b)", re.IGNORECASE
+)
+_QUOTED_PHRASE = re.compile(
+    r"\"(?P<double>[^\"]+)\"|“(?P<curly_double>[^”]+)”|‘(?P<curly_single>[^’]+)’|"
+    r"(?<!\w)'(?P<single>[^']+)'(?!\w)"
+)
+
+
+def _flag_contradicted_by_final(flag: dict, final_text: str) -> bool:
+    """Whether a removal flag claims only that quoted phrases the final copy has were lost.
+
+    Every quoted phrase must be the object of the removal claim, have two or
+    more words, and appear in the final copy. Anything else keeps the flag:
+    "Missing end time for 'noon'" and "Contact email missing for 'Event
+    Coordinator'" quote a subject, not the content claimed lost.
+    """
+    message = str(flag.get("message", ""))
+    if not _REMOVAL_CLAIM.search(message):
+        return False
+    matches = list(_QUOTED_PHRASE.finditer(message))
+    if not matches:
+        return False
+    for match in matches:
+        phrase = next(group for group in match.groups() if group)
+        is_claimed_lost = bool(
+            _CLAIM_AFTER_QUOTE.match(message[match.end():])
+            or (
+                _CLAIM_BEFORE_QUOTE.search(message[: match.start()])
+                and _CLAIM_OBJECT_ENDS.match(message[match.end():])
+            )
+        )
+        if (
+            not is_claimed_lost
+            or len(comparable_words(phrase).split()) < 2
+            or not contains_words(final_text, phrase)
+        ):
+            return False
+    return True
+
+
+def reconcile_flags(flags: list, final_text: str) -> list[dict]:
+    """Drop model-written flags that say quoted content was removed when it wasn't.
+
+    The model may write a flag against an earlier draft, or misread its own
+    edit (#479). A flag is dropped only when it claims a removal and every
+    multiword phrase it quotes appears in the final copy, ignoring case,
+    punctuation and spacing. Other flags pass through unchanged.
+    """
+    return [
+        flag
+        for flag in flags
+        if not (isinstance(flag, dict) and _flag_contradicted_by_final(flag, final_text))
+    ]
+
+
 def dedupe_flags(flags: list[dict]) -> list[dict]:
     """Drop repeated flags that name the same rule and problem."""
     unique: list[dict] = []
@@ -236,6 +318,7 @@ class _Draft:
     confidence: float
     replaced_semicolons: bool = False
     converted_quotes: bool = False
+    link_notes: tuple[str, ...] = ()
 
     @classmethod
     def from_model(cls, result: dict, *, headline: str, body: str) -> "_Draft":
@@ -279,6 +362,7 @@ def _tidy_draft(
     short_sentences: bool,
     headline_case: str,
     active_rule_keys: set[str],
+    links: list[dict] | None = None,
 ) -> _Draft:
     """Apply the deterministic clean-up every draft gets."""
     body, replaced_semicolons = (
@@ -292,12 +376,18 @@ def _tidy_draft(
         else to_title_case(draft.headline)
     )
     headline, body, converted_quotes = _clean_final_copy(headline, body, active_rule_keys)
+    link_notes = draft.link_notes
+    if "link_embedding" in active_rule_keys:
+        # One link per page, on the call-to-action words (#478).
+        body, repaired = repair_links(body, links or [])
+        link_notes += tuple(note for note in repaired if note not in link_notes)
     return replace(
         draft,
         headline=headline,
         body=body,
         replaced_semicolons=draft.replaced_semicolons or replaced_semicolons,
         converted_quotes=draft.converted_quotes or converted_quotes,
+        link_notes=link_notes,
     )
 
 
@@ -512,6 +602,7 @@ class AIEditor:
             short_sentences=any(rule["rule_key"] == "short_sentences" for rule in style_rules),
             headline_case=headline_case,
             active_rule_keys={rule["rule_key"] for rule in style_rules},
+            links=links,
         )
         source_text = _source_text(submission)
 
@@ -619,11 +710,17 @@ class AIEditor:
             changes_made.append(SEMICOLON_CLEANUP_DESCRIPTION)
         if draft.converted_quotes and CURLY_QUOTES_DESCRIPTION not in changes_made:
             changes_made.append(CURLY_QUOTES_DESCRIPTION)
+        changes_made += [note for note in draft.link_notes if note not in changes_made]
 
         final_text_flags = self._final_text_flags(
-            submission, draft, final_output, date_contradictions
+            submission,
+            draft,
+            final_output,
+            date_contradictions,
+            check_links=any(rule["rule_key"] == "link_embedding" for rule in style_rules),
         )
-        all_flags = dedupe_flags(final_text_flags + draft.flags + post_flags)
+        model_flags = reconcile_flags(draft.flags, final_output)
+        all_flags = dedupe_flags(final_text_flags + model_flags + post_flags)
 
         return EditResult(
             edited_headline=draft.headline,
@@ -646,9 +743,17 @@ class AIEditor:
         draft: _Draft,
         final_output: str,
         date_contradictions: list[str],
+        *,
+        check_links: bool = False,
     ) -> list[dict]:
         """Flags about the final copy itself: text checks, links and dropped notes."""
         flags = self.pre_analyze(draft.headline, draft.body, submission.Category, None)
+        if check_links:
+            # What repair_links couldn't fix safely is left for staff (#478).
+            flags += [
+                {"type": "warning", "rule_key": "link_embedding", "message": problem}
+                for problem in link_problems(draft.body)
+            ]
         unembedded_links = [
             link
             for link in parse_submitter_notes(submission.Submitter_Notes or "")

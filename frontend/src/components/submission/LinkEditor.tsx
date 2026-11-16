@@ -1,7 +1,12 @@
 import { useId } from 'react';
 import FieldError from '../common/FieldError';
 import { fieldErrorProps, type FieldErrors } from '../../utils/formValidation';
-import { findMentions, resolvedLinkStart } from '../../utils/bodyLinks';
+import {
+  findMentions,
+  isSafeLinkDestination,
+  looksLikeWebAddress,
+  resolvedLinkStart,
+} from '../../utils/bodyLinks';
 
 export interface LinkEntry {
   Url: string;
@@ -21,6 +26,13 @@ interface Props {
    */
   body?: string;
   onMentionChange?: (index: number, start: number) => void;
+  /**
+   * Show only the links given, with Add and Remove buttons, instead of a
+   * fixed set of slots. Staff use this on the Edit page (#505).
+   */
+  allowAddRemove?: boolean;
+  /** Most links allowed. Submitters get three. */
+  maxLinks?: number;
   label?: string;
   description?: string;
 }
@@ -57,12 +69,12 @@ function hasDestination(url: string): boolean {
   return Boolean(trimmed) && trimmed !== 'mailto:';
 }
 
-function ensureSlots(links: LinkEntry[]): LinkEntry[] {
+function ensureSlots(links: LinkEntry[], maxLinks: number): LinkEntry[] {
   const slots = [...links];
-  while (slots.length < MAX_LINKS) {
+  while (slots.length < maxLinks) {
     slots.push({ Url: '', Anchor_Text: '' });
   }
-  return slots.slice(0, MAX_LINKS);
+  return slots.slice(0, maxLinks);
 }
 
 export default function LinkEditor({
@@ -72,11 +84,14 @@ export default function LinkEditor({
   onAnchorCommit,
   body,
   onMentionChange,
+  allowAddRemove = false,
+  maxLinks = MAX_LINKS,
   label = 'Links to Embed',
   description = `Add up to ${MAX_LINKS} web URLs or email addresses to embed in your announcement.`,
 }: Props) {
   const descriptionId = useId();
-  const slots = ensureSlots(links);
+  // Never hide a link the caller already has: it would be dropped on save.
+  const slots = allowAddRemove ? links : ensureSlots(links, maxLinks);
 
   const updateLink = (index: number, field: keyof LinkEntry, value: string) => {
     const updated = slots.map((link, i) =>
@@ -85,24 +100,12 @@ export default function LinkEditor({
     onChange(updated);
   };
 
-  /** Detect whether a slot is storing a mailto: link. */
-  const isEmailLink = (url: string) => url.startsWith('mailto:');
-
-  /** Toggle between web URL and email mode for a slot. */
-  const toggleLinkType = (index: number) => {
-    const current = slots[index];
-    if (isEmailLink(current.Url)) {
-      // Switch to web — strip mailto: prefix
-      updateLink(index, 'Url', '');
-    } else {
-      // Switch to email — clear URL and prepend mailto:
-      updateLink(index, 'Url', 'mailto:');
-    }
+  const removeLink = (index: number) => {
+    onChange(slots.filter((_, i) => i !== index));
   };
 
-  const handleEmailChange = (index: number, email: string) => {
-    // Store with mailto: prefix
-    updateLink(index, 'Url', `mailto:${email}`);
+  const addLink = () => {
+    onChange([...slots, { Url: '', Anchor_Text: '' }]);
   };
 
   return (
@@ -114,100 +117,185 @@ export default function LinkEditor({
         {description}
       </p>
       <div className="space-y-3">
-        {slots.map((link, index) => {
-          const emailMode = isEmailLink(link.Url);
-          return (
-            <div key={index} role="group" aria-label={`Link ${index + 1}`} className="rounded-md border border-gray-200 bg-gray-50 p-3">
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs font-medium text-gray-500">Link {index + 1}</p>
-                <button
-                  type="button"
-                  onClick={() => toggleLinkType(index)}
-                  className="text-xs text-ui-gold-800 hover:text-ui-gold-800 font-medium"
-                >
-                  {emailMode ? 'Switch to web link' : 'Switch to email link'}
-                </button>
-              </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <div>
-                  <label
-                    htmlFor={`submission-link-${index}-url`}
-                    className="block text-xs text-gray-500 mb-1"
-                  >
-                    {emailMode ? 'Email address' : 'URL'}
-                  </label>
-                  {emailMode ? (
-                    <input
-                      id={`submission-link-${index}-url`}
-                      {...fieldErrorProps(errors, `submission-link-${index}-url`, descriptionId)}
-                      type="email"
-                      placeholder="name@uidaho.edu"
-                      value={link.Url.replace(/^mailto:/, '')}
-                      onChange={(e) => handleEmailChange(index, e.target.value)}
-                      autoComplete="off"
-                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
-                    />
-                  ) : (
-                    <input
-                      id={`submission-link-${index}-url`}
-                      {...fieldErrorProps(errors, `submission-link-${index}-url`, descriptionId)}
-                      type="url"
-                      placeholder="https://..."
-                      value={link.Url}
-                      onChange={(e) => updateLink(index, 'Url', e.target.value)}
-                      autoComplete="off"
-                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
-                    />
-                  )}
-                </div>
-                <div>
-                  <label
-                    htmlFor={`submission-link-${index}-anchor`}
-                    className="block text-xs text-gray-500 mb-1"
-                  >
-                    {emailMode
-                      ? "Link text (person's name or email address)"
-                      : 'Words to link the URL to (e.g., Learn more.)'}
-                  </label>
-                  <input
-                    id={`submission-link-${index}-anchor`}
-                    {...fieldErrorProps(errors, `submission-link-${index}-anchor`, descriptionId)}
-                    type="text"
-                    placeholder={emailMode ? "e.g., Jane Smith" : "e.g., Learn more"}
-                    value={link.Anchor_Text}
-                    onFocus={(e) => {
-                      e.currentTarget.dataset.initialValue = e.currentTarget.value;
-                    }}
-                    onChange={(e) => updateLink(index, 'Anchor_Text', e.target.value)}
-                    onBlur={(e) => onAnchorCommit?.(
-                      index,
-                      e.currentTarget.dataset.initialValue ?? '',
-                      e.currentTarget.value,
-                    )}
-                    autoComplete="off"
-                    className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
-                  />
-                </div>
-              </div>
-              <FieldError errors={errors} id={`submission-link-${index}-url`} />
-              <FieldError errors={errors} id={`submission-link-${index}-anchor`} />
-              {body !== undefined && link.Anchor_Text.trim() && (
-                <LinkPlacement
-                  index={index}
-                  body={body}
-                  link={link}
-                  onMentionChange={onMentionChange}
-                />
-              )}
-              {emailMode && (
-                <p className="text-[11px] text-gray-600 mt-1.5">
-                  For individual email addresses, use the person's name as the link text. For general addresses, the email address itself is fine.
-                </p>
-              )}
-            </div>
-          );
-        })}
+        {slots.map((link, index) => (
+          <LinkRow
+            key={index}
+            index={index}
+            link={link}
+            errors={errors}
+            descriptionId={descriptionId}
+            body={body}
+            onUpdate={updateLink}
+            onRemove={allowAddRemove ? removeLink : undefined}
+            onAnchorCommit={onAnchorCommit}
+            onMentionChange={onMentionChange}
+          />
+        ))}
+        {allowAddRemove && slots.length === 0 && (
+          <p className="text-xs text-gray-500">No links yet.</p>
+        )}
       </div>
+      {allowAddRemove && slots.length < maxLinks && (
+        <button
+          type="button"
+          onClick={addLink}
+          className="mt-3 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+        >
+          Add a link
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** Detect whether a slot is storing a mailto: link. */
+function isEmailLink(url: string): boolean {
+  return url.startsWith('mailto:');
+}
+
+function LinkRow({
+  index,
+  link,
+  errors,
+  descriptionId,
+  body,
+  onUpdate,
+  onRemove,
+  onAnchorCommit,
+  onMentionChange,
+}: {
+  index: number;
+  link: LinkEntry;
+  errors: FieldErrors;
+  descriptionId: string;
+  body?: string;
+  onUpdate: (index: number, field: keyof LinkEntry, value: string) => void;
+  onRemove?: (index: number) => void;
+  onAnchorCommit?: (index: number, previousValue: string, nextValue: string) => void;
+  onMentionChange?: (index: number, start: number) => void;
+}) {
+  const emailMode = isEmailLink(link.Url);
+
+  /** Toggle between web URL and email mode for a slot. */
+  const toggleLinkType = () => {
+    // Web clears the address; email starts an empty mailto: address.
+    onUpdate(index, 'Url', emailMode ? '' : 'mailto:');
+  };
+
+  const handleEmailChange = (email: string) => {
+    // A pasted web address turns this into a web link rather than a broken
+    // mailto: link that would be dropped on save (#505).
+    onUpdate(index, 'Url', looksLikeWebAddress(email) ? email.trim() : `mailto:${email}`);
+  };
+
+  const urlId = `submission-link-${index}-url`;
+  const anchorId = `submission-link-${index}-anchor`;
+  const inputClass = 'w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500';
+  const badDestination = body !== undefined
+    && hasDestination(link.Url)
+    && !isSafeLinkDestination(link.Url);
+
+  return (
+    <div role="group" aria-label={`Link ${index + 1}`} className="rounded-md border border-gray-200 bg-gray-50 p-3">
+      <div className="flex items-center justify-between gap-3 mb-2">
+        <p className="text-xs font-medium text-gray-500">Link {index + 1}</p>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={toggleLinkType}
+            className="text-xs text-ui-gold-800 hover:text-ui-gold-800 font-medium"
+          >
+            {emailMode ? 'Switch to web link' : 'Switch to email link'}
+          </button>
+          {onRemove && (
+            <button
+              type="button"
+              onClick={() => onRemove(index)}
+              aria-label={`Remove link ${index + 1}`}
+              className="text-xs font-medium text-gray-600 hover:text-gray-800"
+            >
+              Remove
+            </button>
+          )}
+        </div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div>
+          <label htmlFor={urlId} className="block text-xs text-gray-500 mb-1">
+            {emailMode ? 'Email address' : 'URL'}
+          </label>
+          {emailMode ? (
+            <input
+              id={urlId}
+              {...fieldErrorProps(errors, urlId, descriptionId)}
+              type="email"
+              placeholder="name@uidaho.edu"
+              value={link.Url.replace(/^mailto:/, '')}
+              onChange={(e) => handleEmailChange(e.target.value)}
+              autoComplete="off"
+              className={inputClass}
+            />
+          ) : (
+            <input
+              id={urlId}
+              {...fieldErrorProps(errors, urlId, descriptionId)}
+              type="url"
+              placeholder="https://..."
+              value={link.Url}
+              onChange={(e) => onUpdate(index, 'Url', e.target.value)}
+              autoComplete="off"
+              className={inputClass}
+            />
+          )}
+        </div>
+        <div>
+          <label htmlFor={anchorId} className="block text-xs text-gray-500 mb-1">
+            {emailMode
+              ? "Link text (person's name or email address)"
+              : 'Words to link the URL to (e.g., Learn more.)'}
+          </label>
+          <input
+            id={anchorId}
+            {...fieldErrorProps(errors, anchorId, descriptionId)}
+            type="text"
+            placeholder={emailMode ? 'e.g., Jane Smith' : 'e.g., Learn more'}
+            value={link.Anchor_Text}
+            onFocus={(e) => {
+              e.currentTarget.dataset.initialValue = e.currentTarget.value;
+            }}
+            onChange={(e) => onUpdate(index, 'Anchor_Text', e.target.value)}
+            onBlur={(e) => onAnchorCommit?.(
+              index,
+              e.currentTarget.dataset.initialValue ?? '',
+              e.currentTarget.value,
+            )}
+            autoComplete="off"
+            className={inputClass}
+          />
+        </div>
+      </div>
+      <FieldError errors={errors} id={urlId} />
+      <FieldError errors={errors} id={anchorId} />
+      {badDestination && (
+        <p className="mt-2 text-xs text-status-warning-800">
+          {emailMode
+            ? "This isn't a complete email address, so this link can't be saved."
+            : "Web links must start with https://, so this link can't be saved."}
+        </p>
+      )}
+      {body !== undefined && link.Anchor_Text.trim() && (
+        <LinkPlacement
+          index={index}
+          body={body}
+          link={link}
+          onMentionChange={onMentionChange}
+        />
+      )}
+      {emailMode && (
+        <p className="text-[11px] text-gray-600 mt-1.5">
+          For individual email addresses, use the person's name as the link text. For general addresses, the email address itself is fine.
+        </p>
+      )}
     </div>
   );
 }

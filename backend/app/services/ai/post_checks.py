@@ -61,6 +61,7 @@ from app.utils.style_checks import (
     detect_unconfirmed_dates,
     detect_unformatted_composition_titles,
     detect_unneeded_acronym_definitions,
+    detect_vandal_term_variants,
     detect_weekday_date_conflicts,
     detect_weekday_date_mismatches,
     never_spell_out_acronyms,
@@ -302,6 +303,14 @@ def platform_names(ctx: CheckContext) -> list[Finding]:
     ]
 
 
+def vandal_terms(ctx: CheckContext) -> list[Finding]:
+    """Vandal terms in a form other than the official one (#480)."""
+    return [
+        Finding("vandal_terms", f"Write '{official}' instead of '{variant}'")
+        for variant, official in detect_vandal_term_variants(ctx.text)
+    ]
+
+
 def acronyms(ctx: CheckContext) -> list[Finding]:
     """The acronym order of checks (#381, #399)."""
     standalone = never_spell_out_acronyms(ctx.newsletter_type)
@@ -502,6 +511,7 @@ OUTPUT_CHECKS: list[Check] = [
     event_detail_order,
     ampersands,
     platform_names,
+    vandal_terms,
     acronyms,
     repeated_calls_to_action,
     call_to_action_wording,

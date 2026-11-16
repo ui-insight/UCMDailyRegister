@@ -5,7 +5,7 @@ but prompt text alone cannot guarantee compliance: Joy's Aug. 10 production
 feedback (issues #299 and #300) showed the model violating rules that were
 active in the prompt at the time. The detectors here cover the subset of those
 rules that can be verified mechanically — AP month abbreviation, a.m./p.m.
-formatting, platform names, undefined acronyms, repeated calls to action and
+formatting, platform names, Vandal term spellings, undefined acronyms, repeated calls to action and
 the Jobs single-line contract, plus high-confidence source contacts,
 organizations, titles, audience qualifiers, composition titles, canonical
 locations, information paths, promotional leads and anchored requirements —
@@ -77,6 +77,9 @@ from app.utils.style_checks.names import (
     detect_missing_approved_venue_addresses,
     detect_missing_protected_organizations,
     detect_changed_official_names,
+    OFFICIAL_VANDAL_TERMS,
+    normalize_vandal_terms,
+    detect_vandal_term_variants,
 )
 from app.utils.style_checks.contacts import (
     detect_missing_source_contacts,
@@ -131,6 +134,9 @@ __all__ = [
     "detect_missing_approved_venue_addresses",
     "detect_missing_protected_organizations",
     "detect_changed_official_names",
+    "OFFICIAL_VANDAL_TERMS",
+    "normalize_vandal_terms",
+    "detect_vandal_term_variants",
     "detect_missing_source_contacts",
     "detect_new_contact_channels",
     "detect_new_contact_names",

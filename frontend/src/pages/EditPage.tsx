@@ -20,6 +20,7 @@ import BodyEditor from '../components/editor/BodyEditor';
 import ChangesList from '../components/editor/ChangesList';
 import SideBySideView from '../components/editor/SideBySideView';
 import SubmissionMeta from '../components/editor/SubmissionMeta';
+import OriginalSubmissionFields from '../components/editor/OriginalSubmissionFields';
 import RichBody from '../components/editor/RichBody';
 import LinkEditor, { type LinkEntry } from '../components/submission/LinkEditor';
 import { getSubmitterRole } from '../utils/submitterRole';
@@ -29,7 +30,8 @@ import {
   normalizedBodyLinks,
   prepareBodyForEditing,
   synchronizeLinksWithBodyChange,
-  unattachedLinks,
+  EDITOR_MAX_LINKS,
+  linkSaveProblem,
 } from '../utils/bodyLinks';
 import { buildEditorScheduleRequest } from '../utils/editorSchedule';
 import { Button, SegmentedToggle, Toast, useToast } from '../components/common';
@@ -253,14 +255,10 @@ export default function EditPage() {
 
   const handleFinalize = async (approveForNewsletter: boolean, baseOverride?: string | null) => {
     if (!id) return;
-    const missing = unattachedLinks(editBody, editLinks);
-    if (missing.length) {
-      // Saving would silently drop these links and their destinations.
-      const words = missing.map((link) => `"${link.Anchor_Text.trim() || link.Url.trim()}"`).join(', ');
-      setError(
-        `Link text ${words} isn't in the body, so the link would be lost. `
-          + 'Add the words to the body, change the link text, or clear the link.',
-      );
+    // Saving would otherwise silently drop these links and their destinations.
+    const linkProblem = linkSaveProblem(editBody, editLinks);
+    if (linkProblem) {
+      setError(linkProblem);
       return;
     }
     setFinalizationAction(approveForNewsletter ? 'approve' : 'draft');
@@ -569,8 +567,10 @@ export default function EditPage() {
           onAnchorCommit={handleLinkAnchorCommit}
           body={editBody}
           onMentionChange={handleLinkMentionChange}
+          allowAddRemove
+          maxLinks={EDITOR_MAX_LINKS}
           label="Links and CTA text"
-          description="Link text stays readable in the body while its destination is edited here. Add a secure web URL or an email address."
+          description="Link text stays readable in the body while its destination is edited here. Add a secure web URL (https://) or an email address."
         />
       </div>
       {editLinks.some((link) => link.Url.trim()) && (
@@ -871,35 +871,7 @@ export default function EditPage() {
                     <h3 className="text-sm font-semibold text-gray-900">Original submission</h3>
                     <p className="mt-1 text-xs text-gray-500">Read-only reference</p>
                   </div>
-                  <div>
-                    <p className="mb-1 text-xs font-medium text-gray-500">Headline</p>
-                    <p className="break-words text-sm font-medium text-gray-900">
-                      {submission.Original_Headline}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="mb-1 text-xs font-medium text-gray-500">Body</p>
-                    <p className="break-words whitespace-pre-wrap text-sm leading-6 text-gray-700">
-                      {submission.Original_Body}
-                    </p>
-                  </div>
-                  {submission.Links.length > 0 && (
-                    <div>
-                      <p className="mb-1 text-xs font-medium text-gray-500">Submitted links</p>
-                      <ul className="space-y-1">
-                        {[...submission.Links]
-                          .sort((a, b) => a.Display_Order - b.Display_Order)
-                          .map((link) => (
-                            <li key={link.Id} className="text-sm text-gray-700">
-                              {link.Anchor_Text?.trim() && (
-                                <span className="font-medium">{link.Anchor_Text} — </span>
-                              )}
-                              <span className="break-all text-gray-500">{link.Url}</span>
-                            </li>
-                          ))}
-                      </ul>
-                    </div>
-                  )}
+                  <OriginalSubmissionFields submission={submission} />
                 </section>
 
                 <section aria-label="Final edit" className="min-w-0 space-y-4">

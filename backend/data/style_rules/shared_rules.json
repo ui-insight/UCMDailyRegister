@@ -32,7 +32,7 @@
   {
     "category": "formatting",
     "rule_key": "link_embedding",
-    "rule_text": "Embed hyperlinks in meaningful anchor text rather than displaying raw URLs. Use descriptive link text like 'Learn more', 'Register', 'Apply now'.",
+    "rule_text": "Embed hyperlinks in meaningful anchor text rather than displaying raw URLs. Use descriptive link text like 'Learn more', 'Register', 'Apply now'. Never use a URL as link text, and link each URL only once in an item. When the submission gives call-to-action words for a link and the body also writes out that URL, remove the written-out URL and rework the sentence so the call-to-action words carry the link.",
     "severity": "warning"
   },
   {
@@ -205,8 +205,8 @@
   },
   {
     "category": "terminology",
-    "rule_key": "vandal_gear_capitalization",
-    "rule_text": "Always write 'Vandal Gear' as two capitalized words. Replace 'VandalGear', 'Vandal gear' or other variants with 'Vandal Gear'.",
+    "rule_key": "vandal_terms",
+    "rule_text": "Write these U of I Vandal terms in their official form: 'Vandal Alert' (two words, each capitalized); 'VandalCard' (one word, two capitals, no space); 'VandalCARE' (one word, Vandal capitalized and CARE in all capitals); 'VandalChat' (one word, two capitals, no space); 'Vandal Connect' (two words); 'Vandal Family' (two capitalized words); 'Vandal Gear' (two capitalized words); 'VandalMail' (one word, Vandal and Mail capitalized, no space); 'VandalStore' (one word, two capitals, no space). Replace any other spacing, hyphenation or capitalization of these terms, such as 'Vandal Card', 'Vandalmail', 'VandalAlert', 'Vandal Care' or 'VandalGear', with the official form, even when the submitter wrote the variant. This rule takes precedence over keeping product and program names as submitted. Leave web and email addresses unchanged.",
     "severity": "error"
   },
   {
@@ -344,7 +344,7 @@
   {
     "category": "content_filtering",
     "rule_key": "preserve_information_options",
-    "rule_text": "Preserve every distinct action and information-seeking option offered by the source. If readers may sign up or learn more, retain both options; do not narrow a general invitation to contact or reach out into registration-only language unless registration is the source's sole purpose. A request for more information is not a duplicate call to action and takes precedence over the single-CTA rule. Shorten surrounding wording instead of deleting the information path.",
+    "rule_text": "Preserve every distinct action and information-seeking option offered by the source. If readers may sign up or learn more through different paths, such as a registration link and a contact for questions, retain both options; do not narrow a general invitation to contact or reach out into registration-only language unless registration is the source's sole purpose. A request for more information is not a duplicate call to action and takes precedence over the single-CTA rule. One URL with one call to action is a single call to action, even when its words name more than one action, such as 'Learn more and sign up': keep those words together on the one link and do not split them or flag them under this rule. Shorten surrounding wording instead of deleting the information path.",
     "severity": "error"
   },
   {

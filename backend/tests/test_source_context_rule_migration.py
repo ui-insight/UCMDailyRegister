@@ -90,8 +90,15 @@ def test_migration_matches_seeded_rules():
     seed_path = Path(__file__).parents[1] / "data" / "style_rules" / "shared_rules.json"
     seeded = {rule["rule_key"]: rule for rule in json.loads(seed_path.read_text())}
 
+    # Joy's link rules (#478, b3d5f7a9c1e4) supersede this wording: one URL
+    # with one call to action is a single call to action.
+    superseded = {"preserve_information_options"}
     for category, rule_key, rule_text, severity in migration.RULES:
         rule = seeded[rule_key]
         assert rule["category"] == category
-        assert rule["rule_text"] == rule_text
         assert rule["severity"] == severity
+        if rule_key in superseded:
+            assert rule["rule_text"] != rule_text
+            assert "One URL with one call to action" in rule["rule_text"]
+        else:
+            assert rule["rule_text"] == rule_text

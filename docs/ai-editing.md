@@ -114,6 +114,10 @@ A date without a year means its next occurrence after the submission date, and i
 
 If the AI added a weekday to one of these dates, `DAY OF WEEK NOT VERIFIED` is added too, since that weekday depends on the guessed year. Dates with an explicit year aren't flagged. The defaults are provisional until UCM confirms them.
 
+### Vandal terms (#480)
+
+The error-level `vandal_terms` rule gives the official forms of nine U of I terms: Vandal Alert, VandalCard, VandalCARE, VandalChat, Vandal Connect, Vandal Family, Vandal Gear, VandalMail and VandalStore. It replaced the earlier `vandal_gear_capitalization` rule. A variant of any of them left in the edited copy (for example "Vandal Card", "Vandalmail" or "VandalAlert") is flagged, and the model gets a repair pass. Web and email addresses such as `vandalcard@example.edu` are not checked. The list lives in `OFFICIAL_VANDAL_TERMS` in `backend/app/utils/style_checks/names.py`, so adding a term needs a code change until the editable approved-terms list (#461) exists.
+
 ## Editor Review Modes
 
 Once the AI pipeline produces an edit, the editor reviews changes on the **AI Suggested** tab using one of three modes, selectable via a toggle:
@@ -177,6 +181,25 @@ its surrounding words so staff can choose which one gets the link. If a link's
 words are no longer in the body, the link shows a warning and saving is
 blocked until the words are restored, changed, or the link is cleared, so a
 link is never dropped silently.
+
+### Repeated URLs and call-to-action words
+
+When a submitter gives a link with call-to-action words and also pastes the
+same URL into the body, the AI edit keeps one link, on the call-to-action
+words (#478). After the model's edit, the pipeline removes the written-out
+URL ("Learn more and sign up at https://..." becomes "Learn more and sign
+up", linked) and joins a call to action the model split across two links.
+URLs match whatever their scheme, `www.`, trailing slash or letter case.
+When it can't rework a sentence safely, such as "Visit https://... to sign
+up", it leaves the text alone and adds a `link_embedding` flag. It also
+flags a URL used as link text and a page linked more than once. One URL with
+one call to action counts as a single call to action, even when the words
+name more than one action, so the information-options check doesn't flag
+it.
+
+On rare occasions UCM runs a URL as written. Staff can put it back in
+Final Edit; the AI clean-up never runs on staff copy. Switching off the
+`link_embedding` rule turns off the clean-up and these flags.
 
 ## Edit Version Storage
 

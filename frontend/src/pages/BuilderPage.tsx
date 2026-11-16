@@ -35,6 +35,7 @@ import type { RecurringMessageIssueCandidate } from '../types/recurringMessage';
 import { EmptyState, Toast, useToast } from '../components/common';
 import RichBody from '../components/editor/RichBody';
 import LinkCheck from '../components/newsletter/LinkCheck';
+import OriginalEntryPanel from '../components/newsletter/OriginalEntryPanel';
 import {
   buildLinkedBody,
   prepareBodyForEditing,
@@ -78,6 +79,7 @@ interface NewsletterItemEditDraft {
 type BuilderSectionItem =
   | (BuilderSectionItemBase & {
     Kind: 'submission';
+    Submission_Id: string;
     Run_Number: number;
     Edition_Edited: boolean;
     Upstream_Change: UpstreamChange | null;
@@ -1652,6 +1654,7 @@ export default function BuilderPage() {
                                         onSubmit={(event) => void handleSaveNewsletterItem(event)}
                                         className="mt-4 space-y-3 border-t border-gray-200 pt-4"
                                       >
+                                        <OriginalEntryPanel submissionId={item.Submission_Id} />
                                         <div>
                                           <label
                                             htmlFor={`builder-item-${item.Id}-headline`}

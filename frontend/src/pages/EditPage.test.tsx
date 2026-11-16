@@ -1166,6 +1166,131 @@ describe('EditPage', () => {
     ).toBeInTheDocument();
   });
 
+  describe('link fields (#505)', () => {
+    const threeLinks = {
+      Working_Version_Id: 'version-1',
+      Links: [
+        { Id: 'link-1', Url: 'https://example.com/register', Anchor_Text: 'Register now', Display_Order: 0 },
+        { Id: 'link-2', Url: 'mailto:ana@example.edu', Anchor_Text: 'Ana Lopez', Display_Order: 1 },
+        { Id: 'link-3', Url: 'mailto:events@example.edu', Anchor_Text: 'events@example.edu', Display_Order: 2 },
+      ],
+    };
+    const linkedBody = 'Join us Friday. <a href="https://example.com/register">Register now</a>. '
+      + 'Contact <a href="mailto:ana@example.edu">Ana Lopez</a> or '
+      + '<a href="mailto:events@example.edu">events@example.edu</a>.';
+
+    beforeEach(() => {
+      getSubmissionMock.mockResolvedValue(makeSubmission(threeLinks));
+      listEditVersionsMock.mockResolvedValue([
+        makeVersion({ Version_Type: 'editor_final', Headline: 'Final headline', Body: linkedBody }),
+      ]);
+    });
+
+    it('turns an email link into a web link when a web address is typed in its field', async () => {
+      const user = userEvent.setup();
+      renderEditPage();
+
+      const email = (await screen.findAllByLabelText('Email address'))[0];
+      await user.clear(email);
+      await user.type(email, 'https://example.com/ana');
+      expect(within(screen.getByRole('group', { name: 'Link 2' })).getByLabelText('URL'))
+        .toHaveValue('https://example.com/ana');
+      await user.click(screen.getByRole('button', { name: /save draft/i }));
+
+      await waitFor(() => {
+        expect(saveEditorFinalMock).toHaveBeenCalledWith('submission-1', expect.objectContaining({
+          Body: expect.stringContaining('<a href="https://example.com/ana">Ana Lopez</a>'),
+          Links: [
+            { Url: 'https://example.com/register', Anchor_Text: 'Register now', Display_Order: 0 },
+            { Url: 'https://example.com/ana', Anchor_Text: 'Ana Lopez', Display_Order: 1 },
+            { Url: 'mailto:events@example.edu', Anchor_Text: 'events@example.edu', Display_Order: 2 },
+          ],
+        }));
+      });
+    });
+
+    it('blocks a save that would drop a link whose destination is not https or email', async () => {
+      const user = userEvent.setup();
+      renderEditPage();
+
+      const url = (await screen.findAllByLabelText('URL'))[0];
+      await user.clear(url);
+      await user.type(url, 'www.example.com/tickets');
+      expect(screen.getByText(/Web links must start with https:\/\//)).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: /save draft/i }));
+
+      expect(await screen.findByText(
+        /Link destination "www\.example\.com\/tickets" isn't a web address starting with https:\/\//,
+      )).toBeInTheDocument();
+      expect(saveEditorFinalMock).not.toHaveBeenCalled();
+    });
+
+    it('keeps a changed URL and new link text after the body was edited', async () => {
+      const user = userEvent.setup();
+      renderEditPage();
+
+      const body = await screen.findByPlaceholderText('Enter body text...');
+      await user.clear(body);
+      await user.type(body, 'Join us Friday. Contact Ana Lopez or events@example.edu.');
+      await user.tab();
+      const link1 = screen.getByRole('group', { name: 'Link 1' });
+      await user.clear(within(link1).getByLabelText('URL'));
+      await user.type(within(link1).getByLabelText('URL'), 'https://example.com/tickets');
+      const cta = within(link1).getByLabelText(/Words to link the URL to/);
+      await user.clear(cta);
+      await user.type(cta, 'Buy tickets');
+      await user.tab();
+      await user.click(screen.getByRole('button', { name: /save draft/i }));
+
+      await waitFor(() => {
+        expect(saveEditorFinalMock).toHaveBeenCalledWith('submission-1', expect.objectContaining({
+          Body: 'Join us Friday. Contact <a href="mailto:ana@example.edu">Ana Lopez</a> or '
+            + '<a href="mailto:events@example.edu">events@example.edu</a>.\n'
+            + '<a href="https://example.com/tickets">Buy tickets</a>',
+          Links: expect.arrayContaining([
+            { Url: 'https://example.com/tickets', Anchor_Text: 'Buy tickets', Display_Order: 0 },
+          ]),
+        }));
+      });
+    });
+
+    it('lets staff add a fourth link and remove one', async () => {
+      const user = userEvent.setup();
+      renderEditPage();
+
+      await screen.findByRole('group', { name: 'Link 3' });
+      await user.click(screen.getByRole('button', { name: 'Remove link 3' }));
+      expect(screen.queryByRole('group', { name: 'Link 3' })).not.toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Add a link' }));
+      await user.click(screen.getByRole('button', { name: 'Add a link' }));
+      const link3 = screen.getByRole('group', { name: 'Link 3' });
+      await user.type(within(link3).getByLabelText('URL'), 'https://example.com/map');
+      await user.type(within(link3).getByLabelText(/Words to link the URL to/), 'Join us Friday');
+      await user.tab();
+      const link4 = screen.getByRole('group', { name: 'Link 4' });
+      await user.click(within(link4).getByRole('button', { name: 'Switch to email link' }));
+      await user.type(within(link4).getByLabelText('Email address'), 'events@example.edu');
+      await user.type(within(link4).getByLabelText(/Link text/), 'UCM events');
+      await user.tab();
+      await user.click(screen.getByRole('button', { name: /save draft/i }));
+
+      await waitFor(() => {
+        expect(saveEditorFinalMock).toHaveBeenCalledWith('submission-1', expect.objectContaining({
+          Body: '<a href="https://example.com/map">Join us Friday</a>. '
+            + '<a href="https://example.com/register">Register now</a>. '
+            + 'Contact <a href="mailto:ana@example.edu">Ana Lopez</a> or events@example.edu.\n'
+            + '<a href="mailto:events@example.edu">UCM events</a>',
+          Links: [
+            { Url: 'https://example.com/register', Anchor_Text: 'Register now', Display_Order: 0 },
+            { Url: 'mailto:ana@example.edu', Anchor_Text: 'Ana Lopez', Display_Order: 1 },
+            { Url: 'https://example.com/map', Anchor_Text: 'Join us Friday', Display_Order: 2 },
+            { Url: 'mailto:events@example.edu', Anchor_Text: 'UCM events', Display_Order: 3 },
+          ],
+        }));
+      });
+    });
+  });
+
   it('shows load errors and lets staff return to the dashboard', async () => {
     const user = userEvent.setup();
     getSubmissionMock.mockRejectedValueOnce(new Error('Submission not found'));

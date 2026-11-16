@@ -10,7 +10,7 @@ import pytest
 from httpx import AsyncClient
 
 from app.models.submission import Submission
-from app.services.ai.editor import AIEditor, reconcile_changes
+from app.services.ai.editor import AIEditor, reconcile_changes, reconcile_flags
 from tests.conftest import TestSession, make_submission_data
 
 
@@ -173,6 +173,95 @@ def test_reconcile_changes_keeps_final_edits_once():
         "Split the long admission sentence",
         "Deleted the duplicate registration sentence",
     ]
+
+
+def test_reconcile_flags_drops_removal_claims_the_final_copy_contradicts():
+    # #479: the model flagged a phrase that the final edit still has.
+    final = "The free talk is at noon. All are welcome."
+    kept_claim = {
+        "type": "warning",
+        "rule_key": "preserve_audience_scope",
+        "message": "Broad invitation 'all are welcome' was narrowed or removed",
+    }
+    real_removal = {
+        "type": "warning",
+        "rule_key": "preserve_information_options",
+        "message": "Removed “learn more by emailing the office”",
+    }
+    unrelated_quote = {
+        "type": "warning",
+        "rule_key": "event_details",
+        "message": "Missing end time for the talk at 'noon'",
+    }
+    no_claim = {
+        "type": "info",
+        "rule_key": "headline_rules",
+        "message": "Shortened \"The free talk\" headline",
+    }
+
+    assert reconcile_flags(
+        [kept_claim, real_removal, unrelated_quote, no_claim], final
+    ) == [real_removal, unrelated_quote, no_claim]
+
+
+def test_reconcile_flags_keeps_flags_that_quote_a_subject_not_the_lost_content():
+    # PR #506 review: the quoted words can name whose detail is missing.
+    final = "Contact the Event Coordinator for details. All are welcome."
+    subject_quote = {
+        "type": "warning",
+        "rule_key": "preserve_source_contacts",
+        "message": 'Contact email missing for "Event Coordinator"',
+    }
+    mixed = {
+        "type": "warning",
+        "rule_key": "preserve_source_contacts",
+        "message": 'Removed "all are welcome" and missing "Event Coordinator" phone',
+    }
+    named_removal = {
+        "type": "warning",
+        "rule_key": "preserve_audience_scope",
+        "message": "Removed the phrase “all are welcome”",
+    }
+
+    assert reconcile_flags([subject_quote, mixed, named_removal], final) == [
+        subject_quote,
+        mixed,
+    ]
+
+
+class ContradictedFlagProvider:
+    """Single pass whose own flag says it removed a phrase it kept."""
+
+    model = "fixture-model"
+
+    async def complete_json(self, **kwargs):
+        return {
+            "edited_headline": "Attend the Science and Society lecture",
+            "edited_body": (
+                "The Science and Society lecture is at 6 p.m. Wednesday, Oct. 28, "
+                "in the Example Building. All are welcome."
+            ),
+            "changes_made": ["Replaced '&' with 'and'"],
+            "flags": [
+                {
+                    "type": "warning",
+                    "rule_key": "preserve_audience_scope",
+                    "message": "Removed 'all are welcome' from the lead",
+                }
+            ],
+            "embedded_links": [],
+            "confidence": 0.9,
+        }
+
+
+@pytest.mark.asyncio
+async def test_model_flag_contradicted_by_final_copy_is_dropped():
+    result = await make_editor(ContradictedFlagProvider()).edit_submission(
+        None, make_submission(), "tdr"
+    )
+
+    assert "All are welcome." in result.edited_body
+    assert not any("all are welcome" in flag["message"] for flag in result.flags)
 
 
 @pytest.mark.asyncio

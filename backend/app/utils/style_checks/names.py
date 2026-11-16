@@ -57,6 +57,29 @@ _OFFICIAL_NAME = re.compile(
 )
 _BRANDED_TOKEN = re.compile(r"\b[A-Z][a-z]+[A-Z][A-Za-z]*\b")
 
+# Official forms of U of I "Vandal" terms, as Joy set them (#480). Each
+# pattern matches the term with any capitalization and with or without a
+# space or hyphen after "Vandal"; a match that isn't the official form is a
+# variant. Web and email addresses such as vandalcard@uidaho.edu are skipped.
+OFFICIAL_VANDAL_TERMS = (
+    "Vandal Alert",
+    "VandalCard",
+    "VandalCARE",
+    "VandalChat",
+    "Vandal Connect",
+    "Vandal Family",
+    "Vandal Gear",
+    "VandalMail",
+    "VandalStore",
+)
+_VANDAL_TERM_PATTERNS = {
+    term: re.compile(
+        rf"\bVandal[\s\u00a0-]*{term.removeprefix('Vandal').strip()}\b",
+        re.IGNORECASE,
+    )
+    for term in OFFICIAL_VANDAL_TERMS
+}
+
 
 def _composition_titles(source_text: str) -> list[str]:
     """Extract high-confidence composition titles from source copy."""
@@ -223,9 +246,70 @@ def detect_changed_official_names(source_text: str, edited_text: str) -> list[st
     edited = strip_html(edited_text)
     findings: list[str] = []
     for candidate in _official_name_candidates(source_text):
-        allowed_variants = {candidate}
+        # The edit may correct a Vandal term to its official form (#480).
+        allowed_variants = {candidate, normalize_vandal_terms(candidate)}
         if "&" in candidate:
             allowed_variants.add(re.sub(r"\s*&\s*", " and ", candidate))
         if not any(variant in edited for variant in allowed_variants):
             findings.append(candidate)
     return findings
+
+
+_ADDRESS_SPAN = re.compile(
+    r"(?:https?://|www\.)\S+"  # web address
+    r"|[\w.+-]+@[\w-]+(?:\.[\w-]+)+"  # email address
+    r"|\b[\w-]+(?:\.[\w-]+)*\.(?:edu|com|org|net|gov|io|us)\b(?:/\S*)?",  # bare domain
+    re.IGNORECASE,
+)
+
+
+def _in_web_or_email_address(text: str, start: int, end: int) -> bool:
+    """True when the span sits inside a URL, domain or email address.
+
+    Only real address spans count, so slash-separated prose such as
+    "VandalCard/VandalMail" is still checked.
+    """
+    return any(
+        match.start() <= start and end <= match.end()
+        for match in _ADDRESS_SPAN.finditer(text)
+    )
+
+
+def _vandal_term_matches(text: str):
+    for official, pattern in _VANDAL_TERM_PATTERNS.items():
+        for match in pattern.finditer(text):
+            if not _in_web_or_email_address(text, match.start(), match.end()):
+                yield match, official
+
+
+def normalize_vandal_terms(text: str) -> str:
+    """Rewrite Vandal-term variants in plain text to their official forms."""
+    for official, pattern in _VANDAL_TERM_PATTERNS.items():
+        text = pattern.sub(
+            lambda match, official=official: (
+                match.group()
+                if _in_web_or_email_address(match.string, match.start(), match.end())
+                else official
+            ),
+            text,
+        )
+    return text
+
+
+def detect_vandal_term_variants(text: str) -> list[tuple[str, str]]:
+    """Find Vandal terms not written in their official form (#480).
+
+    Returns ``(variant, official form)`` pairs in order of appearance, for
+    example ``("Vandal Card", "VandalCard")``.
+    """
+    visible = strip_html(text)
+    found = sorted(
+        (match.start(), match.group(), official)
+        for match, official in _vandal_term_matches(visible)
+        if match.group() != official
+    )
+    pairs: list[tuple[str, str]] = []
+    for _, variant, official in found:
+        if (variant, official) not in pairs:
+            pairs.append((variant, official))
+    return pairs

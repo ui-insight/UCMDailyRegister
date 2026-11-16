@@ -91,8 +91,10 @@ class ScheduleRequestCreate(BaseModel):
             raise ValueError(
                 "Recurrence_End_Date cannot be before the recurrence start date"
             )
-        if self.Recurrence_Type == "date_range" and self.Recurrence_End_Date is None:
-            raise ValueError("Recurrence_End_Date is required for date_range recurrence")
+        if self.Recurrence_Type != "once" and self.Recurrence_End_Date is None:
+            raise ValueError(
+                f"Recurrence_End_Date is required for {self.Recurrence_Type} recurrence"
+            )
         return self
 
 
