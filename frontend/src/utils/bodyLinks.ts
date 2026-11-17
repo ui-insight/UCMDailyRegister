@@ -60,16 +60,18 @@ export function isSafeLinkDestination(value: string): boolean {
 }
 
 /**
- * Identity of a link for de-duplication: the same destination with the same
- * words. Two different phrases may point at one destination (#521).
+ * Identity of a link for de-duplication: the same destination on the same
+ * words. Two phrases, or two mentions of one phrase, may point at one
+ * destination (#521); a link without a chosen mention matches any mention.
  */
-function linkIdentity(url: string, anchorText: string): string {
-  return `${canonicalLinkDestination(url)}\u0000${anchorText.trim().toLocaleLowerCase()}`;
+function linkIdentity(url: string, anchorText: string, start?: number): string {
+  return `${canonicalLinkDestination(url)}\u0000${anchorText.trim().toLocaleLowerCase()}`
+    + `\u0000${start ?? ''}`;
 }
 
 export function prepareBodyForEditing(
   body: string,
-  storedLinks: Array<{ Url: string; Anchor_Text: string | null; Display_Order?: number }> = [],
+  storedLinks: StoredLink[] = [],
 ): { body: string; links: EditableBodyLink[] } {
   const bodyLinks: EditableBodyLink[] = [];
   const standaloneAnchorLabels = new Set<string>();
@@ -89,9 +91,9 @@ export function prepareBodyForEditing(
     // the link list as typed, so the editor reports it instead of the save
     // dropping it without a word (#521).
     const url = safe ? normalizeEditableLinkUrl(href) : href.trim();
-    const identity = linkIdentity(url, anchorText);
+    const identity = linkIdentity(url, anchorText, plainStart);
     if (!bodyLinks.some(
-      (candidate) => linkIdentity(candidate.Url, candidate.Anchor_Text) === identity,
+      (candidate) => linkIdentity(candidate.Url, candidate.Anchor_Text, candidate.Start) === identity,
     )) {
       bodyLinks.push({
         Url: url,
@@ -132,10 +134,15 @@ export function prepareBodyForEditing(
     trailingBlockStart = index;
     index -= 1;
   }
-  const legacyBlock = trailingBlockStart < bodyLines.length
+  // Those builds appended a link only when they could not find its words
+  // (an exact, case-sensitive search), so a line whose words already appear
+  // verbatim in the prose is the submitter's own copy and is kept.
+  const prose = bodyLines.slice(0, trailingBlockStart).join('\n');
+  const blockLines = bodyLines.slice(trailingBlockStart).map((line) => line.trim()).filter(Boolean);
+  const legacyBlock = blockLines.length > 0
     && index >= 0
     && bodyLines[index].trim() !== ''
-    && bodyLines.slice(trailingBlockStart).some((line) => line.trim());
+    && blockLines.every((line) => !prose.includes(line));
   plainBody = (legacyBlock ? bodyLines.slice(0, trailingBlockStart).join('\n') : plainBody)
     .trimEnd();
 
@@ -145,6 +152,19 @@ export function prepareBodyForEditing(
       ? link
       : { ...link, Start: undefined }
   ));
+  mergeStoredLinks(plainBody, links, storedLinks);
+
+  // No cap here: a link left out of the editor would be dropped on save.
+  return { body: plainBody, links };
+}
+
+type StoredLink = { Url: string; Anchor_Text: string | null; Display_Order?: number };
+
+/**
+ * Add the item's stored links (the links table, or the AI's embedded links)
+ * that the inline anchors do not already cover. Mutates `links`.
+ */
+function mergeStoredLinks(plainBody: string, links: EditableBodyLink[], storedLinks: StoredLink[]): void {
   for (const link of [...storedLinks].sort(
     (left, right) => (left.Display_Order ?? 0) - (right.Display_Order ?? 0),
   )) {
@@ -152,8 +172,20 @@ export function prepareBodyForEditing(
     const canonicalUrl = canonicalLinkDestination(normalizedUrl);
     const anchorText = link.Anchor_Text?.trim() || '';
     if (!link.Url.trim()) continue;
+    const lowerAnchor = anchorText.toLocaleLowerCase();
+    if (links.some((candidate) => (
+      canonicalLinkDestination(candidate.Url) === canonicalUrl
+      && candidate.Anchor_Text.trim().toLocaleLowerCase() === lowerAnchor
+    ))) continue;
+    // The same destination is already linked. Keep this one as its own link
+    // only when its words are in the body and not already a link's words
+    // (#521); otherwise it is the stored copy of the inline link.
     if (links.some(
       (candidate) => canonicalLinkDestination(candidate.Url) === canonicalUrl,
+    ) && (
+      !anchorText
+      || findMentions(plainBody, anchorText).length === 0
+      || links.some((candidate) => candidate.Anchor_Text.trim().toLocaleLowerCase() === lowerAnchor)
     )) continue;
     const matchingAnchorIndex = anchorText
       ? links.findIndex(
@@ -176,9 +208,6 @@ export function prepareBodyForEditing(
       Display_Order: links.length,
     });
   }
-
-  // No cap here: a link left out of the editor would be dropped on save.
-  return { body: plainBody, links };
 }
 
 /** Start offsets of every case-insensitive, non-overlapping mention of `label`. */
@@ -244,7 +273,7 @@ export function duplicateLinks(links: EditableBodyLink[]): EditableBodyLink[] {
   const seen = new Set<string>();
   return links.filter((link) => {
     if (!link.Url.trim() || !isSafeLinkDestination(link.Url)) return false;
-    const identity = linkIdentity(link.Url, link.Anchor_Text);
+    const identity = linkIdentity(link.Url, link.Anchor_Text, link.Start);
     if (seen.has(identity)) return true;
     seen.add(identity);
     return false;
@@ -445,7 +474,7 @@ export function buildLinkedBody(body: string, links: EditableBodyLink[]): string
     }))
     .filter((link) => {
       if (!link.Url || !isSafeLinkDestination(link.Url)) return false;
-      const identity = linkIdentity(link.Url, link.Anchor_Text);
+      const identity = linkIdentity(link.Url, link.Anchor_Text, link.Start);
       if (seenLinks.has(identity)) return false;
       seenLinks.add(identity);
       return true;
@@ -492,7 +521,7 @@ export function normalizedBodyLinks(
           || !searchableBody.includes(link.Anchor_Text.toLocaleLowerCase())
         )
       ) return false;
-      const identity = linkIdentity(link.Url, link.Anchor_Text);
+      const identity = linkIdentity(link.Url, link.Anchor_Text, link.Start);
       if (seenLinks.has(identity)) return false;
       seenLinks.add(identity);
       return true;

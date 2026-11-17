@@ -351,6 +351,33 @@ describe('body link editing', () => {
       expect(linkSaveProblem(editable.body, editable.links)).toMatch(/^Link destination/);
     });
 
+    it('keeps a link line whose words already appear verbatim above it (review of #527)', () => {
+      const stored = 'Register today.\n<a href="https://example.edu/r">Register</a>';
+      const { editable, saved } = roundTrip(stored);
+      expect(editable.body).toBe('Register today.\nRegister');
+      expect(saved).toBe(stored);
+    });
+
+    it('keeps two mentions of the same words linked to the same destination', () => {
+      const stored = 'Go <a href="https://example.edu/r">Register</a> today.\n\n'
+        + '<a href="https://example.edu/r">Register</a>';
+      const { editable, saved } = roundTrip(stored);
+      expect(editable.links).toHaveLength(2);
+      expect(linkSaveProblem(editable.body, editable.links)).toBeNull();
+      expect(saved).toBe(stored);
+    });
+
+    it('keeps stored links that share a destination on different words', () => {
+      const { editable, saved } = roundTrip('Register or sign up.', [
+        { Url: 'https://example.edu/r', Anchor_Text: 'Register', Display_Order: 0 },
+        { Url: 'https://example.edu/r', Anchor_Text: 'sign up', Display_Order: 1 },
+      ]);
+      expect(editable.links.map((link) => link.Anchor_Text)).toEqual(['Register', 'sign up']);
+      expect(saved).toBe(
+        '<a href="https://example.edu/r">Register</a> or <a href="https://example.edu/r">sign up</a>.',
+      );
+    });
+
     it('still removes the block older builds appended straight after the prose', () => {
       const { editable } = roundTrip(
         'Join us Friday.\n<a href="https://example.edu/social">Register for the social</a>',
