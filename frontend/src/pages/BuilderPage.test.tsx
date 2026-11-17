@@ -189,6 +189,45 @@ describe('BuilderPage staff-only sections', () => {
     ).toHaveValue('section-student-reminders');
   });
 
+  it('moves a submission past an imported item and sends both positions (#509)', async () => {
+    const user = userEvent.setup();
+    const reminder = {
+      ...academicDateItem,
+      Id: 'recurring-1',
+      Newsletter_Id: tdrNewsletter.Id,
+      Section_Id: 'section-employee-announcements',
+      Source_Type: 'recurring_message',
+      Source_Id: 'recurring-message-1',
+      Position: 0,
+      Final_Headline: 'Weekly benefits reminder',
+    };
+    const mixed = {
+      ...tdrNewsletter,
+      Items: [{ ...tdrNewsletter.Items[0], Position: 1 }],
+      External_Items: [reminder],
+    };
+    newsletterApiMocks.assembleNewsletter.mockResolvedValue(mixed);
+    newsletterApiMocks.getNewsletter.mockResolvedValue(mixed);
+    newsletterApiMocks.reorderNewsletterItems.mockResolvedValue(undefined);
+    render(<BuilderPage />);
+
+    const publishDateInput = document.querySelector<HTMLInputElement>('input[type="date"]');
+    await user.clear(publishDateInput!);
+    await user.type(publishDateInput!, '2026-08-25');
+    await user.click(screen.getAllByRole('button', { name: 'Assemble Newsletter' })[0]);
+
+    await screen.findByText('Weekly benefits reminder');
+    expect(screen.getByTitle('Move down')).toBeDisabled();
+    await user.click(screen.getByTitle('Move up'));
+
+    await waitFor(() => {
+      expect(newsletterApiMocks.reorderNewsletterItems).toHaveBeenCalledWith('tdr-newsletter-1', [
+        { Id: 'newsletter-item-1', Position: 0, Section_Id: 'section-employee-announcements' },
+        { Id: 'recurring-1', Position: 1 },
+      ]);
+    });
+  });
+
   it('keeps the empty events heading in place with "No events."', async () => {
     const user = userEvent.setup();
     const eventsSection = {

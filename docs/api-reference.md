@@ -115,7 +115,7 @@ The edit response includes `AI_Provider` and `AI_Model` fields so the UI can dis
 | PATCH  | `/api/v1/newsletters/{id}/external-items/{item_id}`           | Update an imported external item |
 | DELETE | `/api/v1/newsletters/{id}/items/{item_id}`                    | Remove an item                   |
 | DELETE | `/api/v1/newsletters/{id}/external-items/{item_id}`           | Remove an imported external item |
-| PUT    | `/api/v1/newsletters/{id}/reorder`                            | Bulk reorder submission items    |
+| PUT    | `/api/v1/newsletters/{id}/reorder`                            | Bulk reorder items; submissions may change section, imported items keep theirs; affected sections are renumbered 0..n-1 |
 
 ### Newsletter Builder Imports
 

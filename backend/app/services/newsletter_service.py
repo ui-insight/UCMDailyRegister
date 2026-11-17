@@ -88,6 +88,65 @@ async def delete_newsletter(db: AsyncSession, newsletter_id: str) -> bool:
 # --- Item management ---
 
 
+def section_order_key(item: NewsletterItem | NewsletterExternalItem) -> tuple[int, str, str]:
+    """The one order rule for a section's items, in the Builder and the Word export.
+
+    Submissions and imported items share one position sequence per section
+    (#509). Positions are renumbered 0..n-1 whenever a section changes, so the
+    headline and Id only break ties left in data written before that. The
+    Builder sorts with the same rule.
+    """
+    return (item.Position, item.Final_Headline or "", item.Id)
+
+
+async def _section_items(
+    db: AsyncSession,
+    newsletter_id: str,
+    section_id: str,
+) -> list[NewsletterItem | NewsletterExternalItem]:
+    items: list[NewsletterItem | NewsletterExternalItem] = []
+    for model in (NewsletterItem, NewsletterExternalItem):
+        result = await db.execute(
+            sa.select(model).where(
+                model.Newsletter_Id == newsletter_id,
+                model.Section_Id == section_id,
+            )
+        )
+        items.extend(result.scalars().all())
+    return items
+
+
+async def renumber_section(db: AsyncSession, newsletter_id: str, section_id: str) -> None:
+    """Give a section's items positions 0..n-1 in their current order."""
+    items = await _section_items(db, newsletter_id, section_id)
+    for index, item in enumerate(sorted(items, key=section_order_key)):
+        item.Position = index
+
+
+async def _next_section_position(db: AsyncSession, newsletter_id: str, section_id: str) -> int:
+    """The position after every item in the section, submissions and imports alike."""
+    items = await _section_items(db, newsletter_id, section_id)
+    return max((item.Position for item in items), default=-1) + 1
+
+
+def _next_position_in(
+    newsletter: Newsletter,
+    section_id: str,
+    *,
+    exclude: NewsletterItem | None = None,
+) -> int:
+    """`_next_section_position` over a newsletter's loaded items.
+
+    Compares objects, not Ids: items added during assembly have no Id yet.
+    """
+    positions = [
+        item.Position
+        for item in (*newsletter.Items, *newsletter.External_Items)
+        if item.Section_Id == section_id and item is not exclude
+    ]
+    return max(positions, default=-1) + 1
+
+
 async def add_item(
     db: AsyncSession,
     newsletter_id: str,
@@ -127,22 +186,8 @@ async def add_external_item(
     final_body: str,
     commit: bool = True,
 ) -> NewsletterExternalItem:
-    item_max_result = await db.execute(
-        sa.select(sa.func.max(NewsletterItem.Position)).where(
-            NewsletterItem.Newsletter_Id == newsletter_id,
-            NewsletterItem.Section_Id == section_id,
-        )
-    )
-    external_max_result = await db.execute(
-        sa.select(sa.func.max(NewsletterExternalItem.Position)).where(
-            NewsletterExternalItem.Newsletter_Id == newsletter_id,
-            NewsletterExternalItem.Section_Id == section_id,
-        )
-    )
-    max_position = max(
-        item_max_result.scalar_one_or_none() or -1,
-        external_max_result.scalar_one_or_none() or -1,
-    )
+    # A maximum of 0 is a real position, not "no items" (#509).
+    position = await _next_section_position(db, newsletter_id, section_id)
     item = NewsletterExternalItem(
         Newsletter_Id=newsletter_id,
         Section_Id=section_id,
@@ -152,7 +197,7 @@ async def add_external_item(
         Event_Start=event_start,
         Event_End=event_end,
         Location=location,
-        Position=max_position + 1,
+        Position=position,
         Final_Headline=final_headline,
         Final_Body=final_body,
     )
@@ -296,9 +341,17 @@ async def reorder_items(
     newsletter_id: str,
     item_positions: list[dict],
 ) -> None:
-    """Update positions for multiple items."""
+    """Update positions for multiple items.
+
+    Submissions may change section. Imported items (events, jobs, recurring
+    messages, academic dates) are listed so a move keeps its place among
+    them; they keep their section (#509).
+    """
+    touched_sections: set[str] = set()
     for pos in item_positions:
         item_id = pos.get("Id") or pos.get("id")
+        position = pos.get("Position", pos.get("position"))
+        section_id = pos.get("Section_Id") or pos.get("section_id")
         result = await db.execute(
             sa.select(NewsletterItem).where(
                 NewsletterItem.Id == item_id,
@@ -307,12 +360,28 @@ async def reorder_items(
         )
         item = result.scalar_one_or_none()
         if item:
-            item.Position = pos.get("Position", pos.get("position", item.Position))
-            section_id = pos.get("Section_Id") or pos.get("section_id")
+            touched_sections.add(item.Section_Id)
+            if position is not None:
+                item.Position = position
             if section_id:
                 if section_id != item.Section_Id:
                     item.Manually_Placed = True
                 item.Section_Id = section_id
+            touched_sections.add(item.Section_Id)
+            continue
+        external = await db.execute(
+            sa.select(NewsletterExternalItem).where(
+                NewsletterExternalItem.Id == item_id,
+                NewsletterExternalItem.Newsletter_Id == newsletter_id,
+            )
+        )
+        external_item = external.scalar_one_or_none()
+        if external_item and position is not None:
+            external_item.Position = position
+            touched_sections.add(external_item.Section_Id)
+    await db.flush()
+    for section_id in touched_sections:
+        await renumber_section(db, newsletter_id, section_id)
     await db.commit()
 
 
@@ -409,14 +478,10 @@ async def assemble_newsletter(
             # Re-sync auto-placed items to the current category mapping;
             # placements staff moved by hand are left alone.
             if not existing_item.Manually_Placed and existing_item.Section_Id != section.Id:
-                existing_item.Section_Id = section.Id
-                existing_item.Position = len(
-                    [
-                        it
-                        for it in newsletter.Items
-                        if it.Section_Id == section.Id and it.Id != existing_item.Id
-                    ]
+                existing_item.Position = _next_position_in(
+                    newsletter, section.Id, exclude=existing_item
                 )
+                existing_item.Section_Id = section.Id
             continue
 
         headline, body, source_version_id = editorial_content.publishable_text(sub)
@@ -431,7 +496,8 @@ async def assemble_newsletter(
                     item.Position += 1
             position = 0
         else:
-            position = len(section_items)
+            # After every item already in the section, imports included (#509).
+            position = _next_position_in(newsletter, section.Id)
 
         item = NewsletterItem(
             Newsletter_Id=newsletter.Id,
@@ -447,6 +513,9 @@ async def assemble_newsletter(
         newsletter.Items.append(item)
 
     await recurring_message_service.sync_newsletter_recurring_messages(db, newsletter)
+    await db.flush()
+    for section in sections:
+        await renumber_section(db, newsletter.Id, section.Id)
     await db.commit()
     return await get_newsletter(db, newsletter.Id)
 
