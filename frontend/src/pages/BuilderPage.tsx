@@ -39,6 +39,12 @@ import BuilderItemEditForm, {
   type BuilderItemEditDraft,
 } from '../components/newsletter/BuilderItemEditForm';
 import { linkedBodyForSave, prepareBodyForEditing } from '../utils/bodyLinks';
+import {
+  planAdjacentMove,
+  planSubmissionMove,
+  sortSectionItems,
+  type SectionOrderItem,
+} from '../utils/builderOrder';
 import { formatAPDate, parseISODate, todayISO, toISODate } from '../utils/date';
 
 const ACADEMIC_DATES_SOURCE_URL = 'https://www.uidaho.edu/registrar/dates-deadlines';
@@ -102,6 +108,14 @@ interface SubmissionDragState {
   width: number;
   height: number;
   title: string;
+}
+
+/** Every item in an edition, for the section order helpers. */
+function sectionOrderItems(newsletter: NewsletterDetailResponse): SectionOrderItem[] {
+  return [
+    ...newsletter.Items.map((item) => ({ ...item, Kind: 'submission' })),
+    ...newsletter.External_Items.map((item) => ({ ...item, Kind: item.Source_Type })),
+  ];
 }
 
 type BuilderSectionItem =
@@ -579,24 +593,8 @@ export default function BuilderPage() {
 
   const handleMoveItem = async (itemId: string, direction: 'up' | 'down') => {
     if (!newsletter) return;
-
-    const item = newsletter.Items.find((i) => i.Id === itemId);
-    if (!item) return;
-
-    // Get items in same section, sorted by position
-    const sectionItems = newsletter.Items
-      .filter((i) => i.Section_Id === item.Section_Id)
-      .sort((a, b) => a.Position - b.Position);
-
-    const idx = sectionItems.findIndex((i) => i.Id === itemId);
-    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if (swapIdx < 0 || swapIdx >= sectionItems.length) return;
-
-    const positions = sectionItems.map((i, index) => {
-      if (index === idx) return { Id: i.Id, Position: swapIdx };
-      if (index === swapIdx) return { Id: i.Id, Position: idx };
-      return { Id: i.Id, Position: index };
-    });
+    const positions = planAdjacentMove(sectionOrderItems(newsletter), itemId, direction);
+    if (positions.length === 0) return;
 
     try {
       await reorderNewsletterItems(newsletter.Id, positions);
@@ -607,53 +605,6 @@ export default function BuilderPage() {
     }
   };
 
-  const buildSubmissionReorderPositions = useCallback((
-    itemId: string,
-    targetSectionId: string,
-    targetIndex: number,
-  ) => {
-    if (!newsletter) return [];
-
-    const draggedItem = newsletter.Items.find((item) => item.Id === itemId);
-    if (!draggedItem) return [];
-
-    const sourceSectionId = draggedItem.Section_Id;
-    const sourceItems = newsletter.Items
-      .filter((item) => item.Section_Id === sourceSectionId && item.Id !== itemId)
-      .sort((a, b) => a.Position - b.Position);
-    const targetItemsBase = newsletter.Items
-      .filter((item) => item.Section_Id === targetSectionId && item.Id !== itemId)
-      .sort((a, b) => a.Position - b.Position);
-
-    if (sourceSectionId === targetSectionId) {
-      const clampedIndex = Math.max(0, Math.min(targetIndex, sourceItems.length));
-      const reorderedItems = [...sourceItems];
-      reorderedItems.splice(clampedIndex, 0, draggedItem);
-      return reorderedItems.map((item, index) => ({
-        Id: item.Id,
-        Position: index,
-        Section_Id: targetSectionId,
-      }));
-    }
-
-    const clampedIndex = Math.max(0, Math.min(targetIndex, targetItemsBase.length));
-    const targetItems = [...targetItemsBase];
-    targetItems.splice(clampedIndex, 0, draggedItem);
-
-    return [
-      ...sourceItems.map((item, index) => ({
-        Id: item.Id,
-        Position: index,
-        Section_Id: sourceSectionId,
-      })),
-      ...targetItems.map((item, index) => ({
-        Id: item.Id,
-        Position: index,
-        Section_Id: targetSectionId,
-      })),
-    ];
-  }, [newsletter]);
-
   const handleReassignSubmission = useCallback(async (
     itemId: string,
     targetSectionId: string,
@@ -661,16 +612,12 @@ export default function BuilderPage() {
   ) => {
     if (!newsletter) return;
 
-    const draggedItem = newsletter.Items.find((item) => item.Id === itemId);
-    if (!draggedItem) return;
-
-    const targetItems = newsletter.Items.filter(
-      (item) => item.Section_Id === targetSectionId && item.Id !== itemId,
-    );
-    const positions = buildSubmissionReorderPositions(
+    // No index (the section picker): after the section's last submission.
+    const positions = planSubmissionMove(
+      sectionOrderItems(newsletter),
       itemId,
       targetSectionId,
-      targetIndex ?? targetItems.length,
+      targetIndex ?? Number.MAX_SAFE_INTEGER,
     );
     if (positions.length === 0) return;
 
@@ -681,7 +628,7 @@ export default function BuilderPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to reorder');
     }
-  }, [buildSubmissionReorderPositions, newsletter]);
+  }, [newsletter]);
 
   const handleStatusChange = async (status: string) => {
     if (!newsletter) return;
@@ -896,9 +843,8 @@ export default function BuilderPage() {
     }));
     const allItems = [...submissionItems, ...externalItems];
     for (const section of sections) {
-      const items = allItems
-        .filter((i) => i.Section_Id === section.Id)
-        .sort((a, b) => a.Position - b.Position || a.Final_Headline.localeCompare(b.Final_Headline));
+      // Same order as the Word export (#509).
+      const items = sortSectionItems(allItems.filter((i) => i.Section_Id === section.Id));
       if (items.length > 0) {
         itemsBySection.set(section.Id, items);
       }
@@ -1641,7 +1587,7 @@ export default function BuilderPage() {
                                             </select>
                                             <button
                                               onClick={() => handleMoveItem(item.Id, 'up')}
-                                              disabled={submissionIndex === 0}
+                                              disabled={items[0]?.Id === item.Id}
                                               className="p-1 text-gray-600 hover:text-gray-700 disabled:opacity-30"
                                               title="Move up"
                                             >
@@ -1649,7 +1595,7 @@ export default function BuilderPage() {
                                             </button>
                                             <button
                                               onClick={() => handleMoveItem(item.Id, 'down')}
-                                              disabled={submissionIndex === submissionItems.length - 1}
+                                              disabled={items[items.length - 1]?.Id === item.Id}
                                               className="p-1 text-gray-600 hover:text-gray-700 disabled:opacity-30"
                                               title="Move down"
                                             >

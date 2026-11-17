@@ -684,7 +684,7 @@ async def export_newsletter(
                 *[it for it in newsletter.Items if it.Section_Id == section.Id],
                 *[it for it in newsletter.External_Items if it.Section_Id == section.Id],
             ],
-            key=lambda it: it.Position,
+            key=newsletter_service.section_order_key,
         )
         if section_items or section.Slug == calendar_slug:
             export_sections.append({
