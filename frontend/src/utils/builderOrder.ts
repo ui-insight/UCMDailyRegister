@@ -21,11 +21,19 @@ export interface PositionUpdate {
   Section_Id?: string;
 }
 
+/**
+ * Code-point order, as Python compares strings on the backend. JavaScript's
+ * `<` compares UTF-16 code units, which differs for characters outside the
+ * Basic Multilingual Plane (emoji, for example).
+ */
 function compareText(left: string, right: string): number {
-  // Code-point order, as Python compares strings on the backend.
-  if (left < right) return -1;
-  if (left > right) return 1;
-  return 0;
+  const leftPoints = Array.from(left, (character) => character.codePointAt(0) ?? 0);
+  const rightPoints = Array.from(right, (character) => character.codePointAt(0) ?? 0);
+  const length = Math.min(leftPoints.length, rightPoints.length);
+  for (let index = 0; index < length; index += 1) {
+    if (leftPoints[index] !== rightPoints[index]) return leftPoints[index] - rightPoints[index];
+  }
+  return leftPoints.length - rightPoints.length;
 }
 
 /**
@@ -93,10 +101,16 @@ export function planSubmissionMove(
   if (anchor) {
     insertAt = rest.findIndex((item) => item.Id === anchor.Id);
   } else {
-    const lastSubmission = [...rest].reverse().find((item) => item.Kind === 'submission');
-    insertAt = lastSubmission
-      ? rest.findIndex((item) => item.Id === lastSubmission.Id) + 1
-      : rest.length;
+    // After the last submission card as displayed. When that card is the
+    // dragged one, it stays where it is.
+    const lastSubmission = targetSubmissions[targetSubmissions.length - 1];
+    if (!lastSubmission) {
+      insertAt = rest.length;
+    } else if (lastSubmission.Id === itemId) {
+      insertAt = target.findIndex((item) => item.Id === itemId);
+    } else {
+      insertAt = rest.findIndex((item) => item.Id === lastSubmission.Id) + 1;
+    }
   }
   const nextTarget = [...rest];
   nextTarget.splice(insertAt, 0, dragged);

@@ -12,9 +12,12 @@ Builder broke ties by headline and the Word export by table, so the two
 could show different orders.
 
 This data migration renumbers each section 0..n-1 in the order the Builder
-showed: position, then headline, then Id. The application now keeps
-positions unique on every write. Only ``Position`` changes. Downgrade is a
-no-op because the old positions carried no extra meaning.
+showed: position, then headline as the browser's ``localeCompare`` orders
+it (approximated here as case-insensitive, lowercase first on otherwise
+equal text), then submissions before imported items, as the Builder listed
+them. Id settles anything left. The application now keeps positions unique
+on every write. Only ``Position`` changes. Downgrade is a no-op because the
+old positions carried no extra meaning.
 """
 
 from collections.abc import Sequence
@@ -44,10 +47,16 @@ def _table(name: str) -> sa.TableClause:
 TABLES = (_table("newsletter_items"), _table("newsletter_external_items"))
 
 
+def _builder_order(entry: tuple[int, str, int, str, sa.TableClause]) -> tuple:
+    """Approximate the old Builder sort for tied positions (localeCompare)."""
+    position, headline, table_rank, item_id, _table = entry
+    return (position, headline.casefold(), headline.swapcase(), table_rank, item_id)
+
+
 def upgrade() -> None:
     connection = op.get_bind()
-    sections: dict[tuple[str, str], list[tuple[int, str, str, sa.TableClause]]] = defaultdict(list)
-    for table in TABLES:
+    sections: dict[tuple[str, str], list[tuple[int, str, int, str, sa.TableClause]]] = defaultdict(list)
+    for table_rank, table in enumerate(TABLES):
         rows = connection.execute(
             sa.select(
                 table.c.Id,
@@ -59,11 +68,11 @@ def upgrade() -> None:
         )
         for row in rows:
             sections[(row.Newsletter_Id, row.Section_Id)].append(
-                (row.Position or 0, row.Final_Headline or "", row.Id, table)
+                (row.Position or 0, row.Final_Headline or "", table_rank, row.Id, table)
             )
     for items in sections.values():
-        for index, (position, _headline, item_id, table) in enumerate(
-            sorted(items, key=lambda entry: entry[:3])
+        for index, (position, _headline, _rank, item_id, table) in enumerate(
+            sorted(items, key=_builder_order)
         ):
             if position != index:
                 connection.execute(

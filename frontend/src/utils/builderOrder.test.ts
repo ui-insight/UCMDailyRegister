@@ -49,6 +49,14 @@ describe('planSubmissionMove (#510)', () => {
     expect(planSubmissionMove(abc, 'C', 'news', 3)).toEqual([]);
   });
 
+  it('changes nothing when the last submission is dropped after itself, ahead of an import', () => {
+    // Indicator after B; B is the last submission, so nothing moves.
+    const items = [submission('A', 0), imported('E', 1), submission('B', 2)];
+    expect(planSubmissionMove(items, 'B', 'news', 2)).toEqual([]);
+    const trailing = [submission('A', 0), submission('B', 1), imported('E', 2)];
+    expect(planSubmissionMove(trailing, 'B', 'news', 2)).toEqual([]);
+  });
+
   it('moves to another section and renumbers both', () => {
     const items = [...abc, submission('X', 0, 'kudos'), submission('Y', 1, 'kudos')];
     const updates = planSubmissionMove(items, 'B', 'kudos', 1);
@@ -113,5 +121,11 @@ describe('compareSectionItems', () => {
     // Code-point order: uppercase before lowercase, as Python sorts.
     expect([...items].sort(compareSectionItems).map((item) => item.Final_Headline))
       .toEqual(['Alpha', 'Zulu', 'alpha']);
+  });
+
+  it('compares by code point, as Python does, outside the Basic Multilingual Plane', () => {
+    const emoji = { ...submission('1', 0), Final_Headline: '\u{1F600}' };
+    const fullwidthA = { ...submission('2', 0), Final_Headline: '\uFF21' };
+    expect(compareSectionItems(fullwidthA, emoji)).toBeLessThan(0);
   });
 });
