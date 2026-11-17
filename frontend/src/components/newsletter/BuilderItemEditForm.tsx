@@ -72,6 +72,12 @@ export default function BuilderItemEditForm({
     });
   };
 
+  // Put a link's missing words back at the end of the body, as on the Edit
+  // page (#397, #521).
+  const handleRestoreWords = (index: number) => {
+    handleAnchorCommit(index, '', draft.Links[index]?.Anchor_Text ?? '');
+  };
+
   const handleMentionChange = (index: number, start: number) => {
     update((current) => ({
       ...current,
@@ -141,6 +147,7 @@ export default function BuilderItemEditForm({
           onAnchorCommit={handleAnchorCommit}
           body={draft.Body}
           onMentionChange={handleMentionChange}
+          onRestoreWords={handleRestoreWords}
           allowAddRemove
           maxLinks={EDITOR_MAX_LINKS}
           label="Links"

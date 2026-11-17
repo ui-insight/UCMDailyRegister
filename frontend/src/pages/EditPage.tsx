@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   addScheduleRequest,
@@ -35,6 +35,7 @@ import {
 } from '../utils/bodyLinks';
 import { buildEditorScheduleRequest } from '../utils/editorSchedule';
 import { Button, SegmentedToggle, Toast, useToast } from '../components/common';
+import useConfirmAction from '../components/common/useConfirmAction';
 
 type Tab = 'original' | 'ai_edit' | 'editor';
 type ViewMode = 'diff' | 'side_by_side' | 'live';
@@ -63,6 +64,11 @@ function saveConflictFrom(err: unknown, approve: boolean): SaveConflict | null {
   const detail = err.detail as { Current_Revision?: SaveConflict['current'] } | null;
   if (!detail || typeof detail !== 'object' || !('Current_Revision' in detail)) return null;
   return { approve, current: detail.Current_Revision ?? null };
+}
+
+/** Compares editor text with what was loaded, to tell whether staff changed it. */
+function editorTextKey(headline: string, body: string, links: LinkEntry[]): string {
+  return JSON.stringify([headline, body, links]);
 }
 
 /** The version the backend names as the submission's working revision. */
@@ -94,6 +100,28 @@ export default function EditPage() {
   const [editHeadline, setEditHeadline] = useState('');
   const [editBody, setEditBody] = useState('');
   const [editLinks, setEditLinks] = useState<LinkEntry[]>([]);
+  // The editor text as it was last loaded. Once staff change it, the editor
+  // is dirty: an AI result or a "Use ... in Final Edit" button never replaces
+  // that text without asking (#511).
+  const editorSeedRef = useRef(editorTextKey('', '', []));
+  const editorSnapshot = editorTextKey(editHeadline, editBody, editLinks);
+  const editorSnapshotRef = useRef(editorSnapshot);
+  useEffect(() => {
+    editorSnapshotRef.current = editorSnapshot;
+  }, [editorSnapshot]);
+  // An AI result arrived while the editor held unsaved text, so the editor
+  // does not hold the latest suggestion even when it started from an older one.
+  const [newerAiSuggestion, setNewerAiSuggestion] = useState(false);
+  const seedEditor = (headline: string, editable: { body: string; links: LinkEntry[] }) => {
+    setEditHeadline(headline);
+    setEditBody(editable.body);
+    setEditLinks(editable.links);
+    editorSeedRef.current = editorTextKey(headline, editable.body, editable.links);
+    setNewerAiSuggestion(false);
+  };
+  // Reads refs, so an AI request that finishes later sees the current text.
+  const isEditorDirty = () => editorSnapshotRef.current !== editorSeedRef.current;
+  const { requestConfirmation, confirmationDialog } = useConfirmAction();
   // The staff revision the editor text was loaded from. A sidebar refresh can
   // bring in a newer Staff_Revision_Id without the text that goes with it, so
   // saves are checked against this one, never the refreshed submission's.
@@ -104,6 +132,13 @@ export default function EditPage() {
 
   const loadData = useCallback(async (preserveAILiveView = false) => {
     if (!id) return;
+    const seed = (headline: string, editable: { body: string; links: LinkEntry[] }) => {
+      setEditHeadline(headline);
+      setEditBody(editable.body);
+      setEditLinks(editable.links);
+      editorSeedRef.current = editorTextKey(headline, editable.body, editable.links);
+      setNewerAiSuggestion(false);
+    };
     setLoading(true);
     setError(null);
     try {
@@ -120,32 +155,20 @@ export default function EditPage() {
         // one here by timestamp (see editorial_content.working_revision).
         const working = workingVersion(vers, sub);
         if (working?.Version_Type === 'editor_final') {
-          const editable = prepareBodyForEditing(working.Body, sub.Links);
-          setEditHeadline(working.Headline);
-          setEditBody(editable.body);
-          setEditLinks(editable.links);
+          seed(working.Headline, prepareBodyForEditing(working.Body, sub.Links));
           setFinalEditSource('saved');
           setActiveTab(preserveAILiveView ? 'ai_edit' : 'editor');
         } else if (working?.Version_Type === 'ai_suggested') {
-          const editable = prepareBodyForEditing(working.Body, sub.Links);
-          setEditHeadline(working.Headline);
-          setEditBody(editable.body);
-          setEditLinks(editable.links);
+          seed(working.Headline, prepareBodyForEditing(working.Body, sub.Links));
           setFinalEditSource(null);
           setActiveTab('ai_edit');
         } else {
-          const editable = prepareBodyForEditing(sub.Original_Body, sub.Links);
-          setEditHeadline(sub.Original_Headline);
-          setEditBody(editable.body);
-          setEditLinks(editable.links);
+          seed(sub.Original_Headline, prepareBodyForEditing(sub.Original_Body, sub.Links));
           setFinalEditSource(null);
         }
       } catch {
         // No versions yet — that's fine
-        const editable = prepareBodyForEditing(sub.Original_Body, sub.Links);
-        setEditHeadline(sub.Original_Headline);
-        setEditBody(editable.body);
-        setEditLinks(editable.links);
+        seed(sub.Original_Headline, prepareBodyForEditing(sub.Original_Body, sub.Links));
         setFinalEditSource(null);
       }
     } catch (err) {
@@ -197,18 +220,29 @@ export default function EditPage() {
         ],
       );
       setAiEditResult(result);
-      setEditHeadline(result.Edited_Headline);
-      setEditBody(editable.body);
-      setEditLinks(editable.links);
-      setFinalEditSource(null);
+      // Staff may have typed in Final Edit before asking for a revision, or
+      // while the AI ran. Keep that text; the result stays on the AI
+      // Suggested tab, and "Use AI Suggestion in Final Edit" asks first (#511).
+      const keptEdits = isEditorDirty();
+      if (keptEdits) {
+        setViewMode((mode) => (mode === 'live' ? 'side_by_side' : mode));
+        setNewerAiSuggestion(true);
+      } else {
+        seedEditor(result.Edited_Headline, editable);
+        setFinalEditSource(null);
+      }
       setActiveTab('ai_edit');
-      // Refresh data; the editor now holds the AI text, so it starts from the current revision.
+      // Refresh data. Text loaded from the AI result starts from the current
+      // revision; kept text stays on the revision it was loaded from.
       const sub = await getSubmission(id);
       setSubmission(sub);
-      setEditBaseRevisionId(sub.Staff_Revision_Id ?? null);
+      if (!keptEdits) setEditBaseRevisionId(sub.Staff_Revision_Id ?? null);
       const vers = await listEditVersions(id);
       setVersions(vers);
-      showToast(editorInstructions ? 'AI revision complete' : 'AI edit complete');
+      const done = editorInstructions ? 'AI revision complete' : 'AI edit complete';
+      showToast(keptEdits
+        ? `${done}. Your unsaved Final Edit changes were kept. Use AI Suggestion in Final Edit to replace them.`
+        : done);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'AI edit failed';
       setError(msg);
@@ -218,14 +252,14 @@ export default function EditPage() {
     }
   };
 
-  const handleReviewFinalEdit = (source: 'original' | 'ai') => {
+  const loadFinalEdit = (source: 'original' | 'ai') => {
     if (!submission) return;
     if (source === 'original') {
-      const editable = prepareBodyForEditing(submission.Original_Body, submission.Links);
-      setEditHeadline(submission.Original_Headline);
-      setEditBody(editable.body);
-      setEditLinks(editable.links);
-    } else if (finalEditSource !== 'ai') {
+      seedEditor(
+        submission.Original_Headline,
+        prepareBodyForEditing(submission.Original_Body, submission.Links),
+      );
+    } else if (finalEditSource !== 'ai' || newerAiSuggestion) {
       const aiVersion = [...versions].reverse().find((v) => v.Version_Type === 'ai_suggested');
       const headline = aiVersion?.Headline || aiEditResult?.Edited_Headline;
       const body = aiVersion?.Body || aiEditResult?.Edited_Body;
@@ -234,13 +268,29 @@ export default function EditPage() {
         setError('No AI suggestion is available for final editing.');
         return;
       }
-      const editable = prepareBodyForEditing(body, submission.Links);
-      setEditHeadline(headline || '');
-      setEditBody(editable.body);
-      setEditLinks(editable.links);
+      seedEditor(headline || '', prepareBodyForEditing(body, submission.Links));
     }
     setFinalEditSource(source);
     setActiveTab('editor');
+  };
+
+  const handleReviewFinalEdit = (source: 'original' | 'ai') => {
+    if (!submission) return;
+    // Changes made in Live View are edits of the AI suggestion; carrying them
+    // into Final Edit replaces nothing.
+    const replacesText = source === 'original' || finalEditSource !== 'ai' || newerAiSuggestion;
+    if (!replacesText || !isEditorDirty()) {
+      loadFinalEdit(source);
+      return;
+    }
+    const label = source === 'original' ? 'the original submission' : 'the AI suggestion';
+    requestConfirmation({
+      title: 'Replace your Final Edit changes?',
+      description: `Final Edit has changes that are not saved. Replacing them with ${label} discards those changes. `
+        + 'Cancel and use Save Draft first to keep them.',
+      confirmLabel: 'Replace changes',
+      action: async () => loadFinalEdit(source),
+    });
   };
 
   const handleEditBodyChange = (nextBody: string) => {
@@ -717,6 +767,7 @@ export default function EditPage() {
   return (
     <div>
       <Toast toast={toast} onDismiss={dismissToast} />
+      {confirmationDialog}
 
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
