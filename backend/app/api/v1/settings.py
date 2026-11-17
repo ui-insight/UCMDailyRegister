@@ -1,14 +1,15 @@
 """Settings API endpoints — read-only configuration info for the frontend."""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
+from app.api.deps import require_staff
 from app.config import settings
 
 router = APIRouter(prefix="/settings", tags=["settings"])
 
 
 @router.get("/ai")
-async def get_ai_settings():
+async def get_ai_settings(_staff: None = Depends(require_staff)):
     """Return the active LLM provider, model, and endpoint metadata.
 
     This exposes only the non-secret configuration so the Settings page

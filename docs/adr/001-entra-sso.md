@@ -82,6 +82,12 @@ default `SECRET_KEY`, `localhost` or plain-http redirect URLs, a
 `SESSION_COOKIE_SECRET` equal to `SECRET_KEY`). Once production is on `oidc`,
 a follow-up should turn the warning into a refusal.
 
+**Update, November 16, 2026:** both environments are on `oidc`, and the
+follow-up is done. The backend refuses to start with `AUTH_PROVIDER=header`
+when `ENVIRONMENT=production`, refuses the default or a short `SECRET_KEY`
+under `oidc` in every environment, and Docker Compose requires both
+`AUTH_PROVIDER` and `SECRET_KEY` to be set explicitly.
+
 ## Consequences
 
 **Good**

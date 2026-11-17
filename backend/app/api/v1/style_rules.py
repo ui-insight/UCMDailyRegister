@@ -17,6 +17,7 @@ async def list_style_rules(
     category: str | None = None,
     active_only: bool = False,
     session: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
 ):
     """List style rules, optionally filtered by rule_set, category, or active status."""
     query = sa.select(StyleRule).order_by(StyleRule.Rule_Set, StyleRule.Category, StyleRule.Rule_Key)
@@ -55,6 +56,7 @@ async def create_style_rule(
 async def get_style_rule(
     rule_id: str,
     session: AsyncSession = Depends(get_db),
+    _staff: None = Depends(require_staff),
 ):
     """Get a single style rule."""
     result = await session.execute(

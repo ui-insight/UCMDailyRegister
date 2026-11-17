@@ -523,10 +523,12 @@ class TestAuthConfigValidation:
     def test_header_mode_needs_nothing(self):
         assert _settings().auth_provider == "header"
 
-    def test_header_mode_in_production_only_warns(self):
-        # Prod runs on the trusted-header boundary today; a deploy of this
-        # code must not refuse to boot.
-        assert _settings(environment="production").auth_provider == "header"
+    def test_header_mode_is_refused_in_production(self):
+        with pytest.raises(ValueError, match="AUTH_PROVIDER=header is not allowed"):
+            _settings(environment="production", cors_origins="https://ucmnews.example.edu")
+
+    def test_header_mode_is_allowed_outside_production(self):
+        assert _settings(environment="development").auth_provider == "header"
 
     def test_oidc_requires_entra_settings(self):
         with pytest.raises(ValueError, match="ENTRA_CLIENT_ID"):
@@ -537,7 +539,16 @@ class TestAuthConfigValidation:
             _settings(**{**OIDC_ENV, "entra_group_staff": "", "entra_group_slc": "", "entra_group_ops": ""})
 
     def test_oidc_dev_accepts_localhost(self):
-        assert _settings(**OIDC_ENV).auth_provider == "oidc"
+        assert _settings(**OIDC_ENV, secret_key="x" * 40).auth_provider == "oidc"
+
+    @pytest.mark.parametrize("environment", ["development", "staging"])
+    def test_oidc_rejects_default_secret_outside_production(self, environment):
+        with pytest.raises(ValueError, match="SECRET_KEY"):
+            _settings(**OIDC_ENV, environment=environment)
+
+    def test_oidc_rejects_short_secret_outside_production(self):
+        with pytest.raises(ValueError, match="SECRET_KEY"):
+            _settings(**OIDC_ENV, secret_key="too-short")
 
     def test_oidc_production_rejects_default_secret(self):
         with pytest.raises(ValueError, match="SECRET_KEY"):
@@ -577,9 +588,12 @@ class TestAuthConfigValidation:
         assert s.auth_provider == "oidc"
 
     def test_graph_source_implies_graph_scope(self):
-        s = _settings(**OIDC_ENV, oidc_group_source="graph")
+        s = _settings(**OIDC_ENV, secret_key="x" * 40, oidc_group_source="graph")
         assert s.oidc_scopes_requested == "openid email profile GroupMember.Read.All"
-        assert _settings(**OIDC_ENV).oidc_scopes_requested == "openid email profile"
+        assert (
+            _settings(**OIDC_ENV, secret_key="x" * 40).oidc_scopes_requested
+            == "openid email profile"
+        )
 
 
 def test_deps_module_exposes_identity_dependency():

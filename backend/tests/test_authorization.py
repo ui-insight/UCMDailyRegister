@@ -241,3 +241,25 @@ class TestTrustedRoleAuthorization:
             headers=staff_headers,
         )
         assert staff_detail_resp.status_code == 200
+
+
+@pytest.mark.asyncio
+class TestStaffOnlyReads:
+    @pytest.mark.parametrize(
+        "path",
+        ["/api/v1/settings/ai", "/api/v1/style-rules", "/api/v1/style-rules/any-id"],
+    )
+    async def test_public_cannot_read(self, client: AsyncClient, path: str):
+        resp = await client.get(path)
+
+        assert resp.status_code == 403
+
+    async def test_staff_can_read_ai_settings_and_style_rules(
+        self, client: AsyncClient, staff_headers: dict[str, str]
+    ):
+        settings_resp = await client.get("/api/v1/settings/ai", headers=staff_headers)
+        assert settings_resp.status_code == 200
+        assert "active_provider" in settings_resp.json()
+
+        rules_resp = await client.get("/api/v1/style-rules", headers=staff_headers)
+        assert rules_resp.status_code == 200
