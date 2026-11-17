@@ -639,6 +639,75 @@ describe('EditPage', () => {
     });
   });
 
+  describe('an AI result never replaces unsaved Final Edit text (#511)', () => {
+    async function typeInFinalEdit(user: ReturnType<typeof userEvent.setup>, text: string) {
+      await user.click(screen.getByRole('button', { name: 'Final Edit' }));
+      const body = screen.getByPlaceholderText('Enter body text...');
+      await user.clear(body);
+      await user.type(body, text);
+      await user.tab();
+    }
+
+    it('keeps text typed before an AI edit, and replaces it only when confirmed', async () => {
+      const user = userEvent.setup();
+      listEditVersionsMock
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([makeVersion()]);
+      renderEditPage();
+      await screen.findByText('Original campus headline');
+
+      await typeInFinalEdit(user, 'Staff wording in progress.');
+      await user.click(screen.getByRole('button', { name: /tdr/i }));
+
+      expect(await screen.findByText(/Your unsaved Final Edit changes were kept/)).toBeInTheDocument();
+      // The result is on the AI Suggested tab.
+      expect(screen.getByText('AI edited body copy.')).toBeInTheDocument();
+
+      await user.click(screen.getByRole('button', { name: 'Final Edit' }));
+      expect(screen.getByPlaceholderText('Enter body text...')).toHaveValue('Staff wording in progress.');
+
+      await user.click(screen.getByRole('button', { name: 'AI Suggested' }));
+      await user.click(screen.getByRole('button', { name: 'Use AI Suggestion in Final Edit' }));
+      const dialog = await screen.findByRole('dialog');
+      expect(dialog).toHaveTextContent('Replace your Final Edit changes?');
+      await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+      await user.click(screen.getByRole('button', { name: 'Final Edit' }));
+      expect(screen.getByPlaceholderText('Enter body text...')).toHaveValue('Staff wording in progress.');
+
+      await user.click(screen.getByRole('button', { name: 'AI Suggested' }));
+      await user.click(screen.getByRole('button', { name: 'Use AI Suggestion in Final Edit' }));
+      await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Replace changes' }));
+      expect(await screen.findByPlaceholderText('Enter body text...')).toHaveValue('AI edited body copy.');
+    });
+
+    it('keeps text typed while the AI is still running', async () => {
+      const user = userEvent.setup();
+      let finish: (value: AIEditResponse) => void = () => {};
+      triggerAIEditMock.mockReturnValueOnce(new Promise((resolve) => { finish = resolve; }));
+      renderEditPage();
+      await screen.findByText('Original campus headline');
+
+      await user.click(screen.getByRole('button', { name: /tdr/i }));
+      await typeInFinalEdit(user, 'Typed while the AI ran.');
+      finish(makeAIResponse());
+
+      expect(await screen.findByText(/Your unsaved Final Edit changes were kept/)).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: 'Final Edit' }));
+      expect(screen.getByPlaceholderText('Enter body text...')).toHaveValue('Typed while the AI ran.');
+    });
+
+    it('asks before Continue without AI replaces typed text', async () => {
+      const user = userEvent.setup();
+      renderEditPage();
+      await screen.findByText('Original campus headline');
+
+      await typeInFinalEdit(user, 'Typed wording.');
+      await user.click(screen.getByRole('button', { name: 'Original' }));
+      await user.click(screen.getByRole('button', { name: 'Continue without AI' }));
+      expect(await screen.findByRole('dialog')).toHaveTextContent('Replacing them with the original submission');
+    });
+  });
+
   it('saves and approves manual final edits with one action', async () => {
     const user = userEvent.setup();
 

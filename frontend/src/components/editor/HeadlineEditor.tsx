@@ -1,4 +1,4 @@
-import { useState, useEffect, useId } from 'react';
+import { useState, useId } from 'react';
 
 interface HeadlineEditorProps {
   value: string;
@@ -15,10 +15,14 @@ export default function HeadlineEditor({
 }: HeadlineEditorProps) {
   const fieldId = useId();
   const [localValue, setLocalValue] = useState(value);
-
-  useEffect(() => {
+  // Take a new headline from the parent only when it changes. Syncing in an
+  // effect also ran once after mount, and when that ran late it put the old
+  // headline back over what had just been typed.
+  const [syncedValue, setSyncedValue] = useState(value);
+  if (value !== syncedValue) {
+    setSyncedValue(value);
     setLocalValue(value);
-  }, [value]);
+  }
 
   const handleBlur = () => {
     onChange(localValue);

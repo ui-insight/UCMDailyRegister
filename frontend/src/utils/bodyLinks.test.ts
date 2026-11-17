@@ -4,6 +4,7 @@ import {
   duplicateLinks,
   findMentions,
   invalidLinks,
+  linkedBodyForSave,
   linkSaveProblem,
   looksLikeWebAddress,
   resolvedLinkStart,
@@ -277,13 +278,115 @@ describe('body link editing', () => {
     );
   });
 
-  it('flags a second link to the same destination', () => {
+  it('keeps two phrases that link to the same destination (#521)', () => {
     const links = [
       { Url: 'https://uidaho.edu/r', Anchor_Text: 'Register' },
       { Url: 'https://uidaho.edu/r', Anchor_Text: 'sign up' },
     ];
+    expect(duplicateLinks(links)).toEqual([]);
+    expect(linkSaveProblem('Register or sign up.', links)).toBeNull();
+    expect(linkedBodyForSave('Register or sign up.', links)).toBe(
+      '<a href="https://uidaho.edu/r">Register</a> or <a href="https://uidaho.edu/r">sign up</a>.',
+    );
+  });
+
+  it('flags a second link with the same words and destination', () => {
+    const links = [
+      { Url: 'https://uidaho.edu/r', Anchor_Text: 'Register' },
+      { Url: 'https://UIDAHO.edu/r', Anchor_Text: 'register' },
+    ];
     expect(duplicateLinks(links)).toEqual([links[1]]);
-    expect(linkSaveProblem('Register or sign up.', links)).toMatch(/^Link "sign up" goes to the same place/);
+    expect(linkSaveProblem('Register now. Register later.', links)).toMatch(
+      /^Link "register" repeats another link's words and destination/,
+    );
+  });
+
+  describe('opening and saving without changes keeps the stored body (#521)', () => {
+    const roundTrip = (
+      stored: string,
+      storedLinks: Array<{ Url: string; Anchor_Text: string | null; Display_Order?: number }> = [],
+    ) => {
+      const editable = prepareBodyForEditing(stored, storedLinks);
+      return { editable, saved: linkedBodyForSave(editable.body, editable.links) };
+    };
+
+    it('keeps a call-to-action link on its own paragraph', () => {
+      const stored = 'Join us Friday for the staff social.\n\n'
+        + '<a href="https://example.edu/social">Register for the social</a>';
+      const { editable, saved } = roundTrip(stored, [
+        { Url: 'https://example.edu/social', Anchor_Text: 'Register for the social', Display_Order: 0 },
+      ]);
+      expect(editable.body).toBe('Join us Friday for the staff social.\n\nRegister for the social');
+      expect(linkSaveProblem(editable.body, editable.links)).toBeNull();
+      expect(saved).toBe(stored);
+    });
+
+    it('keeps a second link to the same destination', () => {
+      const stored = 'Go <a href="https://example.edu/r">register</a> today.\n\n'
+        + '<a href="https://example.edu/r">Sign up now</a>';
+      const { editable, saved } = roundTrip(stored, [
+        { Url: 'https://example.edu/r', Anchor_Text: 'register', Display_Order: 0 },
+        { Url: 'https://example.edu/r', Anchor_Text: 'Sign up now', Display_Order: 1 },
+      ]);
+      expect(editable.links.map((link) => link.Anchor_Text)).toEqual(['register', 'Sign up now']);
+      expect(linkSaveProblem(editable.body, editable.links)).toBeNull();
+      expect(saved).toBe(stored);
+    });
+
+    it.each([
+      ['an http:// link', 'http://example.edu/old'],
+      ['a mailto: link with a subject', 'mailto:events@example.edu?subject=RSVP'],
+    ])('reports %s instead of dropping it', (_label, href) => {
+      const { editable } = roundTrip(`Questions? <a href="${href}">Contact the office</a>.`);
+      expect(editable.links).toEqual([
+        expect.objectContaining({ Url: href, Anchor_Text: 'Contact the office' }),
+      ]);
+      expect(linkSaveProblem(editable.body, editable.links)).toMatch(/^Link destination .* the link would be lost/);
+    });
+
+    it('reports an unsupported stored link that is not in the body', () => {
+      const { editable } = roundTrip('Read the update.', [
+        { Url: 'http://example.edu/update', Anchor_Text: 'the update', Display_Order: 0 },
+      ]);
+      expect(linkSaveProblem(editable.body, editable.links)).toMatch(/^Link destination/);
+    });
+
+    it('keeps a link line whose words already appear verbatim above it (review of #527)', () => {
+      const stored = 'Register today.\n<a href="https://example.edu/r">Register</a>';
+      const { editable, saved } = roundTrip(stored);
+      expect(editable.body).toBe('Register today.\nRegister');
+      expect(saved).toBe(stored);
+    });
+
+    it('keeps two mentions of the same words linked to the same destination', () => {
+      const stored = 'Go <a href="https://example.edu/r">Register</a> today.\n\n'
+        + '<a href="https://example.edu/r">Register</a>';
+      const { editable, saved } = roundTrip(stored);
+      expect(editable.links).toHaveLength(2);
+      expect(linkSaveProblem(editable.body, editable.links)).toBeNull();
+      expect(saved).toBe(stored);
+    });
+
+    it('keeps stored links that share a destination on different words', () => {
+      const { editable, saved } = roundTrip('Register or sign up.', [
+        { Url: 'https://example.edu/r', Anchor_Text: 'Register', Display_Order: 0 },
+        { Url: 'https://example.edu/r', Anchor_Text: 'sign up', Display_Order: 1 },
+      ]);
+      expect(editable.links.map((link) => link.Anchor_Text)).toEqual(['Register', 'sign up']);
+      expect(saved).toBe(
+        '<a href="https://example.edu/r">Register</a> or <a href="https://example.edu/r">sign up</a>.',
+      );
+    });
+
+    it('still removes the block older builds appended straight after the prose', () => {
+      const { editable } = roundTrip(
+        'Join us Friday.\n<a href="https://example.edu/social">Register for the social</a>',
+      );
+      expect(editable.body).toBe('Join us Friday.');
+      expect(editable.links).toEqual([
+        expect.objectContaining({ Url: 'https://example.edu/social', Start: undefined }),
+      ]);
+    });
   });
 
   it('flags links whose words overlap another link (PR #507 review)', () => {

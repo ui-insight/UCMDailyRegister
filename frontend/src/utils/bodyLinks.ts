@@ -59,9 +59,19 @@ export function isSafeLinkDestination(value: string): boolean {
   return false;
 }
 
+/**
+ * Identity of a link for de-duplication: the same destination on the same
+ * words. Two phrases, or two mentions of one phrase, may point at one
+ * destination (#521); a link without a chosen mention matches any mention.
+ */
+function linkIdentity(url: string, anchorText: string, start?: number): string {
+  return `${canonicalLinkDestination(url)}\u0000${anchorText.trim().toLocaleLowerCase()}`
+    + `\u0000${start ?? ''}`;
+}
+
 export function prepareBodyForEditing(
   body: string,
-  storedLinks: Array<{ Url: string; Anchor_Text: string | null; Display_Order?: number }> = [],
+  storedLinks: StoredLink[] = [],
 ): { body: string; links: EditableBodyLink[] } {
   const bodyLinks: EditableBodyLink[] = [];
   const standaloneAnchorLabels = new Set<string>();
@@ -76,20 +86,24 @@ export function prepareBodyForEditing(
   ) => {
     const plainStart = offset - removedBeforeOffset;
     removedBeforeOffset += match.length - anchorText.length;
-    if (isSafeLinkDestination(href)) {
-      const normalizedUrl = normalizeEditableLinkUrl(href);
-      const canonicalUrl = canonicalLinkDestination(normalizedUrl);
-      if (!bodyLinks.some(
-        (candidate) => canonicalLinkDestination(candidate.Url) === canonicalUrl,
-      )) {
-        bodyLinks.push({
-          Url: normalizedUrl,
-          Anchor_Text: anchorText,
-          Display_Order: bodyLinks.length,
-          Start: plainStart,
-        });
-      }
+    const safe = isSafeLinkDestination(href);
+    // An unsupported destination (http://, a mailto: with a subject) stays in
+    // the link list as typed, so the editor reports it instead of the save
+    // dropping it without a word (#521).
+    const url = safe ? normalizeEditableLinkUrl(href) : href.trim();
+    const identity = linkIdentity(url, anchorText, plainStart);
+    if (!bodyLinks.some(
+      (candidate) => linkIdentity(candidate.Url, candidate.Anchor_Text, candidate.Start) === identity,
+    )) {
+      bodyLinks.push({
+        Url: url,
+        Anchor_Text: anchorText,
+        Display_Order: bodyLinks.length,
+        Start: plainStart,
+      });
+    }
 
+    if (safe) {
       const lineStart = source.lastIndexOf('\n', Math.max(0, offset - 1)) + 1;
       const nextLineBreak = source.indexOf('\n', offset + match.length);
       const lineEnd = nextLineBreak === -1 ? source.length : nextLineBreak;
@@ -103,34 +117,34 @@ export function prepareBodyForEditing(
     return anchorText;
   });
 
-  // Older editor builds silently appended unmatched anchors at the end of the
-  // body. Remove that trailing generated block when real prose precedes it.
-  // The link metadata remains available in the link fields so an editor can
-  // deliberately attach it to wording that actually exists in the body.
+  // Editor builds from July and August 2026 silently appended unmatched
+  // anchors to the body, each on the line straight after the prose (joined
+  // with a single line break). Remove that generated block; the link stays in
+  // the link fields, unattached, so staff can put its words back. A link
+  // paragraph after a blank line is real call-to-action copy and is kept
+  // (#521).
   const bodyLines = plainBody.split('\n');
-  let trailingBlockStart = bodyLines.length;
-  let foundStandaloneAnchor = false;
-  for (let index = bodyLines.length - 1; index >= 0; index -= 1) {
-    const label = bodyLines[index].trim().toLocaleLowerCase();
-    if (!label) {
-      trailingBlockStart = index;
-      continue;
-    }
-    if (standaloneAnchorLabels.has(label)) {
-      foundStandaloneAnchor = true;
-      trailingBlockStart = index;
-      continue;
-    }
-    break;
+  let index = bodyLines.length - 1;
+  while (index >= 0 && !bodyLines[index].trim()) index -= 1;
+  let trailingBlockStart = index + 1;
+  while (
+    index >= 0
+    && standaloneAnchorLabels.has(bodyLines[index].trim().toLocaleLowerCase())
+  ) {
+    trailingBlockStart = index;
+    index -= 1;
   }
-  const hasEarlierProse = bodyLines
-    .slice(0, trailingBlockStart)
-    .some((line) => line.trim());
-  if (foundStandaloneAnchor && hasEarlierProse) {
-    plainBody = bodyLines.slice(0, trailingBlockStart).join('\n').trimEnd();
-  } else {
-    plainBody = plainBody.trimEnd();
-  }
+  // Those builds appended a link only when they could not find its words
+  // (an exact, case-sensitive search), so a line whose words already appear
+  // verbatim in the prose is the submitter's own copy and is kept.
+  const prose = bodyLines.slice(0, trailingBlockStart).join('\n');
+  const blockLines = bodyLines.slice(trailingBlockStart).map((line) => line.trim()).filter(Boolean);
+  const legacyBlock = blockLines.length > 0
+    && index >= 0
+    && bodyLines[index].trim() !== ''
+    && blockLines.every((line) => !prose.includes(line));
+  plainBody = (legacyBlock ? bodyLines.slice(0, trailingBlockStart).join('\n') : plainBody)
+    .trimEnd();
 
   // A link whose words fell in the trimmed legacy block no longer has a place.
   const links = bodyLinks.map((link) => (
@@ -138,15 +152,40 @@ export function prepareBodyForEditing(
       ? link
       : { ...link, Start: undefined }
   ));
+  mergeStoredLinks(plainBody, links, storedLinks);
+
+  // No cap here: a link left out of the editor would be dropped on save.
+  return { body: plainBody, links };
+}
+
+type StoredLink = { Url: string; Anchor_Text: string | null; Display_Order?: number };
+
+/**
+ * Add the item's stored links (the links table, or the AI's embedded links)
+ * that the inline anchors do not already cover. Mutates `links`.
+ */
+function mergeStoredLinks(plainBody: string, links: EditableBodyLink[], storedLinks: StoredLink[]): void {
   for (const link of [...storedLinks].sort(
     (left, right) => (left.Display_Order ?? 0) - (right.Display_Order ?? 0),
   )) {
     const normalizedUrl = normalizeEditableLinkUrl(link.Url);
     const canonicalUrl = canonicalLinkDestination(normalizedUrl);
     const anchorText = link.Anchor_Text?.trim() || '';
-    if (!isSafeLinkDestination(normalizedUrl)) continue;
+    if (!link.Url.trim()) continue;
+    const lowerAnchor = anchorText.toLocaleLowerCase();
+    if (links.some((candidate) => (
+      canonicalLinkDestination(candidate.Url) === canonicalUrl
+      && candidate.Anchor_Text.trim().toLocaleLowerCase() === lowerAnchor
+    ))) continue;
+    // The same destination is already linked. Keep this one as its own link
+    // only when its words are in the body and not already a link's words
+    // (#521); otherwise it is the stored copy of the inline link.
     if (links.some(
       (candidate) => canonicalLinkDestination(candidate.Url) === canonicalUrl,
+    ) && (
+      !anchorText
+      || findMentions(plainBody, anchorText).length === 0
+      || links.some((candidate) => candidate.Anchor_Text.trim().toLocaleLowerCase() === lowerAnchor)
     )) continue;
     const matchingAnchorIndex = anchorText
       ? links.findIndex(
@@ -169,9 +208,6 @@ export function prepareBodyForEditing(
       Display_Order: links.length,
     });
   }
-
-  // No cap here: a link left out of the editor would be dropped on save.
-  return { body: plainBody, links };
 }
 
 /** Start offsets of every case-insensitive, non-overlapping mention of `label`. */
@@ -229,14 +265,17 @@ export function invalidLinks(links: EditableBodyLink[]): EditableBodyLink[] {
   ));
 }
 
-/** Later links that repeat an earlier link's destination (only the first is kept). */
+/**
+ * Later links that repeat an earlier link's destination and words (only the
+ * first is kept). Different words may share a destination (#521).
+ */
 export function duplicateLinks(links: EditableBodyLink[]): EditableBodyLink[] {
   const seen = new Set<string>();
   return links.filter((link) => {
     if (!link.Url.trim() || !isSafeLinkDestination(link.Url)) return false;
-    const canonicalUrl = canonicalLinkDestination(link.Url);
-    if (seen.has(canonicalUrl)) return true;
-    seen.add(canonicalUrl);
+    const identity = linkIdentity(link.Url, link.Anchor_Text, link.Start);
+    if (seen.has(identity)) return true;
+    seen.add(identity);
     return false;
   });
 }
@@ -263,8 +302,8 @@ export function linkSaveProblem(body: string, links: EditableBodyLink[]): string
   }
   const duplicates = duplicateLinks(links);
   if (duplicates.length) {
-    return `Link ${duplicates.map(linkName).join(', ')} goes to the same place as another link, `
-      + 'so it would be lost. Give it a different destination or remove it.';
+    return `Link ${duplicates.map(linkName).join(', ')} repeats another link's words and destination, `
+      + 'so it would be lost. Change its words or destination, or remove it.';
   }
   const crowded = placeLinks(body, normalizedBodyLinks(links, body)).unplaced;
   if (crowded.length) {
@@ -426,7 +465,7 @@ function placeLinks(body: string, validLinks: EditableBodyLink[]): LinkPlacement
 }
 
 export function buildLinkedBody(body: string, links: EditableBodyLink[]): string {
-  const seenDestinations = new Set<string>();
+  const seenLinks = new Set<string>();
   const validLinks = links
     .map((link, index) => ({
       ...link,
@@ -435,9 +474,9 @@ export function buildLinkedBody(body: string, links: EditableBodyLink[]): string
     }))
     .filter((link) => {
       if (!link.Url || !isSafeLinkDestination(link.Url)) return false;
-      const canonicalUrl = canonicalLinkDestination(link.Url);
-      if (seenDestinations.has(canonicalUrl)) return false;
-      seenDestinations.add(canonicalUrl);
+      const identity = linkIdentity(link.Url, link.Anchor_Text, link.Start);
+      if (seenLinks.has(identity)) return false;
+      seenLinks.add(identity);
       return true;
     });
 
@@ -464,7 +503,7 @@ export function normalizedBodyLinks(
   links: EditableBodyLink[],
   body?: string,
 ): EditableBodyLink[] {
-  const seenDestinations = new Set<string>();
+  const seenLinks = new Set<string>();
   const searchableBody = body?.toLocaleLowerCase();
   return links
     .map((link, index) => ({
@@ -482,9 +521,9 @@ export function normalizedBodyLinks(
           || !searchableBody.includes(link.Anchor_Text.toLocaleLowerCase())
         )
       ) return false;
-      const canonicalUrl = canonicalLinkDestination(link.Url);
-      if (seenDestinations.has(canonicalUrl)) return false;
-      seenDestinations.add(canonicalUrl);
+      const identity = linkIdentity(link.Url, link.Anchor_Text, link.Start);
+      if (seenLinks.has(identity)) return false;
+      seenLinks.add(identity);
       return true;
     });
 }
