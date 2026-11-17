@@ -89,7 +89,8 @@ async def main() -> None:
         assert health_response.status_code == 200
         assert health_response.json() == {"status": "ok"}
 
-        settings_response = await client.get("/api/v1/settings/ai")
+        assert (await client.get("/api/v1/settings/ai")).status_code == 403
+        settings_response = await client.get("/api/v1/settings/ai", headers=staff_headers)
         assert settings_response.status_code == 200
         assert "active_provider" in settings_response.json()
 

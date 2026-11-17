@@ -109,12 +109,28 @@ smoke_check_trusted_role() {
   echo "Skipping ${label}: TRUSTED_ROLE_HEADER_ROLE/SECRET not configured"
 }
 
+# Staff routes must turn away a caller with no session.
+smoke_check_staff_only() {
+  local label="$1"
+  local url="$2"
+  local status
+
+  echo "Checking ${label} refuses anonymous callers: ${url}"
+  status="$(curl -sS -o /dev/null -w '%{http_code}' "$url")"
+  case "$status" in
+    401|403) ;;
+    *)
+      echo "${label} answered ${status} to an anonymous caller; expected 401 or 403" >&2
+      return 1
+      ;;
+  esac
+}
+
 smoke_check_sso() {
-  local provider
-  provider="$(env_file_value AUTH_PROVIDER)"
+  local provider="$AUTH_PROVIDER_VALUE"
 
   if [[ "$provider" != "oidc" ]]; then
-    echo "Skipping SSO checks: AUTH_PROVIDER is '${provider:-header}'"
+    echo "Skipping SSO checks: AUTH_PROVIDER is '${provider}'"
     return
   fi
 
@@ -136,6 +152,12 @@ smoke_check_sso() {
   esac
 }
 
+AUTH_PROVIDER_VALUE="$(env_file_value AUTH_PROVIDER)"
+if [[ "$ENVIRONMENT" == "prod" && "$AUTH_PROVIDER_VALUE" != "oidc" ]]; then
+  echo "Refusing to deploy prod: AUTH_PROVIDER in ${ENV_FILE} is '${AUTH_PROVIDER_VALUE:-unset}', expected 'oidc'." >&2
+  exit 1
+fi
+
 echo "Deploying ${ENVIRONMENT} with project ${PROJECT_NAME}"
 "${COMPOSE[@]}" up -d --build
 
@@ -149,8 +171,14 @@ echo "Running smoke checks"
 smoke_check "frontend root" "${BASE_URL}/"
 smoke_check "SPA route" "${BASE_URL}/dashboard"
 smoke_check "health API" "${BASE_URL}/api/v1/health"
-smoke_check "settings API" "${BASE_URL}/api/v1/settings/ai"
-smoke_check_trusted_role "submissions API" "${BASE_URL}/api/v1/submissions/?limit=1"
+smoke_check "readiness API" "${BASE_URL}/api/v1/readyz"
+if [[ "$AUTH_PROVIDER_VALUE" == "oidc" ]]; then
+  smoke_check_staff_only "settings API" "${BASE_URL}/api/v1/settings/ai"
+  smoke_check_staff_only "submissions API" "${BASE_URL}/api/v1/submissions/?limit=1"
+else
+  smoke_check_trusted_role "settings API" "${BASE_URL}/api/v1/settings/ai"
+  smoke_check_trusted_role "submissions API" "${BASE_URL}/api/v1/submissions/?limit=1"
+fi
 smoke_check_sso
 
 echo "Deployment checks passed for ${ENVIRONMENT}"

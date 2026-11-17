@@ -224,7 +224,7 @@ Custom publish dates add one-off publication dates outside the regular cadence (
 |--------|-----------------------------------------------|--------------------------------------------|
 | GET    | `/api/v1/settings/ai`                         | Get active LLM provider and configuration  |
 
-The settings endpoint returns read-only configuration data for the frontend Settings page. No secrets are exposed.
+The settings endpoint is staff-only. It returns read-only configuration data for the frontend Settings page. No secrets are exposed.
 
 ??? example "Response Example"
     ```json
@@ -307,6 +307,6 @@ independent. AI suggestions are advisory; staff confirm or reject them.
 | PATCH | `/api/v1/ops/harvested-events/{id}/needs/{need}` | Confirm/reject a suggestion |
 | DELETE | `/api/v1/ops/harvested-events/{id}/needs/{need}` | Remove a staff-origin need |
 
-Sections, schedule GETs and AI settings are public metadata today. Schedule
-mutations are staff-only. The full dataset/role matrix is maintained in
+Sections and schedule GETs are public metadata today. AI settings, style rules
+and schedule mutations are staff-only. The full dataset/role matrix is maintained in
 [Data governance](data-governance.md).

@@ -65,8 +65,9 @@ per-token revocation service.
 `X-Trusted-Auth-Secret`. Bearer tokens do not grant access in this mode.
 `X-User-Role` is rejected. The frontend proxy overwrites trusted headers. If the
 proxy asserts `staff` for every request, **everyone who can reach it receives
-staff access**. This is a prototype boundary, not evidence of individual sign-in.
-Production should use OIDC; verify actual enablement separately for each host.
+staff access**. This is a prototype boundary for local development, not evidence
+of individual sign-in. The backend refuses to start in this mode when
+`ENVIRONMENT=production`; both deployed hosts run OIDC.
 See [Deployment](deployment.md) and [ADR-001](adr/001-entra-sso.md).
 
 All paths below are under `/api/v1`. Public means no identity credential is
@@ -80,7 +81,7 @@ publication.
 | `GET /submissions/?slc_calendar_only=true` | No | Read; dedicated submitter name/email/notes and editorial fields redacted | No | Read including staff fields |
 | `/slc/harvest`, `/slc/harvested-events` and triage/acknowledgment | No | Read, harvest, change SLC review; flagging creates SLC-only submission | No | Same |
 | `/ops/harvested-events` and needs/verdicts/acknowledgment | No | No | Read, change ops review; add/remove staff-origin needs; confirm/reject AI needs | Same |
-| `/ai-edits`, `/newsletters` including imports/exports, `/recurring-messages`, `/style-rules` | No | No | No | Read/change according to endpoint |
+| `/ai-edits`, `/newsletters` including imports/exports, `/recurring-messages`, `/style-rules`, `GET /settings/ai` | No | No | No | Read/change according to endpoint |
 | `POST /feedback` | Create; receives created record | Same | Same | Same |
 | Feedback list/summary/update, notification retry, GitHub export preparation | No | No | No | Yes |
 | Allowed values, sections, schedule GETs, `/settings/ai` | Read; category visibility filtering applies to allowed values | Read | Read | Read |

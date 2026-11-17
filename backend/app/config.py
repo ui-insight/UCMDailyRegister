@@ -186,15 +186,28 @@ class Settings(BaseSettings):
         return self.session_cookie_secret or self.secret_key
 
     @model_validator(mode="after")
+    def validate_cors_origins(self) -> Self:
+        is_production = self.is_production
+
+        if self.cors_origins is None:
+            if is_production:
+                raise ValueError("CORS_ORIGINS must be set when ENVIRONMENT=production")
+            self.cors_origins = LOCAL_DEV_CORS_ORIGINS.copy()
+            return self
+
+        if is_production and "*" in self.cors_origins:
+            raise ValueError("CORS_ORIGINS cannot include '*' when ENVIRONMENT=production")
+
+        return self
+
+    @model_validator(mode="after")
     def validate_auth(self) -> Self:
         if self.auth_provider == "header":
             if self.is_production:
-                # Deliberately a warning, not an error: production currently
-                # runs on the trusted-header boundary, and a deploy of this
-                # code must not take it down. Tighten once prod is on oidc.
-                logger.warning(
-                    "AUTH_PROVIDER=header in production: roles are asserted by the "
-                    "reverse proxy, not by user sign-in. Set AUTH_PROVIDER=oidc."
+                raise ValueError(
+                    "AUTH_PROVIDER=header is not allowed when ENVIRONMENT=production: "
+                    "roles would be asserted by the reverse proxy, not by user "
+                    "sign-in. Set AUTH_PROVIDER=oidc."
                 )
             return self
 
@@ -212,17 +225,20 @@ class Settings(BaseSettings):
         if not (self.entra_group_staff or self.entra_group_slc or self.entra_group_ops):
             raise ValueError(
                 "AUTH_PROVIDER=oidc requires at least one of ENTRA_GROUP_STAFF, "
-                "ENTRA_GROUP_SLC, ENTRA_GROUP_OPS — otherwise every sign-in is refused."
+                "ENTRA_GROUP_SLC, ENTRA_GROUP_OPS — otherwise nobody can be given a role."
+            )
+
+        # Session tokens are signed with SECRET_KEY, so this holds in every
+        # environment, whatever ENVIRONMENT is set to.
+        if self.secret_key == DEFAULT_SECRET_KEY or len(self.secret_key) < MIN_SECRET_KEY_LENGTH:
+            raise ValueError(
+                "SECRET_KEY must be changed from the default and be at least "
+                f"{MIN_SECRET_KEY_LENGTH} characters when AUTH_PROVIDER=oidc."
             )
 
         if not self.is_production:
             return self
 
-        if self.secret_key == DEFAULT_SECRET_KEY or len(self.secret_key) < MIN_SECRET_KEY_LENGTH:
-            raise ValueError(
-                "SECRET_KEY must be changed from the default and be at least "
-                f"{MIN_SECRET_KEY_LENGTH} characters when AUTH_PROVIDER=oidc in production."
-            )
         if not self.session_cookie_secret:
             raise ValueError(
                 "SESSION_COOKIE_SECRET must be set when AUTH_PROVIDER=oidc in production."
@@ -243,21 +259,6 @@ class Settings(BaseSettings):
                 )
         if urlparse(self.entra_metadata_url).scheme != "https":
             raise ValueError("ENTRA_METADATA_URL must be an https:// URL in production.")
-        return self
-
-    @model_validator(mode="after")
-    def validate_cors_origins(self) -> Self:
-        is_production = self.is_production
-
-        if self.cors_origins is None:
-            if is_production:
-                raise ValueError("CORS_ORIGINS must be set when ENVIRONMENT=production")
-            self.cors_origins = LOCAL_DEV_CORS_ORIGINS.copy()
-            return self
-
-        if is_production and "*" in self.cors_origins:
-            raise ValueError("CORS_ORIGINS cannot include '*' when ENVIRONMENT=production")
-
         return self
 
 

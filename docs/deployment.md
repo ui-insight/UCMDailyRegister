@@ -297,8 +297,10 @@ CORS_ORIGINS=https://ucmnews.insight.uidaho.edu
 # Frontend build context
 VITE_APP_ENV=production
 
-# Authentication: header (prototype proxy role) or oidc (Entra sign-in)
-AUTH_PROVIDER=header
+# Authentication: oidc (Entra sign-in). Both deployed environments run oidc.
+# header is for local development and is refused when ENVIRONMENT=production.
+# Compose requires AUTH_PROVIDER and SECRET_KEY to be set.
+AUTH_PROVIDER=oidc
 
 # Trusted auth boundary (AUTH_PROVIDER=header)
 TRUSTED_ROLE_HEADER_SECRET=
@@ -345,7 +347,10 @@ development, set `DEV_TRUSTED_ROLE` / `DEV_TRUSTED_SECRET` in
 `backend/.env`; the Vite proxy injects the headers.
 
 This mode is the prototype boundary: everyone who can reach the URL gets the
-asserted role. Production should run on Single Sign-On instead.
+asserted role. It is for local development. The backend refuses to start with
+`AUTH_PROVIDER=header` when `ENVIRONMENT=production`, and `./deploy.sh prod`
+refuses to run unless the env file sets `AUTH_PROVIDER=oidc`. Both deployed
+environments run on Single Sign-On.
 
 ### Single Sign-On (Microsoft Entra ID)
 
@@ -383,13 +388,16 @@ request.
    URLs must be the public `https://` hostname; the backend refuses to boot
    in production otherwise.
 3. Set `AUTH_PROVIDER=oidc` and blank `TRUSTED_ROLE_HEADER_ROLE`.
-4. `./deploy.sh <dev|prod>`. The script adds two smoke checks under `oidc`:
-   `/api/v1/auth/config` reports `sso_enabled: true`, and
-   `/api/v1/auth/sso/login` redirects to `login.microsoftonline.com`.
+4. `./deploy.sh <dev|prod>`. Under `oidc` the script checks that
+   `/api/v1/auth/config` reports `sso_enabled: true`, that
+   `/api/v1/auth/sso/login` redirects to `login.microsoftonline.com`, and that
+   staff routes refuse a caller with no session.
 5. Sign in as one person per role and confirm each lands on the right view.
 
-Rollback is `AUTH_PROVIDER=header` and a redeploy; there is no database
-migration to reverse.
+There is no database migration to reverse. Header mode is no longer a rollback
+path for a deployed environment: the backend refuses it when
+`ENVIRONMENT=production`. If sign-in breaks, redeploy the last release that
+worked.
 
 **Operational notes:**
 
@@ -427,12 +435,13 @@ docker logs ucmnews-prod-backend-1 --tail 50
 # Run the full deploy workflow
 ./deploy.sh prod
 
-# Verify LLM provider config
-curl -s http://localhost:9280/api/v1/settings/ai | python3 -m json.tool
-
 # Smoke checks
 curl http://localhost:9280/api/v1/health
-curl http://localhost:9280/api/v1/submissions/?limit=1
+curl http://localhost:9280/api/v1/readyz
+
+# Staff routes answer 403 without a session. `./deploy.sh` checks this.
+curl -s -o /dev/null -w '%{http_code}\n' http://localhost:9280/api/v1/settings/ai
+curl -s -o /dev/null -w '%{http_code}\n' 'http://localhost:9280/api/v1/submissions/?limit=1'
 ```
 
 ## Scheduled SLC Harvest

@@ -45,10 +45,10 @@ The following are **out of scope**:
 
 The application supports two authentication modes, selected by `AUTH_PROVIDER`:
 
-- **`oidc`** (intended for production): users sign in through Microsoft Entra ID using the Web (confidential) OIDC flow. The backend exchanges the authorization code server-side, maps the user's Entra App Roles to an application role, and mints its own signed (HS256) session token that the browser presents as a bearer token. The Entra token never reaches the browser. See `docs/adr/001-entra-sso.md`.
-- **`header`** (the prototype boundary): the reverse proxy injects `X-Trusted-User-Role` together with a shared secret in `X-Trusted-Auth-Secret`; the backend accepts the role only when the secret matches. Client-supplied `X-User-Role` is rejected.
+- **`oidc`** (both deployed environments): users sign in through Microsoft Entra ID using the Web (confidential) OIDC flow. The backend exchanges the authorization code server-side, maps the user's Entra App Roles to an application role, and mints its own signed (HS256) session token that the browser presents as a bearer token. The Entra token never reaches the browser. See `docs/adr/001-entra-sso.md`.
+- **`header`** (local development only): the reverse proxy injects `X-Trusted-User-Role` together with a shared secret in `X-Trusted-Auth-Secret`; the backend accepts the role only when the secret matches. Client-supplied `X-User-Role` is rejected.
 
-**Known limitation:** under `header` mode everyone who can reach the deployment receives the role the proxy asserts. That is appropriate only for prototype testing behind university network controls; production deployments should run `oidc`.
+**Known limitation:** under `header` mode everyone who can reach the deployment receives the role the proxy asserts. That is appropriate only for local development. The backend refuses to start in `header` mode when `ENVIRONMENT=production`, and under `oidc` it refuses the default or a short `SECRET_KEY` in every environment.
 
 ### Data Protection
 

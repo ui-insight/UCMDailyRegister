@@ -29,7 +29,7 @@ class TestStyleRuleCRUD:
             headers=staff_headers,
         )
 
-        resp = await client.get("/api/v1/style-rules")
+        resp = await client.get("/api/v1/style-rules", headers=staff_headers)
         assert resp.status_code == 200
         assert len(resp.json()) == 2
 
@@ -47,7 +47,7 @@ class TestStyleRuleCRUD:
             headers=staff_headers,
         )
 
-        resp = await client.get("/api/v1/style-rules?rule_set=tdr")
+        resp = await client.get("/api/v1/style-rules?rule_set=tdr", headers=staff_headers)
         assert resp.status_code == 200
         rules = resp.json()
         assert len(rules) == 1
@@ -61,12 +61,14 @@ class TestStyleRuleCRUD:
         )
         rule_id = create_resp.json()["Id"]
 
-        resp = await client.get(f"/api/v1/style-rules/{rule_id}")
+        resp = await client.get(f"/api/v1/style-rules/{rule_id}", headers=staff_headers)
         assert resp.status_code == 200
         assert resp.json()["Id"] == rule_id
 
-    async def test_get_style_rule_not_found(self, client: AsyncClient):
-        resp = await client.get("/api/v1/style-rules/nonexistent")
+    async def test_get_style_rule_not_found(
+        self, client: AsyncClient, staff_headers: dict[str, str]
+    ):
+        resp = await client.get("/api/v1/style-rules/nonexistent", headers=staff_headers)
         assert resp.status_code == 404
 
     async def test_update_style_rule(self, client: AsyncClient, staff_headers: dict[str, str]):
@@ -115,5 +117,5 @@ class TestStyleRuleCRUD:
         resp = await client.delete(f"/api/v1/style-rules/{rule_id}", headers=staff_headers)
         assert resp.status_code == 204
 
-        resp = await client.get(f"/api/v1/style-rules/{rule_id}")
+        resp = await client.get(f"/api/v1/style-rules/{rule_id}", headers=staff_headers)
         assert resp.status_code == 404

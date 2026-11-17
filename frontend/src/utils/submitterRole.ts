@@ -18,6 +18,8 @@ const STAFF_ONLY_ROUTE_PREFIXES = [
   '/builder',
   '/recurring-messages',
   '/style-rules',
+  '/feedback',
+  '/data-governance',
   '/settings',
   '/edit',
   '/home',
