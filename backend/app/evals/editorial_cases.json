@@ -537,6 +537,31 @@
           "Well being"
         ]
       }
+    },
+    {
+      "id": "wrapped-links-unwrapped",
+      "issues": [
+        530
+      ],
+      "decision": "Links wrapped by email security gateways are linked to the real destination, with no wrapper, URL list or warning in the copy.",
+      "newsletter": "tdr",
+      "category": "faculty_staff",
+      "submitted": "2026-11-17",
+      "headline": "Example volunteer sign-up",
+      "body": "The Example Service Office needs volunteers for its winter food drive Saturday, Dec. 5. Sign up at urldefense.com/v3/__https:/forms.example.com/r/AbC123__;!!JYXjzlvb!abcDEF$",
+      "expect": {
+        "links": [
+          {
+            "text": "Sign up",
+            "url": "https://forms.example.com/r/AbC123"
+          }
+        ],
+        "not_contains": [
+          "urldefense",
+          "safelinks",
+          "LINK WRAPPED"
+        ]
+      }
     }
   ]
 }

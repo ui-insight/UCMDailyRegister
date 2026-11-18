@@ -8,7 +8,9 @@ validation agree on which words are linked and where they point.
 Only https and mailto destinations are honored, matching the Editor's rules
 (frontend/src/utils/bodyLinks.ts). An anchor with any other destination, or a
 stray anchor tag, degrades to its plain words: no raw HTML ever reaches a
-reader.
+reader. A link through an email security wrapper is read as its real
+destination, or as plain words when that can't be recovered (#530), so no
+published link goes through a wrapper.
 """
 
 import html
@@ -18,7 +20,7 @@ from dataclasses import dataclass
 from typing import Literal
 from urllib.parse import urlsplit
 
-from app.utils.hyperlinks import URL_PATTERN, unwrap_tracking_url
+from app.utils.hyperlinks import URL_PATTERN, resolve_tracking_url, unwrap_tracking_url
 
 ANCHOR_PATTERN = re.compile(
     r"""<a\b[^>]*?\bhref\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+))[^>]*>(.*?)</a\s*>""",
@@ -85,6 +87,7 @@ def parse_body(body: str) -> list[BodySegment]:
         # Words stay as written, matching the Builder preview; only the
         # attribute value is entity-decoded, as a browser would.
         words = _INNER_TAG.sub("", match.group(4))
+        href = resolve_tracking_url(href) or ""
         segments.append(BodySegment(words, href if is_safe_destination(href) else None))
         last_end = match.end()
     if last_end < len(body):
@@ -139,7 +142,9 @@ def check_body(body: str, submitted_urls: Iterable[str] = ()) -> list[LinkFindin
     - unsafe_link: an anchor whose destination is not https or mailto, so it
       exports as plain words.
     - tracking_link: a destination wrapped by an email security gateway
-      (Proofpoint, Safe Links, ...); readers would bounce through it.
+      (Proofpoint, Safe Links, ...) whose real address can't be recovered.
+      Export leaves its words unlinked. A recoverable wrapper isn't a
+      finding: export links the real destination (#530).
     - bare_url: a web address written out as text instead of linked words.
     - missing_submitted_link: a link the submitter supplied that no longer
       appears in the body.
@@ -154,9 +159,8 @@ def check_body(body: str, submitted_urls: Iterable[str] = ()) -> list[LinkFindin
             findings.append(LinkFinding("unsafe_link", words, href))
             continue
         linked.add(_canonical(href))
-        real = unwrap_tracking_url(href)
-        if real != href:
-            findings.append(LinkFinding("tracking_link", words, href, real))
+        if resolve_tracking_url(href) is None:
+            findings.append(LinkFinding("tracking_link", words, href))
 
     for segment in parse_body(body):
         if segment.href is None:

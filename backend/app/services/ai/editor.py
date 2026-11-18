@@ -31,7 +31,12 @@ from app.utils.text import (
     is_event_category,
 )
 from app.utils.clock import local_date, local_today
-from app.utils.hyperlinks import parse_submitter_notes
+from app.utils.hyperlinks import (
+    WRAPPED_LINK_NOTE,
+    parse_submitter_notes,
+    resolve_tracking_url,
+    unwrap_links_in_text,
+)
 from app.utils.link_repair import link_problems, repair_links
 from app.utils.style_checks import (
     strip_html,
@@ -392,7 +397,68 @@ def _tidy_draft(
     )
 
 
-def _source_text(submission: Submission) -> str:
+@dataclass(frozen=True)
+class _SourceLink:
+    Url: str
+    Anchor_Text: str | None
+
+
+@dataclass(frozen=True)
+class _Source:
+    """The submission as the model sees it, with wrapped links replaced (#530).
+
+    Email security gateways (Proofpoint, Safe Links, ...) wrap links in
+    forwarded copy. The model and every check get the real destination; the
+    stored submission is not changed.
+    """
+
+    Category: str
+    Original_Headline: str
+    Original_Body: str
+    Submitter_Notes: str | None
+    Links: list[_SourceLink]
+
+
+def _unwrapped_source(submission: Submission) -> tuple[_Source, list[dict]]:
+    """The submission with wrapped links unwrapped, plus flags for any that can't be.
+
+    A link whose real destination can't be recovered reliably is not
+    guessed: its words stay unlinked and staff are asked to confirm it.
+    """
+    lost: list[str] = []
+    headline, lost_headline = unwrap_links_in_text(submission.Original_Headline)
+    body, lost_body = unwrap_links_in_text(submission.Original_Body)
+    notes, lost_notes = unwrap_links_in_text(submission.Submitter_Notes or "")
+    lost += lost_headline + lost_body + lost_notes
+    links: list[_SourceLink] = []
+    for link in submission.Links:
+        real = resolve_tracking_url(link.Url)
+        if real is None:
+            lost.append(link.Anchor_Text or link.Url)
+            continue
+        links.append(_SourceLink(real, link.Anchor_Text))
+    source = _Source(
+        Category=submission.Category,
+        Original_Headline=headline,
+        Original_Body=body,
+        Submitter_Notes=notes if submission.Submitter_Notes is not None else None,
+        Links=links,
+    )
+    flags = [
+        {
+            "type": "warning",
+            "rule_key": "link_embedding",
+            "message": (
+                f"{WRAPPED_LINK_NOTE}: '{words}' was left unlinked because the "
+                "real address behind the email security wrapper couldn't be recovered"
+            ),
+        }
+        for words in dict.fromkeys(lost)
+    ]
+    return source, flags
+
+
+def _source_text(submission: Submission | _Source) -> str:
     """Everything the submitter supplied, for checks that compare with it."""
     parts = [
         submission.Original_Headline,
@@ -565,6 +631,8 @@ class AIEditor:
         submission_date = (
             local_date(submission.Created_At) if submission.Created_At else local_today()
         )
+        # The model sees real destinations, never email security wrappers (#530).
+        source, wrapped_link_flags = _unwrapped_source(submission)
 
         system_prompt = build_system_prompt(
             newsletter_type=newsletter_type,
@@ -574,13 +642,13 @@ class AIEditor:
 
         links = [
             {"url": link.Url, "anchor_text": link.Anchor_Text}
-            for link in submission.Links
+            for link in source.Links
         ]
 
         user_prompt = build_edit_user_prompt(
-            headline=submission.Original_Headline,
-            body=submission.Original_Body,
-            submitter_notes=submission.Submitter_Notes,
+            headline=source.Original_Headline,
+            body=source.Original_Body,
+            submitter_notes=source.Submitter_Notes,
             links=links if links else None,
             category=submission.Category,
             editor_instructions=editor_instructions,
@@ -605,7 +673,7 @@ class AIEditor:
             active_rule_keys={rule["rule_key"] for rule in style_rules},
             links=links,
         )
-        source_text = _source_text(submission)
+        source_text = _source_text(source)
 
         def check(draft: _Draft) -> list[dict]:
             return self.post_analyze(
@@ -614,7 +682,7 @@ class AIEditor:
                 submission.Category,
                 style_rules,
                 source_text=source_text,
-                source_body=submission.Original_Body,
+                source_body=source.Original_Body,
                 source_comparison_output=draft.comparison_output(),
                 reference_date=submission_date,
                 newsletter_type=newsletter_type,
@@ -623,8 +691,8 @@ class AIEditor:
         draft = tidy(
             _Draft.from_model(
                 ai_result,
-                headline=submission.Original_Headline,
-                body=submission.Original_Body,
+                headline=source.Original_Headline,
+                body=source.Original_Body,
             )
         )
         post_flags = check(draft)
@@ -646,7 +714,12 @@ class AIEditor:
                 post_flags = check(draft)
 
         return self._build_result(
-            submission, draft, post_flags, headline_case, style_rules
+            submission,
+            draft,
+            wrapped_link_flags + post_flags,
+            headline_case,
+            style_rules,
+            source=source,
         )
 
     async def _request_repair(
@@ -686,8 +759,14 @@ class AIEditor:
         post_flags: list[dict],
         headline_case: str,
         style_rules: list[dict],
+        *,
+        source: _Source | None = None,
     ) -> EditResult:
-        """Reconcile the final draft's explanations and flags into a result."""
+        """Reconcile the final draft's explanations and flags into a result.
+
+        Diffs compare with the stored submission; checks read ``source``, the
+        text the model was given.
+        """
         headline_diff = diff_to_dict(
             generate_word_diff(submission.Original_Headline, draft.headline)
         )
@@ -714,7 +793,7 @@ class AIEditor:
         changes_made += [note for note in draft.link_notes if note not in changes_made]
 
         final_text_flags = self._final_text_flags(
-            submission,
+            source or submission,
             draft,
             final_output,
             date_contradictions,
@@ -740,7 +819,7 @@ class AIEditor:
 
     def _final_text_flags(
         self,
-        submission: Submission,
+        submission: Submission | _Source,
         draft: _Draft,
         final_output: str,
         date_contradictions: list[str],

@@ -22,7 +22,7 @@ function findingMessage(finding: LinkFinding): string {
     case 'unsafe_link':
       return `${words} won't be clickable in Word: ${finding.Href} isn't a secure web or email address.`;
     case 'tracking_link':
-      return `${words} goes through an email security wrapper. Real address: ${finding.Suggested_Href}`;
+      return `LINK WRAPPED: CONFIRM REAL URL. ${words} goes through an email security wrapper whose real address can't be recovered, so it won't be linked in Word.`;
     case 'bare_url':
       return `Web address written out as text: ${finding.Href}. Link descriptive words instead.`;
     case 'missing_submitted_link':

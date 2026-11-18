@@ -35,8 +35,8 @@ describe('LinkCheck', () => {
           {
             Kind: 'tracking_link',
             Text: 'Buy tickets',
-            Href: 'https://urldefense.com/v3/__https://tix.example.com__',
-            Suggested_Href: 'https://tix.example.com',
+            Href: 'https://urldefense.com/v3/__https://tix.example.com/a*b__;Iw!!x$',
+            Suggested_Href: null,
           },
           { Kind: 'unsafe_link', Text: 'here', Href: 'http://example.com', Suggested_Href: null },
           { Kind: 'bare_url', Text: null, Href: 'https://uidaho.edu/x', Suggested_Href: null },
@@ -48,7 +48,7 @@ describe('LinkCheck', () => {
       .getAllByRole('listitem')
       .map((item) => item.textContent);
     expect(problems).toEqual([
-      '⚠ "Buy tickets" goes through an email security wrapper. Real address: https://tix.example.com',
+      '⚠ LINK WRAPPED: CONFIRM REAL URL. "Buy tickets" goes through an email security wrapper whose real address can\'t be recovered, so it won\'t be linked in Word.',
       "⚠ \"here\" won't be clickable in Word: http://example.com isn't a secure web or email address.",
       '⚠ Web address written out as text: https://uidaho.edu/x. Link descriptive words instead.',
       "⚠ A submitted link isn't in this copy: https://uidaho.edu/r",

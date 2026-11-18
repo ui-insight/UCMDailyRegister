@@ -127,6 +127,12 @@ Two error-level terminology rules from Joy's Nov. 17 feedback:
 
 Correcting either one is not treated as changing an official name.
 
+### Email security wrappers (#530)
+
+Forwarded copy often carries links wrapped by Proofpoint (`urldefense.com`), Microsoft Safe Links (`*.safelinks.protection.outlook.com`), Mimecast or Barracuda. Before the model sees a submission, every wrapped link in the headline, body, submitter notes and link fields is replaced with its real destination, so the edit links the call-to-action words straight to it. Link fields are also stored unwrapped when submitted. Export reads any wrapped link left in edited copy as its real destination too.
+
+The real address is never guessed. If it can't be recovered (Proofpoint replaced characters with `*`, the link is cut off, or a Mimecast token doesn't contain the address), the words stay unlinked and the edit gets a `LINK WRAPPED: CONFIRM REAL URL` warning. The Builder link check shows the same note for any such link left in the copy.
+
 ## Editor Review Modes
 
 Once the AI pipeline produces an edit, the editor reviews changes on the **AI Suggested** tab using one of three modes, selectable via a toggle:

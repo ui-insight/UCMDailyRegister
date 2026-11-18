@@ -4,6 +4,8 @@ from urllib.parse import urlsplit
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from app.utils.hyperlinks import unwrap_tracking_url
+
 
 # --- Link schemas ---
 
@@ -26,7 +28,10 @@ class LinkCreate(BaseModel):
         if not isinstance(value, str):
             raise ValueError("Link destination must be a URL or email address")
 
-        normalized = value.strip()
+        # Store the real destination, not an email security wrapper (#530).
+        # A wrapper whose destination can't be recovered is kept, and the AI
+        # edit flags it for staff.
+        normalized = unwrap_tracking_url(value.strip())
         if EMAIL_ADDRESS_PATTERN.fullmatch(normalized):
             return f"mailto:{normalized}"
 
