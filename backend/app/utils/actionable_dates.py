@@ -18,7 +18,8 @@ and are ignored.
 
 Within a day, items sort by start time (#531). A time belongs to a date when
 the two sit next to each other in the same sentence ("3-4 p.m. Wednesday,
-Nov. 18" or "Nov. 18 at 3 p.m."). A dated item with no time sorts ahead of
+Nov. 18" or "Nov. 18 at 3 p.m."); a date with several times uses the
+earliest. A dated item with no time sorts ahead of
 timed items that day; noon is 12 p.m. and midnight is the end of the day.
 """
 
@@ -101,35 +102,41 @@ def _times_in_text(plain: str) -> list[tuple[int, int, int]]:
 
 
 def _joined(gap: str) -> bool:
-    return len(gap) <= _MAX_TIME_GAP and not _SENTENCE_BREAK.search(gap)
+    # The periods in "a.m." and "p.m." don't end a sentence.
+    unpunctuated = re.sub(r"\b[ap]\.\s?m\.", "", gap, flags=re.IGNORECASE)
+    return len(gap) <= _MAX_TIME_GAP and not _SENTENCE_BREAK.search(unpunctuated)
 
 
-def _time_for(
-    span: tuple[int, int],
-    times: list[tuple[int, int, int]],
-    date_starts: list[int],
-    plain: str,
-) -> int:
-    """Start time written next to the date at ``span``, preferring one before it.
+# Text allowed between a time and the date it leads: nothing, or a weekday
+# ("3-4 p.m. Wednesday, Nov. 18", "3 p.m. on Wednesday, Nov. 18").
+_LEADS_DATE = re.compile(
+    r"^\s*(?:(?:on\s+)?(?:Mon|Tues?|Wed(?:nes)?|Thu(?:rs?)?|Fri|Sat(?:ur)?|Sun)"
+    r"(?:day)?\.?,?\s*)?$",
+    re.IGNORECASE,
+)
 
-    A time written just before a date belongs to that date, so it can't also
-    be read as following an earlier one ("by Nov. 18 for the 2 p.m. Nov. 18
-    session" leaves the first Nov. 18 untimed).
+
+def _date_times(
+    date_spans: list[tuple[int, int]], times: list[tuple[int, int, int]], plain: str
+) -> list[int]:
+    """Earliest start time belonging to each date span, or ``UNTIMED``.
+
+    A time leads the date right after it when only a weekday sits between
+    them (the TDR style). Otherwise it belongs to the nearest date before it
+    in the same sentence ("Nov. 18 at 3 p.m., Nov. 19 at 9 a.m.").
     """
-    start, end = span
-    before = [t for t in times if t[1] <= start and _joined(plain[t[1]:start])]
-    if before:
-        return max(before)[2]
-    after = [
-        t
-        for t in times
-        if t[0] >= end
-        and _joined(plain[end:t[0]])
-        and not any(d >= t[1] and _joined(plain[t[1]:d]) for d in date_starts)
-    ]
-    if after:
-        return min(after)[2]
-    return UNTIMED
+    owned: list[list[int]] = [[] for _ in date_spans]
+    order = sorted(range(len(date_spans)), key=lambda i: date_spans[i][0])
+    for time_start, time_end, minutes in times:
+        following = [i for i in order if date_spans[i][0] >= time_end]
+        if following and _LEADS_DATE.match(plain[time_end : date_spans[following[0]][0]]):
+            owned[following[0]].append(minutes)
+            continue
+        preceding = [i for i in order if date_spans[i][1] <= time_start]
+        if preceding and _joined(plain[date_spans[preceding[-1]][1] : time_start]):
+            owned[preceding[-1]].append(minutes)
+    return [min(minutes) if minutes else UNTIMED for minutes in owned]
+
 
 # "Nov. 18-20, 2027", "Nov. 18 – 20", "Nov. 30–Dec. 2, 2026", "Nov. 30 to Dec. 2"
 _DATE_RANGE = re.compile(
@@ -197,23 +204,26 @@ def moments_in_text(text: str, publish_date: date) -> list[tuple[date, int]]:
     range's time applies to every date read from it.
     """
     plain = strip_html(text or "")
-    times = _times_in_text(plain)
-    date_starts = [m.start() for m in _MONTH_DAY.finditer(plain)]
+    ranges = list(_DATE_RANGE.finditer(plain))
+    range_spans = [match.span() for match in ranges]
+    singles = [
+        match
+        for match in _MONTH_DAY.finditer(plain)
+        if not any(lo <= match.start() < hi for lo, hi in range_spans)
+    ]
+    minutes = _date_times(
+        range_spans + [match.span() for match in singles], _times_in_text(plain), plain
+    )
     found: list[tuple[date, int]] = []
-    range_spans: list[tuple[int, int]] = []
-    for match in _DATE_RANGE.finditer(plain):
-        minutes = _time_for(match.span(), times, date_starts, plain)
-        found.extend((d, minutes) for d in _range_dates(match, publish_date))
-        range_spans.append(match.span())
-    for match in _MONTH_DAY.finditer(plain):
-        if any(lo <= match.start() < hi for lo, hi in range_spans):
-            continue
+    for match, time in zip(ranges, minutes):
+        found.extend((d, time) for d in _range_dates(match, publish_date))
+    for match, time in zip(singles, minutes[len(ranges):]):
         month = _month_number(match.group("month"))
         if month is None:
             continue
         resolved = _resolve(month, int(match.group("day")), match.group("year"), publish_date)
         if resolved is not None:
-            found.append((resolved, _time_for(match.span(), times, date_starts, plain)))
+            found.append((resolved, time))
     return found
 
 

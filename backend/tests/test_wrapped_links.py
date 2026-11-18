@@ -57,6 +57,14 @@ def test_wrapped_links_resolve_to_the_real_destination(wrapped, real):
     assert resolve_tracking_url(wrapped) == real
 
 
+def test_percent_encoded_destinations_are_decoded_only_once():
+    # PR #533 review: Barracuda's parameter was decoded twice.
+    wrapped = "https://linkprotect.cudasvc.com/url?a=https%3A%2F%2Fexample.com%2F%253Fname%253Dx"
+    assert resolve_tracking_url(wrapped) == "https://example.com/%3Fname%3Dx"
+    safe_links = "https://nam12.safelinks.protection.outlook.com/?url=https%3A%2F%2Fexample.com%2F%253Fa&data=x"
+    assert resolve_tracking_url(safe_links) == "https://example.com/%3Fa"
+
+
 @pytest.mark.parametrize(
     "wrapped",
     [

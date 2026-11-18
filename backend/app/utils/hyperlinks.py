@@ -173,8 +173,9 @@ def _unwrap(full: str) -> str | None:
             token = urlparse(full).path.split("/s/", 1)[1].rstrip("/")
             return _destination(unquote(token))
         if hostname == "linkprotect.cudasvc.com":
+            # parse_qs has already decoded the parameter once.
             target = _first_param(full, "a")
-            return _destination(unquote(target)) if target else None
+            return _destination(target) if target else None
     except ValueError:
         logger.warning("Failed to unwrap tracking URL")
     return None

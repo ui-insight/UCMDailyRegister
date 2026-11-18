@@ -14,6 +14,7 @@ from app.utils.actionable_dates import (
     dates_in_text,
     earliest_actionable_date,
     earliest_actionable_moment,
+    moments_in_text,
 )
 from tests.conftest import make_submission_data
 
@@ -290,6 +291,29 @@ def test_reads_the_start_time_written_with_a_date(text, expected_minutes):
 def test_soonest_date_and_time_wins():
     body = "3 p.m. Nov. 19 and 9 a.m. Nov. 18; also 8 a.m. Nov. 18."
     assert earliest_actionable_moment([body], PUBLISH) == (date(2026, 11, 18), 8 * 60)
+
+
+def test_each_date_keeps_the_time_written_after_it():
+    # PR #533 review: a time after one date isn't taken by the next date.
+    assert moments_in_text("Nov. 18 at 3 p.m., Nov. 19 at 9 a.m.", PUBLISH) == [
+        (date(2026, 11, 18), 15 * 60),
+        (date(2026, 11, 19), 9 * 60),
+    ]
+
+
+def test_a_date_with_several_times_uses_the_earliest():
+    # PR #533 review: the soonest time wins, not the first written.
+    assert earliest_actionable_moment(["Nov. 18 at 3 p.m. and 9 a.m."], PUBLISH) == (
+        date(2026, 11, 18),
+        9 * 60,
+    )
+
+
+def test_weekday_between_time_and_date_keeps_them_together():
+    assert moments_in_text("3 p.m. on Wednesday, Nov. 18, and 9 a.m. Thursday, Nov. 19", PUBLISH) == [
+        (date(2026, 11, 18), 15 * 60),
+        (date(2026, 11, 19), 9 * 60),
+    ]
 
 
 def test_untimed_mention_of_a_day_sorts_before_its_times():
