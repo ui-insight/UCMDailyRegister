@@ -200,13 +200,25 @@
   {
     "category": "formatting",
     "rule_key": "event_detail_ordering",
-    "rule_text": "Start event-detail constructions with the time, then give the day, date and location in that order. Example: '3-4 p.m. Wednesday, Feb. 12, in the Pitman Center Vandal Ballroom.' Never place the day or date before the time. Keep the time, day, date and location in the same complete sentence as the event name. Never begin a separate sentence with a time, date, day of the week or location fragment. Correct: 'Stop by the Asian Studies Library Open House 2-4 p.m. Thursday, Sept. 3, in Admin 204.' Incorrect: 'Stop by the Asian Studies Library Open House. 2-4 p.m. Thursday, Sept. 3, in Admin 204.' Do not omit these elements. If the event is more than one month away, omit the day of the week.",
+    "rule_text": "Start event-detail constructions with the time, then give the day, date and location in that order. Example: '3-4 p.m. Wednesday, Feb. 12, in the Bruce M. Pitman Center Vandal Ballroom.' Never place the day or date before the time. Keep the time, day, date and location in the same complete sentence as the event name. Never begin a separate sentence with a time, date, day of the week or location fragment. Correct: 'Stop by the Asian Studies Library Open House 2-4 p.m. Thursday, Sept. 3, in Admin 204.' Incorrect: 'Stop by the Asian Studies Library Open House. 2-4 p.m. Thursday, Sept. 3, in Admin 204.' Do not omit these elements. If the event is more than one month away, omit the day of the week.",
     "severity": "error"
   },
   {
     "category": "terminology",
     "rule_key": "vandal_terms",
     "rule_text": "Write these U of I Vandal terms in their official form: 'Vandal Alert' (two words, each capitalized); 'VandalCard' (one word, two capitals, no space); 'VandalCARE' (one word, Vandal capitalized and CARE in all capitals); 'VandalChat' (one word, two capitals, no space); 'Vandal Connect' (two words); 'Vandal Family' (two capitalized words); 'Vandal Gear' (two capitalized words); 'VandalMail' (one word, Vandal and Mail capitalized, no space); 'VandalStore' (one word, two capitals, no space). Replace any other spacing, hyphenation or capitalization of these terms, such as 'Vandal Card', 'Vandalmail', 'VandalAlert', 'Vandal Care' or 'VandalGear', with the official form, even when the submitter wrote the variant. This rule takes precedence over keeping product and program names as submitted. Leave web and email addresses unchanged.",
+    "severity": "error"
+  },
+  {
+    "category": "terminology",
+    "rule_key": "well_being_hyphenated",
+    "rule_text": "Always write 'well-being' with a hyphen. Replace 'well being' and 'wellbeing' with 'well-being', even when the submitter wrote the variant. Capitalize it as 'Well-being' at the start of a sentence or headline. Leave web and email addresses unchanged.",
+    "severity": "error"
+  },
+  {
+    "category": "terminology",
+    "rule_key": "pitman_center_first_reference",
+    "rule_text": "Call the student union building 'Bruce M. Pitman Center' on first reference, followed by the specific room or venue when there is one, for example 'Bruce M. Pitman Center International Ballroom'. Use 'Pitman Center' only on second and later references. On first reference, replace 'Pitman Center', 'Bruce Pitman Center' or 'Bruce M Pitman Center' with 'Bruce M. Pitman Center', even when the submitter wrote the short form. Leave web and email addresses unchanged.",
     "severity": "error"
   },
   {

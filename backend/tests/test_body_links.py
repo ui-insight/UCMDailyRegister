@@ -195,6 +195,8 @@ async def test_approved_link_reaches_the_exported_word_file(
 
 
 PROOFPOINT = "https://urldefense.com/v3/__https://www.eventbrite.com/e/tapas__;!!JYXjzlvb!abc$"
+# Proofpoint replaced a character with "*", so the real address can't be recovered.
+UNRECOVERABLE = "https://urldefense.com/v3/__https://www.example.com/e/t*pas__;Iw!!JYXjzlvb!abc$"
 
 
 class TestCheckBody:
@@ -206,10 +208,22 @@ class TestCheckBody:
             LinkFinding("unsafe_link", "here", "http://example.com")
         ]
 
-    def test_tracking_link_suggests_the_real_destination(self):
-        (finding,) = check_body(f'<a href="{PROOFPOINT}">Buy tickets</a>')
-        assert finding.Kind == "tracking_link"
-        assert finding.Suggested_Href == "https://www.eventbrite.com/e/tapas"
+    def test_recoverable_tracking_link_is_not_a_finding(self):
+        # Export links the real destination, so there's nothing to warn about (#530).
+        assert check_body(f'<a href="{PROOFPOINT}">Buy tickets</a>') == []
+
+    def test_unrecoverable_tracking_link_is_flagged(self):
+        assert check_body(f'<a href="{UNRECOVERABLE}">Buy tickets</a>') == [
+            LinkFinding("tracking_link", "Buy tickets", UNRECOVERABLE)
+        ]
+
+    def test_parse_body_reads_the_real_destination_or_plain_words(self):
+        body = f'<a href="{PROOFPOINT}">Buy tickets</a> or <a href="{UNRECOVERABLE}">here</a>'
+        assert parse_body(body) == [
+            BodySegment("Buy tickets", "https://www.eventbrite.com/e/tapas"),
+            BodySegment(" or "),
+            BodySegment("here"),
+        ]
 
     def test_bare_url_written_as_text(self):
         assert check_body("Details at https://uidaho.edu/fair.") == [
@@ -228,8 +242,7 @@ class TestCheckBody:
 
     def test_submitted_link_matches_its_wrapped_form(self):
         body = f'<a href="{PROOFPOINT}">Buy tickets</a>'
-        kinds = [f.Kind for f in check_body(body, ["https://www.eventbrite.com/e/tapas"])]
-        assert kinds == ["tracking_link"]
+        assert check_body(body, ["https://www.eventbrite.com/e/tapas"]) == []
 
 
 @pytest.mark.asyncio
@@ -255,7 +268,7 @@ async def test_builder_items_carry_link_findings(
         f"/api/v1/ai-edits/{submission_id}/finalize",
         json={
             "Headline": "Fair",
-            "Body": f'<a href="{PROOFPOINT}">Buy tickets</a> today.',
+            "Body": f'<a href="{UNRECOVERABLE}">Buy tickets</a> today.',
             "Approve_For_Newsletter": True,
         },
         headers=staff_headers,
@@ -281,7 +294,7 @@ async def test_builder_items_carry_link_findings(
     detail = (await client.get(f"/api/v1/newsletters/{newsletter_id}", headers=staff_headers)).json()
     (item,) = detail["Items"]
     assert [f["Kind"] for f in item["Link_Findings"]] == ["tracking_link", "missing_submitted_link"]
-    assert item["Link_Findings"][0]["Suggested_Href"] == "https://www.eventbrite.com/e/tapas"
+    assert item["Link_Findings"][0]["Suggested_Href"] is None
     (external,) = detail["External_Items"]
     assert external["Link_Findings"] == [
         {"Kind": "bare_url", "Text": None, "Href": "https://uitickets.evenue.net/concert", "Suggested_Href": None}

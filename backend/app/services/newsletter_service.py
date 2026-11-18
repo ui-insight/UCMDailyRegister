@@ -11,7 +11,7 @@ from app.models.newsletter import Newsletter, NewsletterExternalItem, Newsletter
 from app.models.section import NewsletterSection
 from app.models.submission import Submission
 from app.services import editorial_content, recurring_message_service, submission_service
-from app.utils.actionable_dates import earliest_actionable_date
+from app.utils.actionable_dates import UNTIMED, earliest_actionable_moment
 
 logger = logging.getLogger(__name__)
 
@@ -521,10 +521,11 @@ async def assemble_newsletter(
 
 
 def _in_default_order(submissions: list[Submission], publish_date: date) -> list[Submission]:
-    """Order submissions for placement by earliest actionable date (#388).
+    """Order submissions for placement by earliest actionable date and time.
 
     ``submissions`` arrive oldest-first. Items whose copy names an upcoming
-    event date or deadline go in by that date; items with none go last.
+    event date or deadline go in by that date (#388), then by start time
+    within the day, untimed items first (#531); items with no date go last.
     Ties keep submission order. Job listings keep their oldest-first walk, which the
     assembly loop turns into newest-first.
 
@@ -534,13 +535,15 @@ def _in_default_order(submissions: list[Submission], publish_date: date) -> list
     jobs = [sub for sub in submissions if sub.Category == "job_opportunity"]
     others = [sub for sub in submissions if sub.Category != "job_opportunity"]
 
-    def actionable(sub: Submission) -> tuple[bool, date]:
+    def actionable(sub: Submission) -> tuple[bool, date, int]:
         headline, body, _ = editorial_content.publishable_text(sub)
-        earliest = earliest_actionable_date(
+        earliest = earliest_actionable_moment(
             (headline, body), publish_date, known_dates=(sub.Survey_End_Date,)
         )
         # Undated items go after every dated one (Joy, 2026-11-16).
-        return (earliest is None, earliest or publish_date)
+        if earliest is None:
+            return (True, publish_date, UNTIMED)
+        return (False, *earliest)
 
     return sorted(others, key=actionable) + jobs
 

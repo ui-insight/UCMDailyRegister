@@ -71,3 +71,7 @@ site/
 
 # On-demand AI evaluation reports (python -m app.evals.editorial)
 eval-results/
+
+# Local correspondence and meeting transcripts (never commit)
+*.eml
+*.vtt

@@ -50,6 +50,7 @@ from app.utils.style_checks import (
     detect_new_contact_names,
     detect_noncanonical_campus_locations,
     detect_nonstandard_meridiems,
+    detect_pitman_center_reference_issues,
     detect_platform_names,
     detect_redundant_promotional_leads,
     detect_repeated_cta_phrases,
@@ -62,6 +63,7 @@ from app.utils.style_checks import (
     detect_unformatted_composition_titles,
     detect_unneeded_acronym_definitions,
     detect_vandal_term_variants,
+    detect_well_being_variants,
     detect_weekday_date_conflicts,
     detect_weekday_date_mismatches,
     never_spell_out_acronyms,
@@ -311,6 +313,25 @@ def vandal_terms(ctx: CheckContext) -> list[Finding]:
     ]
 
 
+def well_being(ctx: CheckContext) -> list[Finding]:
+    """"well-being" written without its hyphen (#529)."""
+    return [
+        Finding("well_being_hyphenated", f"Write '{correct}' instead of '{variant}'")
+        for variant, correct in detect_well_being_variants(ctx.text)
+    ]
+
+
+def pitman_center_references(ctx: CheckContext) -> list[Finding]:
+    """The Pitman Center not called Bruce M. Pitman Center on first reference (#529)."""
+    return [
+        Finding(
+            "pitman_center_first_reference",
+            f"Write 'Bruce M. Pitman Center' instead of '{written}' on first reference",
+        )
+        for written in detect_pitman_center_reference_issues(ctx.body)
+    ]
+
+
 def acronyms(ctx: CheckContext) -> list[Finding]:
     """The acronym order of checks (#381, #399)."""
     standalone = never_spell_out_acronyms(ctx.newsletter_type)
@@ -512,6 +533,8 @@ OUTPUT_CHECKS: list[Check] = [
     ampersands,
     platform_names,
     vandal_terms,
+    well_being,
+    pitman_center_references,
     acronyms,
     repeated_calls_to_action,
     call_to_action_wording,
