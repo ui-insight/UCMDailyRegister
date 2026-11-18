@@ -118,6 +118,15 @@ If the AI added a weekday to one of these dates, `DAY OF WEEK NOT VERIFIED` is a
 
 The error-level `vandal_terms` rule gives the official forms of nine U of I terms: Vandal Alert, VandalCard, VandalCARE, VandalChat, Vandal Connect, Vandal Family, Vandal Gear, VandalMail and VandalStore. It replaced the earlier `vandal_gear_capitalization` rule. A variant of any of them left in the edited copy (for example "Vandal Card", "Vandalmail" or "VandalAlert") is flagged, and the model gets a repair pass. Web and email addresses such as `vandalcard@example.edu` are not checked. The list lives in `OFFICIAL_VANDAL_TERMS` in `backend/app/utils/style_checks/names.py`, so adding a term needs a code change until the editable approved-terms list (#461) exists.
 
+### Bruce M. Pitman Center and well-being (#529)
+
+Two error-level terminology rules from Joy's Nov. 17 feedback:
+
+- `pitman_center_first_reference`: the student union is "Bruce M. Pitman Center" on first reference, followed by the room when there is one ("Bruce M. Pitman Center International Ballroom"), and "Pitman Center" only after that. If the first reference in the edited body isn't the full name, or a later reference is a partial "Bruce Pitman Center", the copy is flagged and the model gets a repair pass. The `event_detail_ordering` example now uses the full name as well.
+- `well_being_hyphenated`: "well being" and "wellbeing" are flagged in the headline and body and should be "well-being" ("Well-being" at the start of a sentence). Web and email addresses are not checked.
+
+Correcting either one is not treated as changing an official name.
+
 ## Editor Review Modes
 
 Once the AI pipeline produces an edit, the editor reviews changes on the **AI Suggested** tab using one of three modes, selectable via a toggle:

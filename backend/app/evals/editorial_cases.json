@@ -497,6 +497,46 @@
           "uidaho.edu/example-event"
         ]
       }
+    },
+    {
+      "id": "pitman-center-full-name-first",
+      "issues": [
+        529
+      ],
+      "decision": "The student union is 'Bruce M. Pitman Center' on first reference, followed by the room; 'Pitman Center' only after that.",
+      "newsletter": "tdr",
+      "category": "faculty_staff",
+      "submitted": "2026-11-17",
+      "headline": "Example craft fair",
+      "body": "The Example Craft Guild will hold its winter fair 10 a.m.-2 p.m. Thursday, Dec. 3, in the Pitman Center International Ballroom. Parking is available behind the Pitman Center.",
+      "expect": {
+        "body_matches": [
+          "^(?:(?!Pitman Center).)*Bruce M\\. Pitman Center International Ballroom"
+        ]
+      }
+    },
+    {
+      "id": "well-being-hyphenated",
+      "issues": [
+        529
+      ],
+      "decision": "'well-being' is always hyphenated, even when the submitter wrote 'wellbeing' or 'well being'.",
+      "newsletter": "tdr",
+      "category": "faculty_staff",
+      "submitted": "2026-11-17",
+      "headline": "Example wellbeing walk",
+      "body": "Join the Example Wellness Team for a wellbeing walk at noon Friday, Dec. 4, starting at the Example Hall steps. The walk supports employee well being through the winter.",
+      "expect": {
+        "contains": [
+          "well-being"
+        ],
+        "not_contains": [
+          "wellbeing",
+          "Wellbeing",
+          "well being",
+          "Well being"
+        ]
+      }
     }
   ]
 }

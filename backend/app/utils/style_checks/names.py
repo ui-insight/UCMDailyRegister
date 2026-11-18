@@ -246,8 +246,13 @@ def detect_changed_official_names(source_text: str, edited_text: str) -> list[st
     edited = strip_html(edited_text)
     findings: list[str] = []
     for candidate in _official_name_candidates(source_text):
-        # The edit may correct a Vandal term to its official form (#480).
-        allowed_variants = {candidate, normalize_vandal_terms(candidate)}
+        # The edit may correct a Vandal term (#480), "well-being" or the
+        # Bruce M. Pitman Center name (#529) to its official form.
+        allowed_variants = {
+            candidate,
+            normalize_vandal_terms(candidate),
+            normalize_pitman_center(normalize_well_being(candidate)),
+        }
         if "&" in candidate:
             allowed_variants.add(re.sub(r"\s*&\s*", " and ", candidate))
         if not any(variant in edited for variant in allowed_variants):
@@ -312,4 +317,88 @@ def detect_vandal_term_variants(text: str) -> list[tuple[str, str]]:
     for _, variant, official in found:
         if (variant, official) not in pairs:
             pairs.append((variant, official))
+    return pairs
+
+
+# Bruce M. Pitman Center (#529): the full name on first reference, followed
+# by the room when there is one; "Pitman Center" only after that. Any
+# reference starting with "Bruce" must use the full name.
+PITMAN_CENTER_FULL_NAME = "Bruce M. Pitman Center"
+_PITMAN_REFERENCE = re.compile(
+    r"\b(?:Bruce[\s\u00a0]+(?:M\.?[\s\u00a0]+)?)?Pitman[\s\u00a0]+Center\b",
+    re.IGNORECASE,
+)
+
+
+def normalize_pitman_center(text: str) -> str:
+    """Rewrite "Bruce Pitman Center" and similar to "Bruce M. Pitman Center"."""
+    return _PITMAN_REFERENCE.sub(
+        lambda match: (
+            PITMAN_CENTER_FULL_NAME if match.group().lower().startswith("bruce") else match.group()
+        ),
+        text,
+    )
+
+
+def detect_pitman_center_reference_issues(text: str) -> list[str]:
+    """References to the Pitman Center that break the first-reference rule (#529).
+
+    Returns each wrong form once, in order: the first reference unless it is
+    "Bruce M. Pitman Center", and any later "Bruce ..." form that isn't the
+    full name. Web and email addresses are skipped.
+    """
+    visible = strip_html(text)
+    references = [
+        match
+        for match in _PITMAN_REFERENCE.finditer(visible)
+        if not _in_web_or_email_address(visible, match.start(), match.end())
+    ]
+    wrong: list[str] = []
+    for index, match in enumerate(references):
+        written = match.group()
+        if written == PITMAN_CENTER_FULL_NAME:
+            continue
+        if index == 0 or written.lower().startswith("bruce"):
+            if written not in wrong:
+                wrong.append(written)
+    return wrong
+
+
+# "well-being" is always hyphenated (#529). "As well being" is a different
+# phrase and is left alone.
+WELL_BEING = "well-being"
+_WELL_BEING_VARIANT = re.compile(
+    r"(?<!\bas )\bwell(?:[\s\u00a0]+|[\u2010\u2011\u2013\u2014]?)being\b",
+    re.IGNORECASE,
+)
+
+
+def _well_being_form(variant: str) -> str:
+    if variant.isupper():
+        return WELL_BEING.upper()
+    return "Well-being" if variant[0].isupper() else WELL_BEING
+
+
+def normalize_well_being(text: str) -> str:
+    """Rewrite "well being" and "wellbeing" to "well-being", keeping a leading capital."""
+    return _WELL_BEING_VARIANT.sub(
+        lambda match: (
+            match.group()
+            if _in_web_or_email_address(match.string, match.start(), match.end())
+            else _well_being_form(match.group())
+        ),
+        text,
+    )
+
+
+def detect_well_being_variants(text: str) -> list[tuple[str, str]]:
+    """Unhyphenated forms of "well-being" as ``(variant, correct form)`` pairs (#529)."""
+    visible = strip_html(text)
+    pairs: list[tuple[str, str]] = []
+    for match in _WELL_BEING_VARIANT.finditer(visible):
+        if _in_web_or_email_address(visible, match.start(), match.end()):
+            continue
+        pair = (match.group(), _well_being_form(match.group()))
+        if pair not in pairs:
+            pairs.append(pair)
     return pairs
