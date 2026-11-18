@@ -9,7 +9,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.section import NewsletterSection
 from app.models.submission import Submission
-from app.utils.actionable_dates import dates_in_text, earliest_actionable_date
+from app.utils.actionable_dates import (
+    UNTIMED,
+    dates_in_text,
+    earliest_actionable_date,
+    earliest_actionable_moment,
+)
 from tests.conftest import make_submission_data
 
 PUBLISH = date(2026, 11, 17)
@@ -254,3 +259,85 @@ async def test_jobs_stay_newest_first_whatever_dates_they_name(
 )
 def test_date_ranges_are_read_as_a_unit(text, publish, expected):
     assert earliest_actionable_date([text], publish) == expected
+
+
+@pytest.mark.parametrize(
+    ("text", "expected_minutes"),
+    [
+        # Times before the date, TDR style, and after it.
+        ("3-4 p.m. Wednesday, Nov. 18, in Test Hall.", 15 * 60),
+        ("Join us Nov. 18 at 10:30 a.m.", 10 * 60 + 30),
+        ("Talk Nov. 18, 3-5 p.m.", 15 * 60),
+        # A range's start takes the end's period unless it would follow the end.
+        ("11-1 p.m. Wednesday, Nov. 18.", 11 * 60),
+        ("12-1 p.m. Nov. 18", 12 * 60),
+        # Noon is 12 p.m.; midnight is the end of the day.
+        ("Noon-1 p.m. Nov. 18", 12 * 60),
+        ("9 a.m.-noon Nov. 18", 9 * 60),
+        ("Movie night until midnight Nov. 18", 24 * 60),
+        ("Party at 12 a.m. Nov. 18", 24 * 60),
+        ("Starts 3 PM Nov 18", 15 * 60),
+        # A time in another sentence doesn't belong to the date.
+        ("Register by Nov. 18. Doors open 9 a.m.", UNTIMED),
+        # Bare numbers aren't times.
+        ("Room 204, Nov. 18", UNTIMED),
+    ],
+)
+def test_reads_the_start_time_written_with_a_date(text, expected_minutes):
+    assert earliest_actionable_moment([text], PUBLISH) == (date(2026, 11, 18), expected_minutes)
+
+
+def test_soonest_date_and_time_wins():
+    body = "3 p.m. Nov. 19 and 9 a.m. Nov. 18; also 8 a.m. Nov. 18."
+    assert earliest_actionable_moment([body], PUBLISH) == (date(2026, 11, 18), 8 * 60)
+
+
+def test_untimed_mention_of_a_day_sorts_before_its_times():
+    body = "Register by Nov. 18 for the 2 p.m. Nov. 18 session."
+    assert earliest_actionable_moment([body], PUBLISH) == (date(2026, 11, 18), UNTIMED)
+
+
+def test_multi_day_range_uses_its_start_date_and_time():
+    assert earliest_actionable_moment(["Nov. 19-21, 8 a.m.-5 p.m."], PUBLISH) == (
+        date(2026, 11, 19),
+        8 * 60,
+    )
+
+
+@pytest.mark.asyncio
+async def test_assembly_orders_same_day_items_by_start_time(
+    client: AsyncClient, db: AsyncSession, staff_headers: dict[str, str]
+):
+    """#531: date, then time; untimed first in the day; undated last; ties by submission."""
+    await _add_sections(db)
+    base = datetime(2026, 11, 1, 9, 0)
+
+    async def add(headline: str, body: str, hours: int) -> str:
+        return await _approved_submission(
+            client, db, staff_headers,
+            headline=headline, body=body, created_at=base + timedelta(hours=hours),
+        )
+
+    evening = await add("Synthetic concert", "7 p.m. Thursday, Nov. 19, in Test Hall.", 0)
+    undated_first = await add("Synthetic app", "The synthetic app is available.", 1)
+    midnight = await add("Synthetic vigil", "Midnight Thursday, Nov. 19, on the Test Lawn.", 2)
+    morning = await add("Synthetic breakfast", "8-9:30 a.m. Thursday, Nov. 19, in Test Hall.", 3)
+    deadline = await add("Synthetic deadline", "Apply by Nov. 19 in the synthetic portal.", 4)
+    lunch_tie_a = await add("Synthetic talk A", "Noon-1 p.m. Thursday, Nov. 19, in Test Hall.", 5)
+    next_day = await add("Synthetic workshop", "9 a.m. Friday, Nov. 20, in Test Hall.", 6)
+    lunch_tie_b = await add("Synthetic talk B", "12-1 p.m. Thursday, Nov. 19, in Test Hall.", 7)
+    undated_second = await add("Synthetic reminder", "Update your synthetic profile.", 8)
+
+    newsletter = await _assemble(client, staff_headers)
+
+    assert _order(newsletter, "tdr-employee-news") == [
+        deadline,
+        morning,
+        lunch_tie_a,
+        lunch_tie_b,
+        evening,
+        midnight,
+        next_day,
+        undated_first,
+        undated_second,
+    ]

@@ -15,6 +15,11 @@ A date written without a year uses the publish year, or the next year when
 that would put it more than 60 days in the past, matching the newsletter's
 year-boundary handling elsewhere. Dates before the publish date have passed
 and are ignored.
+
+Within a day, items sort by start time (#531). A time belongs to a date when
+the two sit next to each other in the same sentence ("3-4 p.m. Wednesday,
+Nov. 18" or "Nov. 18 at 3 p.m."). A dated item with no time sorts ahead of
+timed items that day; noon is 12 p.m. and midnight is the end of the day.
 """
 
 import re
@@ -24,6 +29,107 @@ from datetime import date, timedelta
 from app.utils.style_checks.text import _MONTH_DAY, _MONTH_NAME, _MONTH_NUMBERS, strip_html
 
 _YEAR_ROLLOVER_DAYS = 60
+
+# Sort position within a day for a date with no time, and for midnight.
+UNTIMED = -1
+_MIDNIGHT = 24 * 60
+
+# A time and a date pair up when separated by at most this much text with no
+# sentence break between them.
+_MAX_TIME_GAP = 40
+_SENTENCE_BREAK = re.compile(r"[.!?;\n]")
+
+_PERIOD = r"[ap]\.?\s?m\b\.?"
+# "3 p.m.", "10:30 a.m.", "3-4 p.m.", "11 a.m.-1 p.m.", "9 a.m. to noon", "noon"
+_TIME = re.compile(
+    rf"\b(?:(?P<hour>\d{{1,2}})(?::(?P<minute>\d{{2}}))?\s*(?P<period>{_PERIOD})?"
+    rf"|(?P<word>noon|midnight))"
+    rf"(?:\s*(?:[-–—]|\bto\b|\buntil\b)\s*"
+    rf"(?:(?P<end_hour>\d{{1,2}})(?::(?P<end_minute>\d{{2}}))?\s*(?P<end_period>{_PERIOD})"
+    rf"|(?P<end_word>noon|midnight)))?",
+    re.IGNORECASE,
+)
+
+
+def _clock_minutes(hour: int, minute: int, period: str) -> int | None:
+    """Minutes after midnight for a 12-hour time; midnight is the end of the day."""
+    if not 1 <= hour <= 12 or minute > 59:
+        return None
+    is_pm = period.lower().startswith("p")
+    if hour == 12:
+        return 12 * 60 + minute if is_pm else _MIDNIGHT + minute
+    return (hour + 12 if is_pm else hour) * 60 + minute
+
+
+def _word_minutes(word: str) -> int:
+    return 12 * 60 if word.lower() == "noon" else _MIDNIGHT
+
+
+def _start_minutes(match: re.Match) -> int | None:
+    """Start time of a time or time range, or None for a bare number."""
+    if match.group("word"):
+        return _word_minutes(match.group("word"))
+    hour, minute = int(match.group("hour")), int(match.group("minute") or 0)
+    if match.group("period"):
+        return _clock_minutes(hour, minute, match.group("period"))
+    # "3-4 p.m.": the start takes the end's period, unless that would put it
+    # after the end ("11-1 p.m." starts at 11 a.m.).
+    if match.group("end_word"):
+        end = _word_minutes(match.group("end_word"))
+        end_period = "p.m." if match.group("end_word").lower() == "noon" else "a.m."
+    elif match.group("end_period"):
+        end_period = match.group("end_period")
+        end = _clock_minutes(int(match.group("end_hour")), int(match.group("end_minute") or 0), end_period)
+    else:
+        return None
+    start = _clock_minutes(hour, minute, end_period)
+    if start is None or end is None:
+        return None
+    if start > end and start >= 12 * 60:
+        start -= 12 * 60
+    return start
+
+
+def _times_in_text(plain: str) -> list[tuple[int, int, int]]:
+    """(start offset, end offset, start minutes) for each time in ``plain``."""
+    found = []
+    for match in _TIME.finditer(plain):
+        minutes = _start_minutes(match)
+        if minutes is not None:
+            found.append((match.start(), match.end(), minutes))
+    return found
+
+
+def _joined(gap: str) -> bool:
+    return len(gap) <= _MAX_TIME_GAP and not _SENTENCE_BREAK.search(gap)
+
+
+def _time_for(
+    span: tuple[int, int],
+    times: list[tuple[int, int, int]],
+    date_starts: list[int],
+    plain: str,
+) -> int:
+    """Start time written next to the date at ``span``, preferring one before it.
+
+    A time written just before a date belongs to that date, so it can't also
+    be read as following an earlier one ("by Nov. 18 for the 2 p.m. Nov. 18
+    session" leaves the first Nov. 18 untimed).
+    """
+    start, end = span
+    before = [t for t in times if t[1] <= start and _joined(plain[t[1]:start])]
+    if before:
+        return max(before)[2]
+    after = [
+        t
+        for t in times
+        if t[0] >= end
+        and _joined(plain[end:t[0]])
+        and not any(d >= t[1] and _joined(plain[t[1]:d]) for d in date_starts)
+    ]
+    if after:
+        return min(after)[2]
+    return UNTIMED
 
 # "Nov. 18-20, 2027", "Nov. 18 – 20", "Nov. 30–Dec. 2, 2026", "Nov. 30 to Dec. 2"
 _DATE_RANGE = re.compile(
@@ -84,13 +190,20 @@ def _range_dates(match: re.Match, publish_date: date) -> list[date]:
     return dates
 
 
-def dates_in_text(text: str, publish_date: date) -> list[date]:
-    """Calendar dates named in ``text``, resolved against ``publish_date``."""
+def moments_in_text(text: str, publish_date: date) -> list[tuple[date, int]]:
+    """(date, start minutes) for each calendar date named in ``text``.
+
+    Minutes are ``UNTIMED`` when no time is written next to the date. A
+    range's time applies to every date read from it.
+    """
     plain = strip_html(text or "")
-    found: list[date] = []
+    times = _times_in_text(plain)
+    date_starts = [m.start() for m in _MONTH_DAY.finditer(plain)]
+    found: list[tuple[date, int]] = []
     range_spans: list[tuple[int, int]] = []
     for match in _DATE_RANGE.finditer(plain):
-        found.extend(_range_dates(match, publish_date))
+        minutes = _time_for(match.span(), times, date_starts, plain)
+        found.extend((d, minutes) for d in _range_dates(match, publish_date))
         range_spans.append(match.span())
     for match in _MONTH_DAY.finditer(plain):
         if any(lo <= match.start() < hi for lo, hi in range_spans):
@@ -100,8 +213,30 @@ def dates_in_text(text: str, publish_date: date) -> list[date]:
             continue
         resolved = _resolve(month, int(match.group("day")), match.group("year"), publish_date)
         if resolved is not None:
-            found.append(resolved)
+            found.append((resolved, _time_for(match.span(), times, date_starts, plain)))
     return found
+
+
+def dates_in_text(text: str, publish_date: date) -> list[date]:
+    """Calendar dates named in ``text``, resolved against ``publish_date``."""
+    return [d for d, _ in moments_in_text(text, publish_date)]
+
+
+def earliest_actionable_moment(
+    texts: Iterable[str],
+    publish_date: date,
+    known_dates: Iterable[date | None] = (),
+) -> tuple[date, int] | None:
+    """Earliest (date, start minutes) on or after ``publish_date``.
+
+    Known dates (structured deadlines) carry no time. Returns None when the
+    item names no upcoming date.
+    """
+    candidates = [(d, UNTIMED) for d in known_dates if d is not None]
+    for text in texts:
+        candidates.extend(moments_in_text(text, publish_date))
+    upcoming = [m for m in candidates if m[0] >= publish_date]
+    return min(upcoming) if upcoming else None
 
 
 def earliest_actionable_date(
@@ -113,8 +248,5 @@ def earliest_actionable_date(
 
     Returns None when the item names no upcoming date.
     """
-    candidates = [d for d in known_dates if d is not None]
-    for text in texts:
-        candidates.extend(dates_in_text(text, publish_date))
-    upcoming = [d for d in candidates if d >= publish_date]
-    return min(upcoming) if upcoming else None
+    moment = earliest_actionable_moment(texts, publish_date, known_dates)
+    return moment[0] if moment else None
