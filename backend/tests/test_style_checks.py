@@ -761,3 +761,34 @@ class TestChangeLogDateContradictions:
     def test_entries_without_a_weekday_or_a_final_pairing_are_not_judged(self):
         assert not change_contradicts_final_dates("Abbreviated October to Oct. 28", self.FINAL)
         assert not change_contradicts_final_dates("Added Friday to Oct. 30", self.FINAL)
+
+
+# PR #541 review: middle weekdays of a list, and bounded list repetition.
+def test_wrong_middle_weekday_in_list_is_flagged():
+    from app.utils.style_checks.dates import detect_weekday_date_conflicts, detect_weekday_date_mismatches
+
+    ref = date(2026, 11, 16)
+    found = detect_weekday_date_mismatches("Tuesday, Friday and Thursday, Nov. 17-19.", reference_date=ref)
+    assert found == ["Friday, Nov. 17–Nov. 19"]
+    notes = detect_weekday_date_conflicts("Tuesday, Friday and Thursday, Nov. 17-19.", reference_date=ref)
+    assert "NO FRIDAY FALLS IN" in next(iter(notes.values()))
+
+
+def test_valid_weekday_lists_are_not_flagged():
+    from app.utils.style_checks.dates import detect_weekday_date_mismatches
+
+    ref = date(2026, 11, 16)
+    assert detect_weekday_date_mismatches("Tuesday, Wednesday and Thursday, Nov. 17-19.", reference_date=ref) == []
+    # Non-consecutive list inside the range: Monday, Wednesday, Friday of Nov. 16-20, 2026.
+    assert detect_weekday_date_mismatches("Monday, Wednesday and Friday, Nov. 16-20.", reference_date=ref) == []
+
+
+def test_long_malformed_weekday_list_is_linear():
+    import time
+
+    from app.utils.style_checks.dates import detect_weekday_date_mismatches
+
+    text = "Monday, " * 4000 + "x"
+    started = time.perf_counter()
+    detect_weekday_date_mismatches(text, reference_date=date(2026, 11, 16))
+    assert time.perf_counter() - started < 0.5

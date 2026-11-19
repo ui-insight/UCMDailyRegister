@@ -38,7 +38,10 @@ _NOT_A_TIME = r"(?!:\d|\s*[ap]\.?\s?m\b)"
 # May 26-30", "Tuesday, Wednesday and Thursday, Nov. 17-19",
 # "Monday–Wednesday, Nov. 30–Dec. 2, 2026".
 _WEEKDAY_DATE = re.compile(
-    rf"\b(?:(?P<first_weekday>{_WEEKDAY_NAME})(?:,\s*(?:{_WEEKDAY_NAME}))*,?\s*{_RANGE_JOIN}\s*)?"
+    # At most seven weekdays in a list: an unbounded repeat backtracks
+    # quadratically on text like "Monday, Monday, ... x".
+    rf"\b(?:(?P<first_weekday>{_WEEKDAY_NAME})"
+    rf"(?P<middle_weekdays>(?:,\s*(?:{_WEEKDAY_NAME})){{0,5}}),?\s*{_RANGE_JOIN}\s*)?"
     rf"(?P<weekday>{_WEEKDAY_NAME})"
     rf",?\s+(?P<month>(?:{_MONTH_NAME})\.?)"
     rf"\s+(?P<day>\d{{1,2}})(?:,\s*(?P<year>\d{{4}}))?\b"
@@ -156,6 +159,9 @@ class WeekdayDate(NamedTuple):
     day: int
     year: int | None = None
     range_end: tuple[int, int] | None = None
+    # A middle weekday of a list ("Tuesday, Friday and Thursday, Nov. 17-19")
+    # has no date of its own: it must fall somewhere in the range.
+    in_range: bool = False
 
 
 def _resolve_month_day(month: int, day: int, reference: date) -> date | None:
@@ -239,6 +245,18 @@ def _weekday_date_matches(text: str):
         yield WeekdayDate(
             f"{first_weekday}, {written_month} {day}", first_weekday, month, day, year, range_end
         )
+        for middle in re.findall(
+            _WEEKDAY_NAME, match.group("middle_weekdays") or "", re.IGNORECASE
+        ):
+            yield WeekdayDate(
+                f"{middle}, {written_month} {day}–{written_end_month} {range_end[1]}",
+                middle,
+                month,
+                day,
+                year,
+                range_end,
+                in_range=True,
+            )
         yield WeekdayDate(
             f"{match.group('weekday')}, {written_end_month} {range_end[1]}"
             + (f", {match.group('end_year')}" if match.group("end_year") else ""),
@@ -254,8 +272,34 @@ def _weekday_date_key(pair: WeekdayDate) -> tuple[str, int, int]:
 
 
 
+def _range_dates(pair: WeekdayDate, reference: date) -> list[date] | None:
+    """Every date from a pair's start through its range end, or None if unreadable."""
+    start = _resolve_calendar_date(pair, reference)
+    if start is None or pair.range_end is None:
+        return None
+    try:
+        end = date(start.year, *pair.range_end)
+        if end < start:
+            end = date(start.year + 1, *pair.range_end)
+    except ValueError:
+        return None
+    span = (end - start).days
+    if span > 31:
+        return None
+    return [start + timedelta(days=offset) for offset in range(span + 1)]
+
+
+def _weekday_in_range(pair: WeekdayDate, reference: date) -> bool:
+    dates = _range_dates(pair, reference)
+    return dates is not None and any(
+        day.strftime("%A").lower() == pair.weekday.lower() for day in dates
+    )
+
+
 def _conflicts(pair: WeekdayDate, reference: date) -> bool:
     """Whether the date does not exist or falls on another weekday."""
+    if pair.in_range:
+        return not _weekday_in_range(pair, reference)
     resolved = _resolve_calendar_date(pair, reference)
     return resolved is None or resolved.strftime("%A").lower() != pair.weekday.lower()
 
@@ -292,7 +336,9 @@ def detect_inserted_weekday_mismatches(
     source_pairs = {_weekday_date_key(pair) for pair in _weekday_date_matches(source_text)}
     findings: dict[str, str | None] = {}
     for pair in _weekday_date_matches(edited_text):
-        if _weekday_date_key(pair) in source_pairs:
+        # A list's middle weekday has no single date to correct it to; the
+        # general mismatch check flags it instead.
+        if pair.in_range or _weekday_date_key(pair) in source_pairs:
             continue
         resolved = _resolve_calendar_date(pair, reference)
         weekday = resolved.strftime("%A") if resolved else None
@@ -306,6 +352,8 @@ def date_conflict_note(pair: WeekdayDate, reference: date) -> str:
 
     Example: ``DATE CONFLICT: MARCH 3, 2027, IS A WEDNESDAY, NOT A TUESDAY``.
     """
+    if pair.in_range:
+        return f"DATE CONFLICT: NO {pair.weekday.upper()} FALLS IN {pair.text.split(', ', 1)[1].upper()}"
     resolved = _resolve_calendar_date(pair, reference)
     if resolved is None:
         month_name = date(2000, pair.month, 1).strftime("%B").upper()
