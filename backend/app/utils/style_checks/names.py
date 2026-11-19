@@ -2,7 +2,7 @@
 
 import re
 
-from app.utils.style_checks.text import _normalized_visible_text, strip_html
+from app.utils.style_checks.text import _normalized_visible_text, straight_quotes, strip_html
 
 _PROTECTED_ORGANIZATION_NAME = (
     r"[A-Z][A-Za-z0-9&'’.-]*"
@@ -113,20 +113,18 @@ def detect_unformatted_composition_titles(
     edited_headline: str,
     edited_body: str,
 ) -> list[str]:
-    """Find source composition titles lacking AP quotation treatment."""
+    """Find source composition titles lacking AP quotation treatment.
+
+    Quote marks and apostrophes are compared in their straight form, so a
+    curled edit of a title such as "A Neighbor's Tale" still counts (#512).
+    """
+    headline = straight_quotes(edited_headline)
+    body = straight_quotes(strip_html(edited_body))
     findings: list[str] = []
     for title in _composition_titles(source_text):
-        escaped = re.escape(title)
-        headline_quoted = re.search(
-            rf"(?:'{escaped}'|‘{escaped}’)",
-            edited_headline,
-            re.IGNORECASE,
-        )
-        body_quoted = re.search(
-            rf'(?:"{escaped}"|“{escaped}”)',
-            strip_html(edited_body),
-            re.IGNORECASE,
-        )
+        escaped = re.escape(straight_quotes(title))
+        headline_quoted = re.search(rf"'{escaped}'", headline, re.IGNORECASE)
+        body_quoted = re.search(rf'"{escaped}"', body, re.IGNORECASE)
         if not headline_quoted or not body_quoted:
             findings.append(title)
     return findings
@@ -171,10 +169,11 @@ def detect_missing_protected_organizations(
     Each candidate must be tied to an organizational role verb or to
     award/designation context. This keeps the detector narrower than a generic
     proper-name comparison while covering the sponsor and accreditor losses
-    reported in issue #312.
+    reported in issue #312. Quote marks and apostrophes are compared in their
+    straight form, so "Women's" and "Women’s" match (#512).
     """
     source = strip_html(source_text)
-    edited = _normalized_visible_text(edited_body)
+    edited = straight_quotes(_normalized_visible_text(edited_body))
     candidates: list[str] = []
 
     for pattern in (
@@ -190,7 +189,11 @@ def detect_missing_protected_organizations(
             if candidate not in candidates:
                 candidates.append(candidate)
 
-    return [candidate for candidate in candidates if candidate.casefold() not in edited]
+    return [
+        candidate
+        for candidate in candidates
+        if straight_quotes(candidate).casefold() not in edited
+    ]
 
 
 def _official_name_candidates(source_text: str) -> list[str]:
@@ -242,8 +245,12 @@ def _official_name_candidates(source_text: str) -> list[str]:
 
 
 def detect_changed_official_names(source_text: str, edited_text: str) -> list[str]:
-    """Find protected official/branded source spans no longer present exactly."""
-    edited = strip_html(edited_text)
+    """Find protected official/branded source spans no longer present exactly.
+
+    Quote marks and apostrophes are compared in their straight form, so the
+    editor curling "Women's Center" is not a change (#512).
+    """
+    edited = straight_quotes(strip_html(edited_text))
     findings: list[str] = []
     for candidate in _official_name_candidates(source_text):
         # The edit may correct a Vandal term (#480), "well-being" or the
@@ -255,7 +262,7 @@ def detect_changed_official_names(source_text: str, edited_text: str) -> list[st
         }
         if "&" in candidate:
             allowed_variants.add(re.sub(r"\s*&\s*", " and ", candidate))
-        if not any(variant in edited for variant in allowed_variants):
+        if not any(straight_quotes(variant) in edited for variant in allowed_variants):
             findings.append(candidate)
     return findings
 
