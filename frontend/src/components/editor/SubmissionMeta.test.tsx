@@ -25,6 +25,7 @@ function makeScheduleRequest(
     Recurrence_Type: 'once',
     Recurrence_Interval: 1,
     Recurrence_End_Date: null,
+    Repeats_Indefinitely: false,
     Excluded_Dates: [],
     Occurrence_Dates: ['2026-05-05'],
     ...overrides,
@@ -322,5 +323,123 @@ describe('SubmissionMeta schedule management', () => {
   it('hides the remove control when no handler is provided', () => {
     render(<SubmissionMeta submission={makeSubmission()} />);
     expect(screen.queryByRole('button', { name: /Remove schedule/ })).not.toBeInTheDocument();
+  });
+});
+
+describe('SubmissionMeta repeat indefinitely (#538)', () => {
+  it('adds a run date that repeats indefinitely without an end date', async () => {
+    const user = userEvent.setup();
+    const onAddScheduleDate = vi.fn().mockResolvedValue(undefined);
+    render(
+      <SubmissionMeta
+        submission={makeSubmission()}
+        onAddScheduleDate={onAddScheduleDate}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /add run date/i }));
+    await user.type(await screen.findByDisplayValue(''), '2026-05-06');
+    await user.selectOptions(screen.getByLabelText('Repeats'), 'weekly');
+    expect(screen.getByLabelText(/ends on/i)).toBeRequired();
+    await user.click(screen.getByRole('checkbox', { name: 'Repeat indefinitely' }));
+    expect(screen.queryByLabelText(/ends on/i)).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(onAddScheduleDate).toHaveBeenCalledWith('tdr', '2026-05-06', {
+        Recurrence_Type: 'weekly',
+        Recurrence_Interval: 1,
+        Repeats_Indefinitely: true,
+      });
+    });
+  });
+
+  it('labels an indefinite schedule and hides the legacy open-ended note', () => {
+    render(
+      <SubmissionMeta
+        submission={makeSubmission({
+          Schedule_Requests: [
+            makeScheduleRequest({ Recurrence_Type: 'weekly', Repeats_Indefinitely: true }),
+          ],
+        })}
+      />,
+    );
+
+    expect(screen.getByText('Repeats indefinitely')).toBeInTheDocument();
+    expect(screen.queryByText(/runs only on its requested date/)).not.toBeInTheDocument();
+  });
+
+  it('ends an indefinite series on a chosen date', async () => {
+    const user = userEvent.setup();
+    const onUpdateScheduleEnding = vi.fn().mockResolvedValue(undefined);
+    render(
+      <SubmissionMeta
+        submission={makeSubmission({
+          Schedule_Requests: [
+            makeScheduleRequest({
+              Id: 'schedule-weekly',
+              Recurrence_Type: 'weekly',
+              Repeats_Indefinitely: true,
+            }),
+          ],
+        })}
+        onUpdateScheduleEnding={onUpdateScheduleEnding}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /(Change end|End series) of the schedule/ }));
+    const indefinite = screen.getByRole('checkbox', { name: 'Repeat indefinitely' });
+    expect(indefinite).toBeChecked();
+    await user.click(indefinite);
+    await user.type(screen.getByLabelText('Last run date'), '2026-06-30');
+    await user.click(screen.getByRole('button', { name: 'Save ending' }));
+
+    await waitFor(() => {
+      expect(onUpdateScheduleEnding).toHaveBeenCalledWith('schedule-weekly', {
+        Recurrence_End_Date: '2026-06-30',
+      });
+    });
+  });
+
+  it('opts a legacy open-ended schedule into repeating indefinitely', async () => {
+    const user = userEvent.setup();
+    const onUpdateScheduleEnding = vi.fn().mockResolvedValue(undefined);
+    render(
+      <SubmissionMeta
+        submission={makeSubmission({
+          Schedule_Requests: [
+            makeScheduleRequest({ Id: 'legacy', Recurrence_Type: 'weekly' }),
+          ],
+        })}
+        onUpdateScheduleEnding={onUpdateScheduleEnding}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: /(Change end|End series) of the schedule/ }));
+    await user.click(screen.getByRole('checkbox', { name: 'Repeat indefinitely' }));
+    await user.click(screen.getByRole('button', { name: 'Save ending' }));
+
+    await waitFor(() => {
+      expect(onUpdateScheduleEnding).toHaveBeenCalledWith('legacy', { Repeats_Indefinitely: true });
+    });
+  });
+
+  it('offers no ending control for one-time schedules or without a handler', () => {
+    const { rerender } = render(
+      <SubmissionMeta
+        submission={makeSubmission()}
+        onUpdateScheduleEnding={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: /(Change end|End series) of the schedule/ })).not.toBeInTheDocument();
+
+    rerender(
+      <SubmissionMeta
+        submission={makeSubmission({
+          Schedule_Requests: [makeScheduleRequest({ Recurrence_Type: 'weekly' })],
+        })}
+      />,
+    );
+    expect(screen.queryByRole('button', { name: /(Change end|End series) of the schedule/ })).not.toBeInTheDocument();
   });
 });

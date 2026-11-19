@@ -13,6 +13,8 @@ interface ScheduleEntry {
   Recurrence_Type: 'once' | 'weekly' | 'monthly_date' | 'monthly_nth_weekday' | 'date_range';
   Recurrence_Interval: number;
   Recurrence_End_Date: string;
+  /** Staff only (#538): repeat with no end date. Requires a weekly or monthly cadence. */
+  Repeats_Indefinitely?: boolean;
 }
 
 interface Props {
@@ -158,6 +160,68 @@ function DateField({
   );
 }
 
+interface RecurrenceEndFieldProps {
+  schedule: ScheduleEntry;
+  error: string | null;
+  onChange: (schedule: ScheduleEntry) => void;
+}
+
+/** "Stop after" date plus the staff-only "Repeat indefinitely" choice (#538). */
+function RecurrenceEndField({ schedule, error, onChange }: RecurrenceEndFieldProps) {
+  const isOnce = schedule.Recurrence_Type === 'once';
+  const indefinite = !isOnce && !!schedule.Repeats_Indefinitely;
+  return (
+    <div>
+      <label
+        htmlFor="submission-recurrence-end-date"
+        className="block text-xs text-gray-500 mb-1"
+      >
+        Stop after
+      </label>
+      <input
+        id="submission-recurrence-end-date"
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? 'submission-recurrence-end-date-error' : 'submission-recurrence-end-date-hint'}
+        type="date"
+        value={schedule.Recurrence_End_Date}
+        required={!isOnce && !indefinite}
+        onChange={(e) => onChange({ ...schedule, Recurrence_End_Date: e.target.value })}
+        disabled={isOnce || indefinite}
+        min={schedule.Requested_Date || getMinDate()}
+        className={`w-full rounded-md border px-3 py-2 text-sm focus:ring-1 disabled:bg-gray-50 disabled:text-gray-600 ${
+          error
+            ? 'border-red-400 focus:border-red-500 focus:ring-red-500'
+            : 'border-gray-300 focus:border-ui-gold-500 focus:ring-ui-gold-500'
+        }`}
+      />
+      {error ? (
+        <p id="submission-recurrence-end-date-error" className="text-xs text-status-error-800 mt-1">{error}</p>
+      ) : (
+        <p id="submission-recurrence-end-date-hint" className="text-xs text-gray-600 mt-1">
+          {indefinite
+            ? 'Not needed. This repeats until UCM staff set an end date.'
+            : recurrenceEndHint(schedule.Recurrence_Type)}
+        </p>
+      )}
+      {!isOnce && (
+        <label className="mt-2 flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={indefinite}
+            onChange={(e) => onChange({
+              ...schedule,
+              Repeats_Indefinitely: e.target.checked,
+              ...(e.target.checked ? { Recurrence_End_Date: '' } : {}),
+            })}
+            className="rounded border-gray-300 text-ui-gold-800 focus:ring-ui-gold-500"
+          />
+          Repeat indefinitely
+        </label>
+      )}
+    </div>
+  );
+}
+
 export default function SchedulePrefs({
   errors = {},
   schedule,
@@ -298,7 +362,7 @@ export default function SchedulePrefs({
                   ...schedule,
                   Recurrence_Type: recurrenceType,
                   Recurrence_Interval: 1,
-                  ...(recurrenceType === 'once' ? { Recurrence_End_Date: '' } : {}),
+                  ...(recurrenceType === 'once' ? { Recurrence_End_Date: '', Repeats_Indefinitely: false } : {}),
                 });
               }}
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
@@ -339,38 +403,11 @@ export default function SchedulePrefs({
                   : 'Every N months'}
             </p>
           </div>
-          <div>
-            <label
-              htmlFor="submission-recurrence-end-date"
-              className="block text-xs text-gray-500 mb-1"
-            >
-              Stop after
-            </label>
-            <input
-              id="submission-recurrence-end-date"
-                aria-invalid={recurrenceEndError ? true : undefined}
-                aria-describedby={[recurrenceEndError ? 'submission-recurrence-end-date-error' : 'submission-recurrence-end-date-hint'].filter(Boolean).join(' ')}
-              type="date"
-              value={schedule.Recurrence_End_Date}
-              required={schedule.Recurrence_Type !== 'once'}
-              onChange={(e) => update('Recurrence_End_Date', e.target.value)}
-              disabled={schedule.Recurrence_Type === 'once'}
-              min={schedule.Requested_Date || getMinDate()}
-              className={`w-full rounded-md border px-3 py-2 text-sm focus:ring-1 disabled:bg-gray-50 disabled:text-gray-600 ${
-                recurrenceEndError
-                  ? 'border-red-400 focus:border-red-500 focus:ring-red-500'
-                  : 'border-gray-300 focus:border-ui-gold-500 focus:ring-ui-gold-500'
-              }`}
-            />
-            {recurrenceEndError && (
-              <p id="submission-recurrence-end-date-error" className="text-xs text-status-error-800 mt-1">{recurrenceEndError}</p>
-            )}
-            {!recurrenceEndError && (
-              <p id="submission-recurrence-end-date-hint" className="text-xs text-gray-600 mt-1">
-                {recurrenceEndHint(schedule.Recurrence_Type)}
-              </p>
-            )}
-          </div>
+          <RecurrenceEndField
+            schedule={schedule}
+            error={recurrenceEndError}
+            onChange={onChange}
+          />
         </div>
       ) : (
         !isBoth && (

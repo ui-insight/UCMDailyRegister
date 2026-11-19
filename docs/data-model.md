@@ -143,7 +143,8 @@ Requested publication dates and recurrence preferences for a submission.
 | `Second_Requested_Date` | Secondary date, used when `Target_Newsletter = both` |
 | `Repeat_Count`, `Repeat_Note` | Legacy repeat-run metadata |
 | `Is_Flexible`, `Flexible_Deadline` | Submitter flexibility metadata |
-| `Recurrence_Type`, `Recurrence_Interval`, `Recurrence_End_Date` | Staff recurrence rules. Every repeating type needs an end date; older weekly or monthly rows without one run only on their requested dates |
+| `Recurrence_Type`, `Recurrence_Interval`, `Recurrence_End_Date` | Staff recurrence rules. Every repeating type needs an end date unless `Repeats_Indefinitely` is set; older weekly or monthly rows with neither run only on their requested dates |
+| `Repeats_Indefinitely` | Staff-only flag (#538): a weekly or monthly schedule repeats with no end date. Default `false`, so older open-ended rows keep running once until staff opt them in. The API rejects an end date and the flag together; if a stored row ever has both, the end date applies. Staff end a series by setting an end date (`PATCH /submissions/{id}/schedule/{schedule_id}`), which keeps dates already published |
 | `Excluded_Dates` | JSON list of skipped or rescheduled occurrences |
 
 ### `edit_versions`

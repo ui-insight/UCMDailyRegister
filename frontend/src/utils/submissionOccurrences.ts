@@ -16,6 +16,11 @@ export function getOccurrenceDates(submission: Submission): string[] {
 }
 
 
+/** True when any of the submission's schedules is set to repeat indefinitely (#538). */
+export function repeatsIndefinitely(submission: Submission): boolean {
+  return submission.Schedule_Requests.some((request) => request.Repeats_Indefinitely);
+}
+
 export function getPrimaryOccurrenceDate(submission: Submission): string | null {
   const dates = getOccurrenceDates(submission);
   return dates.length > 0 ? dates[0] : null;

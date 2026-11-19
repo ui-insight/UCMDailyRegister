@@ -3,13 +3,18 @@ import { useCallback, useEffect, useState } from 'react';
 import type { Submission, TargetNewsletter } from '../../types/submission';
 import { getValidDates } from '../../api/schedule';
 import ScheduleRequestSummary from './ScheduleRequestSummary';
+import ScheduleEndingEditor, { type ScheduleEnding } from './ScheduleEndingEditor';
+
 import { parseAPIDateTime, parseISODate, addDaysISO } from '../../utils/date';
 
 export interface ScheduleRecurrence {
   Recurrence_Type: 'weekly' | 'monthly_date' | 'monthly_nth_weekday';
   Recurrence_Interval: number;
   Recurrence_End_Date?: string;
+  Repeats_Indefinitely?: boolean;
 }
+
+const REPEATING_TYPES = ['weekly', 'monthly_date', 'monthly_nth_weekday'];
 
 interface SubmissionMetaProps {
   submission: Submission;
@@ -26,6 +31,8 @@ interface SubmissionMetaProps {
     recurrence?: ScheduleRecurrence,
   ) => Promise<void>;
   onRemoveScheduleRequest?: (scheduleId: string) => Promise<void>;
+  /** Give a repeating schedule an end date or set it to repeat indefinitely. */
+  onUpdateScheduleEnding?: (scheduleId: string, ending: ScheduleEnding) => Promise<void>;
   occurrenceActionLoading?: boolean;
 }
 
@@ -47,6 +54,56 @@ const TARGET_LABELS: Record<string, string> = {
   both: 'Both Newsletters',
 };
 
+interface AddRecurrenceEndProps {
+  repeatsIndefinitely: boolean;
+  endDate: string;
+  minDate: string;
+  onRepeatsIndefinitelyChange: (checked: boolean) => void;
+  onEndDateChange: (value: string) => void;
+}
+
+/** End date for a new repeating run date, or "Repeat indefinitely" (#538). */
+function AddRecurrenceEnd({
+  repeatsIndefinitely,
+  endDate,
+  minDate,
+  onRepeatsIndefinitelyChange,
+  onEndDateChange,
+}: AddRecurrenceEndProps) {
+  return (
+    <>
+      <label className="flex items-center gap-2 text-xs text-gray-700">
+        <input
+          type="checkbox"
+          checked={repeatsIndefinitely}
+          onChange={(e) => onRepeatsIndefinitelyChange(e.target.checked)}
+          className="rounded border-gray-300 text-ui-gold-800 focus:ring-ui-gold-500"
+        />
+        Repeat indefinitely
+      </label>
+      {!repeatsIndefinitely && (
+        <div>
+          <label
+            htmlFor="add-date-recurrence-end"
+            className="block text-[10px] text-gray-500 mb-0.5"
+          >
+            Ends on (required)
+          </label>
+          <input
+            id="add-date-recurrence-end"
+            type="date"
+            value={endDate}
+            required
+            min={minDate}
+            onChange={(e) => onEndDateChange(e.target.value)}
+            className="w-full rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
+          />
+        </div>
+      )}
+    </>
+  );
+}
+
 export default function SubmissionMeta({
   submission,
   onChangeNewsletter,
@@ -54,6 +111,7 @@ export default function SubmissionMeta({
   onRescheduleOccurrence,
   onAddScheduleDate,
   onRemoveScheduleRequest,
+  onUpdateScheduleEnding,
   occurrenceActionLoading = false,
 }: SubmissionMetaProps) {
   const { requestConfirmation, confirmationDialog } = useConfirmAction();
@@ -73,6 +131,8 @@ export default function SubmissionMeta({
   >('once');
   const [addRecurrenceInterval, setAddRecurrenceInterval] = useState(1);
   const [addRecurrenceEnd, setAddRecurrenceEnd] = useState('');
+  const [addRepeatsIndefinitely, setAddRepeatsIndefinitely] = useState(false);
+  const [endingScheduleId, setEndingScheduleId] = useState<string | null>(null);
   const [removingScheduleId, setRemovingScheduleId] = useState<string | null>(null);
   const [validDatesSet, setValidDatesSet] = useState<Set<string>>(new Set());
 
@@ -111,6 +171,7 @@ export default function SubmissionMeta({
     setAddRecurrenceType('once');
     setAddRecurrenceInterval(1);
     setAddRecurrenceEnd('');
+    setAddRepeatsIndefinitely(false);
     setAddDateNewsletter(
       submission.Target_Newsletter === 'tdr' || submission.Target_Newsletter === 'myui'
         ? submission.Target_Newsletter
@@ -125,6 +186,7 @@ export default function SubmissionMeta({
     setAddRecurrenceType('once');
     setAddRecurrenceInterval(1);
     setAddRecurrenceEnd('');
+    setAddRepeatsIndefinitely(false);
     setAddDateNewsletter('');
   };
 
@@ -136,7 +198,7 @@ export default function SubmissionMeta({
       setAddDateError(`Not a valid publication date for ${label}.`);
       return;
     }
-    if (addRecurrenceType !== 'once' && !addRecurrenceEnd) {
+    if (addRecurrenceType !== 'once' && !addRepeatsIndefinitely && !addRecurrenceEnd) {
       setAddDateError('Choose the date this schedule stops repeating.');
       return;
     }
@@ -156,11 +218,17 @@ export default function SubmissionMeta({
         addDateValue,
         addRecurrenceType === 'once'
           ? undefined
-          : {
-              Recurrence_Type: addRecurrenceType,
-              Recurrence_Interval: addRecurrenceInterval,
-              Recurrence_End_Date: addRecurrenceEnd || undefined,
-            },
+          : addRepeatsIndefinitely
+            ? {
+                Recurrence_Type: addRecurrenceType,
+                Recurrence_Interval: addRecurrenceInterval,
+                Repeats_Indefinitely: true,
+              }
+            : {
+                Recurrence_Type: addRecurrenceType,
+                Recurrence_Interval: addRecurrenceInterval,
+                Recurrence_End_Date: addRecurrenceEnd || undefined,
+              },
       );
       handleCancelAddDate();
     } catch (err) {
@@ -257,7 +325,19 @@ export default function SubmissionMeta({
                   request={req}
                   targetNewsletter={submission.Target_Newsletter}
                   actions={
-                    onRemoveScheduleRequest && (
+                    <>
+                    {onUpdateScheduleEnding && REPEATING_TYPES.includes(req.Recurrence_Type)
+                      && endingScheduleId !== req.Id && (
+                      <button
+                        type="button"
+                        aria-label={`${req.Repeats_Indefinitely ? 'End series' : 'Change end'} of the schedule starting ${req.Requested_Date || req.Second_Requested_Date || 'without a date'}`}
+                        onClick={() => setEndingScheduleId(req.Id)}
+                        className="ml-2 text-xs font-normal text-ui-clearwater-600 hover:text-ui-clearwater-800 underline"
+                      >
+                        {req.Repeats_Indefinitely ? 'End series' : 'Change end'}
+                      </button>
+                    )}
+                    {onRemoveScheduleRequest && (
                       <button
                         type="button"
                         aria-label={`Remove schedule ${req.Requested_Date || 'without a date'}`}
@@ -271,9 +351,17 @@ export default function SubmissionMeta({
                       >
                         {removingScheduleId === req.Id ? 'Removing...' : 'Remove'}
                       </button>
-                    )
+                    )}
+                    </>
                   }
                 />
+                {onUpdateScheduleEnding && endingScheduleId === req.Id && (
+                  <ScheduleEndingEditor
+                    request={req}
+                    onSave={(ending) => onUpdateScheduleEnding(req.Id, ending)}
+                    onClose={() => setEndingScheduleId(null)}
+                  />
+                )}
                 {req.Occurrence_Dates.length > 0 && (
                   <div className="mt-2 rounded-md bg-gray-50 p-2">
                     <div className="text-[11px] uppercase tracking-wide text-gray-500 mb-0.5">
@@ -451,7 +539,10 @@ export default function SubmissionMeta({
                         const value = e.target.value as typeof addRecurrenceType;
                         setAddRecurrenceType(value);
                         setAddRecurrenceInterval(1);
-                        if (value === 'once') setAddRecurrenceEnd('');
+                        if (value === 'once') {
+                          setAddRecurrenceEnd('');
+                          setAddRepeatsIndefinitely(false);
+                        }
                         setAddDateError('');
                       }}
                       className="w-full rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
@@ -483,23 +574,17 @@ export default function SubmissionMeta({
                   )}
                 </div>
                 {addRecurrenceType !== 'once' && (
-                  <div>
-                    <label
-                      htmlFor="add-date-recurrence-end"
-                      className="block text-[10px] text-gray-500 mb-0.5"
-                    >
-                      Ends on (required)
-                    </label>
-                    <input
-                      id="add-date-recurrence-end"
-                      type="date"
-                      value={addRecurrenceEnd}
-                      required
-                      min={addDateValue || getMinDate()}
-                      onChange={(e) => { setAddRecurrenceEnd(e.target.value); setAddDateError(''); }}
-                      className="w-full rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
-                    />
-                  </div>
+                  <AddRecurrenceEnd
+                    repeatsIndefinitely={addRepeatsIndefinitely}
+                    endDate={addRecurrenceEnd}
+                    minDate={addDateValue || getMinDate()}
+                    onRepeatsIndefinitelyChange={(checked) => {
+                      setAddRepeatsIndefinitely(checked);
+                      if (checked) setAddRecurrenceEnd('');
+                      setAddDateError('');
+                    }}
+                    onEndDateChange={(value) => { setAddRecurrenceEnd(value); setAddDateError(''); }}
+                  />
                 )}
                 {addDateError && (
                   <div className="text-[10px] text-status-error-800">{addDateError}</div>

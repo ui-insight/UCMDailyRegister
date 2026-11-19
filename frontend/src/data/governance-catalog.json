@@ -1382,6 +1382,12 @@
           "pii": false
         },
         {
+          "name": "Repeats_Indefinitely",
+          "description": "Staff-only choice that a weekly or monthly schedule repeats with no end date; false keeps older open-ended rows running once.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
           "name": "Excluded_Dates",
           "description": "JSON list of skipped or rescheduled occurrence dates.",
           "classification": "Internal",

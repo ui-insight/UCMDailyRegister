@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { SubmissionScheduleRequest, TargetNewsletter } from '../../types/submission';
 import { parseISODate } from '../../utils/date';
+import RepeatsIndefinitelyBadge from './RepeatsIndefinitelyBadge';
 
 const RECURRENCE_LABELS: Record<string, string> = {
   once: 'One time',
@@ -10,10 +11,14 @@ const RECURRENCE_LABELS: Record<string, string> = {
   date_range: 'Two-week listing window',
 };
 
-/** Repeating schedules saved without an end date run only on their requested date (#477). */
+/**
+ * Repeating schedules saved without an end date run only on their requested
+ * date (#477), unless staff chose "Repeat indefinitely" (#538).
+ */
 function isOpenEndedRepeat(request: SubmissionScheduleRequest): boolean {
   return ['weekly', 'monthly_date', 'monthly_nth_weekday'].includes(request.Recurrence_Type)
-    && !request.Recurrence_End_Date;
+    && !request.Recurrence_End_Date
+    && !request.Repeats_Indefinitely;
 }
 
 function formatPublicationDate(value: string): string {
@@ -80,6 +85,9 @@ export default function ScheduleRequestSummary({
             {request.Recurrence_Interval > 1 ? ` every ${request.Recurrence_Interval}` : ''}
           </span>
         )}
+        {request.Repeats_Indefinitely && (
+          <RepeatsIndefinitelyBadge className="ml-1" />
+        )}
         {request.Is_Flexible && (
           <span className="ml-1 inline-block px-1.5 py-0.5 text-xs font-normal bg-amber-100 text-amber-700 rounded">Flexible</span>
         )}
@@ -96,7 +104,7 @@ export default function ScheduleRequestSummary({
       {isOpenEndedRepeat(request) && (
         <div className="text-xs text-amber-800 font-normal mt-0.5">
           No end date, so this runs only on its requested date. To repeat it,
-          remove this schedule and add a run date with an end date.
+          give it an end date or set it to repeat indefinitely.
         </div>
       )}
       {request.Excluded_Dates.length > 0 && (

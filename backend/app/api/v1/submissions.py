@@ -20,6 +20,7 @@ from app.schemas.submission import (
     ScheduleOccurrenceSkipRequest,
     ScheduleRequestCreate,
     ScheduleRequestResponse,
+    ScheduleRequestUpdate,
     SubmissionCreate,
     SubmissionListResponse,
     SubmissionResponse,
@@ -86,6 +87,18 @@ def _ensure_staff_only_recurrence(
         )
 
 
+def _ensure_staff_only_indefinite(
+    submission_role: SubmitterRole,
+    repeats_indefinitely: bool,
+) -> None:
+    """Only UCM staff may set a schedule to repeat with no end date (#538)."""
+    if repeats_indefinitely and submission_role != "staff":
+        raise HTTPException(
+            status_code=403,
+            detail="Only UCM staff can set a schedule to repeat indefinitely.",
+        )
+
+
 def _apply_job_schedule_policy(
     category: str,
     target_newsletter: str,
@@ -102,6 +115,7 @@ def _apply_job_schedule_policy(
 
     schedule_request.Second_Requested_Date = None
     schedule_request.Repeat_Count = 1
+    schedule_request.Repeats_Indefinitely = False
     schedule_request.Recurrence_Type = "date_range"
     schedule_request.Recurrence_Interval = 1
     if schedule_request.Requested_Date is None:
@@ -189,6 +203,7 @@ async def create_submission(
             detail="Job opportunities require exactly one preferred start date.",
         )
     for sched in data.Schedule_Requests:
+        _ensure_staff_only_indefinite(submission_role, sched.Repeats_Indefinitely)
         _apply_job_schedule_policy(data.Category, data.Target_Newsletter, sched)
         _ensure_staff_only_recurrence(submission_role, sched, data.Category)
         await _validate_schedule_request(db, data.Target_Newsletter, sched)
@@ -331,6 +346,7 @@ async def add_schedule_request(
             ),
         )
 
+    _ensure_staff_only_indefinite(submission_role, data.Repeats_Indefinitely)
     _apply_job_schedule_policy(
         submission.Category,
         submission.Target_Newsletter,
@@ -351,6 +367,7 @@ async def add_schedule_request(
         recurrence_interval=data.Recurrence_Interval,
         recurrence_end_date=data.Recurrence_End_Date,
         excluded_dates=data.Excluded_Dates,
+        repeats_indefinitely=data.Repeats_Indefinitely,
     )
     if not sched:
         raise HTTPException(status_code=404, detail="Submission not found")
@@ -359,6 +376,56 @@ async def add_schedule_request(
         raise HTTPException(status_code=404, detail="Submission not found")
     refreshed_schedule = next(
         (schedule for schedule in refreshed_submission.Schedule_Requests if schedule.Id == sched.Id),
+        None,
+    )
+    if not refreshed_schedule:
+        raise HTTPException(status_code=404, detail="Schedule request not found")
+    return refreshed_schedule
+
+
+@router.patch(
+    "/{submission_id}/schedule/{schedule_id}",
+    response_model=ScheduleRequestResponse,
+)
+async def update_schedule_request_ending(
+    submission_id: str,
+    schedule_id: str,
+    data: ScheduleRequestUpdate,
+    db: AsyncSession = Depends(get_db),
+    submission_role: SubmitterRole = Depends(get_submitter_role),
+):
+    """End a repeating series on a date, or set it to repeat indefinitely (staff)."""
+    if submission_role != "staff":
+        raise HTTPException(
+            status_code=403,
+            detail="Only staff editors can change how a schedule ends.",
+        )
+    _ensure_staff_only_indefinite(submission_role, data.Repeats_Indefinitely)
+    submission = await submission_service.get_submission(db, submission_id)
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    if submission.Category == "job_opportunity":
+        raise HTTPException(
+            status_code=422,
+            detail="Job opportunities keep their two-week listing window.",
+        )
+    try:
+        sched = await submission_service.set_schedule_request_ending(
+            db,
+            submission_id,
+            schedule_id,
+            recurrence_end_date=data.Recurrence_End_Date,
+            repeats_indefinitely=data.Repeats_Indefinitely,
+        )
+    except submission_service.ScheduleEndingError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    if not sched:
+        raise HTTPException(status_code=404, detail="Schedule request not found")
+    refreshed_submission = await submission_service.get_submission(db, submission_id)
+    if not refreshed_submission:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    refreshed_schedule = next(
+        (schedule for schedule in refreshed_submission.Schedule_Requests if schedule.Id == schedule_id),
         None,
     )
     if not refreshed_schedule:

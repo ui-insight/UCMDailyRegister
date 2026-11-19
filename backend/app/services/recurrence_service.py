@@ -1,9 +1,17 @@
 """Helpers for expanding recurring schedules into concrete issue dates.
 
-A repeating schedule (weekly or monthly) must say when it stops. Requests saved
-before that rule may have no end date; those run only on their requested
-date(s) instead of repeating into every future edition (#477). Staff see a note
-on the submission and can replace the schedule with one that has an end date.
+A repeating schedule (weekly or monthly) must say when it stops: either a
+Recurrence_End_Date or, for UCM staff, an explicit Repeats_Indefinitely flag
+(#538). Requests saved before that rule may have neither; those run only on
+their requested date(s) instead of repeating into every future edition (#477).
+Staff see a note on the submission and can give it an end date or tick
+"Repeat indefinitely".
+
+Indefinite schedules have no built-in horizon here: expansion runs to whatever
+range the caller asks for. The practical limits sit with the callers. The
+Builder asks for one publish date at a time; the Edit page previews 365 days;
+the dashboard list previews 180 days (first three dates); and every date must
+also fall inside a configured publication schedule.
 """
 
 from __future__ import annotations
@@ -16,11 +24,17 @@ REPEATING_RECURRENCE_TYPES = frozenset({"weekly", "monthly_date", "monthly_nth_w
 
 
 def effective_recurrence_type(schedule_request: SubmissionScheduleRequest) -> str:
-    """Return the recurrence type to expand, treating open-ended repeats as one-time."""
+    """Return the recurrence type to expand.
+
+    A repeating schedule with no end date runs once unless staff marked it
+    Repeats_Indefinitely. If a row somehow has both, the end date still
+    applies because it is passed to ``expand_recurrence`` as ``until``.
+    """
     recurrence_type = schedule_request.Recurrence_Type or "once"
     if (
         recurrence_type in REPEATING_RECURRENCE_TYPES
         and schedule_request.Recurrence_End_Date is None
+        and not getattr(schedule_request, "Repeats_Indefinitely", False)
     ):
         return "once"
     return recurrence_type
@@ -107,24 +121,24 @@ def expand_recurrence(
             current += timedelta(weeks=interval)
         return occurrences
 
-    if recurrence_type == "monthly_date":
+    monthly_occurrence = {
+        "monthly_date": _monthly_date_occurrence,
+        "monthly_nth_weekday": _monthly_nth_weekday_occurrence,
+    }.get(recurrence_type)
+    if monthly_occurrence is not None:
+        # A month without the anchor day (the 31st, or a 5th Friday) is
+        # skipped; the series carries on in the next month that has it (#488).
         index = 0
         while True:
-            current = _monthly_date_occurrence(anchor, interval, index)
-            if current is None or current > upper_bound:
+            year, month = _add_months(anchor.year, anchor.month, interval * index)
+            if date(year, month, 1) > upper_bound:
                 break
-            if current >= from_date and current.isoformat() not in excluded:
-                occurrences.append(current)
-            index += 1
-        return occurrences
-
-    if recurrence_type == "monthly_nth_weekday":
-        index = 0
-        while True:
-            current = _monthly_nth_weekday_occurrence(anchor, interval, index)
-            if current is None or current > upper_bound:
-                break
-            if current >= from_date and current.isoformat() not in excluded:
+            current = monthly_occurrence(anchor, interval, index)
+            if (
+                current is not None
+                and from_date <= current <= upper_bound
+                and current.isoformat() not in excluded
+            ):
                 occurrences.append(current)
             index += 1
         return occurrences

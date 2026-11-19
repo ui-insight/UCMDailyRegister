@@ -5,7 +5,7 @@ type ScheduledNewsletter = Extract<TargetNewsletter, 'tdr' | 'myui'>;
 
 type RecurrenceData = Pick<
   AddScheduleRequestData,
-  'Recurrence_Type' | 'Recurrence_Interval' | 'Recurrence_End_Date'
+  'Recurrence_Type' | 'Recurrence_Interval' | 'Recurrence_End_Date' | 'Repeats_Indefinitely'
 >;
 
 /** Map an editor's newsletter choice onto the existing two-date backend contract. */

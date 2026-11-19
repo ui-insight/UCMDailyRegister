@@ -49,6 +49,7 @@ function makeSubmission(overrides: Partial<Submission> = {}): Submission {
         Recurrence_Type: 'weekly',
         Recurrence_Interval: 1,
         Recurrence_End_Date: '2026-05-26',
+        Repeats_Indefinitely: false,
         Excluded_Dates: ['2026-05-12'],
         Occurrence_Dates: ['2026-05-05', '2026-05-19', '2026-05-26'],
       },
