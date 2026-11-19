@@ -359,21 +359,21 @@ export default function SubmissionForm() {
       if (!schedule.Second_Requested_Date) {
         return 'Please select a valid My UI run date.';
       }
-      if (secondaryValidDates.size > 0 && !secondaryValidDates.has(schedule.Second_Requested_Date)) {
-        return 'Please select a valid My UI run date.';
-      }
-      const d = parseISODate(schedule.Second_Requested_Date);
-      if (d.getDay() !== 1) {
-        return 'Please select a valid My UI run date.';
-      }
-      return null;
+      // Server dates include holiday shifts (#514); the Monday rule is only a
+      // fallback for when they could not be loaded.
+      const isValid = secondaryValidDates.size > 0
+        ? secondaryValidDates.has(schedule.Second_Requested_Date)
+        : parseISODate(schedule.Second_Requested_Date).getDay() === 1;
+      return isValid ? null : 'Please select a valid My UI run date.';
     }
 
     if (schedule.Repeat_Count < 2 || !schedule.Second_Requested_Date) {
       return null;
     }
-    if (validDates.size > 0 && !validDates.has(schedule.Second_Requested_Date)) {
-      return 'Please select a valid second run date for the chosen newsletter.';
+    if (validDates.size > 0) {
+      return validDates.has(schedule.Second_Requested_Date)
+        ? null
+        : 'Please select a valid second run date for the chosen newsletter.';
     }
 
     const d = parseISODate(schedule.Second_Requested_Date);
@@ -391,13 +391,10 @@ export default function SubmissionForm() {
     if (!studentDate) {
       return 'Please select a preferred Student newsletter publication date.';
     }
-    if (secondaryValidDates.size > 0 && !secondaryValidDates.has(studentDate)) {
-      return 'Please select a valid Student newsletter publication date.';
-    }
-    if (parseISODate(studentDate).getDay() !== 1) {
-      return 'Please select a valid Student newsletter publication date.';
-    }
-    return null;
+    const isValid = secondaryValidDates.size > 0
+      ? secondaryValidDates.has(studentDate)
+      : parseISODate(studentDate).getDay() === 1;
+    return isValid ? null : 'Please select a valid Student newsletter publication date.';
   };
 
   const hasRecurrenceEndError = (): boolean => (

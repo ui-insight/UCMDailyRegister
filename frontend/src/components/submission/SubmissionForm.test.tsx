@@ -328,6 +328,43 @@ describe('SubmissionForm', () => {
     expect(createSubmissionMock).not.toHaveBeenCalled();
   });
 
+  it('accepts a holiday-shifted Student date the schedule offers (#514)', async () => {
+    // Synthetic: Monday 2026-05-11 is blacked out and shifted to Tuesday.
+    getValidDatesMock.mockResolvedValue({
+      dates: [
+        { date: '2026-05-05', newsletters: ['tdr'] },
+        { date: '2026-05-12', newsletters: ['myui'] },
+      ],
+      blackout_dates: [],
+    });
+    const user = userEvent.setup();
+    render(<SubmissionForm />);
+
+    await screen.findByRole('option', { name: 'Employee News (Faculty/Staff)' });
+    await user.click(screen.getByRole('checkbox', { name: 'Also publish in Student newsletter' }));
+    await user.type(screen.getByLabelText('Headline'), 'Campus forum');
+    await user.type(screen.getByLabelText('Body Text'), 'Join us for a campus-wide forum.');
+    await user.type(screen.getByLabelText('Preferred Daily Register publication date'), '2026-05-05');
+    await user.type(screen.getByLabelText('Preferred Student newsletter publication date'), '2026-05-12');
+    await user.type(screen.getByLabelText('Your Name'), 'Jane Submitter');
+    await user.type(screen.getByLabelText('Email Address'), 'jane@example.edu');
+    await user.click(screen.getByRole('button', { name: /submit announcement/i }));
+
+    await waitFor(() => {
+      expect(createSubmissionMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          Target_Newsletter: 'both',
+          Schedule_Requests: [
+            expect.objectContaining({
+              Requested_Date: '2026-05-05',
+              Second_Requested_Date: '2026-05-12',
+            }),
+          ],
+        }),
+      );
+    });
+  });
+
   it('submits multiple preferred Student newsletter dates through the existing both contract', async () => {
     getValidDatesMock.mockResolvedValue({
       dates: [
