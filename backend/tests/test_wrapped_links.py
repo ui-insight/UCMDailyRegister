@@ -168,3 +168,90 @@ async def test_the_model_never_sees_a_wrapper_and_lost_links_are_flagged():
     ]
     # The stored submission is unchanged.
     assert submission.Original_Body == f"Fill out the form at {V3_SINGLE_SLASH} today."
+
+
+# Regional Safe Links hosts and look-alikes (#520). All addresses synthetic.
+
+
+def _safe_links(host: str, target: str) -> str:
+    return f"https://{host}/?url={quote(target, safe='')}&data=05%7C02%7Cx&sdata=y&reserved=0"
+
+
+@pytest.mark.parametrize(
+    "host",
+    [
+        "nam12.safelinks.protection.outlook.com",
+        "eur03.safelinks.protection.outlook.com",
+        "gcc02.safelinks.protection.outlook.com",
+        "apc01.safelinks.protection.outlook.com",
+        "NAM02.SafeLinks.Protection.Outlook.com",
+    ],
+)
+def test_regional_safe_links_hosts_are_unwrapped(host):
+    wrapped = _safe_links(host, "https://news.example.edu/story?id=42")
+    assert is_wrapped_url(wrapped)
+    assert resolve_tracking_url(wrapped) == "https://news.example.edu/story?id=42"
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        _safe_links("safelinks.protection.outlook.com.evil.example", "https://news.example.edu/a"),
+        _safe_links("nam12.safelinks.protection.outlook.com.evil.example", "https://news.example.edu/a"),
+        _safe_links("evilsafelinks.protection.outlook.com", "https://news.example.edu/a"),
+        _safe_links("safelinks-protection-outlook.example.com", "https://news.example.edu/a"),
+        "https://evil.example/nam12.safelinks.protection.outlook.com/?url=https%3A%2F%2Fnews.example.edu",
+    ],
+)
+def test_look_alike_hosts_are_not_unwrapped(url):
+    assert not is_wrapped_url(url)
+    assert resolve_tracking_url(url) == url
+
+
+def test_look_alike_in_text_is_left_alone():
+    look_alike = (
+        "https://evil.example/safelinks.protection.outlook.com/?url=https%3A%2F%2Fnews.example.edu&data=1"
+    )
+    text = f"See {look_alike} today."
+    assert unwrap_links_in_text(text) == (text, [])
+
+
+def test_double_encoded_safe_links_target_is_decoded():
+    wrapped = (
+        "https://gcc02.safelinks.protection.outlook.com/?url="
+        "https%253A%252F%252Fnews.example.edu%252Fstory&data=x"
+    )
+    assert resolve_tracking_url(wrapped) == "https://news.example.edu/story"
+
+
+def test_safe_links_around_proofpoint_unwraps_both_layers():
+    inner = "https://urldefense.com/v3/__https://forms.example.com/r/AbC123__;!!JYXjzlvb!abc$"
+    wrapped = _safe_links("eur03.safelinks.protection.outlook.com", inner)
+    assert resolve_tracking_url(wrapped) == REAL
+
+
+def test_wrapper_nesting_is_bounded():
+    url = "https://news.example.edu/a"
+    for _ in range(5):
+        url = _safe_links("nam12.safelinks.protection.outlook.com", url)
+    assert resolve_tracking_url(url) is None
+
+
+def test_proofpoint_v3_target_containing_double_underscore():
+    wrapped = (
+        "https://urldefense.com/v3/__https://files.example.com/a__b/report__v2.pdf__;!!JYXjzlvb!abc$"
+    )
+    assert resolve_tracking_url(wrapped) == "https://files.example.com/a__b/report__v2.pdf"
+
+
+def test_text_with_several_regional_links():
+    first = _safe_links("nam12.safelinks.protection.outlook.com", "https://one.example.edu/a")
+    second = _safe_links("eur03.safelinks.protection.outlook.com", "https://two.example.edu/b?x=1&y=2")
+    third = _safe_links("gcc02.safelinks.protection.outlook.com", "https://three.example.edu/")
+    text = f'Register at <a href="{first}">this page</a>. Details: {second}, and Link:{third}'
+    unwrapped, lost = unwrap_links_in_text(text)
+    assert lost == []
+    assert unwrapped == (
+        'Register at <a href="https://one.example.edu/a">this page</a>. '
+        "Details: https://two.example.edu/b?x=1&y=2, and Link:https://three.example.edu/"
+    )

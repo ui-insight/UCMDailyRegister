@@ -129,7 +129,7 @@ Correcting either one is not treated as changing an official name.
 
 ### Email security wrappers (#530)
 
-Forwarded copy often carries links wrapped by Proofpoint (`urldefense.com`), Microsoft Safe Links (`*.safelinks.protection.outlook.com`), Mimecast or Barracuda. Before the model sees a submission, every wrapped link in the headline, body, submitter notes and link fields is replaced with its real destination, so the edit links the call-to-action words straight to it. Link fields are also stored unwrapped when submitted. Export reads any wrapped link left in edited copy as its real destination too.
+Forwarded copy often carries links wrapped by Proofpoint (`urldefense.com`), Microsoft Safe Links (`*.safelinks.protection.outlook.com`), Mimecast or Barracuda. Before the model sees a submission, every wrapped link in the headline, body, submitter notes and link fields is replaced with its real destination, so the edit links the call-to-action words straight to it. Link fields are also stored unwrapped when submitted. Export reads any wrapped link left in edited copy as its real destination too. A link wrapped twice (Safe Links around Proofpoint, for example) is unwrapped layer by layer, and only real gateway hosts and their subdomains count: a look-alike such as `safelinks.protection.outlook.com.example.net` is left alone.
 
 The real address is never guessed. If it can't be recovered (Proofpoint replaced characters with `*`, the link is cut off, or a Mimecast token doesn't contain the address), the words stay unlinked and the edit gets a `LINK WRAPPED: CONFIRM REAL URL` warning. The Builder link check shows the same note for any such link left in the copy.
 
