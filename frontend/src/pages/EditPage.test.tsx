@@ -74,6 +74,7 @@ function makeSubmission(overrides: Partial<Submission> = {}): Submission {
     Approved_Version_Id: null,
     Working_Version_Id: null,
     Staff_Revision_Id: null,
+    Edited_Headline: null,
     Created_At: '2026-04-01T12:00:00Z',
     Updated_At: '2026-04-01T12:00:00Z',
     Links: [],
@@ -167,6 +168,7 @@ beforeEach(() => {
     Recurrence_Type: 'once',
     Recurrence_Interval: 1,
     Recurrence_End_Date: null,
+    Repeats_Indefinitely: false,
     Excluded_Dates: [],
     Occurrence_Dates: ['2026-04-15'],
   });
@@ -181,6 +183,7 @@ beforeEach(() => {
     Recurrence_Type: 'once',
     Recurrence_Interval: 1,
     Recurrence_End_Date: null,
+    Repeats_Indefinitely: false,
     Excluded_Dates: ['2026-04-15'],
     Occurrence_Dates: [],
   });
@@ -195,6 +198,7 @@ beforeEach(() => {
     Recurrence_Type: 'once',
     Recurrence_Interval: 1,
     Recurrence_End_Date: null,
+    Repeats_Indefinitely: false,
     Excluded_Dates: [],
     Occurrence_Dates: ['2026-04-22'],
   });

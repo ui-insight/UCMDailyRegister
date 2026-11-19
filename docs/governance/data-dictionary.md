@@ -390,6 +390,7 @@ Retention category: `submission_source`. Extension: Communications extension.
 | `Recurrence_Type` | Recurrence rule type for repeated runs. | Internal | No | — |
 | `Recurrence_Interval` | Interval for recurring requests. | Internal | No | — |
 | `Recurrence_End_Date` | End date for recurrence expansion. | Internal | No | — |
+| `Repeats_Indefinitely` | Staff-only choice that a weekly or monthly schedule repeats with no end date; false keeps older open-ended rows running once. | Internal | No | — |
 | `Excluded_Dates` | JSON list of skipped or rescheduled occurrence dates. | Internal | No | — |
 
 ## `submissions`

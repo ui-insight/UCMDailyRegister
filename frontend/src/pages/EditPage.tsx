@@ -6,6 +6,7 @@ import {
   getSubmission,
   rescheduleScheduleOccurrence,
   skipScheduleOccurrence,
+  updateScheduleRequestEnding,
   updateSubmission,
 } from '../api/submissions';
 import { triggerAIEdit, listEditVersions, saveEditorFinal } from '../api/aiEdits';
@@ -20,6 +21,7 @@ import BodyEditor from '../components/editor/BodyEditor';
 import ChangesList from '../components/editor/ChangesList';
 import SideBySideView from '../components/editor/SideBySideView';
 import SubmissionMeta from '../components/editor/SubmissionMeta';
+import type { ScheduleEnding } from '../components/editor/ScheduleEndingEditor';
 import OriginalSubmissionFields from '../components/editor/OriginalSubmissionFields';
 import RichBody from '../components/editor/RichBody';
 import LinkEditor, { type LinkEntry } from '../components/submission/LinkEditor';
@@ -518,6 +520,7 @@ export default function EditPage() {
       Recurrence_Type: 'weekly' | 'monthly_date' | 'monthly_nth_weekday';
       Recurrence_Interval: number;
       Recurrence_End_Date?: string;
+      Repeats_Indefinitely?: boolean;
     },
   ) => {
     if (!id || !submission) return;
@@ -536,6 +539,17 @@ export default function EditPage() {
       recurrence
         ? `Added recurring run date starting ${dateLabel} for ${newsletterLabel}`
         : `Added run date ${dateLabel} for ${newsletterLabel}`,
+    );
+    await refreshSubmission();
+  };
+
+  const handleUpdateScheduleEnding = async (scheduleId: string, ending: ScheduleEnding) => {
+    if (!id) return;
+    await updateScheduleRequestEnding(id, scheduleId, ending);
+    showToast(
+      ending.Repeats_Indefinitely
+        ? 'Schedule set to repeat indefinitely'
+        : `Schedule ends ${new Date(`${ending.Recurrence_End_Date}T12:00:00`).toLocaleDateString()}`,
     );
     await refreshSubmission();
   };
@@ -986,6 +1000,7 @@ export default function EditPage() {
             onRescheduleOccurrence={isStaff ? handleRescheduleOccurrence : undefined}
             onAddScheduleDate={isStaff ? handleAddScheduleDate : undefined}
             onRemoveScheduleRequest={isStaff ? handleRemoveScheduleRequest : undefined}
+            onUpdateScheduleEnding={isStaff ? handleUpdateScheduleEnding : undefined}
             occurrenceActionLoading={isStaff ? occurrenceActionLoading : false}
           />
 

@@ -104,6 +104,7 @@ function makeSubmission(overrides: Partial<Submission> = {}): Submission {
     Approved_Version_Id: null,
     Working_Version_Id: null,
     Staff_Revision_Id: null,
+    Edited_Headline: null,
     Created_At: '2026-04-28T12:00:00Z',
     Updated_At: '2026-04-28T12:00:00Z',
     Links: [],
@@ -462,6 +463,96 @@ describe('SubmissionForm', () => {
       );
     });
   });
+  it('places the job early-removal date under the run date and drops flexible dates (#537)', async () => {
+    const user = userEvent.setup();
+    render(<SubmissionForm />);
+
+    await screen.findByRole('option', { name: 'Job Opportunity' });
+    // Flag flexibility under another category first; the job payload must still be non-flexible.
+    await user.click(screen.getByLabelText('My dates are somewhat flexible'));
+    await user.type(screen.getByLabelText('Timing flexibility (optional)'), 'Anytime that week');
+    await user.selectOptions(screen.getByLabelText('Announcement Type'), 'job_opportunity');
+
+    expect(screen.queryByLabelText('My dates are somewhat flexible')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Timing flexibility (optional)')).not.toBeInTheDocument();
+
+    const runDate = screen.getByLabelText('Preferred run date');
+    const removeDate = screen.getByLabelText('Remove listing early? (optional)');
+    const schedulingHeading = screen.getByRole('heading', { name: 'Scheduling' });
+    const schedulingCard = schedulingHeading.parentElement!;
+    expect(schedulingCard).toContainElement(removeDate);
+    // Directly below the run date: no other form control sits between them.
+    const controls = Array.from(schedulingCard.querySelectorAll('input, select, textarea'));
+    expect(controls.indexOf(removeDate)).toBe(controls.indexOf(runDate) + 1);
+    expect(removeDate).toHaveAccessibleDescription('If the position closes before two weeks, select the date to stop running.');
+    expect(removeDate).not.toBeRequired();
+    expect(screen.queryByRole('heading', { name: 'Job Posting Details' })!.parentElement)
+      .not.toContainElement(removeDate);
+
+    await user.type(screen.getByLabelText('Job Posting URL'), 'https://careers.uidaho.edu/jobs/example-125');
+    await user.type(screen.getByLabelText('Position Title'), 'Program Coordinator');
+    await user.type(screen.getByLabelText('Department'), 'Student Affairs');
+    await user.type(runDate, '2026-05-05');
+    expect(removeDate).toHaveAttribute('min', '2026-05-05');
+    expect(removeDate).toHaveAttribute('max', '2026-05-18');
+    await user.type(screen.getByLabelText('Your Name'), 'Jane Submitter');
+    await user.type(screen.getByLabelText('Email Address'), 'jane@example.edu');
+    await user.click(screen.getByRole('button', { name: /submit announcement/i }));
+
+    await waitFor(() => expect(createSubmissionMock).toHaveBeenCalledTimes(1));
+    const [request] = createSubmissionMock.mock.calls[0][0].Schedule_Requests!;
+    expect(request.Is_Flexible).toBe(false);
+    expect(request.Flexible_Deadline).toBeUndefined();
+  });
+
+  it('maps a server end-date error onto the moved job removal field', async () => {
+    const user = userEvent.setup();
+    const { ApiError } = await import('../../api/client');
+    createSubmissionMock.mockRejectedValueOnce(new ApiError(422, [
+      { loc: ['body', 'Schedule_Requests', 0, 'Recurrence_End_Date'], msg: 'Synthetic end date failed' },
+    ]));
+    render(<SubmissionForm />);
+
+    await screen.findByRole('option', { name: 'Job Opportunity' });
+    await user.selectOptions(screen.getByLabelText('Announcement Type'), 'job_opportunity');
+    await user.type(screen.getByLabelText('Job Posting URL'), 'https://careers.uidaho.edu/jobs/example-126');
+    await user.type(screen.getByLabelText('Position Title'), 'Program Coordinator');
+    await user.type(screen.getByLabelText('Department'), 'Student Affairs');
+    await user.type(screen.getByLabelText('Preferred run date'), '2026-05-05');
+    await user.type(screen.getByLabelText('Remove listing early? (optional)'), '2026-05-12');
+    await user.type(screen.getByLabelText('Your Name'), 'Jane Submitter');
+    await user.type(screen.getByLabelText('Email Address'), 'jane@example.edu');
+    await user.click(screen.getByRole('button', { name: /submit announcement/i }));
+
+    expect(await screen.findByRole('alert')).toHaveFocus();
+    const removeDate = screen.getByLabelText('Remove listing early? (optional)');
+    expect(removeDate).toHaveAttribute('aria-invalid', 'true');
+    expect(removeDate).toHaveAccessibleDescription(/If the position closes.*Synthetic end date failed/);
+    await user.click(screen.getByRole('link', { name: /Remove listing early\? \(optional\):/ }));
+    expect(removeDate).toHaveFocus();
+  });
+
+  it('keeps the flexible-dates checkbox and no removal date for non-job categories', async () => {
+    const user = userEvent.setup();
+    render(<SubmissionForm />);
+    await screen.findByRole('option', { name: 'Employee News (Faculty/Staff)' });
+
+    expect(screen.queryByLabelText('Remove listing early? (optional)')).not.toBeInTheDocument();
+    await fillStandardAnnouncement(user);
+    await user.click(screen.getByLabelText('My dates are somewhat flexible'));
+    await user.type(screen.getByLabelText('Timing flexibility (optional)'), 'Anytime that week');
+    await user.click(screen.getByRole('button', { name: /submit announcement/i }));
+
+    await waitFor(() => expect(createSubmissionMock).toHaveBeenCalledTimes(1));
+    expect(createSubmissionMock.mock.calls[0][0].Schedule_Requests).toEqual([
+      expect.objectContaining({
+        Is_Flexible: true,
+        Flexible_Deadline: 'Anytime that week',
+        Recurrence_Type: 'once',
+      }),
+    ]);
+  });
+
   it('focuses a linked error summary and associates required-field errors without writing', async () => {
     const user = userEvent.setup();
     render(<SubmissionForm />);

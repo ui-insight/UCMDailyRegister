@@ -46,6 +46,7 @@ export interface SubmissionScheduleRequest {
   Recurrence_Type: 'once' | 'weekly' | 'monthly_date' | 'monthly_nth_weekday' | 'date_range';
   Recurrence_Interval: number;
   Recurrence_End_Date: string | null;
+  Repeats_Indefinitely: boolean;
   Excluded_Dates: string[];
   Occurrence_Dates: string[];
 }
@@ -70,6 +71,8 @@ export interface Submission {
   Approved_Version_Id: string | null;
   Working_Version_Id: string | null;
   Staff_Revision_Id: string | null;
+  /** Working revision's headline when editing changed it; null otherwise. */
+  Edited_Headline: string | null;
   Created_At: string;
   Updated_At: string;
   Links: SubmissionLink[];
@@ -99,6 +102,7 @@ export interface SubmissionCreate {
     Recurrence_Type?: 'once' | 'weekly' | 'monthly_date' | 'monthly_nth_weekday' | 'date_range';
     Recurrence_Interval?: number;
     Recurrence_End_Date?: string;
+    Repeats_Indefinitely?: boolean;
     Excluded_Dates?: string[];
   }[];
 }

@@ -32,6 +32,7 @@ function makeSubmission(overrides: Partial<Submission> = {}): Submission {
     Approved_Version_Id: null,
     Working_Version_Id: null,
     Staff_Revision_Id: null,
+    Edited_Headline: null,
     Created_At: '2026-04-28T12:00:00Z',
     Updated_At: '2026-04-28T12:00:00Z',
     Links: [
@@ -49,6 +50,7 @@ function makeSubmission(overrides: Partial<Submission> = {}): Submission {
         Recurrence_Type: 'weekly',
         Recurrence_Interval: 1,
         Recurrence_End_Date: '2026-05-26',
+        Repeats_Indefinitely: false,
         Excluded_Dates: ['2026-05-12'],
         Occurrence_Dates: ['2026-05-05', '2026-05-19', '2026-05-26'],
       },

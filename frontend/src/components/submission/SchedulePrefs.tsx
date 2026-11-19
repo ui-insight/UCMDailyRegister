@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import FieldError from '../common/FieldError';
 import { fieldErrorProps, type FieldErrors } from '../../utils/formValidation';
 import type { TargetNewsletter } from '../../types/submission';
@@ -13,6 +14,8 @@ interface ScheduleEntry {
   Recurrence_Type: 'once' | 'weekly' | 'monthly_date' | 'monthly_nth_weekday' | 'date_range';
   Recurrence_Interval: number;
   Recurrence_End_Date: string;
+  /** Staff only (#538): repeat with no end date. Requires a weekly or monthly cadence. */
+  Repeats_Indefinitely?: boolean;
 }
 
 interface Props {
@@ -27,6 +30,10 @@ interface Props {
   heading?: string;
   preferredDateLabel?: string;
   secondDateLabel?: string;
+  /** Extra fields rendered directly below the preferred run date (#537). */
+  afterRequestedDate?: ReactNode;
+  /** Hide the "My dates are somewhat flexible" checkbox (#537). */
+  hideFlexible?: boolean;
 }
 
 function validateDate(
@@ -71,6 +78,11 @@ function recurrenceEndHint(recurrenceType: ScheduleEntry['Recurrence_Type']): st
   return recurrenceType === 'once'
     ? 'Not used for one-time requests'
     : 'Required. The last date this can run.';
+}
+
+function preferredDateHint(target: TargetNewsletter, validDates?: Set<string>): string {
+  if (validDates) return 'Select a valid publication date';
+  return target === 'myui' ? 'My UI publishes Mondays only' : 'Mon–Fri only';
 }
 
 function getMinDate(): string {
@@ -158,6 +170,112 @@ function DateField({
   );
 }
 
+interface FlexibleDatesProps {
+  errors: FieldErrors;
+  schedule: ScheduleEntry;
+  onChange: (schedule: ScheduleEntry) => void;
+}
+
+function FlexibleDates({ errors, schedule, onChange }: FlexibleDatesProps) {
+  return (
+    <div className="mt-3">
+      <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={schedule.Is_Flexible}
+          onChange={(e) => {
+            const checked = e.target.checked;
+            onChange({
+              ...schedule,
+              Is_Flexible: checked,
+              ...(checked ? {} : { Flexible_Deadline: '' }),
+            });
+          }}
+          className="rounded border-gray-300 text-ui-gold-800 focus:ring-ui-gold-500"
+        />
+        My dates are somewhat flexible
+      </label>
+      {schedule.Is_Flexible && (
+        <div className="mt-2">
+        <label htmlFor="submission-flexible-deadline" className="block text-xs text-gray-600 mb-1">Timing flexibility (optional)</label>
+        <input
+          id="submission-flexible-deadline"
+          {...fieldErrorProps(errors, 'submission-flexible-deadline')}
+          type="text"
+          placeholder="e.g., anytime the week of March 19"
+          value={schedule.Flexible_Deadline}
+          onChange={(e) => onChange({ ...schedule, Flexible_Deadline: e.target.value })}
+          className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
+        />
+        <FieldError errors={errors} id="submission-flexible-deadline" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface RecurrenceEndFieldProps {
+  schedule: ScheduleEntry;
+  error: string | null;
+  onChange: (schedule: ScheduleEntry) => void;
+}
+
+/** "Stop after" date plus the staff-only "Repeat indefinitely" choice (#538). */
+function RecurrenceEndField({ schedule, error, onChange }: RecurrenceEndFieldProps) {
+  const isOnce = schedule.Recurrence_Type === 'once';
+  const indefinite = !isOnce && !!schedule.Repeats_Indefinitely;
+  return (
+    <div>
+      <label
+        htmlFor="submission-recurrence-end-date"
+        className="block text-xs text-gray-500 mb-1"
+      >
+        Stop after
+      </label>
+      <input
+        id="submission-recurrence-end-date"
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? 'submission-recurrence-end-date-error' : 'submission-recurrence-end-date-hint'}
+        type="date"
+        value={schedule.Recurrence_End_Date}
+        required={!isOnce && !indefinite}
+        onChange={(e) => onChange({ ...schedule, Recurrence_End_Date: e.target.value })}
+        disabled={isOnce || indefinite}
+        min={schedule.Requested_Date || getMinDate()}
+        className={`w-full rounded-md border px-3 py-2 text-sm focus:ring-1 disabled:bg-gray-50 disabled:text-gray-600 ${
+          error
+            ? 'border-red-400 focus:border-red-500 focus:ring-red-500'
+            : 'border-gray-300 focus:border-ui-gold-500 focus:ring-ui-gold-500'
+        }`}
+      />
+      {error ? (
+        <p id="submission-recurrence-end-date-error" className="text-xs text-status-error-800 mt-1">{error}</p>
+      ) : (
+        <p id="submission-recurrence-end-date-hint" className="text-xs text-gray-600 mt-1">
+          {indefinite
+            ? 'Not needed. This repeats until UCM staff set an end date.'
+            : recurrenceEndHint(schedule.Recurrence_Type)}
+        </p>
+      )}
+      {!isOnce && (
+        <label className="mt-2 flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={indefinite}
+            onChange={(e) => onChange({
+              ...schedule,
+              Repeats_Indefinitely: e.target.checked,
+              ...(e.target.checked ? { Recurrence_End_Date: '' } : {}),
+            })}
+            className="rounded border-gray-300 text-ui-gold-800 focus:ring-ui-gold-500"
+          />
+          Repeat indefinitely
+        </label>
+      )}
+    </div>
+  );
+}
+
 export default function SchedulePrefs({
   errors = {},
   schedule,
@@ -170,6 +288,8 @@ export default function SchedulePrefs({
   heading = 'Scheduling Preferences',
   preferredDateLabel = 'Preferred run date',
   secondDateLabel = 'Second run date',
+  afterRequestedDate,
+  hideFlexible = false,
 }: Props) {
   const update = (field: keyof ScheduleEntry, value: string | number | boolean) => {
     onChange({ ...schedule, [field]: value });
@@ -233,11 +353,7 @@ export default function SchedulePrefs({
                 label={preferredDateLabel}
                 value={schedule.Requested_Date}
                 error={dateError}
-                hint={validDates
-                  ? 'Select a valid publication date'
-                  : targetNewsletter === 'myui'
-                    ? 'My UI publishes Mondays only'
-                    : 'Mon–Fri only'}
+                hint={preferredDateHint(targetNewsletter, validDates)}
                 min={getMinDate()}
                 required
                 onChange={(value) => update('Requested_Date', value)}
@@ -279,6 +395,8 @@ export default function SchedulePrefs({
         </>
       )}
 
+      {afterRequestedDate && <div className="mt-3">{afterRequestedDate}</div>}
+
       {showRecurrenceControls ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
           <div>
@@ -298,7 +416,7 @@ export default function SchedulePrefs({
                   ...schedule,
                   Recurrence_Type: recurrenceType,
                   Recurrence_Interval: 1,
-                  ...(recurrenceType === 'once' ? { Recurrence_End_Date: '' } : {}),
+                  ...(recurrenceType === 'once' ? { Recurrence_End_Date: '', Repeats_Indefinitely: false } : {}),
                 });
               }}
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
@@ -339,38 +457,11 @@ export default function SchedulePrefs({
                   : 'Every N months'}
             </p>
           </div>
-          <div>
-            <label
-              htmlFor="submission-recurrence-end-date"
-              className="block text-xs text-gray-500 mb-1"
-            >
-              Stop after
-            </label>
-            <input
-              id="submission-recurrence-end-date"
-                aria-invalid={recurrenceEndError ? true : undefined}
-                aria-describedby={[recurrenceEndError ? 'submission-recurrence-end-date-error' : 'submission-recurrence-end-date-hint'].filter(Boolean).join(' ')}
-              type="date"
-              value={schedule.Recurrence_End_Date}
-              required={schedule.Recurrence_Type !== 'once'}
-              onChange={(e) => update('Recurrence_End_Date', e.target.value)}
-              disabled={schedule.Recurrence_Type === 'once'}
-              min={schedule.Requested_Date || getMinDate()}
-              className={`w-full rounded-md border px-3 py-2 text-sm focus:ring-1 disabled:bg-gray-50 disabled:text-gray-600 ${
-                recurrenceEndError
-                  ? 'border-red-400 focus:border-red-500 focus:ring-red-500'
-                  : 'border-gray-300 focus:border-ui-gold-500 focus:ring-ui-gold-500'
-              }`}
-            />
-            {recurrenceEndError && (
-              <p id="submission-recurrence-end-date-error" className="text-xs text-status-error-800 mt-1">{recurrenceEndError}</p>
-            )}
-            {!recurrenceEndError && (
-              <p id="submission-recurrence-end-date-hint" className="text-xs text-gray-600 mt-1">
-                {recurrenceEndHint(schedule.Recurrence_Type)}
-              </p>
-            )}
-          </div>
+          <RecurrenceEndField
+            schedule={schedule}
+            error={recurrenceEndError}
+            onChange={onChange}
+          />
         </div>
       ) : (
         !isBoth && (
@@ -381,39 +472,7 @@ export default function SchedulePrefs({
           </div>
         )
       )}
-      <div className="mt-3">
-        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={schedule.Is_Flexible}
-            onChange={(e) => {
-              const checked = e.target.checked;
-              onChange({
-                ...schedule,
-                Is_Flexible: checked,
-                ...(checked ? {} : { Flexible_Deadline: '' }),
-              });
-            }}
-            className="rounded border-gray-300 text-ui-gold-800 focus:ring-ui-gold-500"
-          />
-          My dates are somewhat flexible
-        </label>
-        {schedule.Is_Flexible && (
-          <div className="mt-2">
-          <label htmlFor="submission-flexible-deadline" className="block text-xs text-gray-600 mb-1">Timing flexibility (optional)</label>
-          <input
-            id="submission-flexible-deadline"
-            {...fieldErrorProps(errors, 'submission-flexible-deadline')}
-            type="text"
-            placeholder="e.g., anytime the week of March 19"
-            value={schedule.Flexible_Deadline}
-            onChange={(e) => update('Flexible_Deadline', e.target.value)}
-            className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
-          />
-          <FieldError errors={errors} id="submission-flexible-deadline" />
-          </div>
-        )}
-      </div>
+      {!hideFlexible && <FlexibleDates errors={errors} schedule={schedule} onChange={onChange} />}
       <div className="mt-3">
         <label
           htmlFor="submission-scheduling-notes"

@@ -14,7 +14,13 @@ vocabulary without code changes.
 
 SubmissionLink stores hyperlinks that should be embedded in the published item.
 SubmissionScheduleRequest lets submitters indicate preferred publication dates
-and repeat-run preferences.
+and repeat-run preferences. A repeating schedule (weekly or monthly) normally
+carries a Recurrence_End_Date. UCM staff can instead tick "Repeat
+indefinitely", stored as Repeats_Indefinitely, for standing items with no
+planned end (#538). The flag is a deliberate choice: an older repeating row
+with no end date and the flag unset still runs only on its requested date
+(#477). Staff end an indefinite series by giving it an end date, which keeps
+the dates already published.
 
 Beyond the newsletter audiences, a Submission may also be flagged for inclusion
 in the Senior Leadership Council calendar (Show_In_SLC_Calendar) and optionally
@@ -136,6 +142,26 @@ class Submission(Base):
         version = working_revision(self)
         return version.Id if version else None
 
+    @property
+    def Edited_Headline(self) -> str | None:
+        """The working revision's headline when editing changed it.
+
+        Lets list views show the title staff will publish next to the
+        submitted one. None when nothing has been edited, the headline is
+        unchanged, or Edit_Versions was not loaded.
+        """
+        from app.services.editorial_content import working_revision
+
+        if "Edit_Versions" in sa.inspect(self).unloaded:
+            return None
+
+        version = working_revision(self)
+        if version is None or version.Version_Type == "original":
+            return None
+        if version.Headline.strip() == (self.Original_Headline or "").strip():
+            return None
+        return version.Headline
+
 
 class SubmissionLink(Base):
     """A hyperlink associated with a submission for embedding in the published item."""
@@ -194,6 +220,9 @@ class SubmissionScheduleRequest(Base):
     )
     Recurrence_Interval: Mapped[int] = mapped_column(sa.Integer, nullable=False, default=1)
     Recurrence_End_Date: Mapped[date | None] = mapped_column(sa.Date, nullable=True)
+    Repeats_Indefinitely: Mapped[bool] = mapped_column(
+        sa.Boolean, nullable=False, default=False, server_default=sa.false()
+    )
     Excluded_Dates: Mapped[list[str]] = mapped_column(
         sa.JSON, nullable=False, default=list
     )

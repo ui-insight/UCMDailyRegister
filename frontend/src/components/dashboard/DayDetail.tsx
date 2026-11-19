@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Submission, SubmissionStatus } from '../../types/submission';
-import { getOccurrenceDates } from '../../utils/submissionOccurrences';
+import { getOccurrenceDates, repeatsIndefinitely } from '../../utils/submissionOccurrences';
+import RepeatsIndefinitelyBadge from '../editor/RepeatsIndefinitelyBadge';
 import { rescheduleScheduleOccurrence } from '../../api/submissions';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -149,6 +150,7 @@ export default function DayDetail({ date, submissions, onReschedule }: DayDetail
                     <span className="text-xs bg-ui-gold-50 text-ui-gold-800 px-2 py-0.5 rounded font-medium">
                       {NEWSLETTER_LABELS[sub.Target_Newsletter]}
                     </span>
+                    {repeatsIndefinitely(sub) && <RepeatsIndefinitelyBadge />}
                   </div>
                   <h4 className="text-sm font-semibold text-gray-900 truncate">
                     {sub.Original_Headline}

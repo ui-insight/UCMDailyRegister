@@ -18,6 +18,7 @@ export interface ScheduleEntry {
   Recurrence_Type: 'once' | 'weekly' | 'monthly_date' | 'monthly_nth_weekday' | 'date_range';
   Recurrence_Interval: number;
   Recurrence_End_Date: string;
+  Repeats_Indefinitely?: boolean;
 }
 
 interface NewsletterTargetInput {
@@ -105,17 +106,27 @@ function buildScheduleRequests(
     Flexible_Deadline: schedule.Flexible_Deadline || undefined,
     Recurrence_Type: isStaff ? schedule.Recurrence_Type : 'once' as const,
     Recurrence_Interval: isStaff ? schedule.Recurrence_Interval : 1,
-    Recurrence_End_Date: isStaff ? schedule.Recurrence_End_Date || undefined : undefined,
+    Recurrence_End_Date: isStaff && !schedule.Repeats_Indefinitely
+      ? schedule.Recurrence_End_Date || undefined
+      : undefined,
+    Repeats_Indefinitely: isStaff && schedule.Recurrence_Type !== 'once' && schedule.Repeats_Indefinitely
+      ? true
+      : undefined,
   };
 
   if (values.isJobOpportunity) {
     return [{
       ...baseScheduleRequest,
+      // Job postings never offer flexible dates (#537), even if the flag was
+      // set while another category was selected.
+      Is_Flexible: false,
+      Flexible_Deadline: undefined,
       Requested_Date: schedule.Requested_Date,
       Second_Requested_Date: undefined,
       Repeat_Count: 1,
       Recurrence_Type: 'date_range',
       Recurrence_Interval: 1,
+      Repeats_Indefinitely: undefined,
       Recurrence_End_Date: values.jobRemoveDate || (
         schedule.Requested_Date
           ? addDaysToISODate(schedule.Requested_Date, 13)
@@ -186,7 +197,10 @@ function fieldIdForLocation(location: unknown[], context: ServerErrorContext): s
       Second_Requested_Date: context.combinesStudentDates
         ? `submission-student-date-${location[1]}`
         : context.secondDateId,
-      Recurrence_End_Date: 'submission-recurrence-end-date',
+      // Jobs carry their end date in the early-removal field, not recurrence controls.
+      Recurrence_End_Date: context.isJobOpportunity
+        ? 'submission-job-remove-date'
+        : 'submission-recurrence-end-date',
       Recurrence_Interval: 'submission-recurrence-interval',
     };
     return scheduleFields[String(location.at(-1))];

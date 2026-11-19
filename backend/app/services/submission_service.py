@@ -10,6 +10,8 @@ from sqlalchemy.orm import selectinload
 
 from app.models.submission import Submission, SubmissionLink, SubmissionScheduleRequest
 from app.models.ai_edit_task import AIEditTask
+from app.models.edit_history import EditVersion
+from app.models.newsletter import NewsletterItem
 from app.schemas.submission import SubmissionCreate, SubmissionUpdate
 from app.services import recurrence_service, schedule_service
 from app.utils.clock import local_today
@@ -88,6 +90,7 @@ async def create_submission(db: AsyncSession, data: SubmissionCreate) -> Submiss
             Recurrence_Type=sched_data.Recurrence_Type,
             Recurrence_Interval=sched_data.Recurrence_Interval,
             Recurrence_End_Date=sched_data.Recurrence_End_Date,
+            Repeats_Indefinitely=sched_data.Repeats_Indefinitely,
             Excluded_Dates=[excluded.isoformat() for excluded in sched_data.Excluded_Dates],
         )
         db.add(sched)
@@ -115,6 +118,65 @@ async def get_submission(db: AsyncSession, submission_id: str) -> Submission | N
     preview_to = preview_from + timedelta(days=365)
     await hydrate_submission_occurrences(db, submission, preview_from, preview_to)
     return submission
+
+
+# Quotation marks people type around a phrase: straight and curly, double and
+# single. Editors' quotes are often mismatched (a curly opener closed by a
+# straight quote), so any quote character at both ends counts as a pair.
+_QUOTE_CHARS = frozenset('"\'\u201c\u201d\u201e\u2018\u2019')
+_LIKE_ESCAPE = "\\"
+
+
+def normalize_search_term(search: str | None) -> str:
+    """Trim a dashboard search term and drop quotation marks around it.
+
+    ``"Adobe InDesign 101"`` (straight or curly quotes) searches for
+    ``Adobe InDesign 101``. Quotes inside the term are kept.
+    """
+    term = (search or "").strip()
+    while len(term) >= 2 and term[0] in _QUOTE_CHARS and term[-1] in _QUOTE_CHARS:
+        term = term[1:-1].strip()
+    return term
+
+
+def _like_pattern(term: str) -> str:
+    escaped = (
+        term.replace(_LIKE_ESCAPE, _LIKE_ESCAPE * 2)
+        .replace("%", _LIKE_ESCAPE + "%")
+        .replace("_", _LIKE_ESCAPE + "_")
+    )
+    return f"%{escaped}%"
+
+
+def submission_search_filter(term: str) -> sa.ColumnElement[bool]:
+    """Match a term against the submitted text, the edited text and the submitter.
+
+    Edited text is every saved revision of the headline and body
+    (edit_versions) and the copy placed in an edition (newsletter_items),
+    so a submission is found by its edited title as well as its original.
+    Each is an EXISTS subquery against an indexed Submission_Id, so the
+    listing stays one query rather than one per submission.
+    """
+    pattern = _like_pattern(term)
+
+    def like(column: sa.ColumnElement[str]) -> sa.ColumnElement[bool]:
+        return column.ilike(pattern, escape=_LIKE_ESCAPE)
+
+    edited_version_match = sa.exists().where(
+        EditVersion.Submission_Id == Submission.Id,
+        sa.or_(like(EditVersion.Headline), like(EditVersion.Body)),
+    )
+    edition_copy_match = sa.exists().where(
+        NewsletterItem.Submission_Id == Submission.Id,
+        sa.or_(like(NewsletterItem.Final_Headline), like(NewsletterItem.Final_Body)),
+    )
+    return sa.or_(
+        like(Submission.Original_Headline),
+        like(Submission.Original_Body),
+        like(Submission.Submitter_Name),
+        edited_version_match,
+        edition_copy_match,
+    )
 
 
 async def list_submissions(
@@ -152,9 +214,9 @@ async def list_submissions(
         # Hide submissions whose only audience is the SLC calendar (Target_Newsletter="none").
         query = query.where(Submission.Target_Newsletter != "none")
         count_query = count_query.where(Submission.Target_Newsletter != "none")
-    if search:
-        pattern = f"%{search}%"
-        search_filter = Submission.Original_Headline.ilike(pattern) | Submission.Original_Body.ilike(pattern) | Submission.Submitter_Name.ilike(pattern)
+    search_term = normalize_search_term(search)
+    if search_term:
+        search_filter = submission_search_filter(search_term)
         query = query.where(search_filter)
         count_query = count_query.where(search_filter)
     query = query.order_by(Submission.Created_At.desc())
@@ -302,6 +364,7 @@ async def add_schedule_request(
     recurrence_interval: int = 1,
     recurrence_end_date: date | None = None,
     excluded_dates: list[date] | None = None,
+    repeats_indefinitely: bool = False,
 ) -> SubmissionScheduleRequest | None:
     submission = await get_submission(db, submission_id)
     if not submission:
@@ -317,12 +380,57 @@ async def add_schedule_request(
         Recurrence_Type=recurrence_type,
         Recurrence_Interval=recurrence_interval,
         Recurrence_End_Date=recurrence_end_date,
+        Repeats_Indefinitely=repeats_indefinitely,
         Excluded_Dates=[excluded.isoformat() for excluded in (excluded_dates or [])],
     )
     db.add(sched)
     await db.commit()
     await db.refresh(sched)
     return sched
+
+
+class ScheduleEndingError(ValueError):
+    """The requested change to how a schedule ends is not allowed."""
+
+
+async def set_schedule_request_ending(
+    db: AsyncSession,
+    submission_id: str,
+    schedule_id: str,
+    *,
+    recurrence_end_date: date | None,
+    repeats_indefinitely: bool,
+) -> SubmissionScheduleRequest | None:
+    """Give a repeating schedule an end date, or mark it to repeat indefinitely.
+
+    Only the ending changes. The start date, cadence and skipped dates stay,
+    and newsletters already built keep their items, so ending a series never
+    removes dates that have run (#538). Returns None when the schedule is not
+    found; raises ScheduleEndingError for a schedule that does not repeat or
+    an end date before the series starts.
+    """
+    result = await db.execute(
+        select(SubmissionScheduleRequest).where(
+            SubmissionScheduleRequest.Id == schedule_id,
+            SubmissionScheduleRequest.Submission_Id == submission_id,
+        )
+    )
+    schedule_request = result.scalar_one_or_none()
+    if schedule_request is None:
+        return None
+    if schedule_request.Recurrence_Type not in recurrence_service.REPEATING_RECURRENCE_TYPES:
+        raise ScheduleEndingError(
+            "Only weekly or monthly schedules can change how they end."
+        )
+    anchor = schedule_request.Requested_Date or schedule_request.Second_Requested_Date
+    if recurrence_end_date is not None and anchor is not None and recurrence_end_date < anchor:
+        raise ScheduleEndingError(
+            "Recurrence_End_Date cannot be before the recurrence start date"
+        )
+    schedule_request.Recurrence_End_Date = recurrence_end_date
+    schedule_request.Repeats_Indefinitely = repeats_indefinitely
+    await db.commit()
+    return schedule_request
 
 
 async def delete_schedule_request(
