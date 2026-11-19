@@ -82,7 +82,12 @@ def expand_recurrence(
     until: date | None = None,
     excluded_dates: list[str] | None = None,
 ) -> list[date]:
-    """Return occurrence dates for a recurrence configuration within a range."""
+    """Return occurrence dates for a recurrence configuration within a range.
+
+    A zero, negative or missing interval is treated as 1 so a bad stored
+    value (e.g. a recurring message's Recurrence_Interval) can't loop forever.
+    """
+    interval = max(interval or 1, 1)
     if from_date > to_date:
         return []
 
