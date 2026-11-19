@@ -51,7 +51,15 @@ LINK_TO_PATTERN = re.compile(
 )
 
 
-# Hosts of email security gateways that wrap links (#530).
+# Hosts of email security gateways that wrap links (#530). A host matches
+# when it is one of these or a subdomain of one, such as the regional Safe
+# Links hosts "nam12.", "eur03." or "gcc02.safelinks.protection.outlook.com"
+# (#520). The match is anchored on the parsed hostname, so a look-alike such
+# as "safelinks.protection.outlook.com.evil.example" is not a gateway.
+_PROOFPOINT_HOSTS = ("urldefense.com", "urldefense.proofpoint.com")
+_SAFE_LINKS_HOST = "safelinks.protection.outlook.com"
+_MIMECAST_HOST = "mimecast.com"
+_BARRACUDA_HOST = "linkprotect.cudasvc.com"
 _GATEWAY_HOST = re.compile(
     r"(?:^|\.)(?:urldefense\.com|urldefense\.proofpoint\.com|"
     r"safelinks\.protection\.outlook\.com|mimecast\.com|linkprotect\.cudasvc\.com)$",
@@ -59,9 +67,11 @@ _GATEWAY_HOST = re.compile(
 )
 
 # A wrapped link written out in text, with or without its scheme
-# ("urldefense.com/v3/__https:/example.com__;!!x$").
+# ("urldefense.com/v3/__https:/example.com__;!!x$"). The lookbehind keeps a
+# gateway name inside another address ("evil.example/safelinks...") from
+# matching (#520).
 WRAPPED_URL_PATTERN = re.compile(
-    r"(?:https?://)?(?:[a-z0-9-]+\.)*"
+    r"(?<![\w.@/%-])(?:https?://)?(?:[a-z0-9-]+\.)*"
     r"(?:urldefense(?:\.proofpoint)?\.com|safelinks\.protection\.outlook\.com|"
     r"mimecast\.com|linkprotect\.cudasvc\.com)/[^\s<>\"']*",
     re.IGNORECASE,
@@ -86,7 +96,10 @@ def is_wrapped_url(url: str) -> bool:
 
 
 def _destination(candidate: str) -> str | None:
-    """A recovered address, if it is a complete http(s) URL; else None."""
+    """A recovered address, if it is a complete http(s) URL; else None.
+
+    The address may itself be wrapped; ``_unwrap`` peels the next layer.
+    """
     # Restore the double slash Proofpoint drops: "https:/example.com".
     candidate = re.sub(r"^(https?):/*", r"\1://", candidate.strip(), flags=re.IGNORECASE)
     if "*" in candidate or any(ch.isspace() for ch in candidate):
@@ -97,8 +110,6 @@ def _destination(candidate: str) -> str | None:
         return None
     host = parts.hostname or ""
     if parts.scheme.lower() not in ("http", "https") or "." not in host:
-        return None
-    if is_wrapped_url(candidate):
         return None
     return candidate
 
@@ -133,21 +144,43 @@ def resolve_tracking_url(url: str) -> str | None:
     return real
 
 
+def _host_is(hostname: str, *domains: str) -> bool:
+    """True when ``hostname`` is one of ``domains`` or a subdomain of one."""
+    hostname = hostname.lower().rstrip(".")
+    return any(hostname == d or hostname.endswith("." + d) for d in domains)
+
+
 def _wrapper_name(full: str) -> str:
-    hostname = (urlparse(full).hostname or "").lower()
-    if "urldefense" in hostname:
+    hostname = urlparse(full).hostname or ""
+    if _host_is(hostname, *_PROOFPOINT_HOSTS):
         return "Proofpoint"
-    if "safelinks" in hostname:
+    if _host_is(hostname, _SAFE_LINKS_HOST):
         return "Microsoft Safe Links"
-    if "mimecast" in hostname:
+    if _host_is(hostname, _MIMECAST_HOST):
         return "Mimecast"
     return "Barracuda"
 
 
-def _unwrap(full: str) -> str | None:
+# How many gateways deep a link may be wrapped, e.g. Safe Links around
+# Proofpoint when a message passed through two mail systems.
+_MAX_NESTING = 3
+
+
+def _unwrap(full: str, depth: int = 0) -> str | None:
+    """The destination of a wrapped link, or None; ``full`` has a scheme."""
+    real = _unwrap_once(full)
+    if real is None or not is_wrapped_url(real):
+        return real
+    if depth + 1 >= _MAX_NESTING:
+        return None
+    return _unwrap(_with_scheme(real), depth + 1)
+
+
+def _unwrap_once(full: str) -> str | None:
     try:
-        hostname = (urlparse(full).hostname or "").lower()
-        if "urldefense" in hostname and "/v3/__" in full:
+        hostname = urlparse(full).hostname or ""
+        proofpoint = _host_is(hostname, *_PROOFPOINT_HOSTS)
+        if proofpoint and "/v3/__" in full:
             # The address sits between the first "__" and the "__;" after it.
             embedded, closed, _ = full.split("/v3/__", 1)[1].partition("__;")
             if not closed:
@@ -155,7 +188,7 @@ def _unwrap(full: str) -> str | None:
             if not closed:
                 return None
             return _destination(embedded)
-        if "urldefense" in hostname and "/v2/" in full:
+        if proofpoint and "/v2/" in full:
             encoded = _first_param(full, "u")
             if not encoded:
                 return None
@@ -164,15 +197,19 @@ def _unwrap(full: str) -> str | None:
                 r"-([0-9A-Fa-f]{2})", lambda m: chr(int(m.group(1), 16)), encoded.replace("_", "/")
             )
             return _destination(decoded)
-        if hostname.endswith("safelinks.protection.outlook.com"):
+        if _host_is(hostname, _SAFE_LINKS_HOST):
             # parse_qs decodes %3A and %2F and drops "&data=" and later parameters.
             target = _first_param(full, "url")
+            if target and re.match(r"https?%3A", target, re.IGNORECASE):
+                # Encoded twice (a forwarded or re-wrapped link): the scheme
+                # is still escaped, so decode once more.
+                target = unquote(target)
             return _destination(target) if target else None
-        if hostname.endswith("mimecast.com") and "/s/" in full:
+        if _host_is(hostname, _MIMECAST_HOST) and "/s/" in full:
             # Mimecast tokens are usually opaque; only a URL-encoded address is used.
             token = urlparse(full).path.split("/s/", 1)[1].rstrip("/")
             return _destination(unquote(token))
-        if hostname == "linkprotect.cudasvc.com":
+        if _host_is(hostname, _BARRACUDA_HOST):
             # parse_qs has already decoded the parameter once.
             target = _first_param(full, "a")
             return _destination(target) if target else None
