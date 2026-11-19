@@ -328,6 +328,9 @@ def _month_in_range(month: int, start: int | None, end: int | None) -> bool:
     return month >= start or month <= end
 
 
+_HOLIDAY_SHIFT_LOOKBACK_DAYS = 7
+
+
 def _is_blacked_out(
     d: date,
     nl_type: str,
@@ -351,6 +354,10 @@ async def get_valid_publication_dates(  # noqa: C901  complexity-cap: 24
 
     Handles holiday shift logic: if a scheduled publish day is blacked out and the
     config has Holiday_Shift_Enabled, the next weekday is offered as a replacement.
+    The answer for any date is independent of the range asked about: a shifted
+    date is returned even when the blacked-out day it replaces falls before
+    ``from_date``. Submit validation, assembly and recurring messages all ask
+    about a single day, so they must see the same dates the calendar offers.
 
     Also includes custom publish dates for winter_break (or any override) modes.
 
@@ -366,8 +373,10 @@ async def get_valid_publication_dates(  # noqa: C901  complexity-cap: 24
     result = await db.execute(sa.select(ScheduleModeOverride))
     all_overrides = list(result.scalars().all())
 
-    # Load blackout dates in range (with some buffer for shift calculation)
-    buffer_start = from_date - timedelta(days=7)
+    # Start the scan a week early so a blacked-out publish day just before
+    # from_date can shift into the range. A shift moves at most to the next
+    # weekday (3 days from a Friday), so 7 days covers it.
+    buffer_start = from_date - timedelta(days=_HOLIDAY_SHIFT_LOOKBACK_DAYS)
     blackouts = await list_blackout_dates(db, from_date=buffer_start, to_date=to_date)
     blackout_set: dict[str | None, set[date]] = {}
     for b in blackouts:
@@ -393,7 +402,12 @@ async def get_valid_publication_dates(  # noqa: C901  complexity-cap: 24
 
     # Build result
     dates_map: dict[date, list[str]] = {}
-    current = from_date
+
+    def _offer(d: date, nl_type: str) -> None:
+        if from_date <= d <= to_date and nl_type not in dates_map.get(d, []):
+            dates_map.setdefault(d, []).append(nl_type)
+
+    current = buffer_start
     while current <= to_date:
         for nl_type in newsletter_types:
             # Determine active mode for this date
@@ -418,7 +432,7 @@ async def get_valid_publication_dates(  # noqa: C901  complexity-cap: 24
             if config.Mode == "winter_break":
                 if current in custom_date_map.get(nl_type, set()):
                     if not _is_blacked_out(current, nl_type, blackout_set):
-                        dates_map.setdefault(current, []).append(nl_type)
+                        _offer(current, nl_type)
                 continue
 
             if not _is_valid_publish_day(config, current):
@@ -430,15 +444,11 @@ async def get_valid_publication_dates(  # noqa: C901  complexity-cap: 24
                     shifted = current + timedelta(days=1)
                     while shifted.weekday() >= 5:
                         shifted += timedelta(days=1)
-                    if (
-                        shifted <= to_date
-                        and not _is_blacked_out(shifted, nl_type, blackout_set)
-                        and nl_type not in dates_map.get(shifted, [])
-                    ):
-                        dates_map.setdefault(shifted, []).append(nl_type)
+                    if not _is_blacked_out(shifted, nl_type, blackout_set):
+                        _offer(shifted, nl_type)
                 continue
 
-            dates_map.setdefault(current, []).append(nl_type)
+            _offer(current, nl_type)
 
         current += timedelta(days=1)
 

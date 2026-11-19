@@ -66,14 +66,6 @@ function validateDate(
   return null;
 }
 
-/** Validate a date specifically for My UI (Monday only). */
-function validateMyUIDate(dateStr: string): string | null {
-  if (!dateStr) return null;
-  const d = parseISODate(dateStr);
-  if (d.getDay() !== 1) return 'My UI publishes on Mondays only.';
-  return null;
-}
-
 function recurrenceEndHint(recurrenceType: ScheduleEntry['Recurrence_Type']): string {
   return recurrenceType === 'once'
     ? 'Not used for one-time requests'
@@ -103,9 +95,9 @@ function getScheduleErrors({
     ? validateDate(schedule.Requested_Date, 'tdr', validDates)
     : validateDate(schedule.Requested_Date, targetNewsletter, validDates));
 
-  // For "both", validate the second date as Monday-only (My UI)
+  // For "both", the second date is the My UI date
   const secondDateError = errors[secondaryId]?.message ?? (isBoth
-    ? validateDate(schedule.Second_Requested_Date, 'myui', secondaryValidDates) ?? validateMyUIDate(schedule.Second_Requested_Date)
+    ? validateDate(schedule.Second_Requested_Date, 'myui', secondaryValidDates)
     : schedule.Repeat_Count >= 2 && schedule.Second_Requested_Date
       ? validateDate(schedule.Second_Requested_Date, targetNewsletter, validDates)
       : null);
