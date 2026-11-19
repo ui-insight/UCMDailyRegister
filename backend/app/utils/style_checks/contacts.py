@@ -4,7 +4,12 @@ import re
 
 from app.utils.body_links import ANCHOR_PATTERN, BARE_URL_PATTERN, link_key
 from app.utils.style_checks.names import _ORGANIZATION_SUFFIXES
-from app.utils.style_checks.text import comparable_words, contains_words, strip_html
+from app.utils.style_checks.text import (
+    comparable_words,
+    contains_words,
+    straight_quotes,
+    strip_html,
+)
 
 _EMAIL = re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b", re.IGNORECASE)
 _PHONE = re.compile(
@@ -73,13 +78,14 @@ def detect_new_contact_names(source_text: str, edited_text: str) -> list[str]:
     This is deliberately narrow: it only examines two-or-more-word title-case
     spans after contact verbs and ignores common organization suffixes. The
     narrow seam catches the production regression without treating ordinary
-    rewritten prose as a new identity.
+    rewritten prose as a new identity. Quote marks and apostrophes are
+    compared in their straight form, so a curled "O’Brien" is not new (#512).
     """
-    source_lower = strip_html(source_text).lower()
+    source_lower = straight_quotes(strip_html(source_text)).lower()
     findings: list[str] = []
     for match in _CONTACT_NAME.finditer(strip_html(edited_text)):
         candidate = match.group(1).strip()
-        if candidate.lower() in source_lower:
+        if straight_quotes(candidate).lower() in source_lower:
             continue
         if any(word in _ORGANIZATION_SUFFIXES for word in candidate.split()):
             continue
