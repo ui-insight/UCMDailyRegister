@@ -321,6 +321,50 @@ def test_untimed_mention_of_a_day_sorts_before_its_times():
     assert earliest_actionable_moment([body], PUBLISH) == (date(2026, 11, 18), UNTIMED)
 
 
+@pytest.mark.parametrize(
+    ("text", "publish", "expected"),
+    [
+        # #517: a number followed by a time is not the end of a date range.
+        (
+            "The sale runs 9 a.m. Nov. 18 to 5 p.m. Nov. 19.",
+            date(2026, 11, 16),
+            [date(2026, 11, 18), date(2026, 11, 19)],
+        ),
+        ("Vote from 8 a.m. Nov. 2 to 8 p.m.", date(2026, 11, 1), [date(2026, 11, 2)]),
+        ("Open Nov. 18 to 5:30 p.m.", date(2026, 11, 16), [date(2026, 11, 18)]),
+        ("Open Nov. 18-5 pm", date(2026, 11, 16), [date(2026, 11, 18)]),
+        # A discarded range doesn't hide the single dates inside it.
+        ("Workshop Nov. 20-18", date(2026, 11, 16), [date(2026, 11, 20)]),
+        ("Closed Nov. 31-Dec. 2", date(2026, 11, 16), [date(2026, 12, 2)]),
+        # Real ranges still read as a unit, with weekdays and across boundaries.
+        (
+            "Monday–Wednesday, Nov. 16–18",
+            date(2026, 11, 10),
+            [date(2026, 11, 16), date(2026, 11, 18)],
+        ),
+        (
+            "Monday through Wednesday, Nov. 30 through Dec. 2",
+            date(2026, 11, 10),
+            [date(2026, 11, 30), date(2026, 12, 2)],
+        ),
+        (
+            "Closed Dec. 30-Jan. 2, 2027",
+            date(2026, 11, 10),
+            [date(2026, 12, 30), date(2027, 1, 2)],
+        ),
+    ],
+)
+def test_times_and_discarded_ranges_dont_hide_dates(text, publish, expected):
+    assert dates_in_text(text, publish) == expected
+
+
+def test_time_before_a_weekday_range_leads_its_dates():
+    assert moments_in_text("9 a.m. Monday through Wednesday, Nov. 16-18", date(2026, 11, 10)) == [
+        (date(2026, 11, 16), 9 * 60),
+        (date(2026, 11, 18), 9 * 60),
+    ]
+
+
 def test_multi_day_range_uses_its_start_date_and_time():
     assert earliest_actionable_moment(["Nov. 19-21, 8 a.m.-5 p.m."], PUBLISH) == (
         date(2026, 11, 19),
