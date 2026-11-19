@@ -70,6 +70,8 @@ export interface Submission {
   Approved_Version_Id: string | null;
   Working_Version_Id: string | null;
   Staff_Revision_Id: string | null;
+  /** Working revision's headline when editing changed it; null otherwise. */
+  Edited_Headline: string | null;
   Created_At: string;
   Updated_At: string;
   Links: SubmissionLink[];

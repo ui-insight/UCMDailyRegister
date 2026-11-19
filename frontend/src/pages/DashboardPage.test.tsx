@@ -62,6 +62,7 @@ function makeSubmission(
     Approved_Version_Id: null,
     Working_Version_Id: null,
     Staff_Revision_Id: null,
+    Edited_Headline: null,
     Created_At: '2026-04-01T12:00:00Z',
     Updated_At: '2026-04-01T12:00:00Z',
     Links: [],
@@ -190,6 +191,98 @@ describe('DashboardPage', () => {
         limit: 200,
       });
     });
+  });
+
+  it('does not send a request per keystroke', async () => {
+    const user = userEvent.setup();
+    renderDashboard();
+
+    await screen.findByText('Campus Forum');
+    const callsBeforeTyping = listSubmissionsMock.mock.calls.length;
+
+    await user.type(screen.getByPlaceholderText(/search headlines/i), 'widget{Enter}');
+
+    await waitFor(() => {
+      expect(listSubmissionsMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({ search: 'widget' }),
+      );
+    });
+    expect(listSubmissionsMock.mock.calls.length - callsBeforeTyping).toBe(1);
+  });
+
+  it('runs the search after typing pauses', async () => {
+    const user = userEvent.setup();
+    renderDashboard();
+
+    await screen.findByText('Campus Forum');
+    await user.type(screen.getByPlaceholderText(/search headlines/i), 'gadget');
+
+    await waitFor(() => {
+      expect(listSubmissionsMock).toHaveBeenLastCalledWith(
+        expect.objectContaining({ search: 'gadget' }),
+      );
+    });
+  });
+
+  it('ignores a slow earlier response that arrives after the current one', async () => {
+    const user = userEvent.setup();
+    let resolveSlow: (value: { Items: Submission[]; Total: number }) => void = () => {};
+
+    listSubmissionsMock.mockReset();
+    listSubmissionsMock
+      // Initial load (no search term) is slow and resolves last.
+      .mockImplementationOnce(
+        () => new Promise((resolve) => { resolveSlow = resolve; }),
+      )
+      // The search for the current term resolves first.
+      .mockResolvedValueOnce({
+        Items: [makeSubmission({ Id: 'match', Original_Headline: 'Widget Workshop 101' })],
+        Total: 1,
+      });
+
+    renderDashboard();
+    await waitFor(() => expect(listSubmissionsMock).toHaveBeenCalledTimes(1));
+
+    await user.type(screen.getByPlaceholderText(/search headlines/i), 'widget{Enter}');
+
+    expect(await screen.findByText('Widget Workshop 101')).toBeInTheDocument();
+    expect(screen.getByText('1 submission')).toBeInTheDocument();
+
+    resolveSlow({
+      Items: Array.from({ length: 5 }, (_, i) => makeSubmission({
+        Id: `unfiltered-${i}`,
+        Original_Headline: `Unfiltered item ${i}`,
+      })),
+      Total: 245,
+    });
+
+    // Give the stale response every chance to land, then check it did not.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await waitFor(() => {
+      expect(screen.queryByText('Unfiltered item 0')).not.toBeInTheDocument();
+    });
+    expect(screen.getByText('Widget Workshop 101')).toBeInTheDocument();
+    expect(screen.getByText('1 submission')).toBeInTheDocument();
+    expect(screen.queryByText('245 submissions')).not.toBeInTheDocument();
+  });
+
+  it('shows the edited title with the submitted title beneath it', async () => {
+    listSubmissionsMock.mockResolvedValueOnce({
+      Items: [
+        makeSubmission({
+          Original_Headline: 'Widget Workshop 101',
+          Edited_Headline: 'Build sturdy widgets with the Widget Workshop',
+        }),
+      ],
+      Total: 1,
+    });
+
+    renderDashboard();
+
+    expect(
+      await screen.findByRole('heading', { name: 'Build sturdy widgets with the Widget Workshop' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Submitted as: Widget Workshop 101')).toBeInTheDocument();
   });
 
   it('loads valid publish dates and date-bounded submissions in calendar mode', async () => {

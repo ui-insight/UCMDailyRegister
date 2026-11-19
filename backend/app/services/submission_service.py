@@ -10,6 +10,8 @@ from sqlalchemy.orm import selectinload
 
 from app.models.submission import Submission, SubmissionLink, SubmissionScheduleRequest
 from app.models.ai_edit_task import AIEditTask
+from app.models.edit_history import EditVersion
+from app.models.newsletter import NewsletterItem
 from app.schemas.submission import SubmissionCreate, SubmissionUpdate
 from app.services import recurrence_service, schedule_service
 from app.utils.clock import local_today
@@ -117,6 +119,65 @@ async def get_submission(db: AsyncSession, submission_id: str) -> Submission | N
     return submission
 
 
+# Quotation marks people type around a phrase: straight and curly, double and
+# single. Editors' quotes are often mismatched (a curly opener closed by a
+# straight quote), so any quote character at both ends counts as a pair.
+_QUOTE_CHARS = frozenset('"\'\u201c\u201d\u201e\u2018\u2019')
+_LIKE_ESCAPE = "\\"
+
+
+def normalize_search_term(search: str | None) -> str:
+    """Trim a dashboard search term and drop quotation marks around it.
+
+    ``"Adobe InDesign 101"`` (straight or curly quotes) searches for
+    ``Adobe InDesign 101``. Quotes inside the term are kept.
+    """
+    term = (search or "").strip()
+    while len(term) >= 2 and term[0] in _QUOTE_CHARS and term[-1] in _QUOTE_CHARS:
+        term = term[1:-1].strip()
+    return term
+
+
+def _like_pattern(term: str) -> str:
+    escaped = (
+        term.replace(_LIKE_ESCAPE, _LIKE_ESCAPE * 2)
+        .replace("%", _LIKE_ESCAPE + "%")
+        .replace("_", _LIKE_ESCAPE + "_")
+    )
+    return f"%{escaped}%"
+
+
+def submission_search_filter(term: str) -> sa.ColumnElement[bool]:
+    """Match a term against the submitted text, the edited text and the submitter.
+
+    Edited text is every saved revision of the headline and body
+    (edit_versions) and the copy placed in an edition (newsletter_items),
+    so a submission is found by its edited title as well as its original.
+    Each is an EXISTS subquery against an indexed Submission_Id, so the
+    listing stays one query rather than one per submission.
+    """
+    pattern = _like_pattern(term)
+
+    def like(column: sa.ColumnElement[str]) -> sa.ColumnElement[bool]:
+        return column.ilike(pattern, escape=_LIKE_ESCAPE)
+
+    edited_version_match = sa.exists().where(
+        EditVersion.Submission_Id == Submission.Id,
+        sa.or_(like(EditVersion.Headline), like(EditVersion.Body)),
+    )
+    edition_copy_match = sa.exists().where(
+        NewsletterItem.Submission_Id == Submission.Id,
+        sa.or_(like(NewsletterItem.Final_Headline), like(NewsletterItem.Final_Body)),
+    )
+    return sa.or_(
+        like(Submission.Original_Headline),
+        like(Submission.Original_Body),
+        like(Submission.Submitter_Name),
+        edited_version_match,
+        edition_copy_match,
+    )
+
+
 async def list_submissions(
     db: AsyncSession,
     status: str | None = None,
@@ -152,9 +213,9 @@ async def list_submissions(
         # Hide submissions whose only audience is the SLC calendar (Target_Newsletter="none").
         query = query.where(Submission.Target_Newsletter != "none")
         count_query = count_query.where(Submission.Target_Newsletter != "none")
-    if search:
-        pattern = f"%{search}%"
-        search_filter = Submission.Original_Headline.ilike(pattern) | Submission.Original_Body.ilike(pattern) | Submission.Submitter_Name.ilike(pattern)
+    search_term = normalize_search_term(search)
+    if search_term:
+        search_filter = submission_search_filter(search_term)
         query = query.where(search_filter)
         count_query = count_query.where(search_filter)
     query = query.order_by(Submission.Created_At.desc())

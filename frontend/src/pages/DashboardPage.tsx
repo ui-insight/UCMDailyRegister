@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listSubmissions } from '../api/submissions';
 import { getValidDates } from '../api/schedule';
@@ -53,6 +53,9 @@ const UNFILTERABLE_CATEGORIES = new Set(['calendar_event', 'slc_event']);
 const CATEGORY_FILTER_OPTIONS = Object.entries(CATEGORY_LABELS)
   .filter(([code]) => !UNFILTERABLE_CATEGORIES.has(code));
 
+// Typing pauses this long before the search runs; Enter or Search runs it now.
+const SEARCH_DEBOUNCE_MS = 400;
+
 const NEWSLETTER_LABELS: Record<string, string> = {
   tdr: 'TDR',
   myui: 'My UI',
@@ -68,7 +71,10 @@ export default function DashboardPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [newsletterFilter, setNewsletterFilter] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  // What is in the box vs. the term the list was last asked for. Only the
+  // applied term triggers a request, so typing does not fire one per keystroke.
+  const [searchInput, setSearchInput] = useState('');
+  const [appliedSearch, setAppliedSearch] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -77,7 +83,12 @@ export default function DashboardPage() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [feedbackSummary, setFeedbackSummary] = useState<ProductFeedbackSummary | null>(null);
 
+  // Each request gets a number; only the newest one may update the list, so a
+  // slow response for an earlier term or filter can never replace current results.
+  const latestRequest = useRef(0);
+
   const fetchData = useCallback(async () => {
+    const requestId = ++latestRequest.current;
     setLoading(true);
     setError(null);
     try {
@@ -85,7 +96,7 @@ export default function DashboardPage() {
         status: statusFilter || undefined,
         category: categoryFilter || undefined,
         target_newsletter: newsletterFilter || undefined,
-        search: searchQuery || undefined,
+        search: appliedSearch || undefined,
         limit: 200,
       };
 
@@ -97,14 +108,23 @@ export default function DashboardPage() {
       }
 
       const data = await listSubmissions(params);
+      if (requestId !== latestRequest.current) return;
       setSubmissions(data.Items);
       setTotal(data.Total);
     } catch (err) {
+      if (requestId !== latestRequest.current) return;
       setError(err instanceof Error ? err.message : 'Failed to load submissions');
     } finally {
-      setLoading(false);
+      if (requestId === latestRequest.current) setLoading(false);
     }
-  }, [statusFilter, categoryFilter, newsletterFilter, searchQuery, viewMode, currentMonth]);
+  }, [statusFilter, categoryFilter, newsletterFilter, appliedSearch, viewMode, currentMonth]);
+
+  useEffect(() => {
+    const term = searchInput.trim();
+    if (term === appliedSearch) return;
+    const timer = window.setTimeout(() => setAppliedSearch(term), SEARCH_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [searchInput, appliedSearch]);
 
   useEffect(() => {
     fetchData();
@@ -141,7 +161,13 @@ export default function DashboardPage() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchData();
+    const term = searchInput.trim();
+    if (term === appliedSearch) {
+      // Same term: refresh in place. A new term refetches through fetchData's deps.
+      void fetchData();
+    } else {
+      setAppliedSearch(term);
+    }
   };
 
   const handleReschedule = () => {
@@ -281,8 +307,8 @@ export default function DashboardPage() {
               type="text"
               aria-label="Search submissions"
               placeholder="Search headlines, body, submitter..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
               className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm"
             />
             <Button
@@ -391,8 +417,13 @@ export default function DashboardPage() {
                     </span>
                   </div>
                   <h3 className="text-sm font-semibold text-gray-900 truncate">
-                    {sub.Original_Headline}
+                    {sub.Edited_Headline ?? sub.Original_Headline}
                   </h3>
+                  {sub.Edited_Headline && (
+                    <p className="text-xs text-gray-500 truncate">
+                      Submitted as: {sub.Original_Headline}
+                    </p>
+                  )}
                   <p className="text-sm text-gray-600 mt-1 line-clamp-2">
                     {sub.Original_Body}
                   </p>
