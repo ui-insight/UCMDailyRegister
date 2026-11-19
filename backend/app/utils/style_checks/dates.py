@@ -2,6 +2,7 @@
 
 import re
 from datetime import date, timedelta
+from typing import NamedTuple
 
 from app.utils.clock import local_today
 from app.utils.style_checks.text import (
@@ -27,10 +28,25 @@ _CROSS_PERIOD_HYPHEN_RANGE = re.compile(
     r"(?P<end>\d{1,2}(?::\d{2})?\s*(?P<end_period>a\.m\.|p\.m\.))",
     re.IGNORECASE,
 )
+# Joins the ends of a weekday or date range, or a two-item list:
+# "Monday-Wednesday", "Nov. 30–Dec. 2", "Monday through Friday", "Nov. 17 and 18".
+_RANGE_JOIN = r"(?:[-–—]|\bthrough\b|\bthru\b|\bto\b|\band\b|&)"
+# A number followed by a time ("Nov. 18 to 5 p.m.") does not end a date range.
+_NOT_A_TIME = r"(?!:\d|\s*[ap]\.?\s?m\b)"
+# A weekday and date, with an optional weekday range or list before it and an
+# optional date range after it: "Friday, May 30", "Monday through Friday,
+# May 26-30", "Tuesday, Wednesday and Thursday, Nov. 17-19",
+# "Monday–Wednesday, Nov. 30–Dec. 2, 2026".
 _WEEKDAY_DATE = re.compile(
-    rf"\b(?P<weekday>{_WEEKDAY_NAME})"
-    rf",?\s+(?P<month>{_MONTH_NAME})"
-    rf"\.?\s+(?P<day>\d{{1,2}})(?:,\s*(?P<year>\d{{4}}))?\b",
+    # At most seven weekdays in a list: an unbounded repeat backtracks
+    # quadratically on text like "Monday, Monday, ... x".
+    rf"\b(?:(?P<first_weekday>{_WEEKDAY_NAME})"
+    rf"(?P<middle_weekdays>(?:,\s*(?:{_WEEKDAY_NAME})){{0,5}}),?\s*{_RANGE_JOIN}\s*)?"
+    rf"(?P<weekday>{_WEEKDAY_NAME})"
+    rf",?\s+(?P<month>(?:{_MONTH_NAME})\.?)"
+    rf"\s+(?P<day>\d{{1,2}})(?:,\s*(?P<year>\d{{4}}))?\b"
+    rf"(?:\s*{_RANGE_JOIN}\s*(?:(?P<end_month>(?:{_MONTH_NAME})\.?)\s+)?"
+    rf"(?P<end_day>\d{{1,2}})\b{_NOT_A_TIME}(?:,\s*(?P<end_year>\d{{4}})\b)?)?",
     re.IGNORECASE,
 )
 # "Added Thursday to the Oct. 28 date", "Changed Tuesday to Thursday for Oct. 28"
@@ -46,6 +62,11 @@ _RELATIVE_DATE_REFERENCE = re.compile(
 _WEEKDAY_PREFIX = re.compile(
     rf"\b(?:{_WEEKDAY_NAME}),?\s*$",
     re.IGNORECASE,
+)
+# The end of a date range ("Nov. 30–Dec. 2") rides on the weekday of its
+# start. A list ("Aug. 22 and Aug. 28") is not a range: each date needs one.
+_RANGE_START_PREFIX = re.compile(
+    r"\d{1,2}\s*(?:[-–—]|\bthrough\b|\bthru\b|\bto\b)\s*$", re.IGNORECASE
 )
 
 
@@ -121,42 +142,166 @@ def detect_missing_relative_date_components(
     return findings
 
 
-def _resolve_calendar_date(
-    match: re.Match,
-    reference: date,
-) -> date | None:
-    """Resolve a matched month/day to a date, or None for an impossible date.
+class WeekdayDate(NamedTuple):
+    """A weekday the text ties to a month and day.
+
+    ``year`` is the year the text gives for this date, directly or through
+    the year that ends its range. ``range_end`` is the (month, day) that
+    ends the range this date belongs to, if any: a range without a year is
+    resolved from its end, so one under way at New Year ("Dec. 30–Jan. 2"
+    read on Jan. 1) starts in the previous year, as in the Builder's
+    actionable dates.
+    """
+
+    text: str
+    weekday: str
+    month: int
+    day: int
+    year: int | None = None
+    range_end: tuple[int, int] | None = None
+    # A middle weekday of a list ("Tuesday, Friday and Thursday, Nov. 17-19")
+    # has no date of its own: it must fall somewhere in the range.
+    in_range: bool = False
+
+
+def _resolve_month_day(month: int, day: int, reference: date) -> date | None:
+    """Resolve a month and day without a year, or None for an impossible date.
 
     Dates without a year use the reference year unless that date is more than
     60 days in the past, in which case the next calendar year is assumed. This
     mirrors the newsletter's upcoming-event and year-boundary behavior.
     """
-    month = _MONTH_NUMBERS[match.group("month").lower().rstrip(".")]
-    day = int(match.group("day"))
-    explicit_year = match.group("year")
-    year = int(explicit_year) if explicit_year else reference.year
     try:
-        resolved = date(year, month, day)
-        if not explicit_year and resolved < reference - timedelta(days=60):
-            resolved = date(year + 1, month, day)
+        resolved = date(reference.year, month, day)
+        if resolved < reference - timedelta(days=60):
+            resolved = date(reference.year + 1, month, day)
     except ValueError:
         return None
     return resolved
 
 
+def _resolve_calendar_date(pair: WeekdayDate, reference: date) -> date | None:
+    """Resolve a weekday pair's date, or None for an impossible date."""
+    try:
+        if pair.year is not None:
+            return date(pair.year, pair.month, pair.day)
+        if pair.range_end is not None:
+            end = _resolve_month_day(*pair.range_end, reference)
+            if end is not None:
+                year = end.year - 1 if pair.month > end.month else end.year
+                return date(year, pair.month, pair.day)
+    except ValueError:
+        return None
+    return _resolve_month_day(pair.month, pair.day, reference)
+
+
+def _month_number(written: str | None) -> int | None:
+    return _MONTH_NUMBERS.get(written.lower().rstrip(".")) if written else None
+
+
 def _weekday_date_matches(text: str):
-    """Yield weekday/date matches whose month name is recognized."""
+    """Yield each weekday/date pair whose month name is recognized.
+
+    A weekday range or list before a date range pairs its first weekday with
+    the first date and its last weekday with the last date: "Monday through
+    Friday, May 26-30" checks Monday, May 26, and Friday, May 30 (#517).
+    Otherwise the weekday written next to the date pairs with it, and a date
+    range after a single weekday is checked only at its start.
+    """
     for match in _WEEKDAY_DATE.finditer(strip_html(text)):
-        if match.group("month").lower().rstrip(".") in _MONTH_NUMBERS:
-            yield match
+        month = _month_number(match.group("month"))
+        if month is None:
+            continue
+        day = int(match.group("day"))
+        year = int(match.group("year")) if match.group("year") else None
+        range_end = None
+        end_year = None
+        if match.group("end_day"):
+            end_month = _month_number(match.group("end_month")) or month
+            end_day = int(match.group("end_day"))
+            range_end = (end_month, end_day)
+            if match.group("end_year"):
+                end_year = int(match.group("end_year"))
+                if year is None:
+                    year = end_year - 1 if month > end_month else end_year
+            elif year is not None:
+                end_year = year + 1 if end_month < month else year
+        first_weekday = match.group("first_weekday")
+
+        if not (first_weekday and range_end):
+            date_end = match.end("year") if match.group("year") else match.end("day")
+            yield WeekdayDate(
+                match.string[match.start("weekday"):date_end],
+                match.group("weekday"),
+                month,
+                day,
+                year,
+                range_end,
+            )
+            continue
+
+        written_month = match.group("month")
+        written_end_month = match.group("end_month") or written_month
+        yield WeekdayDate(
+            f"{first_weekday}, {written_month} {day}", first_weekday, month, day, year, range_end
+        )
+        for middle in re.findall(
+            _WEEKDAY_NAME, match.group("middle_weekdays") or "", re.IGNORECASE
+        ):
+            yield WeekdayDate(
+                f"{middle}, {written_month} {day}–{written_end_month} {range_end[1]}",
+                middle,
+                month,
+                day,
+                year,
+                range_end,
+                in_range=True,
+            )
+        yield WeekdayDate(
+            f"{match.group('weekday')}, {written_end_month} {range_end[1]}"
+            + (f", {match.group('end_year')}" if match.group("end_year") else ""),
+            match.group("weekday"),
+            *range_end,
+            end_year,
+            range_end,
+        )
 
 
-def _weekday_date_key(match: re.Match) -> tuple[str, int, int]:
-    return (
-        match.group("weekday").lower(),
-        _MONTH_NUMBERS[match.group("month").lower().rstrip(".")],
-        int(match.group("day")),
+def _weekday_date_key(pair: WeekdayDate) -> tuple[str, int, int]:
+    return (pair.weekday.lower(), pair.month, pair.day)
+
+
+
+def _range_dates(pair: WeekdayDate, reference: date) -> list[date] | None:
+    """Every date from a pair's start through its range end, or None if unreadable."""
+    start = _resolve_calendar_date(pair, reference)
+    if start is None or pair.range_end is None:
+        return None
+    try:
+        end = date(start.year, *pair.range_end)
+        if end < start:
+            end = date(start.year + 1, *pair.range_end)
+    except ValueError:
+        return None
+    span = (end - start).days
+    if span > 31:
+        return None
+    return [start + timedelta(days=offset) for offset in range(span + 1)]
+
+
+def _weekday_in_range(pair: WeekdayDate, reference: date) -> bool:
+    dates = _range_dates(pair, reference)
+    return dates is not None and any(
+        day.strftime("%A").lower() == pair.weekday.lower() for day in dates
     )
+
+
+def _conflicts(pair: WeekdayDate, reference: date) -> bool:
+    """Whether the date does not exist or falls on another weekday."""
+    if pair.in_range:
+        return not _weekday_in_range(pair, reference)
+    resolved = _resolve_calendar_date(pair, reference)
+    return resolved is None or resolved.strftime("%A").lower() != pair.weekday.lower()
 
 
 def detect_weekday_date_mismatches(
@@ -166,14 +311,11 @@ def detect_weekday_date_mismatches(
 ) -> list[str]:
     """Find weekday/month/day combinations that disagree with the calendar."""
     reference = reference_date or local_today()
-    findings: list[str] = []
-    for match in _weekday_date_matches(text):
-        resolved = _resolve_calendar_date(match, reference)
-        if resolved is None or (
-            resolved.strftime("%A").lower() != match.group("weekday").lower()
-        ):
-            findings.append(match.group().rstrip("."))
-    return findings
+    return [
+        pair.text.rstrip(".")
+        for pair in _weekday_date_matches(text)
+        if _conflicts(pair, reference)
+    ]
 
 
 def detect_inserted_weekday_mismatches(
@@ -191,33 +333,34 @@ def detect_inserted_weekday_mismatches(
     weekday, or None when the month and day do not exist.
     """
     reference = reference_date or local_today()
-    source_pairs = {_weekday_date_key(match) for match in _weekday_date_matches(source_text)}
+    source_pairs = {_weekday_date_key(pair) for pair in _weekday_date_matches(source_text)}
     findings: dict[str, str | None] = {}
-    for match in _weekday_date_matches(edited_text):
-        if _weekday_date_key(match) in source_pairs:
+    for pair in _weekday_date_matches(edited_text):
+        # A list's middle weekday has no single date to correct it to; the
+        # general mismatch check flags it instead.
+        if pair.in_range or _weekday_date_key(pair) in source_pairs:
             continue
-        resolved = _resolve_calendar_date(match, reference)
+        resolved = _resolve_calendar_date(pair, reference)
         weekday = resolved.strftime("%A") if resolved else None
-        if weekday is None or weekday.lower() != match.group("weekday").lower():
-            findings[match.group().rstrip(".")] = weekday
+        if weekday is None or weekday.lower() != pair.weekday.lower():
+            findings[pair.text.rstrip(".")] = weekday
     return findings
 
 
-def date_conflict_note(match: re.Match, reference: date) -> str:
+def date_conflict_note(pair: WeekdayDate, reference: date) -> str:
     """Describe a weekday/date conflict in UCM's flag wording (#384).
 
     Example: ``DATE CONFLICT: MARCH 3, 2027, IS A WEDNESDAY, NOT A TUESDAY``.
     """
-    month = _MONTH_NUMBERS[match.group("month").lower().rstrip(".")]
-    day = int(match.group("day"))
-    weekday = match.group("weekday").upper()
-    resolved = _resolve_calendar_date(match, reference)
+    if pair.in_range:
+        return f"DATE CONFLICT: NO {pair.weekday.upper()} FALLS IN {pair.text.split(', ', 1)[1].upper()}"
+    resolved = _resolve_calendar_date(pair, reference)
     if resolved is None:
-        month_name = date(2000, month, 1).strftime("%B").upper()
-        return f"DATE CONFLICT: {month_name} {day} DOES NOT EXIST"
+        month_name = date(2000, pair.month, 1).strftime("%B").upper()
+        return f"DATE CONFLICT: {month_name} {pair.day} DOES NOT EXIST"
     return (
-        f"DATE CONFLICT: {resolved.strftime('%B').upper()} {day}, {resolved.year}, "
-        f"IS A {resolved.strftime('%A').upper()}, NOT A {weekday}"
+        f"DATE CONFLICT: {resolved.strftime('%B').upper()} {pair.day}, {resolved.year}, "
+        f"IS A {resolved.strftime('%A').upper()}, NOT A {pair.weekday.upper()}"
     )
 
 
@@ -229,10 +372,9 @@ def detect_weekday_date_conflicts(
     """Map each mismatched weekday/date pair to its conflict note."""
     reference = reference_date or local_today()
     return {
-        match.group().rstrip("."): date_conflict_note(match, reference)
-        for match in _weekday_date_matches(text)
-        if (resolved := _resolve_calendar_date(match, reference)) is None
-        or resolved.strftime("%A").lower() != match.group("weekday").lower()
+        pair.text.rstrip("."): date_conflict_note(pair, reference)
+        for pair in _weekday_date_matches(text)
+        if _conflicts(pair, reference)
     }
 
 
@@ -249,16 +391,13 @@ def detect_changed_source_date_conflicts(
     pair missing from the edit means the AI changed or dropped one of them.
     """
     reference = reference_date or local_today()
-    edited_pairs = {_weekday_date_key(match) for match in _weekday_date_matches(edited_text)}
+    edited_pairs = {_weekday_date_key(pair) for pair in _weekday_date_matches(edited_text)}
     return {
-        match.group().rstrip("."): date_conflict_note(match, reference)
-        for match in _weekday_date_matches(source_text)
-        if _weekday_date_key(match) not in edited_pairs
-        and (
-            (resolved := _resolve_calendar_date(match, reference)) is None
-            or resolved.strftime("%A").lower() != match.group("weekday").lower()
-        )
+        pair.text.rstrip("."): date_conflict_note(pair, reference)
+        for pair in _weekday_date_matches(source_text)
+        if _weekday_date_key(pair) not in edited_pairs and _conflicts(pair, reference)
     }
+
 
 
 def detect_headline_date_conflicts(headline: str, body: str) -> list[str]:
@@ -298,8 +437,8 @@ def change_contradicts_final_dates(change: str, final_text: str) -> bool:
     """
     change_text = strip_html(change)
     claimed_weekdays: dict[tuple[int, int], set[str]] = {}
-    for match in _weekday_date_matches(change_text):
-        weekday, month, day = _weekday_date_key(match)
+    for pair in _weekday_date_matches(change_text):
+        weekday, month, day = _weekday_date_key(pair)
         claimed_weekdays.setdefault((month, day), set()).add(weekday)
     for match in _WEEKDAY_ASSIGNED_TO_DATE.finditer(change_text):
         month = _MONTH_NUMBERS.get(match.group("month").lower().rstrip("."))
@@ -309,8 +448,8 @@ def change_contradicts_final_dates(change: str, final_text: str) -> bool:
             )
 
     final_weekdays: dict[tuple[int, int], set[str]] = {}
-    for match in _weekday_date_matches(final_text):
-        weekday, month, day = _weekday_date_key(match)
+    for pair in _weekday_date_matches(final_text):
+        weekday, month, day = _weekday_date_key(pair)
         final_weekdays.setdefault((month, day), set()).add(weekday)
 
     return any(
@@ -336,7 +475,8 @@ def detect_missing_near_term_weekdays(
     plain_text = strip_html(text)
 
     for match in _MONTH_DAY.finditer(plain_text):
-        if _WEEKDAY_PREFIX.search(plain_text[:match.start()]):
+        before = plain_text[:match.start()]
+        if _WEEKDAY_PREFIX.search(before) or _RANGE_START_PREFIX.search(before):
             continue
 
         month_key = match.group("month").lower().rstrip(".")

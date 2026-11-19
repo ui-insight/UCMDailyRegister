@@ -25,11 +25,11 @@ class TestUnwrapTrackingUrl:
         assert unwrap_tracking_url(wrapped) == "https://www.uidaho.edu/events"
 
     def test_microsoft_safe_links(self):
-        wrapped = "https://safelinks.protection.outlook.com/?url=https%3A%2F%2Fwww.uidaho.edu%2Fevents&data=05&sdata=abc"
+        wrapped = "https://nam12.safelinks.protection.outlook.com/?url=https%3A%2F%2Fwww.uidaho.edu%2Fevents&data=05&sdata=abc"
         assert unwrap_tracking_url(wrapped) == "https://www.uidaho.edu/events"
 
     def test_microsoft_safe_links_complex(self):
-        wrapped = "https://safelinks.protection.outlook.com/?url=https%3A%2F%2Fbasecamp.qualtrics.com%2Fjfe%2Fform%2FSV_abc123&data=05"
+        wrapped = "https://eur03.safelinks.protection.outlook.com/?url=https%3A%2F%2Fbasecamp.qualtrics.com%2Fjfe%2Fform%2FSV_abc123&data=05"
         assert unwrap_tracking_url(wrapped) == "https://basecamp.qualtrics.com/jfe/form/SV_abc123"
 
     def test_mimecast(self):
@@ -66,7 +66,7 @@ class TestCleanUrl:
         assert _clean_url("https://example.com/page,") == "https://example.com/page"
 
     def test_unwraps_and_strips(self):
-        wrapped = "https://safelinks.protection.outlook.com/?url=https%3A%2F%2Fwww.uidaho.edu&data=05."
+        wrapped = "https://gcc02.safelinks.protection.outlook.com/?url=https%3A%2F%2Fwww.uidaho.edu&data=05."
         # trailing dot stripped first, then unwrapped
         result = _clean_url(wrapped)
         assert result == "https://www.uidaho.edu"
@@ -83,7 +83,7 @@ class TestParseSubmitterNotesWithTracking:
         assert links[0].anchor_text == "Register"
 
     def test_wrapped_bare_url(self):
-        notes = "Check out https://safelinks.protection.outlook.com/?url=https%3A%2F%2Fwww.uidaho.edu&data=05"
+        notes = "Check out https://nam04.safelinks.protection.outlook.com/?url=https%3A%2F%2Fwww.uidaho.edu&data=05"
         links = parse_submitter_notes(notes)
         assert len(links) == 1
         assert links[0].url == "https://www.uidaho.edu"

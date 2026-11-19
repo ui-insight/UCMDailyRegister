@@ -22,6 +22,7 @@ The detectors are grouped by topic in this package; import them from here.
 """
 
 from app.utils.style_checks.text import (
+    straight_quotes,
     strip_html,
 )
 from app.utils.style_checks.dates import (
@@ -97,6 +98,7 @@ from app.utils.style_checks.contacts import (
 )
 
 __all__ = [
+    "straight_quotes",
     "strip_html",
     "detect_unabbreviated_month_dates",
     "detect_abbreviated_months_without_date",

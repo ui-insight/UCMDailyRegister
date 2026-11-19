@@ -328,6 +328,9 @@ def _month_in_range(month: int, start: int | None, end: int | None) -> bool:
     return month >= start or month <= end
 
 
+_HOLIDAY_SHIFT_LOOKBACK_DAYS = 7
+
+
 def _is_blacked_out(
     d: date,
     nl_type: str,
@@ -341,7 +344,58 @@ def _is_blacked_out(
     return False
 
 
-async def get_valid_publication_dates(  # noqa: C901  complexity-cap: 24
+
+def _active_config(
+    nl_type: str,
+    day: date,
+    all_configs: list[ScheduleConfig],
+    all_overrides: list[ScheduleModeOverride],
+) -> ScheduleConfig | None:
+    """The schedule config in force for a newsletter on a day: override first, then month."""
+    for override in all_overrides:
+        if override.Newsletter_Type == nl_type and override.Start_Date <= day <= override.End_Date:
+            return next(
+                (c for c in all_configs
+                 if c.Newsletter_Type == nl_type and c.Mode == override.Override_Mode),
+                None,
+            )
+    return next(
+        (c for c in all_configs
+         if c.Newsletter_Type == nl_type
+         and _month_in_range(day.month, c.Active_Start_Month, c.Active_End_Month)),
+        None,
+    )
+
+
+def _next_weekday(day: date) -> date:
+    shifted = day + timedelta(days=1)
+    while shifted.weekday() >= 5:
+        shifted += timedelta(days=1)
+    return shifted
+
+
+def _dates_offered_for_day(
+    config: ScheduleConfig,
+    day: date,
+    nl_type: str,
+    custom_date_map: dict[str, set[date]],
+    blackout_set: dict[str | None, set[date]],
+) -> list[date]:
+    """Publish dates a scheduled day yields: itself, its holiday shift, or nothing."""
+    if config.Mode == "winter_break":
+        # Winter break / custom mode: only custom dates are valid.
+        is_custom = day in custom_date_map.get(nl_type, set())
+        return [day] if is_custom and not _is_blacked_out(day, nl_type, blackout_set) else []
+    if not _is_valid_publish_day(config, day):
+        return []
+    if not _is_blacked_out(day, nl_type, blackout_set):
+        return [day]
+    if not config.Holiday_Shift_Enabled:
+        return []
+    shifted = _next_weekday(day)
+    return [] if _is_blacked_out(shifted, nl_type, blackout_set) else [shifted]
+
+async def get_valid_publication_dates(
     db: AsyncSession,
     from_date: date,
     to_date: date,
@@ -351,6 +405,10 @@ async def get_valid_publication_dates(  # noqa: C901  complexity-cap: 24
 
     Handles holiday shift logic: if a scheduled publish day is blacked out and the
     config has Holiday_Shift_Enabled, the next weekday is offered as a replacement.
+    The answer for any date is independent of the range asked about: a shifted
+    date is returned even when the blacked-out day it replaces falls before
+    ``from_date``. Submit validation, assembly and recurring messages all ask
+    about a single day, so they must see the same dates the calendar offers.
 
     Also includes custom publish dates for winter_break (or any override) modes.
 
@@ -366,8 +424,10 @@ async def get_valid_publication_dates(  # noqa: C901  complexity-cap: 24
     result = await db.execute(sa.select(ScheduleModeOverride))
     all_overrides = list(result.scalars().all())
 
-    # Load blackout dates in range (with some buffer for shift calculation)
-    buffer_start = from_date - timedelta(days=7)
+    # Start the scan a week early so a blacked-out publish day just before
+    # from_date can shift into the range. A shift moves at most to the next
+    # weekday (3 days from a Friday), so 7 days covers it.
+    buffer_start = from_date - timedelta(days=_HOLIDAY_SHIFT_LOOKBACK_DAYS)
     blackouts = await list_blackout_dates(db, from_date=buffer_start, to_date=to_date)
     blackout_set: dict[str | None, set[date]] = {}
     for b in blackouts:
@@ -379,67 +439,18 @@ async def get_valid_publication_dates(  # noqa: C901  complexity-cap: 24
     for cd in custom_dates:
         custom_date_map.setdefault(cd.Newsletter_Type, set()).add(cd.Publish_Date)
 
-    def _get_override_mode(nl_type: str, d: date) -> str | None:
-        for o in all_overrides:
-            if o.Newsletter_Type == nl_type and o.Start_Date <= d <= o.End_Date:
-                return o.Override_Mode
-        return None
-
-    def _get_config(nl_type: str, mode: str) -> ScheduleConfig | None:
-        for c in all_configs:
-            if c.Newsletter_Type == nl_type and c.Mode == mode:
-                return c
-        return None
-
-    # Build result
     dates_map: dict[date, list[str]] = {}
-    current = from_date
+    current = buffer_start
     while current <= to_date:
         for nl_type in newsletter_types:
-            # Determine active mode for this date
-            override_mode = _get_override_mode(nl_type, current)
-            config = None
-
-            if override_mode:
-                config = _get_config(nl_type, override_mode)
-            else:
-                # Month-based detection
-                for c in all_configs:
-                    if c.Newsletter_Type != nl_type:
-                        continue
-                    if _month_in_range(current.month, c.Active_Start_Month, c.Active_End_Month):
-                        config = c
-                        break
-
-            if not config:
+            config = _active_config(nl_type, current, all_configs, all_overrides)
+            if config is None:
                 continue
-
-            # Winter break / custom mode: only custom dates are valid
-            if config.Mode == "winter_break":
-                if current in custom_date_map.get(nl_type, set()):
-                    if not _is_blacked_out(current, nl_type, blackout_set):
-                        dates_map.setdefault(current, []).append(nl_type)
-                continue
-
-            if not _is_valid_publish_day(config, current):
-                continue
-
-            if _is_blacked_out(current, nl_type, blackout_set):
-                # Holiday shift: if enabled, offer next weekday
-                if config.Holiday_Shift_Enabled:
-                    shifted = current + timedelta(days=1)
-                    while shifted.weekday() >= 5:
-                        shifted += timedelta(days=1)
-                    if (
-                        shifted <= to_date
-                        and not _is_blacked_out(shifted, nl_type, blackout_set)
-                        and nl_type not in dates_map.get(shifted, [])
-                    ):
-                        dates_map.setdefault(shifted, []).append(nl_type)
-                continue
-
-            dates_map.setdefault(current, []).append(nl_type)
-
+            for offered in _dates_offered_for_day(
+                config, current, nl_type, custom_date_map, blackout_set
+            ):
+                if from_date <= offered <= to_date and nl_type not in dates_map.get(offered, []):
+                    dates_map.setdefault(offered, []).append(nl_type)
         current += timedelta(days=1)
 
     return [{"date": d, "newsletters": nls} for d, nls in sorted(dates_map.items())]

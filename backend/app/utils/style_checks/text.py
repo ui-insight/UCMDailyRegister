@@ -1,5 +1,6 @@
-"""Shared text helpers: markup stripping, sentences and month/weekday patterns."""
+"""Shared text helpers: markup stripping, quote marks, sentences and month/weekday patterns."""
 
+import html
 import re
 
 _HTML_TAG = re.compile(r"<[^>]*>")
@@ -36,6 +37,31 @@ _MONTH_NUMBERS = {
 def strip_html(text: str) -> str:
     """Replace HTML tags with spaces so detectors never match inside markup."""
     return _HTML_TAG.sub(" ", text)
+
+
+# Typographic quote marks and apostrophes, each mapped to its straight form.
+_STRAIGHT_QUOTES = {
+    "\u2018": "'", "\u2019": "'", "\u201a": "'", "\u201b": "'", "\u02bc": "'",
+    "\u201c": '"', "\u201d": '"', "\u201e": '"', "\u201f": '"',
+}
+_QUOTE_TRANSLATION = str.maketrans(_STRAIGHT_QUOTES)
+_ENTITY = re.compile(r"&(?:#\d+|#[xX][0-9a-fA-F]+|[A-Za-z]+);")
+
+
+def straight_quotes(text: str) -> str:
+    """Write every quote mark and apostrophe in its straight form (#512).
+
+    The editor curls quotes in the model's draft (#409) but the source keeps
+    whatever the submitter typed, so checks that compare the two as strings
+    run both through this first. Entities for quote marks (``&#39;``,
+    ``&rsquo;`` and the like) count as the mark they display. Other entities
+    and markup are left alone.
+    """
+    def _quote_entity(match: re.Match[str]) -> str:
+        shown = html.unescape(match.group())
+        return shown if shown in _STRAIGHT_QUOTES or shown in ("'", '"') else match.group()
+
+    return _ENTITY.sub(_quote_entity, text).translate(_QUOTE_TRANSLATION)
 
 
 def _first_sentence(text: str) -> str:
