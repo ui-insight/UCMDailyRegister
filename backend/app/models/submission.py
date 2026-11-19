@@ -136,6 +136,26 @@ class Submission(Base):
         version = working_revision(self)
         return version.Id if version else None
 
+    @property
+    def Edited_Headline(self) -> str | None:
+        """The working revision's headline when editing changed it.
+
+        Lets list views show the title staff will publish next to the
+        submitted one. None when nothing has been edited, the headline is
+        unchanged, or Edit_Versions was not loaded.
+        """
+        from app.services.editorial_content import working_revision
+
+        if "Edit_Versions" in sa.inspect(self).unloaded:
+            return None
+
+        version = working_revision(self)
+        if version is None or version.Version_Type == "original":
+            return None
+        if version.Headline.strip() == (self.Original_Headline or "").strip():
+            return None
+        return version.Headline
+
 
 class SubmissionLink(Base):
     """A hyperlink associated with a submission for embedding in the published item."""

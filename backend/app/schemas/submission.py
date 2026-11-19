@@ -190,6 +190,7 @@ class SubmissionResponse(BaseModel):
     Approved_Version_Id: str | None = None
     Working_Version_Id: str | None = None
     Staff_Revision_Id: str | None = None
+    Edited_Headline: str | None = None
     Created_At: datetime
     Updated_At: datetime
     Links: list[LinkResponse]
