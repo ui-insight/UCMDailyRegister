@@ -39,6 +39,7 @@ from app.schemas.newsletter import (
     AssembleRequest,
 )
 from app.schemas.recurring_message import RecurringMessageIssueCandidateResponse
+from app.utils.ap_dates import ap_month_day
 from app.utils.export import NO_EVENTS_TEXT, export_newsletter_docx
 
 router = APIRouter(prefix="/newsletters", tags=["newsletters"])
@@ -49,21 +50,7 @@ ACADEMIC_DATES_WINDOW_DAYS = 30
 
 def _format_academic_date(value) -> str:
     """Format a date using the AP-style month names required by UCM."""
-    month_names = {
-        1: "Jan.",
-        2: "Feb.",
-        3: "March",
-        4: "April",
-        5: "May",
-        6: "June",
-        7: "July",
-        8: "Aug.",
-        9: "Sept.",
-        10: "Oct.",
-        11: "Nov.",
-        12: "Dec.",
-    }
-    return f"{value.strftime('%A')}, {month_names[value.month]} {value.day}"
+    return f"{value.strftime('%A')}, {ap_month_day(value)}"
 
 
 def _build_academic_date_body(description: str | None) -> str:
@@ -677,6 +664,8 @@ async def export_newsletter(
     # Organize items by section. Empty sections are left out, except the
     # events heading, which stays in place with "No events." (#443).
     calendar_slug = newsletter_service.get_calendar_section_slug(newsletter.Newsletter_Type)
+    # Job listings export as a tight list, one per line (#536).
+    jobs_slug = newsletter_service.get_job_postings_section_slug(newsletter.Newsletter_Type)
     export_sections = []
     for section in sections:
         section_items = sorted(
@@ -694,6 +683,7 @@ async def export_newsletter(
                     for it in section_items
                 ],
                 "empty_text": NO_EVENTS_TEXT if section.Slug == calendar_slug else None,
+                "compact": section.Slug == jobs_slug,
             })
 
     buffer = export_newsletter_docx(
