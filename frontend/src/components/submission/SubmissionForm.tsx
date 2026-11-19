@@ -715,27 +715,6 @@ export default function SubmissionForm() {
                 </p>
               </div>
             </div>
-            <div>
-              <label htmlFor="submission-job-remove-date" className="block text-sm font-medium text-gray-700 mb-1">
-                Remove listing early? (optional)
-              </label>
-              <input
-                id="submission-job-remove-date"
-                {...fieldErrorProps(fieldErrors, 'submission-job-remove-date', 'submission-job-remove-date-hint')}
-                type="date"
-                value={jobRemoveDate}
-                onChange={(e) => setJobRemoveDate(e.target.value)}
-                min={schedule.Requested_Date || getMinDate()}
-                max={schedule.Requested_Date
-                  ? addDaysToISODate(schedule.Requested_Date, 13)
-                  : undefined}
-                className="w-full max-w-xs rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
-              />
-              <FieldError errors={fieldErrors} id="submission-job-remove-date" />
-              <p id="submission-job-remove-date-hint" className="text-xs text-gray-600 mt-1">
-                If the position closes before two weeks, select the date to stop running.
-              </p>
-            </div>
           </div>
         ) : (
           /* --- Standard announcement form --- */
@@ -805,6 +784,30 @@ export default function SubmissionForm() {
           secondaryValidDates={secondaryValidDates.size > 0 ? secondaryValidDates : undefined}
           showRecurrenceControls={isStaff && !isJobOpportunity}
           showRepeatCount={!isJobOpportunity}
+          hideFlexible={isJobOpportunity}
+          afterRequestedDate={isJobOpportunity ? (
+            <div>
+              <label htmlFor="submission-job-remove-date" className="block text-sm font-medium text-gray-700 mb-1">
+                Remove listing early? (optional)
+              </label>
+              <input
+                id="submission-job-remove-date"
+                {...fieldErrorProps(fieldErrors, 'submission-job-remove-date', 'submission-job-remove-date-hint')}
+                type="date"
+                value={jobRemoveDate}
+                onChange={(e) => setJobRemoveDate(e.target.value)}
+                min={schedule.Requested_Date || getMinDate()}
+                max={schedule.Requested_Date
+                  ? addDaysToISODate(schedule.Requested_Date, 13)
+                  : undefined}
+                className="w-full max-w-xs rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
+              />
+              <FieldError errors={fieldErrors} id="submission-job-remove-date" />
+              <p id="submission-job-remove-date-hint" className="text-xs text-gray-600 mt-1">
+                If the position closes before two weeks, select the date to stop running.
+              </p>
+            </div>
+          ) : undefined}
           heading={isPublicFacultyStaffFlow && alsoPublishInStudentNewsletter
             ? 'Daily Register publication preferences'
             : undefined}

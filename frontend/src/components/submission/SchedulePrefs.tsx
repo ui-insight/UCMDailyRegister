@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import FieldError from '../common/FieldError';
 import { fieldErrorProps, type FieldErrors } from '../../utils/formValidation';
 import type { TargetNewsletter } from '../../types/submission';
@@ -27,6 +28,10 @@ interface Props {
   heading?: string;
   preferredDateLabel?: string;
   secondDateLabel?: string;
+  /** Extra fields rendered directly below the preferred run date (#537). */
+  afterRequestedDate?: ReactNode;
+  /** Hide the "My dates are somewhat flexible" checkbox (#537). */
+  hideFlexible?: boolean;
 }
 
 function validateDate(
@@ -71,6 +76,11 @@ function recurrenceEndHint(recurrenceType: ScheduleEntry['Recurrence_Type']): st
   return recurrenceType === 'once'
     ? 'Not used for one-time requests'
     : 'Required. The last date this can run.';
+}
+
+function preferredDateHint(target: TargetNewsletter, validDates?: Set<string>): string {
+  if (validDates) return 'Select a valid publication date';
+  return target === 'myui' ? 'My UI publishes Mondays only' : 'Mon–Fri only';
 }
 
 function getMinDate(): string {
@@ -158,6 +168,50 @@ function DateField({
   );
 }
 
+interface FlexibleDatesProps {
+  errors: FieldErrors;
+  schedule: ScheduleEntry;
+  onChange: (schedule: ScheduleEntry) => void;
+}
+
+function FlexibleDates({ errors, schedule, onChange }: FlexibleDatesProps) {
+  return (
+    <div className="mt-3">
+      <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={schedule.Is_Flexible}
+          onChange={(e) => {
+            const checked = e.target.checked;
+            onChange({
+              ...schedule,
+              Is_Flexible: checked,
+              ...(checked ? {} : { Flexible_Deadline: '' }),
+            });
+          }}
+          className="rounded border-gray-300 text-ui-gold-800 focus:ring-ui-gold-500"
+        />
+        My dates are somewhat flexible
+      </label>
+      {schedule.Is_Flexible && (
+        <div className="mt-2">
+        <label htmlFor="submission-flexible-deadline" className="block text-xs text-gray-600 mb-1">Timing flexibility (optional)</label>
+        <input
+          id="submission-flexible-deadline"
+          {...fieldErrorProps(errors, 'submission-flexible-deadline')}
+          type="text"
+          placeholder="e.g., anytime the week of March 19"
+          value={schedule.Flexible_Deadline}
+          onChange={(e) => onChange({ ...schedule, Flexible_Deadline: e.target.value })}
+          className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
+        />
+        <FieldError errors={errors} id="submission-flexible-deadline" />
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function SchedulePrefs({
   errors = {},
   schedule,
@@ -170,6 +224,8 @@ export default function SchedulePrefs({
   heading = 'Scheduling Preferences',
   preferredDateLabel = 'Preferred run date',
   secondDateLabel = 'Second run date',
+  afterRequestedDate,
+  hideFlexible = false,
 }: Props) {
   const update = (field: keyof ScheduleEntry, value: string | number | boolean) => {
     onChange({ ...schedule, [field]: value });
@@ -233,11 +289,7 @@ export default function SchedulePrefs({
                 label={preferredDateLabel}
                 value={schedule.Requested_Date}
                 error={dateError}
-                hint={validDates
-                  ? 'Select a valid publication date'
-                  : targetNewsletter === 'myui'
-                    ? 'My UI publishes Mondays only'
-                    : 'Mon–Fri only'}
+                hint={preferredDateHint(targetNewsletter, validDates)}
                 min={getMinDate()}
                 required
                 onChange={(value) => update('Requested_Date', value)}
@@ -278,6 +330,8 @@ export default function SchedulePrefs({
           )}
         </>
       )}
+
+      {afterRequestedDate && <div className="mt-3">{afterRequestedDate}</div>}
 
       {showRecurrenceControls ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-3">
@@ -381,39 +435,7 @@ export default function SchedulePrefs({
           </div>
         )
       )}
-      <div className="mt-3">
-        <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={schedule.Is_Flexible}
-            onChange={(e) => {
-              const checked = e.target.checked;
-              onChange({
-                ...schedule,
-                Is_Flexible: checked,
-                ...(checked ? {} : { Flexible_Deadline: '' }),
-              });
-            }}
-            className="rounded border-gray-300 text-ui-gold-800 focus:ring-ui-gold-500"
-          />
-          My dates are somewhat flexible
-        </label>
-        {schedule.Is_Flexible && (
-          <div className="mt-2">
-          <label htmlFor="submission-flexible-deadline" className="block text-xs text-gray-600 mb-1">Timing flexibility (optional)</label>
-          <input
-            id="submission-flexible-deadline"
-            {...fieldErrorProps(errors, 'submission-flexible-deadline')}
-            type="text"
-            placeholder="e.g., anytime the week of March 19"
-            value={schedule.Flexible_Deadline}
-            onChange={(e) => update('Flexible_Deadline', e.target.value)}
-            className="mt-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-ui-gold-500 focus:ring-1 focus:ring-ui-gold-500"
-          />
-          <FieldError errors={errors} id="submission-flexible-deadline" />
-          </div>
-        )}
-      </div>
+      {!hideFlexible && <FlexibleDates errors={errors} schedule={schedule} onChange={onChange} />}
       <div className="mt-3">
         <label
           htmlFor="submission-scheduling-notes"

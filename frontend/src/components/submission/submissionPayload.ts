@@ -111,6 +111,10 @@ function buildScheduleRequests(
   if (values.isJobOpportunity) {
     return [{
       ...baseScheduleRequest,
+      // Job postings never offer flexible dates (#537), even if the flag was
+      // set while another category was selected.
+      Is_Flexible: false,
+      Flexible_Deadline: undefined,
       Requested_Date: schedule.Requested_Date,
       Second_Requested_Date: undefined,
       Repeat_Count: 1,
@@ -186,7 +190,10 @@ function fieldIdForLocation(location: unknown[], context: ServerErrorContext): s
       Second_Requested_Date: context.combinesStudentDates
         ? `submission-student-date-${location[1]}`
         : context.secondDateId,
-      Recurrence_End_Date: 'submission-recurrence-end-date',
+      // Jobs carry their end date in the early-removal field, not recurrence controls.
+      Recurrence_End_Date: context.isJobOpportunity
+        ? 'submission-job-remove-date'
+        : 'submission-recurrence-end-date',
       Recurrence_Interval: 'submission-recurrence-interval',
     };
     return scheduleFields[String(location.at(-1))];
