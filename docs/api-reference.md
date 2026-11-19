@@ -65,6 +65,7 @@ refused; needs an administrator), `no_account` (no email claim),
 | Method | Path                                                              | Description                          |
 |--------|-------------------------------------------------------------------|--------------------------------------|
 | POST   | `/api/v1/submissions/{id}/schedule`                               | Add a schedule request (staff)       |
+| PATCH  | `/api/v1/submissions/{id}/schedule/{schedule_id}`                 | Set how a repeating schedule ends: an end date or `Repeats_Indefinitely` (staff) |
 | DELETE | `/api/v1/submissions/{id}/schedule/{schedule_id}`                 | Remove a schedule request            |
 | POST   | `/api/v1/submissions/{id}/schedule/{schedule_id}/skip`            | Skip a recurring occurrence (staff)  |
 | POST   | `/api/v1/submissions/{id}/schedule/{schedule_id}/reschedule`      | Move a recurring occurrence (staff)  |

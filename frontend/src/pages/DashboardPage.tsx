@@ -8,7 +8,8 @@ import type { ProductFeedbackSummary } from '../types/feedback';
 import CalendarView from '../components/dashboard/CalendarView';
 import WeekOverview from '../components/dashboard/WeekOverview';
 import DayDetail from '../components/dashboard/DayDetail';
-import { getPrimaryOccurrenceDate } from '../utils/submissionOccurrences';
+import { getPrimaryOccurrenceDate, repeatsIndefinitely } from '../utils/submissionOccurrences';
+import RepeatsIndefinitelyBadge from '../components/editor/RepeatsIndefinitelyBadge';
 import { Button, Card, EmptyState, SegmentedToggle } from '../components/common';
 import { parseAPIDateTime, toISODate } from '../utils/date';
 
@@ -415,6 +416,7 @@ export default function DashboardPage() {
                     <span className="text-xs bg-ui-gold-50 text-ui-gold-800 px-2 py-0.5 rounded font-medium">
                       {NEWSLETTER_LABELS[sub.Target_Newsletter]}
                     </span>
+                    {repeatsIndefinitely(sub) && <RepeatsIndefinitelyBadge />}
                   </div>
                   <h3 className="text-sm font-semibold text-gray-900 truncate">
                     {sub.Edited_Headline ?? sub.Original_Headline}

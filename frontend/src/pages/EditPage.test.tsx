@@ -168,6 +168,7 @@ beforeEach(() => {
     Recurrence_Type: 'once',
     Recurrence_Interval: 1,
     Recurrence_End_Date: null,
+    Repeats_Indefinitely: false,
     Excluded_Dates: [],
     Occurrence_Dates: ['2026-04-15'],
   });
@@ -182,6 +183,7 @@ beforeEach(() => {
     Recurrence_Type: 'once',
     Recurrence_Interval: 1,
     Recurrence_End_Date: null,
+    Repeats_Indefinitely: false,
     Excluded_Dates: ['2026-04-15'],
     Occurrence_Dates: [],
   });
@@ -196,6 +198,7 @@ beforeEach(() => {
     Recurrence_Type: 'once',
     Recurrence_Interval: 1,
     Recurrence_End_Date: null,
+    Repeats_Indefinitely: false,
     Excluded_Dates: [],
     Occurrence_Dates: ['2026-04-22'],
   });

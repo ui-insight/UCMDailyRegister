@@ -62,6 +62,35 @@ class LinkResponse(BaseModel):
 
 # --- Schedule request schemas ---
 
+INDEFINITE_RECURRENCE_TYPES = frozenset({"weekly", "monthly_date", "monthly_nth_weekday"})
+
+
+def _validate_recurrence_end(
+    recurrence_type: str,
+    recurrence_end_date: date | None,
+    repeats_indefinitely: bool,
+) -> None:
+    """A repeating schedule needs exactly one of an end date or "repeat indefinitely".
+
+    Both at once is rejected instead of silently preferring one, so staff
+    always see the schedule they asked for (#538).
+    """
+    if repeats_indefinitely:
+        if recurrence_type not in INDEFINITE_RECURRENCE_TYPES:
+            raise ValueError(
+                "Repeats_Indefinitely is only available for weekly or monthly recurrence"
+            )
+        if recurrence_end_date is not None:
+            raise ValueError(
+                "Choose either Recurrence_End_Date or Repeats_Indefinitely, not both"
+            )
+        return
+    if recurrence_type != "once" and recurrence_end_date is None:
+        raise ValueError(
+            f"Recurrence_End_Date is required for {recurrence_type} recurrence"
+            " unless Repeats_Indefinitely is set"
+        )
+
 
 class ScheduleRequestCreate(BaseModel):
     Requested_Date: date | None = None
@@ -76,6 +105,7 @@ class ScheduleRequestCreate(BaseModel):
     )
     Recurrence_Interval: int = Field(1, ge=1, le=12)
     Recurrence_End_Date: date | None = None
+    Repeats_Indefinitely: bool = False
     Excluded_Dates: list[date] = Field(default_factory=list)
 
     @model_validator(mode="after")
@@ -96,10 +126,11 @@ class ScheduleRequestCreate(BaseModel):
             raise ValueError(
                 "Recurrence_End_Date cannot be before the recurrence start date"
             )
-        if self.Recurrence_Type != "once" and self.Recurrence_End_Date is None:
-            raise ValueError(
-                f"Recurrence_End_Date is required for {self.Recurrence_Type} recurrence"
-            )
+        _validate_recurrence_end(
+            self.Recurrence_Type,
+            self.Recurrence_End_Date,
+            self.Repeats_Indefinitely,
+        )
         return self
 
 
@@ -114,10 +145,32 @@ class ScheduleRequestResponse(BaseModel):
     Recurrence_Type: str
     Recurrence_Interval: int
     Recurrence_End_Date: date | None
+    Repeats_Indefinitely: bool = False
     Excluded_Dates: list[date] = Field(default_factory=list)
     Occurrence_Dates: list[date] = Field(default_factory=list)
 
     model_config = {"from_attributes": True}
+
+
+class ScheduleRequestUpdate(BaseModel):
+    """Change how a repeating schedule ends: give it an end date or repeat indefinitely.
+
+    Setting an end date ends the series after that date; dates already
+    published are kept. Exactly one of the two fields must be given.
+    """
+
+    Recurrence_End_Date: date | None = None
+    Repeats_Indefinitely: bool = False
+
+    @model_validator(mode="after")
+    def require_one_ending(self) -> "ScheduleRequestUpdate":
+        if self.Repeats_Indefinitely and self.Recurrence_End_Date is not None:
+            raise ValueError(
+                "Choose either Recurrence_End_Date or Repeats_Indefinitely, not both"
+            )
+        if not self.Repeats_Indefinitely and self.Recurrence_End_Date is None:
+            raise ValueError("Give a Recurrence_End_Date or set Repeats_Indefinitely")
+        return self
 
 
 class ScheduleOccurrenceSkipRequest(BaseModel):

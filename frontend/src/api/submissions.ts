@@ -92,6 +92,28 @@ export interface AddScheduleRequestData {
   Recurrence_Type?: 'once' | 'weekly' | 'monthly_date' | 'monthly_nth_weekday' | 'date_range';
   Recurrence_Interval?: number;
   Recurrence_End_Date?: string;
+  Repeats_Indefinitely?: boolean;
+}
+
+/** Mirrors backend ScheduleRequestUpdate: exactly one of the two endings. */
+export interface ScheduleRequestUpdate {
+  Recurrence_End_Date?: string | null;
+  Repeats_Indefinitely?: boolean;
+}
+
+/** Give a repeating schedule an end date, or set it to repeat indefinitely (staff). */
+export async function updateScheduleRequestEnding(
+  submissionId: string,
+  scheduleId: string,
+  data: ScheduleRequestUpdate,
+): Promise<SubmissionScheduleRequest> {
+  return apiFetch<SubmissionScheduleRequest>(
+    `/submissions/${submissionId}/schedule/${scheduleId}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    },
+  );
 }
 
 export async function addScheduleRequest(

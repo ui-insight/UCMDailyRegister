@@ -90,6 +90,7 @@ async def create_submission(db: AsyncSession, data: SubmissionCreate) -> Submiss
             Recurrence_Type=sched_data.Recurrence_Type,
             Recurrence_Interval=sched_data.Recurrence_Interval,
             Recurrence_End_Date=sched_data.Recurrence_End_Date,
+            Repeats_Indefinitely=sched_data.Repeats_Indefinitely,
             Excluded_Dates=[excluded.isoformat() for excluded in sched_data.Excluded_Dates],
         )
         db.add(sched)
@@ -363,6 +364,7 @@ async def add_schedule_request(
     recurrence_interval: int = 1,
     recurrence_end_date: date | None = None,
     excluded_dates: list[date] | None = None,
+    repeats_indefinitely: bool = False,
 ) -> SubmissionScheduleRequest | None:
     submission = await get_submission(db, submission_id)
     if not submission:
@@ -378,12 +380,57 @@ async def add_schedule_request(
         Recurrence_Type=recurrence_type,
         Recurrence_Interval=recurrence_interval,
         Recurrence_End_Date=recurrence_end_date,
+        Repeats_Indefinitely=repeats_indefinitely,
         Excluded_Dates=[excluded.isoformat() for excluded in (excluded_dates or [])],
     )
     db.add(sched)
     await db.commit()
     await db.refresh(sched)
     return sched
+
+
+class ScheduleEndingError(ValueError):
+    """The requested change to how a schedule ends is not allowed."""
+
+
+async def set_schedule_request_ending(
+    db: AsyncSession,
+    submission_id: str,
+    schedule_id: str,
+    *,
+    recurrence_end_date: date | None,
+    repeats_indefinitely: bool,
+) -> SubmissionScheduleRequest | None:
+    """Give a repeating schedule an end date, or mark it to repeat indefinitely.
+
+    Only the ending changes. The start date, cadence and skipped dates stay,
+    and newsletters already built keep their items, so ending a series never
+    removes dates that have run (#538). Returns None when the schedule is not
+    found; raises ScheduleEndingError for a schedule that does not repeat or
+    an end date before the series starts.
+    """
+    result = await db.execute(
+        select(SubmissionScheduleRequest).where(
+            SubmissionScheduleRequest.Id == schedule_id,
+            SubmissionScheduleRequest.Submission_Id == submission_id,
+        )
+    )
+    schedule_request = result.scalar_one_or_none()
+    if schedule_request is None:
+        return None
+    if schedule_request.Recurrence_Type not in recurrence_service.REPEATING_RECURRENCE_TYPES:
+        raise ScheduleEndingError(
+            "Only weekly or monthly schedules can change how they end."
+        )
+    anchor = schedule_request.Requested_Date or schedule_request.Second_Requested_Date
+    if recurrence_end_date is not None and anchor is not None and recurrence_end_date < anchor:
+        raise ScheduleEndingError(
+            "Recurrence_End_Date cannot be before the recurrence start date"
+        )
+    schedule_request.Recurrence_End_Date = recurrence_end_date
+    schedule_request.Repeats_Indefinitely = repeats_indefinitely
+    await db.commit()
+    return schedule_request
 
 
 async def delete_schedule_request(

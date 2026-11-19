@@ -46,6 +46,7 @@ export interface SubmissionScheduleRequest {
   Recurrence_Type: 'once' | 'weekly' | 'monthly_date' | 'monthly_nth_weekday' | 'date_range';
   Recurrence_Interval: number;
   Recurrence_End_Date: string | null;
+  Repeats_Indefinitely: boolean;
   Excluded_Dates: string[];
   Occurrence_Dates: string[];
 }
@@ -101,6 +102,7 @@ export interface SubmissionCreate {
     Recurrence_Type?: 'once' | 'weekly' | 'monthly_date' | 'monthly_nth_weekday' | 'date_range';
     Recurrence_Interval?: number;
     Recurrence_End_Date?: string;
+    Repeats_Indefinitely?: boolean;
     Excluded_Dates?: string[];
   }[];
 }
