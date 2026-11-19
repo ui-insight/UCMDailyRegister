@@ -107,11 +107,13 @@ def _joined(gap: str) -> bool:
     return len(gap) <= _MAX_TIME_GAP and not _SENTENCE_BREAK.search(unpunctuated)
 
 
-# Text allowed between a time and the date it leads: nothing, or a weekday
-# ("3-4 p.m. Wednesday, Nov. 18", "3 p.m. on Wednesday, Nov. 18").
+# Text allowed between a time and the date it leads: nothing, a weekday or a
+# weekday range ("3-4 p.m. Wednesday, Nov. 18", "3 p.m. on Wednesday, Nov. 18",
+# "9 a.m. Monday through Wednesday, Nov. 16-18").
+_WEEKDAY = r"(?:Mon|Tues?|Wed(?:nes)?|Thu(?:rs?)?|Fri|Sat(?:ur)?|Sun)(?:day)?\.?"
 _LEADS_DATE = re.compile(
-    r"^\s*(?:(?:on\s+)?(?:Mon|Tues?|Wed(?:nes)?|Thu(?:rs?)?|Fri|Sat(?:ur)?|Sun)"
-    r"(?:day)?\.?,?\s*)?$",
+    rf"^\s*(?:(?:on\s+)?(?:{_WEEKDAY}\s*(?:[-–—]|\bthrough\b|\bthru\b|\bto\b|\band\b)\s*)?"
+    rf"{_WEEKDAY},?\s*)?$",
     re.IGNORECASE,
 )
 
@@ -138,11 +140,14 @@ def _date_times(
     return [min(minutes) if minutes else UNTIMED for minutes in owned]
 
 
-# "Nov. 18-20, 2027", "Nov. 18 – 20", "Nov. 30–Dec. 2, 2026", "Nov. 30 to Dec. 2"
+# "Nov. 18-20, 2027", "Nov. 18 – 20", "Nov. 30–Dec. 2, 2026", "Nov. 30 to Dec. 2".
+# A number followed by a time is not the end of a range: "Nov. 18 to 5 p.m.",
+# "Nov. 2 to 8:30" (#517).
 _DATE_RANGE = re.compile(
     rf"\b(?P<month>{_MONTH_NAME})\.?\s+(?P<day>\d{{1,2}})"
     rf"\s*(?:[-–—]|\bto\b|\bthrough\b|\bthru\b)\s*"
     rf"(?:(?P<end_month>{_MONTH_NAME})\.?\s+)?(?P<end_day>\d{{1,2}})\b"
+    rf"(?!:\d|\s*{_PERIOD})"
     rf"(?:,\s*(?P<year>\d{{4}}))?",
     re.IGNORECASE,
 )
@@ -204,8 +209,14 @@ def moments_in_text(text: str, publish_date: date) -> list[tuple[date, int]]:
     range's time applies to every date read from it.
     """
     plain = strip_html(text or "")
-    ranges = list(_DATE_RANGE.finditer(plain))
-    range_spans = [match.span() for match in ranges]
+    # A range that can't be read (backwards, or an impossible day) is
+    # discarded, and the single dates inside it are read on their own (#517).
+    ranges = [
+        (match, dates)
+        for match in _DATE_RANGE.finditer(plain)
+        if (dates := _range_dates(match, publish_date))
+    ]
+    range_spans = [match.span() for match, _ in ranges]
     singles = [
         match
         for match in _MONTH_DAY.finditer(plain)
@@ -215,8 +226,8 @@ def moments_in_text(text: str, publish_date: date) -> list[tuple[date, int]]:
         range_spans + [match.span() for match in singles], _times_in_text(plain), plain
     )
     found: list[tuple[date, int]] = []
-    for match, time in zip(ranges, minutes):
-        found.extend((d, time) for d in _range_dates(match, publish_date))
+    for (_, dates), time in zip(ranges, minutes):
+        found.extend((d, time) for d in dates)
     for match, time in zip(singles, minutes[len(ranges):]):
         month = _month_number(match.group("month"))
         if month is None:

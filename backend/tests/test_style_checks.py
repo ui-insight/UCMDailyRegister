@@ -2,6 +2,8 @@
 
 from datetime import date
 
+import pytest
+
 from app.utils.style_checks import (
     strip_html,
     detect_unabbreviated_month_dates,
@@ -35,6 +37,8 @@ from app.utils.style_checks import (
     detect_missing_near_term_weekdays,
     detect_weekday_date_mismatches,
     detect_inserted_weekday_mismatches,
+    detect_weekday_date_conflicts,
+    detect_changed_source_date_conflicts,
     change_contradicts_final_dates,
 )
 
@@ -595,6 +599,81 @@ class TestWeekdayDateConsistency:
             "Orientation is Friday, Jan. 1.",
             reference_date=date(2027, 1, 1),
         ) == []
+
+    @pytest.mark.parametrize(
+        ("text", "reference"),
+        [
+            # #517: the edit prompt's own example of correct output.
+            ("The office is closed Monday through Friday, May 26-30.", date(2025, 5, 1)),
+            ("The bus leaves Tuesday and Wednesday, Nov. 17-18.", date(2026, 11, 16)),
+            ("Sessions run Monday–Wednesday, Nov. 16–18.", date(2026, 11, 10)),
+            ("Sessions run Monday-Wednesday, Nov. 16-18.", date(2026, 11, 10)),
+            ("Sessions run Monday to Wednesday, Nov. 16 through 18.", date(2026, 11, 10)),
+            ("Tuesday, Wednesday and Thursday, Nov. 17-19.", date(2026, 11, 10)),
+            # Across a month and a year boundary.
+            ("The drive runs Monday through Wednesday, Nov. 30–Dec. 2.", date(2026, 11, 10)),
+            ("Closed Wednesday through Saturday, Dec. 30-Jan. 2, 2027.", date(2026, 11, 10)),
+            # A year-less range under way at New Year starts the previous year.
+            ("Closed Wednesday through Saturday, Dec. 30-Jan. 2.", date(2027, 1, 1)),
+            ("Closed Wednesday, Dec. 30-Jan. 2.", date(2027, 1, 1)),
+            # A number followed by a time does not end a date range.
+            ("Doors open Thursday, Nov. 19 to 5 p.m.", date(2026, 11, 16)),
+        ],
+    )
+    def test_accepts_weekday_ranges_that_match_their_date_ranges(self, text, reference):
+        assert detect_weekday_date_mismatches(text, reference_date=reference) == []
+        assert detect_weekday_date_conflicts(text, reference_date=reference) == {}
+
+    @pytest.mark.parametrize(
+        ("text", "reference", "expected"),
+        [
+            # Wrong weekday for a single date is still flagged.
+            ("The talk is Friday, May 26.", date(2025, 5, 1), ["Friday, May 26"]),
+            ("The talk is Wednesday, Nov. 17.", date(2026, 11, 16), ["Wednesday, Nov. 17"]),
+            # A single weekday before a range belongs to its first date.
+            ("Open Friday, May 26-30.", date(2025, 5, 1), ["Friday, May 26"]),
+            # Each end of a weekday range is checked against its date.
+            ("Closed Tuesday through Friday, May 26-30.", date(2025, 5, 1), ["Tuesday, May 26"]),
+            ("Closed Monday through Thursday, May 26-30.", date(2025, 5, 1), ["Thursday, May 30"]),
+            (
+                "The drive runs Monday through Thursday, Nov. 30–Dec. 2.",
+                date(2026, 11, 10),
+                ["Thursday, Dec. 2"],
+            ),
+            (
+                "Closed Thursday through Saturday, Dec. 30-Jan. 2, 2027.",
+                date(2026, 11, 10),
+                ["Thursday, Dec. 30"],
+            ),
+        ],
+    )
+    def test_still_flags_wrong_weekdays_in_and_around_ranges(self, text, reference, expected):
+        assert detect_weekday_date_mismatches(text, reference_date=reference) == expected
+
+    def test_range_conflict_note_names_the_date_it_checked(self):
+        assert detect_weekday_date_conflicts(
+            "Closed Monday through Thursday, May 26-30, 2025.",
+            reference_date=date(2025, 5, 1),
+        ) == {
+            "Thursday, May 30, 2025": "DATE CONFLICT: MAY 30, 2025, IS A FRIDAY, NOT A THURSDAY"
+        }
+
+    def test_range_kept_from_source_is_not_an_inserted_or_changed_conflict(self):
+        text = "The bus leaves Tuesday and Wednesday, Nov. 17-18."
+        reference = date(2026, 11, 16)
+        assert detect_inserted_weekday_mismatches(text, text, reference_date=reference) == {}
+        assert detect_changed_source_date_conflicts(text, text, reference_date=reference) == {}
+
+    def test_end_of_a_date_range_needs_no_weekday_of_its_own(self):
+        assert detect_missing_near_term_weekdays(
+            "The drive runs Monday–Wednesday, Nov. 30–Dec. 2.",
+            reference_date=date(2026, 11, 16),
+        ) == []
+        # A list is not a range: each listed date needs its weekday.
+        assert detect_missing_near_term_weekdays(
+            "Apply by Monday, Nov. 30 and Dec. 2.",
+            reference_date=date(2026, 11, 16),
+        ) == ["Dec. 2"]
 
 
 class TestInsertedWeekdays:
