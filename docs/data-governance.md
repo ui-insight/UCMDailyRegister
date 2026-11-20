@@ -36,7 +36,7 @@ contain information beyond their intended purpose.
 | AI task instructions, status, result JSON, source fingerprint and attempt ID | `ai_edit_tasks` | Durable editing/retry context; staff; results can repeat copy, links and personal data | Parent submission category; deleted with source, no independent automatic expiry |
 | Feedback email, summary/details, route, host, browser, viewport, reported role | `product_feedback` | Product support; staff; creation response returned to caller | Feedback category; reported role is client context, not verified identity |
 | Email/username subject, display name, mapped role | Entra/Graph exchange; signed app JWT; browser localStorage | Sign-in and authorization | JWT defaults to 480 minutes; browser token removed on local sign-out or next load detecting expiry |
-| OIDC state and next-path context | Signed browser session cookie; transient server memory | Bind authorization flow to browser | Starlette session cookie defaults to 14 days; verify cookie policy during deployment review |
+| OIDC state and next-path context | Signed browser session cookie; transient server memory | Bind authorization flow to browser | Cookie expires after 10 minutes and is emptied at the end of every sign-in callback |
 | Entra tokens/group claims | Transient backend memory during sign-in | Validate identity; optionally query Graph `/me/memberOf` | Not intentionally stored as database records or forwarded to the SPA |
 | API keys, DB credentials, signing/client secrets | Runtime environment and deployment secret files | Backend/provider access | Rotate per owner-approved secrets procedure; never submit in forms |
 
@@ -56,8 +56,8 @@ incident procedure below.
 
 `AUTH_PROVIDER=oidc` uses Entra's confidential-client authorization-code flow.
 The backend verifies the response, maps App Roles (or Graph groups), and issues
-an HS256 app JWT. Only bearer credentials count in this mode. Unmapped users
-are refused; role changes take effect at next sign-in or token expiry. Browser
+an HS256 app JWT. Only bearer credentials count in this mode. A signed-in
+University account in no mapped role is a submitter (ADR-002); role changes take effect at next sign-in or token expiry. Browser
 sign-out clears local state and goes through Entra logout. There is no
 per-token revocation service.
 
@@ -84,7 +84,7 @@ publication.
 | `/ai-edits`, `/newsletters` including imports/exports, `/recurring-messages`, `/style-rules`, `GET /settings/ai` | No | No | No | Read/change according to endpoint |
 | `POST /feedback` | Create; receives created record | Same | Same | Same |
 | Feedback list/summary/update, notification retry, GitHub export preparation | No | No | No | Yes |
-| Allowed values, sections, schedule GETs, `/settings/ai` | Read; category visibility filtering applies to allowed values | Read | Read | Read |
+| Allowed values, sections, schedule GETs | Read; category visibility filtering applies to allowed values | Read | Read | Read |
 | Schedule POST/DELETE | No | No | No | Yes |
 | `/health`, `/readyz`, `/auth/config` | Read | Read | Read | Read |
 | `/auth/me` | No | Own valid bearer identity in OIDC mode | Same | Same |
@@ -140,9 +140,10 @@ references remain pending in the decision register. See [AI editing](ai-editing.
 
 ## Uploads and minimization
 
-JPEG, PNG, GIF and WebP uploads are UUID-named in the upload volume. Supported
-still images are decoded and rewritten without metadata; processing failure
-rejects the upload. GIF does not receive the same EXIF rewrite. Image content can
+JPEG, PNG, GIF and WebP uploads are UUID-named in the upload volume. Every
+format is decoded and rewritten without metadata; GIFs are re-encoded frame by
+frame keeping only playback settings, which drops comment and XMP blocks.
+Processing failure rejects the upload. Image content can
 itself identify people. Deleting a submission through the existing endpoint does
 not currently guarantee upload-file disposal; use the reviewed disposal design
 rather than claiming endpoint deletion meets retention policy.

@@ -171,3 +171,41 @@ class TestSubmissionImages:
         assert submission is not None
         assert submission.Has_Image is False
         assert submission.Image_Path is None
+
+
+class TestGifMetadata:
+    """GIFs are re-encoded so comment blocks do not survive into storage."""
+
+    def test_comment_is_removed_and_frames_kept(self, tmp_path):
+        from PIL import Image
+
+        from app.services.image_service import _strip_exif
+
+        path = tmp_path / "anim.gif"
+        frames = [
+            Image.new("RGB", (4, 4), color)
+            for color in ((255, 0, 0), (0, 255, 0), (0, 0, 255))
+        ]
+        frames[0].save(
+            path, format="GIF", save_all=True, append_images=frames[1:],
+            duration=120, loop=0, comment=b"SYNTHETIC-GIF-COMMENT-7f1",
+        )
+        assert b"SYNTHETIC-GIF-COMMENT-7f1" in path.read_bytes()
+
+        _strip_exif(str(path))
+
+        assert b"SYNTHETIC-GIF-COMMENT-7f1" not in path.read_bytes()
+        with Image.open(path) as cleaned:
+            assert cleaned.format == "GIF"
+            assert cleaned.n_frames == 3
+            assert cleaned.info.get("duration") == 120
+
+    def test_single_frame_gif_comment_is_removed(self, tmp_path):
+        from PIL import Image
+
+        from app.services.image_service import _strip_exif
+
+        path = tmp_path / "still.gif"
+        Image.new("P", (4, 4), 1).save(path, format="GIF", comment=b"SYNTHETIC-GIF-COMMENT-7f2")
+        _strip_exif(str(path))
+        assert b"SYNTHETIC-GIF-COMMENT-7f2" not in path.read_bytes()

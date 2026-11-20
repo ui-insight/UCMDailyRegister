@@ -130,6 +130,13 @@ environment-file backup, failure alerting and a recorded restore exercise remain
 open, so the "Backup job, expiry, encryption and latest paired restore" field above
 stays pending. No credentials or database contents are recorded here.
 
+Since November 20, 2026, `scripts/backup.sh` can encrypt each recovery point to an
+off-server GPG public key (`BACKUP_GPG_RECIPIENT`; see Backup & Recovery). It was
+tested on openera with a throwaway key: only ciphertext remained, both files
+decrypted to the manifest checksums, and a missing key failed the run without
+leaving files. Encryption is not yet enabled for the scheduled job: that waits on
+the backup owner generating the key pair and holding the private key off-server.
+
 
 ## Dev restore exercise — November 3, 2026
 

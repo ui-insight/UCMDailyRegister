@@ -312,8 +312,8 @@ class TestAIEditTasks:
             json=make_submission_data(
                 Original_Body=(
                     "The safety fair runs 9-11 a.m. Friday, Aug. 21, in the "
-                    "Pitman Center. For questions, please contact Paul Rowley "
-                    "(prowley@uidaho.edu)."
+                    "Pitman Center. For questions, please contact Jordan Sample "
+                    "(jsample@example.edu)."
                 ),
             ),
         )

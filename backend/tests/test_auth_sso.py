@@ -446,6 +446,25 @@ class TestSsoLogin:
         assert resp.status_code == 302
         return captured, client
 
+    @pytest.mark.parametrize("outcome", ["success", "failure"])
+    async def test_callback_empties_the_sign_in_cookie(self, sso_app, outcome):
+        """OIDC state and `next` are needed for one round trip only."""
+        _, sso = sso_app
+        _, client = await self._login(sso_app, "?next=/dashboard")
+        assert client.cookies.get("session")
+        if outcome == "success":
+            sso.oauth.entra.authorize_access_token = AsyncMock(
+                return_value={"userinfo": {"email": "x@uidaho.edu", "roles": ["UCM-Staff"]}}
+            )
+        else:
+            sso.oauth.entra.authorize_access_token = AsyncMock(side_effect=OAuthError("x"))
+        try:
+            resp = await client.get("/api/v1/auth/callback?code=x&state=y")
+        finally:
+            await client.aclose()
+        assert resp.status_code == 302
+        assert "session=null" in resp.headers.get("set-cookie", "")
+
     async def test_no_hint_forces_account_picker(self, sso_app):
         captured, _ = await self._login(sso_app)
         assert captured["prompt"] == "select_account"

@@ -112,8 +112,14 @@ Secrets are injected at container startup via environment variables. They are ne
 
 App session JWTs persist email/username subject, display name and role in browser
 localStorage until sign-out or expiry cleanup on a subsequent load; there is no
-user table or per-token revocation store. OIDC state uses a signed cookie. Do not
+user table or per-token revocation store. OIDC state uses a signed cookie that
+expires after 10 minutes and is emptied after each sign-in callback. Do not
 confuse token expiry with remote browser erasure.
+
+Because the session token is in localStorage, the frontend nginx sends a strict
+Content-Security-Policy (scripts from this origin only, no framing) plus
+`X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy` and
+`Permissions-Policy` headers (`frontend/nginx.conf`).
 
 Application log messages exclude identities, full URLs and external exception
 text. Docker runs content-minimized JSON diagnostics with bounded log sizes.

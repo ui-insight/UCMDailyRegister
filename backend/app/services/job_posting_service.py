@@ -187,11 +187,13 @@ async def _fetch_job_page(
             _throttled_until = time.monotonic() + _THROTTLE_BACKOFF_SECONDS
             return False, None
         except (CareersSiteError, httpx.HTTPError) as exc:
-            logger.warning("Job page %s could not be read: %s", url, exc)
+            # Content-free logging: exception class only, never the URL or
+            # the transport's message (docs/audit-logging.md).
+            logger.warning("Job page could not be read error_type=%s", type(exc).__name__)
             return False, None
     posting = parse_careers_job_page(response.text, url)
     if posting is None:
-        logger.info("Job page %s has no open JobPosting data", url)
+        logger.info("Job page has no open JobPosting data")
     return True, posting
 
 

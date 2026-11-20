@@ -3,7 +3,7 @@ import os
 import uuid
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageSequence
 from fastapi import UploadFile
 
 from app.config import settings
@@ -84,9 +84,36 @@ def _strip_exif(filepath: str) -> None:
     """
     with Image.open(filepath) as img:
         if img.format == "GIF":
+            _strip_gif_metadata(img, filepath)
             return
         cleaned = img.copy()
         cleaned.save(filepath, format=img.format)
+
+
+# Animation settings a GIF needs to play the same; everything else in a GIF's
+# info (comment and XMP/application extension blocks) is dropped.
+_GIF_PLAYBACK_KEYS = ("duration", "loop", "transparency", "background", "disposal")
+
+
+def _strip_gif_metadata(img: Image.Image, filepath: str) -> None:
+    """Re-encode a GIF frame by frame, keeping only playback settings."""
+    frames = []
+    durations = []
+    for frame in ImageSequence.Iterator(img):
+        copy = frame.copy()
+        durations.append(frame.info.get("duration", 100))
+        copy.info = {}
+        frames.append(copy)
+    playback = {key: img.info[key] for key in _GIF_PLAYBACK_KEYS if key in img.info}
+    playback.pop("duration", None)
+    first, rest = frames[0], frames[1:]
+    if rest:
+        first.save(
+            filepath, format="GIF", save_all=True, append_images=rest,
+            duration=durations, **playback,
+        )
+    else:
+        first.save(filepath, format="GIF", **playback)
 
 
 async def save_upload_file(file: UploadFile, filename: str) -> str:

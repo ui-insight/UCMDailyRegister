@@ -81,12 +81,43 @@ removes its incomplete directory, if the dump is empty, cannot be listed by
 Check freshness daily with `scripts/backup.sh prod --check`, which exits 1 when no
 backup has succeeded in the last 26 hours.
 
+### Encryption at rest
+
+When `BACKUP_GPG_RECIPIENT` is set (in `~/.config/ucmnews-backup.env` for cron),
+each verified recovery point is encrypted to that public key as
+`database.dump.gpg` and `uploads.tgz.gpg`, and the plaintext files are removed.
+The manifest keeps checksums of both the plaintext (to verify a decrypted
+restore) and the encrypted files, and records `encrypted=gpg:<fingerprint>`. If
+the variable is set but the key is missing or encryption fails, the run fails and
+leaves no recovery point, rather than leaving plaintext behind. Unset, it records
+`encrypted=no`.
+
+Only the **public** key is on the server. The private key, needed for every
+restore, is held off-server by the accountable owner (for example in 1Password),
+so the devops account, a disk image or a server snapshot cannot read the backups.
+One-time setup:
+
+1. On a trusted workstation: `gpg --quick-gen-key "UCM News backups <owner email>" rsa4096 encrypt never`,
+   then `gpg --armor --export <fingerprint> > ucmnews-backup.pub` and
+   `gpg --armor --export-secret-keys <fingerprint>`; store the secret key and
+   its passphrase in the owner's vault, and test a decrypt before relying on it.
+2. On the server as `devops`: `gpg --import ucmnews-backup.pub`, then write
+   `BACKUP_GPG_RECIPIENT=<fingerprint>` to `~/.config/ucmnews-backup.env` (mode 600).
+3. Run `scripts/backup.sh dev` once and confirm `encrypted=gpg:...` in its
+   `MANIFEST.txt`. Recovery points written before this stay unencrypted; encrypt
+   or remove them once an encrypted point has been restore-tested.
+
+To restore, copy the `.gpg` files to the isolated recovery environment, decrypt
+with `gpg --decrypt <file>.gpg > <file>`, and check the plaintext SHA-256 against
+the manifest before step 2 of the restore exercise.
+
 What the job does not do yet:
 
 - **Expiry.** Nothing is pruned, because backup expiry is pending Data Owner
   approval. A recovery point is under 1 MB today; review disk use monthly.
-- **Off-host, encrypted copies.** Backups stay on the same VM as the database
-  host until an approved off-host store is chosen.
+- **Off-host copies.** Backups stay on the same VM as the database host until an
+  approved off-host store for the data's tier is chosen. Encrypt first (above),
+  so the off-host copy carries ciphertext only.
 - **Environment files.** They hold secrets and need their own controlled,
   encrypted backup; the job does not copy them.
 - **Alerting.** Failures are logged but nobody is notified automatically.
