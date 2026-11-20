@@ -208,10 +208,10 @@
       ],
       "requirement_summary": "Hosted deployments should use Azure Pipelines, ArgoCD, Kustomize, OIT-provisioned namespaces, and no direct cluster access in test or production.",
       "current_assertion": {
-        "status": "gap",
-        "summary": "The repository has GitHub Actions CI and Docker Compose deployment documentation for the openera host. It does not contain Azure Pipelines, ArgoCD application definitions, Kustomize overlays, or OIT namespace/RBAC evidence.",
-        "validated_at": "2026-10-22",
-        "validated_by": "Codex repository review; institutional approval not asserted"
+        "status": "not_applicable",
+        "summary": "UCM Daily Register is self-hosted by IIDS on the openera server, an arrangement agreed with OIT, with precedent from other IIDS applications. The OIT-managed delivery path (Azure Pipelines, ArgoCD, Kustomize, OIT namespaces) applies to OIT-hosted applications and does not apply here. Delivery uses GitHub Actions CI, Docker Compose and deploy.sh on openera.",
+        "validated_at": "2026-11-20",
+        "validated_by": "IIDS project lead; hosting arrangement agreed with OIT"
       },
       "github_issue": {
         "number": 173,
@@ -246,15 +246,9 @@
         }
       ],
       "required_evidence": [
-        "Azure Pipeline YAML or deployment repository link",
-        "ArgoCD application evidence",
-        "Kustomize overlays",
-        "Image digest and namespace/RBAC evidence"
+        "Written record of the IIDS hosting arrangement with OIT, for the review packet"
       ],
-      "blockers": [
-        "OIT namespace provisioning",
-        "OIT decision on GitHub Actions/GitHub Enterprise approval for this application"
-      ],
+      "blockers": [],
       "tags": [
         "deployment",
         "integration",
@@ -555,7 +549,7 @@
       "requirement_summary": "AI model calls should use the approved gateway and models, with registry evidence for model selection, data classification, and exception handling.",
       "current_assertion": {
         "status": "needs_decision",
-        "summary": "Newsletter editing supports Anthropic/OpenAI/MindRouter; ops classification uses an independently configured MindRouter provider. Inputs, repair calls and persisted outputs are documented. Approved endpoint/model list, contracts, mandatory gateway and external-provider exceptions are pending; on-campus routing is not inferred from configurable URLs.",
+        "summary": "Newsletter editing uses MindRouter only (Anthropic and OpenAI removed 2026-11-20); ops classification uses an independently configured MindRouter provider. Inputs, repair calls and persisted outputs are documented. Approved endpoint/model list, contracts, mandatory gateway and external-provider exceptions are pending; on-campus routing is not inferred from configurable URLs.",
         "validated_at": "2026-10-22",
         "validated_by": "Codex repository review; institutional approval not asserted"
       },

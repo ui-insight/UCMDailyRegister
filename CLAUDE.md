@@ -8,7 +8,7 @@ AI-assisted newsletter production pipeline for the University of Idaho's Univers
 
 - **Backend:** FastAPI + SQLAlchemy 2.0 (async) + SQLite (dev) / PostgreSQL (prod)
 - **Frontend:** React + TypeScript + TailwindCSS + Vite
-- **AI:** Abstracted LLM provider (Claude + OpenAI), switchable via `LLM_PROVIDER` env var
+- **AI:** MindRouter (University-run) only, behind an `LLMProvider` abstraction; off-campus providers were removed 2026-11-20
 - **Docs:** MkDocs Material → GitHub Pages
 
 ## Quick Start
@@ -110,7 +110,7 @@ Map it to host port <PORT>. Use 10.x.x.x address space.
 ```bash
 # On the remote server
 HOST_PORT=9280 DATABASE_URL=postgresql+asyncpg://ucm:<password>@insight-db:5432/ucm_newsletter \
-  ANTHROPIC_API_KEY=<key> \
+  MINDROUTER_API_KEY=<key> \
   docker compose up -d --build
 ```
 

@@ -102,6 +102,14 @@ class TestBearerTokenAuthorization:
         )
         assert resp.status_code == 200
 
+    async def test_retired_tool_routes_are_not_mounted(self, client: AsyncClient):
+        """SLC and Ops are retired: even staff get 404, not a working API."""
+        staff = _bearer(_token("staff"))
+        for path in ("/api/v1/ops/harvested-events", "/api/v1/slc/harvested-events"):
+            resp = await client.get(path, headers=staff)
+            assert resp.status_code == 404, path
+
+    @pytest.mark.usefixtures("retired_tool_routes")
     async def test_ops_token_passes_ops_gate(self, client: AsyncClient):
         resp = await client.get("/api/v1/ops/harvested-events", headers=_bearer(_token("ops")))
         assert resp.status_code == 200
@@ -389,7 +397,7 @@ class TestSsoCallback:
         app, sso = sso_app
         monkeypatch.setattr(sso.settings, "oidc_group_source", "graph")
         monkeypatch.setattr(
-            sso, "fetch_group_names", AsyncMock(side_effect=GraphGroupLookupError("down"))
+            sso, "fetch_group_ids", AsyncMock(side_effect=GraphGroupLookupError("down"))
         )
         location = await self._callback(
             sso_app, {"userinfo": {"email": "x@uidaho.edu"}, "access_token": "at"}
@@ -400,7 +408,7 @@ class TestSsoCallback:
         app, sso = sso_app
         monkeypatch.setattr(sso.settings, "oidc_group_source", "graph")
         monkeypatch.setattr(
-            sso, "fetch_group_names", AsyncMock(side_effect=GraphPermissionError("no"))
+            sso, "fetch_group_ids", AsyncMock(side_effect=GraphPermissionError("no"))
         )
         location = await self._callback(
             sso_app, {"userinfo": {"email": "x@uidaho.edu"}, "access_token": "at"}
@@ -410,7 +418,8 @@ class TestSsoCallback:
     async def test_graph_success_maps_role(self, sso_app, monkeypatch):
         app, sso = sso_app
         monkeypatch.setattr(sso.settings, "oidc_group_source", "graph")
-        monkeypatch.setattr(sso, "fetch_group_names", AsyncMock(return_value=["Event-Services"]))
+        monkeypatch.setattr(sso.settings, "entra_group_ops", "0f3c2a1e-0000-4000-8000-00000000e0e5")
+        monkeypatch.setattr(sso, "fetch_group_ids", AsyncMock(return_value=["0f3c2a1e-0000-4000-8000-00000000e0e5"]))
         location = await self._callback(
             sso_app, {"userinfo": {"email": "x@uidaho.edu"}, "access_token": "at"}
         )
@@ -587,8 +596,14 @@ class TestAuthConfigValidation:
         )
         assert s.auth_provider == "oidc"
 
+    def test_graph_source_needs_group_object_ids(self):
+        """Display names are not unique, so graph mode refuses them."""
+        with pytest.raises(ValueError, match="group object IDs"):
+            _settings(**OIDC_ENV, secret_key="x" * 40, oidc_group_source="graph")
+
     def test_graph_source_implies_graph_scope(self):
-        s = _settings(**OIDC_ENV, secret_key="x" * 40, oidc_group_source="graph")
+        env = {**OIDC_ENV, "entra_group_staff": "0f3c2a1e-0000-4000-8000-00000000e0e5", "entra_group_slc": "", "entra_group_ops": ""}
+        s = _settings(**env, secret_key="x" * 40, oidc_group_source="graph")
         assert s.oidc_scopes_requested == "openid email profile GroupMember.Read.All"
         assert (
             _settings(**OIDC_ENV, secret_key="x" * 40).oidc_scopes_requested

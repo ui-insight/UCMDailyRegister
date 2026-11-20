@@ -20,6 +20,9 @@ from app.services.harvested_event_service import (
     set_review_status,
 )
 
+# These routes are retired and unmounted; mount them for these tests.
+pytestmark = pytest.mark.usefixtures("retired_tool_routes")
+
 
 def make_feed_entry(**overrides) -> dict:
     """Return a valid Trumba JSON feed entry with sensible defaults."""

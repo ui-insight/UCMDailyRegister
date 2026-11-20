@@ -17,7 +17,7 @@ Submission text
  LLM Prompt Construction
       |
       v
- LLM Call (Claude, OpenAI, or MindRouter)
+ LLM Call (MindRouter)
       |
       v
  Post-Processing (headline case, diff)
@@ -239,9 +239,12 @@ The LLM provider is selected at startup via the `LLM_PROVIDER` environment varia
 
 | Value        | Provider                     | Model (default)            | Notes                            |
 |--------------|------------------------------|----------------------------|----------------------------------|
-| `claude`     | Anthropic Claude API         | claude-sonnet-4-20250514   | Cloud API, requires API key      |
-| `openai`     | OpenAI API                   | gpt-4o                     | Cloud API, requires API key      |
 | `mindrouter` | U of I MindRouter (on-prem)  | moonshotai/kimi-k3         | On-prem, OpenAI-compatible API   |
+
+MindRouter is the only provider. Off-campus providers (Anthropic, OpenAI)
+were removed on November 20, 2026 because neither has University security
+clearance for submission content. Any other value fails at startup. The
+`LLMProvider` interface stays so a cleared provider could be added later.
 
 All providers implement a common `LLMProvider` interface with two methods:
 
@@ -279,14 +282,6 @@ Key implementation details:
 
 ??? example "Environment Configuration"
     ```bash
-    # .env — Claude
-    LLM_PROVIDER=claude
-    ANTHROPIC_API_KEY=sk-ant-...
-
-    # .env — OpenAI
-    LLM_PROVIDER=openai
-    OPENAI_API_KEY=sk-...
-
     # .env — MindRouter (on-prem)
     LLM_PROVIDER=mindrouter
     MINDROUTER_API_KEY=mr2_...
@@ -301,8 +296,7 @@ text, category and staff instructions with active style rules. A repair pass may
 resend the original prompt, generated draft and findings. Dedicated contact
 columns are not inserted, but personal information embedded in free text/links
 is not automatically sanitized. The selected provider is controlled by
-`LLM_PROVIDER`; the default configuration is Claude, while deployment examples
-prefer MindRouter. Provider selection does not establish approved routing.
+`LLM_PROVIDER`; MindRouter is the only accepted value. Provider selection does not establish approved routing.
 
 Event Services uses a separate MindRouter classifier after a harvest. It reads
 event title, up to 4,000 description characters, location and category, then

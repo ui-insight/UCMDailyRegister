@@ -14,7 +14,7 @@ Submission Intake --> AI Editing --> Human Review --> Newsletter Assembly --> Wo
 ```
 
 1. **Submission Intake** -- campus contributors submit announcements through a web form with scheduling preferences, links, and optional images.
-2. **AI Editing** -- submissions are processed by an LLM (Claude, OpenAI, or MindRouter) guided by UCM style rules stored in the database.
+2. **AI Editing** -- submissions are processed by MindRouter, the University-run AI service, guided by UCM style rules stored in the database.
 3. **Human Review** -- editors review AI suggestions in a side-by-side diff view, accept or revise edits, and finalize copy.
 4. **Newsletter Assembly** -- finalized items, recurring editorial messages, and imported external content are placed into newsletter sections, reordered, and previewed.
 5. **Word Export** -- the assembled newsletter is exported to a `.docx` file matching UCM's existing templates.
@@ -27,7 +27,7 @@ Submission Intake --> AI Editing --> Human Review --> Newsletter Assembly --> Wo
 | Backend    | FastAPI, Python 3.12+                              |
 | ORM        | SQLAlchemy 2.x (async)                             |
 | Database   | SQLite (development), PostgreSQL (prod)            |
-| AI         | Abstracted LLM layer (Claude, OpenAI, MindRouter) |
+| AI         | MindRouter (University-run), behind an abstracted LLM layer |
 | Export     | python-docx                                        |
 | Deployment | Docker Compose (nginx + uvicorn + PostgreSQL)      |
 

@@ -33,7 +33,7 @@ from app.services.audit import record_sign_in
 from app.services.graph_groups import (
     GraphGroupLookupError,
     GraphPermissionError,
-    fetch_group_names,
+    fetch_group_ids,
 )
 
 logger = logging.getLogger(__name__)
@@ -140,7 +140,7 @@ async def _resolve_group_names(userinfo: dict, token: dict) -> list[object]:
     access_token = token.get("access_token")
     if not isinstance(access_token, str) or not access_token:
         raise GraphGroupLookupError("Entra returned no access token to read group membership with")
-    return list(await fetch_group_names(access_token))
+    return list(await fetch_group_ids(access_token))
 
 
 def _sanitize_login_hint(raw: str | None) -> str | None:

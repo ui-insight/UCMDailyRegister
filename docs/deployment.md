@@ -77,16 +77,8 @@ ENVIRONMENT=development
 # run in UTC; this keeps the date from rolling over at 4-5 p.m. Pacific.
 NEWSLETTER_TIMEZONE=America/Los_Angeles
 
-# LLM Provider ("claude", "openai", or "mindrouter")
-LLM_PROVIDER=claude
-
-# Anthropic (required when LLM_PROVIDER=claude)
-ANTHROPIC_API_KEY=sk-ant-...
-CLAUDE_MODEL=claude-sonnet-4-20250514
-
-# OpenAI (required when LLM_PROVIDER=openai)
-OPENAI_API_KEY=sk-...
-OPENAI_MODEL=gpt-4o
+# LLM Provider. MindRouter is the only option; off-campus providers are not offered.
+LLM_PROVIDER=mindrouter
 
 # MindRouter — University of Idaho on-prem AI (required when LLM_PROVIDER=mindrouter)
 MINDROUTER_API_KEY=mr2_...
@@ -374,8 +366,9 @@ which OIT has already reviewed. See `docs/adr/001-entra-sso.md`.
 | Scopes | `openid email profile` (the default; no admin consent) |
 
 If OIT provisions Entra **security groups** instead of App Roles, set
-`OIDC_GROUP_SOURCE=graph` and put the group display names in the same
-`ENTRA_GROUP_*` variables. That path calls Microsoft Graph during sign-in and
+`OIDC_GROUP_SOURCE=graph` and put the group **object IDs** in the same
+`ENTRA_GROUP_*` variables. Display names are refused at startup: they are not
+unique, so a look-alike group could otherwise claim a role. That path calls Microsoft Graph during sign-in and
 needs the delegated `GroupMember.Read.All` scope, which is an admin-consent
 request.
 

@@ -128,8 +128,8 @@ contain no secrets. API responses, permission tests, and the
 
 | Processor | Configured use | Evidence required before an institutional assurance |
 | --- | --- | --- |
-| Anthropic / OpenAI | Selected newsletter editor; local default is Claude | Approved processor/model, endpoint and account configuration, contract retention/training/residency terms, external sharing authorization |
-| MindRouter | Optional newsletter editor; dedicated ops classifier | Approved endpoint/model and operating controls; configurable URLs alone do not prove campus-only routing |
+| Anthropic / OpenAI | Removed as options on 2026-11-20; never configured on dev or prod after the move to MindRouter. No submission content goes to them | Approved processor/model, endpoint and account configuration, contract retention/training/residency terms, external sharing authorization |
+| MindRouter | Newsletter editor (the only provider); retired ops classifier | Approved endpoint/model and operating controls; configurable URLs alone do not prove campus-only routing |
 | Microsoft Entra / Graph | Sign-in and optional group lookup | Registration/consent, scopes, role assignments, secret ownership and rotation |
 | Trumba / PageUp careers site | Public source reads | Source purpose, endpoint inventory and operational limits |
 | GitHub | Source control and optional staff-prepared feedback export | Approved access and export review; protected data excluded |
