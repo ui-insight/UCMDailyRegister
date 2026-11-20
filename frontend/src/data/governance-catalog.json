@@ -205,13 +205,13 @@
         },
         {
           "name": "Record_Ids",
-          "description": "Opaque path-parameter values (record IDs) keyed by parameter name.",
+          "description": "Path-parameter values shaped like record IDs (UUIDs or integers), keyed by parameter name; other path text is dropped.",
           "classification": "Internal",
           "pii": false
         },
         {
           "name": "Changed_Fields",
-          "description": "Top-level JSON body key names of a write; values are never stored.",
+          "description": "Top-level JSON body key names of a write that the route's request schema declares; unknown keys and all values are dropped.",
           "classification": "Internal",
           "pii": false
         },

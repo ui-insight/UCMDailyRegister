@@ -44,9 +44,12 @@ matched `/api/v1/*` request that is:
 
 Each row stores `Occurred_At` (UTC), `Actor_Ref`, `Actor_Role`, `Event_Type`,
 `Reason_Code`, `Http_Method`, `Route_Template` (for example
-`/api/v1/submissions/{submission_id}`), `Record_Ids` (path-parameter values only),
-`Changed_Fields` (top-level JSON body key names of a write, filtered to
-field-name shape) and `Status_Code`.
+`/api/v1/submissions/{submission_id}`), `Record_Ids` (path-parameter values
+shaped like record IDs, UUIDs or integers; any other path text, such as an
+email typed into a URL, is dropped), `Changed_Fields` (top-level JSON body key
+names of a write that the route's request schema declares; unknown keys are
+dropped) and `Status_Code`. HEAD is not routed (405), so it cannot read a
+record unaudited.
 
 ### What is not recorded
 

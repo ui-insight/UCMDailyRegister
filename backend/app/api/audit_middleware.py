@@ -14,8 +14,11 @@ skipped, so scanners cannot fill the table and no raw path is ever stored.
 The caller is resolved the same way `app.api.deps` resolves it - the session
 token under AUTH_PROVIDER=oidc, the verified trusted-role header in header
 mode - but without failing: an invalid token is audited as "public". Only the
-route template, path-parameter values and top-level JSON body keys are
-kept. Body values, query strings, headers and client addresses are not.
+route template, path-parameter values shaped like record IDs (UUIDs or
+integers) and top-level JSON body keys that the route's request schema
+declares are kept. Anything else a caller typed into a path or body key is
+dropped, so an email in a URL or a free-text key cannot reach the table.
+Body values, query strings, headers and client addresses are not kept.
 
 A pure ASGI middleware rather than `BaseHTTPMiddleware`, so responses stream
 through untouched and the route FastAPI matched is visible in the scope.
@@ -28,6 +31,7 @@ from collections.abc import Awaitable, Callable, MutableMapping
 from typing import Any
 
 from fastapi import HTTPException
+from pydantic import BaseModel
 
 from app.auth.session_tokens import decode_session_token
 from app.config import settings
@@ -61,10 +65,12 @@ NON_RECORD_READS = frozenset({"/api/v1/auth/me"})
 # recorded, with Changed_Fields left null.
 MAX_BODY_BYTES = 256 * 1024
 MAX_FIELDS = 64
-MAX_RECORD_ID_LENGTH = 64
-# Keys are user-supplied text; keep only ones shaped like schema field names
-# so a crafted body cannot smuggle content into the audit trail as a "key".
-_FIELD_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,63}$")
+# Record IDs in this app are UUIDs (most tables) or integers. A path value of
+# any other shape is caller-typed text - possibly an email or copy - and is
+# not stored.
+_RECORD_ID = re.compile(
+    r"^(?:[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}|[0-9]{1,18})$"
+)
 
 
 def _header(scope: Scope, name: bytes) -> str | None:
@@ -101,8 +107,28 @@ def _resolve_actor(scope: Scope) -> tuple[str | None, str]:
     return None, "public"
 
 
-def _changed_fields(body: bytes | None) -> list[str] | None:
-    if not body:
+def _schema_fields(route: object) -> frozenset[str]:
+    """Body field names (and aliases) the route's request schema declares.
+
+    Body keys are caller-supplied text. Only a key the route's own Pydantic
+    schema names is known to be a field name rather than smuggled content.
+    """
+    dependant = getattr(route, "dependant", None)
+    names: set[str] = set()
+    for param in getattr(dependant, "body_params", None) or ():
+        annotation = getattr(getattr(param, "field_info", None), "annotation", None)
+        if isinstance(annotation, type) and issubclass(annotation, BaseModel):
+            for name, field in annotation.model_fields.items():
+                names.add(name)
+                if field.alias:
+                    names.add(field.alias)
+        else:
+            names.add(param.name)
+    return frozenset(names)
+
+
+def _changed_fields(body: bytes | None, allowed: frozenset[str]) -> list[str] | None:
+    if not body or not allowed:
         return None
     try:
         parsed = json.loads(body)
@@ -110,14 +136,15 @@ def _changed_fields(body: bytes | None) -> list[str] | None:
         return None
     if not isinstance(parsed, dict):
         return None
-    return [key for key in parsed if _FIELD_NAME.match(key)][:MAX_FIELDS]
+    return [key for key in parsed if key in allowed][:MAX_FIELDS]
 
 
 def _record_ids(scope: Scope) -> dict[str, str] | None:
     params = scope.get("path_params") or {}
     ids = {
-        str(name): str(value)[:MAX_RECORD_ID_LENGTH]
+        str(name): str(value)
         for name, value in params.items()
+        if _RECORD_ID.match(str(value))
     }
     return ids or None
 
@@ -208,6 +235,10 @@ class AuditTrailMiddleware:
             http_method=method,
             route_template=template,
             record_ids=_record_ids(scope),
-            changed_fields=_changed_fields(b"".join(chunks)) if chunks is not None else None,
+            changed_fields=(
+                _changed_fields(b"".join(chunks), _schema_fields(route))
+                if chunks is not None
+                else None
+            ),
             status_code=status,
         )

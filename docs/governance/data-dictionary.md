@@ -66,8 +66,8 @@ Retention category: `security_audit`. Extension: Operational support.
 | `Reason_Code` | Fixed reason for a refusal (unauthenticated, forbidden) or failed sign-in (sign_in_failed, no_account, misconfigured, unavailable). | Internal | No | — |
 | `Http_Method` | HTTP method of the audited request. | Internal | No | — |
 | `Route_Template` | Declared API route template, never the raw URL or query string. | Internal | No | — |
-| `Record_Ids` | Opaque path-parameter values (record IDs) keyed by parameter name. | Internal | No | — |
-| `Changed_Fields` | Top-level JSON body key names of a write; values are never stored. | Internal | No | — |
+| `Record_Ids` | Path-parameter values shaped like record IDs (UUIDs or integers), keyed by parameter name; other path text is dropped. | Internal | No | — |
+| `Changed_Fields` | Top-level JSON body key names of a write that the route's request schema declares; unknown keys and all values are dropped. | Internal | No | — |
 | `Status_Code` | HTTP response status; null for sign-in events. | Internal | No | — |
 
 ## `blackout_dates`

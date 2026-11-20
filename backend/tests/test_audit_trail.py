@@ -146,6 +146,51 @@ class TestRequestAuditUnderSso:
         assert events[0].Changed_Fields == ["Summary"]
         assert BODY_MARKER not in _row_text(events[0])
 
+    async def test_identifier_shaped_unknown_keys_are_dropped(
+        self, client: AsyncClient, db: AsyncSession
+    ):
+        """A key shaped like a field name is still dropped unless the schema declares it."""
+        await client.post(
+            "/api/v1/feedback",
+            json={"Summary": "x", "SyntheticSensitiveMedicalDetail": "y"},
+            headers=_bearer("submitter", SUBMITTER_OID),
+        )
+        events = await _events(db)
+        assert len(events) == 1
+        assert events[0].Changed_Fields == ["Summary"]
+        assert "SyntheticSensitiveMedicalDetail" not in _row_text(events[0])
+
+    async def test_non_id_path_values_are_not_stored(
+        self, client: AsyncClient, db: AsyncSession
+    ):
+        """An email typed into a record path is refused and never reaches the table."""
+        resp = await client.get(
+            f"/api/v1/newsletters/{EMAIL_MARKER}", headers=_bearer("submitter", SUBMITTER_OID)
+        )
+        assert resp.status_code == 403
+        events = await _events(db)
+        assert len(events) == 1
+        assert events[0].Event_Type == "authorization_failure"
+        assert events[0].Record_Ids is None
+        assert EMAIL_MARKER not in _row_text(events[0])
+
+    async def test_uuid_path_values_are_stored(self, client: AsyncClient, db: AsyncSession):
+        record_id = "0f3c2a1e-0000-4000-8000-0000000000a1"
+        await client.get(
+            f"/api/v1/newsletters/{record_id}", headers=_bearer("staff", STAFF_OID)
+        )
+        events = await _events(db)
+        assert len(events) == 1
+        assert events[0].Record_Ids == {"newsletter_id": record_id}
+
+    async def test_head_is_refused_without_reading_records(
+        self, client: AsyncClient, db: AsyncSession
+    ):
+        """HEAD is not routed, so it cannot be an unaudited read."""
+        resp = await client.head("/api/v1/submissions/", headers=_bearer("staff", STAFF_OID))
+        assert resp.status_code == 405
+        assert await _events(db) == []
+
     async def test_forbidden_is_recorded_with_role(self, client: AsyncClient, db: AsyncSession):
         resp = await client.get(
             "/api/v1/submissions/", headers=_bearer("submitter", SUBMITTER_OID)
