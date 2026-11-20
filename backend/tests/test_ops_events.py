@@ -14,6 +14,9 @@ from app.services.ops_event_service import list_ops_events
 
 from tests.test_harvested_events import make_feed_entry, patch_feed
 
+# These routes are retired and unmounted; mount them for these tests.
+pytestmark = pytest.mark.usefixtures("retired_tool_routes")
+
 
 def entry(event_id: int, days_ahead: int, **overrides) -> dict:
     start = datetime.combine(date.today() + timedelta(days=days_ahead), time(15, 0))

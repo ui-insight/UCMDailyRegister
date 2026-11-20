@@ -27,7 +27,7 @@ Contributor submits announcement
   AI Edit Pipeline triggered
         |  - Load style rules from DB
         |  - Construct LLM prompt
-        |  - Call provider (Claude / OpenAI / MindRouter)
+        |  - Call provider (MindRouter / OpenAI)
         |  - Post-process (headline case, diff)
         v
   EditVersion records stored (original -> ai_suggested -> editor_final)
@@ -53,8 +53,7 @@ Business logic is organized into focused service modules rather than being embed
 | `recurring_message_service` | Recurring message CRUD, cadence resolution, issue skips |
 | `schedule_service`     | Schedule configs, active schedule resolution          |
 | `ai.editor`           | LLM prompt construction, pre/post-processing          |
-| `ai.factory`          | Provider factory (Claude, OpenAI, MindRouter)         |
-| `ai.claude_provider`  | Anthropic Claude API adapter                          |
+| `ai.factory`          | Provider factory (MindRouter, OpenAI)                 |
 | `ai.openai_provider`  | OpenAI API adapter                                    |
 | `ai.mindrouter_provider` | MindRouter on-prem adapter (httpx, OpenAI-compatible) |
 | `style_rule_service`  | Style rule CRUD, rule set filtering                   |
@@ -65,7 +64,7 @@ The AI layer uses a provider factory pattern so the LLM backend can be switched 
 
 ```python
 # .env
-LLM_PROVIDER=mindrouter   # or "claude" or "openai"
+LLM_PROVIDER=mindrouter   # default; or "openai"
 ```
 
 Each provider implements the `LLMProvider` abstract base class (`complete` and `complete_json` methods), and the factory instantiates the correct adapter at startup. This keeps route handlers and the editing pipeline independent of any specific LLM vendor.

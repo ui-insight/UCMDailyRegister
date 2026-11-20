@@ -61,12 +61,6 @@ const MODE_LABELS: Record<string, string> = {
 };
 
 const PROVIDER_LABELS: Record<string, { name: string; envKey: string; envModel: string; description: string }> = {
-  claude: {
-    name: 'Claude (Anthropic)',
-    envKey: 'ANTHROPIC_API_KEY',
-    envModel: 'CLAUDE_MODEL',
-    description: 'Anthropic cloud AI',
-  },
   openai: {
     name: 'OpenAI',
     envKey: 'OPENAI_API_KEY',
@@ -369,7 +363,7 @@ export default function SettingsPage() {
         <h3 className="text-lg font-semibold text-gray-900 mb-4">AI Provider</h3>
         <p className="text-sm text-gray-600 mb-4">
           The LLM provider is configured via environment variables. Set <code className="bg-gray-100 px-1 py-0.5 rounded text-xs">LLM_PROVIDER</code> to
-          &quot;claude&quot;, &quot;openai&quot;, or &quot;mindrouter&quot; and provide the corresponding API key.
+          &quot;mindrouter&quot; (the default) or &quot;openai&quot; and provide the corresponding API key.
         </p>
 
         {/* Active provider banner */}
@@ -392,8 +386,8 @@ export default function SettingsPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {(['claude', 'openai', 'mindrouter'] as const).map((key) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {(['mindrouter', 'openai'] as const).map((key) => {
             const meta = PROVIDER_LABELS[key];
             const providerInfo = aiSettings?.providers?.[key];
             const isActive = aiSettings?.active_provider === key;

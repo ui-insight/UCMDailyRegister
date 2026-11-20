@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from typing import Any, Literal, Self
 from urllib.parse import urlparse
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -17,6 +18,8 @@ DEFAULT_SECRET_KEY = "change-me-in-production-min-32-bytes"
 # Delegated Graph scope needed to read the signed-in user's own group
 # memberships. Appended automatically when OIDC_GROUP_SOURCE=graph.
 GRAPH_GROUP_SCOPE = "GroupMember.Read.All"
+# Entra object IDs are GUIDs. Graph group matching accepts nothing else.
+_GUID = re.compile(r"^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$", re.I)
 
 
 class Settings(BaseSettings):
@@ -24,11 +27,9 @@ class Settings(BaseSettings):
     database_url: str = "sqlite+aiosqlite:///./ucm_newsletter.db"
 
     # LLM Provider
-    llm_provider: str = "claude"  # "claude", "openai", or "mindrouter"
-
-    # Anthropic
-    anthropic_api_key: str = ""
-    claude_model: str = "claude-sonnet-4-20250514"
+    # MindRouter is the University-run default. Anthropic is deliberately not
+    # offered: it has no University security clearance for submission content.
+    llm_provider: Literal["mindrouter", "openai"] = "mindrouter"
 
     # OpenAI
     openai_api_key: str = ""
@@ -97,11 +98,12 @@ class Settings(BaseSettings):
     oidc_scopes: str = "openid email profile"
     # Where the user's role comes from:
     #   claim — read OIDC_ROLE_CLAIM off the token (Entra App Roles). Default.
-    #   graph — call Microsoft Graph /me/memberOf for security-group names;
+    #   graph — call Microsoft Graph /me/memberOf for security-group object IDs;
     #           needs the delegated GroupMember.Read.All scope (admin consent).
     oidc_group_source: Literal["claim", "graph"] = "claim"
     oidc_role_claim: str = "roles"
-    # Entra App Role / group names that grant each role. Comma-separated
+    # Entra App Role names (claim) or group object IDs (graph) that grant
+    # each role. Comma-separated
     # lists are accepted; matching is case-insensitive. A signed-in user
     # matching none of them is a "submitter" (ADR-002).
     entra_group_staff: str = ""
@@ -227,6 +229,17 @@ class Settings(BaseSettings):
                 "AUTH_PROVIDER=oidc requires at least one of ENTRA_GROUP_STAFF, "
                 "ENTRA_GROUP_SLC, ENTRA_GROUP_OPS — otherwise nobody can be given a role."
             )
+
+        if self.oidc_group_source == "graph":
+            # Group display names are not unique, so a look-alike group could
+            # claim a role. Graph matching works on object IDs only.
+            for name in ("entra_group_staff", "entra_group_slc", "entra_group_ops"):
+                values = [v.strip() for v in getattr(self, name).split(",") if v.strip()]
+                if any(not _GUID.match(v) for v in values):
+                    raise ValueError(
+                        f"OIDC_GROUP_SOURCE=graph requires {name.upper()} to list Entra "
+                        "group object IDs, not display names."
+                    )
 
         # Session tokens are signed with SECRET_KEY, so this holds in every
         # environment, whatever ENVIRONMENT is set to.
