@@ -107,6 +107,23 @@ def _resolve_actor(scope: Scope) -> tuple[str | None, str]:
     return None, "public"
 
 
+def _route_template(route: object) -> str | None:
+    """The full route template, e.g. `/api/v1/newsletters/{newsletter_id}`.
+
+    FastAPI before 0.16x flattened included routers, so `route.path` carried
+    the `/api/v1` prefix; newer releases keep the `/api/v1` router nested and
+    report the path relative to it. Every audited route lives under
+    `/api/v1` (the middleware handles nothing else), so restore the prefix
+    when it is missing. Tests cover this against the locked versions.
+    """
+    path = getattr(route, "path", None)
+    if not isinstance(path, str):
+        return None
+    if path.startswith(API_PREFIX) or path == API_PREFIX.rstrip("/"):
+        return path
+    return API_PREFIX.rstrip("/") + (path if path.startswith("/") else "/" + path)
+
+
 def _schema_fields(route: object) -> frozenset[str]:
     """Body field names (and aliases) the route's request schema declares.
 
@@ -215,8 +232,8 @@ class AuditTrailMiddleware:
         self, scope: Scope, method: str, status: int, chunks: list[bytes] | None
     ) -> None:
         route = scope.get("route")
-        template = getattr(route, "path", None)
-        if not isinstance(template, str) or template in EXCLUDED_ROUTES:
+        template = _route_template(route)
+        if template is None or template in EXCLUDED_ROUTES:
             return
         actor_ref, role = _resolve_actor(scope)
         event_type = _event_type(method, status, role, template)
