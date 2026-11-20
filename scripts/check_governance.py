@@ -21,6 +21,10 @@ CATEGORIES = {
     "submission_source", "publication_archive", "external_working", "feedback", "configuration",
     "security_audit",
 }
+# University of Idaho APM 30.11 tiers, lowest to highest. Catalog tiers are
+# PROPOSED until the Data Owner approves the mapping (issue #176).
+APM_TIERS = ["Low", "Moderate", "High"]
+APM_NOTE = "proposed — Data Owner to confirm"
 
 
 def model_columns():
@@ -84,6 +88,10 @@ def validate_catalog(catalog, models, groups):
     if not catalog.get("reviewedAt") or not catalog.get("reviewStatus"):
         raise ValueError("Catalog needs review metadata")
     date.fromisoformat(catalog["reviewedAt"])
+    apm = catalog.get("apm3011") or {}
+    if apm.get("status") != "proposed" or apm.get("issue") != 176 or not apm.get("note"):
+        raise ValueError("Catalog needs apm3011 status 'proposed', issue 176 and a note "
+                         "until the Data Owner approves the APM 30.11 mapping")
     for table in catalog["tables"]:
         for key in ["description", "steward", "sourceSystem", "area", "status"]:
             if not table.get(key):
@@ -98,8 +106,14 @@ def validate_catalog(catalog, models, groups):
                 raise ValueError(f"Incomplete column: {table['name']}.{column['name']}")
             if column.get("classification") not in {"Public", "Internal", "Confidential", "Restricted"}:
                 raise ValueError("Unknown data classification")
+            if column.get("apm3011Tier") not in APM_TIERS:
+                raise ValueError(f"Missing or unknown APM 30.11 tier: {table['name']}.{column['name']}")
             if column.get("allowedValueGroup") and column["allowedValueGroup"] not in groups:
                 raise ValueError(f"Missing seed group: {column['allowedValueGroup']}")
+        highest = max((column["apm3011Tier"] for column in table["columns"]), key=APM_TIERS.index)
+        if table.get("apm3011Tier") != highest:
+            raise ValueError(f"Table APM 30.11 tier must equal its highest column tier "
+                             f"({highest}): {table['name']}")
 
 
 def render_dictionary(catalog):
@@ -109,16 +123,30 @@ def render_dictionary(catalog):
              "", f"Catalog review: {catalog['reviewedAt']}; **{catalog['reviewStatus']}**.", "",
              "Labels describe default handling, not institutional classification approval. PII flags include",
              "incidental personal information risk; published release decisions apply to individual content.",
-             "Retention categories are defined in [Retention and disposal](retention.md).", ""]
+             "Retention categories are defined in [Retention and disposal](retention.md).", "",
+             f"**APM 30.11 tiers are {APM_NOTE}** "
+             "([#176](https://github.com/ui-insight/UCMDailyRegister/issues/176)).",
+             catalog["apm3011"]["note"],
+             "Handling is the app's local label; APM 30.11 is the proposed University tier. See",
+             "[APM 30.11 classification (proposed)](../data-governance.md#apm-3011-classification-proposed).", "",
+             "| APM 30.11 tier (proposed) | Tables | Columns |", "| --- | ---: | ---: |"]
+    for tier in APM_TIERS:
+        table_count = sum(table["apm3011Tier"] == tier for table in catalog["tables"])
+        column_count = sum(column["apm3011Tier"] == tier
+                           for table in catalog["tables"] for column in table["columns"])
+        lines.append(f"| {tier} | {table_count} | {column_count} |")
+    lines.append("")
     for table in catalog["tables"]:
         lines += [f"## `{table['name']}`", "", table["description"], "",
                   f"Steward role: {table['steward']}. Source: {table['sourceSystem']}.",
-                  f"Retention category: `{table['retentionCategory']}`. Extension: {table['status']}.", "",
-                  "| Column | Meaning | Handling | PII risk | Vocabulary |",
-                  "| --- | --- | --- | --- | --- |"]
+                  f"Retention category: `{table['retentionCategory']}`. Extension: {table['status']}.",
+                  f"APM 30.11 table tier: **{table['apm3011Tier']}** ({APM_NOTE}; highest column tier).", "",
+                  "| Column | Meaning | Handling | APM 30.11 (proposed) | PII risk | Vocabulary |",
+                  "| --- | --- | --- | --- | --- | --- |"]
         for column in table["columns"]:
             description = column['description'].replace('|', '\\|')
             lines.append(f"| `{column['name']}` | {description} | {column['classification']} | "
+                         f"{column['apm3011Tier']} | "
                          f"{'Yes' if column['pii'] else 'No'} | {column.get('allowedValueGroup', '—')} |")
         lines.append("")
     return "\n".join(lines).rstrip() + "\n"
