@@ -1,10 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import { SSO_LOGIN_URL } from '../api/auth';
-import { getValidDates } from '../api/schedule';
 import { useAuthMode, useIdentity } from '../auth/useAuth';
 import MicrosoftMark from '../components/common/MicrosoftMark';
-import { addDaysISO, formatAPDate, todayISO } from '../utils/date';
 import { homeForRole, setSubmitterRole } from '../utils/submitterRole';
 
 type NewsletterKey = 'tdr' | 'myui';
@@ -13,9 +11,6 @@ const NEWSLETTERS: { key: NewsletterKey; name: string; audience: string }[] = [
   { key: 'tdr', name: 'The Daily Register', audience: 'faculty and staff' },
   { key: 'myui', name: 'My UI', audience: 'students' },
 ];
-
-// Far enough ahead to reach past winter break and summer pauses.
-const NEXT_ISSUE_LOOKAHEAD_DAYS = 120;
 
 const PRIMARY_BUTTON =
   'inline-flex w-full items-center justify-center gap-2.5 rounded-lg bg-ui-gold-500 px-6 py-3 '
@@ -26,36 +21,6 @@ const PRIMARY_BUTTON =
 const TEXT_LINK =
   'font-medium text-ui-clearwater-700 underline-offset-2 hover:underline '
   + 'focus:outline-none focus-visible:ring-2 focus-visible:ring-ui-clearwater-500';
-
-/** The first publication date after today for each newsletter, from the public schedule. */
-function useNextIssues(): Partial<Record<NewsletterKey, string>> {
-  const [nextIssues, setNextIssues] = useState<Partial<Record<NewsletterKey, string>>>({});
-
-  useEffect(() => {
-    let cancelled = false;
-    const today = todayISO();
-    getValidDates(today, addDaysISO(NEXT_ISSUE_LOOKAHEAD_DAYS))
-      .then(({ dates }) => {
-        if (cancelled) return;
-        const found: Partial<Record<NewsletterKey, string>> = {};
-        for (const { date, newsletters } of dates) {
-          if (date <= today) continue;
-          for (const key of ['tdr', 'myui'] as const) {
-            if (!found[key] && newsletters.includes(key)) found[key] = date;
-          }
-        }
-        setNextIssues(found);
-      })
-      .catch(() => {
-        // The dates are a convenience; the page works without them.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return nextIssues;
-}
 
 /**
  * The front door: one University sign-in for everyone (ADR-002).
@@ -73,7 +38,6 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const { mode, retry } = useAuthMode();
   const identity = useIdentity();
-  const nextIssues = useNextIssues();
   const [redirecting, setRedirecting] = useState(false);
 
   if (mode === 'sso' && identity) {
@@ -162,20 +126,6 @@ export default function LandingPage() {
           </div>
         )}
 
-        {(nextIssues.tdr || nextIssues.myui) && (
-          <dl className="mt-14 grid gap-4 border-t border-gray-200 pt-6 text-sm sm:grid-cols-2">
-            {NEWSLETTERS.map((newsletter) =>
-              nextIssues[newsletter.key] ? (
-                <div key={newsletter.key} data-testid={`next-issue-${newsletter.key}`}>
-                  <dt className="text-ui-silver">Next {newsletter.name}</dt>
-                  <dd className="mt-0.5 font-medium text-ui-black">
-                    {formatAPDate(nextIssues[newsletter.key]!)}
-                  </dd>
-                </div>
-              ) : null,
-            )}
-          </dl>
-        )}
       </main>
     </div>
   );
