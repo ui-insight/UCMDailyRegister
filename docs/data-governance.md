@@ -24,6 +24,53 @@ published. Treat mixed datasets and generated output according to the most
 sensitive content present. Free-text fields, links, JSON flags, and images can
 contain information beyond their intended purpose.
 
+## APM 30.11 classification (proposed)
+
+Every catalog column and table also carries a **proposed** University of Idaho
+APM 30.11 tier (`apm3011Tier`). These tiers are proposed by the project team —
+Data Owner to confirm ([#176](https://github.com/ui-insight/UCMDailyRegister/issues/176)).
+They sit beside the local handling labels above; they do not replace them, and
+neither is institutional approval. The governance check requires a tier on every
+column and requires each table's tier to equal the highest tier of its columns.
+
+| Proposed tier | Mapping rationale | Examples in this app |
+| --- | --- | --- |
+| Low | Published copy, public reference data, and structural values whose disclosure alone causes little harm | Published issue snapshots, public calendar/job data, sections, allowed values, schedules, style rules, opaque IDs, timestamps, status codes, hashes, AI model names |
+| Moderate | Non-public institutional information: unpublished copy and AI drafts, staff working notes, personal contact details beyond directory listing, and free text that can carry incidental personal information | Submission headline/body/links, submitter name/email/notes, editorial notes and assigned editor, edit history and AI task instructions/results, schedule-request notes, feedback text/contact/browser, audit actor references, ops rationale |
+| High | SSN, payment card, bank, driver's license, HIPAA PHI, CUI, credentials and secrets | None in the catalog. Credentials and API keys live only in the runtime environment and deployment secret files, not in database columns |
+
+Proposed counts: 30 Moderate and 194 Low columns; 11 Moderate and 10 Low
+tables. The [data dictionary](governance/data-dictionary.md) lists each one.
+Because a dataset takes its highest tier, **the application as a whole is
+proposed Moderate**. Prompts sent to MindRouter and the completions stored in
+`edit_versions` and `ai_edit_tasks` carry the same Moderate tier as the
+submission copy they come from. Backups and exports take the tier of the tables
+they copy.
+
+Regulated data in scope:
+
+- **In scope (Moderate):** personal contact information (submitter name and
+  email, optional feedback email), Entra object IDs in the audit trail, and
+  incidental personal information in free text.
+- **Not in scope by design:** the catalog has no column for student IDs,
+  grades, enrollment or other education records, so FERPA education records are
+  not collected by design. Student submitters to My UI give a name and email
+  only. Whether that contact data, or education-record details someone types
+  into free text, falls under FERPA is for institutional privacy review.
+- **Not in scope:** no HIPAA PHI, Social Security numbers, payment card or bank
+  data, driver's license numbers, CUI, or stored passwords or secrets. Free text
+  and uploads could still receive such content against instructions. That would
+  be an incident (see below), not a reason to raise the planned tier.
+
+Borderline calls the Data Owner should review first: issue copy in
+`newsletter_items` (Low, although a draft issue holds it before release), public
+upstream event text in `harvested_events` that can name people (Low, already
+public at the source), style rule text (Low, editorial guidance), recurring
+message copy (Moderate, because future messages are unpublished), the
+assigned editor's name (Moderate, internal assignment of a directory-listed
+person), and the reported host and GitHub link on feedback reports (Low,
+operational context).
+
 ## Personal and authentication data
 
 | Data | Location | Purpose and access | Lifecycle |

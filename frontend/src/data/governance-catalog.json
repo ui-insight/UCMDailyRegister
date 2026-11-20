@@ -2,6 +2,11 @@
   "schemaVersion": "1.0.0",
   "reviewedAt": "2026-10-24",
   "reviewStatus": "provisional; owner classification approval pending",
+  "apm3011": {
+    "status": "proposed",
+    "issue": 176,
+    "note": "The project team proposed these University of Idaho APM 30.11 tiers; they are not institutional classification until the Data Owner approves them (issue #176). A table takes the highest tier of any of its columns."
+  },
   "tables": [
     {
       "name": "ai_edit_tasks",
@@ -9,23 +14,27 @@
       "status": "Operational support",
       "steward": "UCM editorial staff / technical operations",
       "description": "Durable staff-only AI edit requests, bounded execution state, restart interruption and committed response copies; source-level retention applies.",
+      "apm3011Tier": "Moderate",
       "columns": [
         {
           "name": "Id",
           "description": "Durable task UUID returned as Task_Id by the staff API.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Submission_Id",
           "description": "Parent source submission; task copies are deleted with the source.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Newsletter_Type",
           "description": "Publication context for this AI request.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false,
           "allowedValueGroup": "Newsletter_Type"
         },
@@ -33,54 +42,63 @@
           "name": "Editor_Instructions",
           "description": "Staff-provided instructions, potentially containing unpublished copy or incidental personal data.",
           "classification": "Confidential",
+          "apm3011Tier": "Moderate",
           "pii": true
         },
         {
           "name": "Status",
           "description": "Code-validated queued, running, succeeded or failed task state.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Source_Fingerprint",
           "description": "SHA-256 fingerprint of source copy, category, target, notes and links for stale-result checks.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Active_Key",
           "description": "Nullable unique submission/newsletter key preventing duplicate pending work.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Run_Id",
           "description": "Worker attempt UUID used to prevent late invalidated attempts from saving.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Result_JSON",
           "description": "Committed AI edit response including copy, links, flags, diffs and provenance; may repeat personal data.",
           "classification": "Confidential",
+          "apm3011Tier": "Moderate",
           "pii": true
         },
         {
           "name": "Error_Message",
           "description": "Controlled application failure/retry message; external exception details are excluded.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Created_At",
           "description": "Request acceptance timestamp in UTC.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Updated_At",
           "description": "Latest task transition timestamp in UTC.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         }
       ],
@@ -93,53 +111,62 @@
       "status": "UDM-derived pattern",
       "steward": "UCM operations",
       "description": "Central governed value list for categorical fields, adapted from OpenERA AllowedValues.",
+      "apm3011Tier": "Low",
       "columns": [
         {
           "name": "Id",
           "description": "UUID primary key.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Value_Group",
           "description": "Vocabulary family used by API, forms, and settings.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Code",
           "description": "Machine-readable value within the group.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Label",
           "description": "Human-readable value shown in the user interface.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Display_Order",
           "description": "Sort order for menus and settings views.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Is_Active",
           "description": "Soft-disable flag for values that should no longer be selected.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Visibility_Role",
           "description": "Public or staff visibility scope for submission categories.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Description",
           "description": "Steward-facing explanation of the value.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false
         }
       ],
@@ -154,71 +181,83 @@
       "description": "Append-only per-user trail of privileged-role API reads and exports, all writes and deletions, 401/403 refusals and sign-in outcomes. Holds no content, query strings, IP addresses or user agents; no update/delete API and no disposal job.",
       "retentionCategory": "security_audit",
       "sourceSystem": "API middleware / SSO callback",
+      "apm3011Tier": "Moderate",
       "columns": [
         {
           "name": "Id",
           "description": "Audit event UUID.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Occurred_At",
           "description": "UTC time the request completed or the sign-in finished.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Actor_Ref",
           "description": "Microsoft Entra object ID (oid) of the signed-in account; null in header mode, for anonymous callers and for sessions minted before the claim existed. Authorized Entra administrators can resolve it to a person, so it is handled as a personal identifier.",
           "classification": "Confidential",
+          "apm3011Tier": "Moderate",
           "pii": true
         },
         {
           "name": "Actor_Role",
           "description": "Role resolved for the caller: staff, slc, ops, submitter or public.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Event_Type",
           "description": "Code-validated event: record_read, record_export, record_change, record_delete, authorization_failure, sign_in_success or sign_in_failure.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Reason_Code",
           "description": "Fixed reason for a refusal (unauthenticated, forbidden) or failed sign-in (sign_in_failed, no_account, misconfigured, unavailable).",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Http_Method",
           "description": "HTTP method of the audited request.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Route_Template",
           "description": "Declared API route template, never the raw URL or query string.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Record_Ids",
           "description": "Path-parameter values shaped like record IDs (UUIDs or integers), keyed by parameter name; other path text is dropped.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Changed_Fields",
           "description": "Top-level JSON body key names of a write that the route's request schema declares; unknown keys and all values are dropped.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Status_Code",
           "description": "HTTP response status; null for sign-in events.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         }
       ]
@@ -229,23 +268,27 @@
       "status": "Communications extension",
       "steward": "UCM editorial staff",
       "description": "Dates when one or all newsletters should not publish.",
+      "apm3011Tier": "Low",
       "columns": [
         {
           "name": "Id",
           "description": "UUID primary key.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Blackout_Date",
           "description": "Suppressed publication date.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Newsletter_Type",
           "description": "Optional publication scope; null applies broadly.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false,
           "allowedValueGroup": "Newsletter_Type"
         },
@@ -253,12 +296,14 @@
           "name": "Description",
           "description": "Reason for the blackout.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Is_Active",
           "description": "Soft-disable flag.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         }
       ],
@@ -271,17 +316,20 @@
       "status": "Communications extension",
       "steward": "UCM editorial staff",
       "description": "Ad hoc publish dates used during winter break or other non-standard schedules.",
+      "apm3011Tier": "Moderate",
       "columns": [
         {
           "name": "Id",
           "description": "UUID primary key.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Newsletter_Type",
           "description": "Publication code.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false,
           "allowedValueGroup": "Newsletter_Type"
         },
@@ -289,18 +337,21 @@
           "name": "Publish_Date",
           "description": "Manual issue date.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Description",
           "description": "Reason for the custom publish date.",
           "classification": "Internal",
+          "apm3011Tier": "Moderate",
           "pii": true
         },
         {
           "name": "Created_At",
           "description": "Server creation timestamp.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         }
       ],
@@ -313,23 +364,27 @@
       "status": "Communications extension",
       "steward": "UCM editorial staff",
       "description": "Append-only snapshots of original, AI-suggested, and editor-final copy.",
+      "apm3011Tier": "Moderate",
       "columns": [
         {
           "name": "Id",
           "description": "UUID primary key.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Submission_Id",
           "description": "Foreign key to submissions.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Version_Type",
           "description": "Editing stage represented by the snapshot.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false,
           "allowedValueGroup": "Version_Type"
         },
@@ -337,18 +392,21 @@
           "name": "Headline",
           "description": "Headline text at this version.",
           "classification": "Internal",
+          "apm3011Tier": "Moderate",
           "pii": true
         },
         {
           "name": "Body",
           "description": "Body text at this version.",
           "classification": "Internal",
+          "apm3011Tier": "Moderate",
           "pii": true
         },
         {
           "name": "Headline_Case",
           "description": "Headline casing policy applied to this version.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false,
           "allowedValueGroup": "Headline_Case"
         },
@@ -356,42 +414,49 @@
           "name": "Flags",
           "description": "JSON list of AI or rule findings.",
           "classification": "Internal",
+          "apm3011Tier": "Moderate",
           "pii": true
         },
         {
           "name": "Changes_Made",
           "description": "JSON list of generated or editor-facing change summaries.",
           "classification": "Internal",
+          "apm3011Tier": "Moderate",
           "pii": true
         },
         {
           "name": "AI_Provider",
           "description": "LLM provider used for AI-generated versions.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "AI_Model",
           "description": "LLM model used for AI-generated versions.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Policy_Fingerprint",
           "description": "Editorial policy version and hash of the active style rules behind an AI-generated version.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Editor_Instructions",
           "description": "Free-text editor instructions passed into an edit run.",
           "classification": "Confidential",
+          "apm3011Tier": "Moderate",
           "pii": true
         },
         {
           "name": "Created_At",
           "description": "Immutable version creation timestamp.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         }
       ],
@@ -404,95 +469,111 @@
       "status": "Communications extension",
       "steward": "UCM and Event Services",
       "description": "External calendar occurrences with independent SLC and ops review lenses.",
+      "apm3011Tier": "Low",
       "columns": [
         {
           "name": "Id",
           "description": "UUID primary key.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Source_Type",
           "description": "External feed source family.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Source_Id",
           "description": "External event-occurrence identifier.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Series_Id",
           "description": "External repeating-series identifier.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Source_Url",
           "description": "External source link; may include query parameters.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": true
         },
         {
           "name": "Title",
           "description": "Upstream public event title; can name people.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": true
         },
         {
           "name": "Description",
           "description": "Upstream event details; can include personal contact information.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": true
         },
         {
           "name": "Location",
           "description": "Upstream event venue or location.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Event_Start",
           "description": "Event start timestamp.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Event_End",
           "description": "Optional event end timestamp.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "All_Day",
           "description": "All-day occurrence indicator.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Category_Path",
           "description": "Upstream category hierarchy.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Is_Canceled",
           "description": "Upstream cancellation marker.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Content_Hash",
           "description": "Hash of source content used to detect upstream changes.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "SLC_Review_Status",
           "description": "Independent SLC triage state.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false,
           "allowedValueGroup": "SLC_Review_Status"
         },
@@ -500,6 +581,7 @@
           "name": "Ops_Review_Status",
           "description": "Independent Event Services triage state.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false,
           "allowedValueGroup": "Ops_Review_Status"
         },
@@ -507,36 +589,42 @@
           "name": "Ops_Assessed_Content_Hash",
           "description": "Content hash used for current ops assessment.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Upstream_Changed_At",
           "description": "Time source changed after SLC flagging; cleared by SLC acknowledgment.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Ops_Upstream_Changed_At",
           "description": "Time source changed after ops review; cleared independently by ops.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Promoted_Submission_Id",
           "description": "SLC-only submission created by promotion; cleared if submission is deleted.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "First_Seen_At",
           "description": "First harvest timestamp.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Last_Seen_At",
           "description": "Most recent observation timestamp.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         }
       ],
@@ -549,77 +637,90 @@
       "status": "Communications extension",
       "steward": "UCM editorial staff",
       "description": "Placement of imported calendar, job, or other external content into a newsletter issue.",
+      "apm3011Tier": "Low",
       "columns": [
         {
           "name": "Id",
           "description": "UUID primary key.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Newsletter_Id",
           "description": "Foreign key to newsletters.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Section_Id",
           "description": "Foreign key to newsletter_sections.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Source_Type",
           "description": "External source category, such as calendar_event or job_posting.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Source_Id",
           "description": "Source-system identifier.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Source_Url",
           "description": "Source-system URL.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": true
         },
         {
           "name": "Event_Start",
           "description": "Event start timestamp where applicable.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Event_End",
           "description": "Event end timestamp where applicable.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Location",
           "description": "Event location where applicable.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Position",
           "description": "Ordering within the section.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Final_Headline",
           "description": "Final published headline.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": true
         },
         {
           "name": "Final_Body",
           "description": "Final published body.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": true
         }
       ],
@@ -632,77 +733,90 @@
       "status": "Communications extension",
       "steward": "UCM editorial staff",
       "description": "Placement of a finalized submission into a newsletter issue and section.",
+      "apm3011Tier": "Low",
       "columns": [
         {
           "name": "Id",
           "description": "UUID primary key.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Newsletter_Id",
           "description": "Foreign key to newsletters.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Submission_Id",
           "description": "Foreign key to submissions.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Section_Id",
           "description": "Foreign key to newsletter_sections.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Position",
           "description": "Ordering within the section.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Final_Headline",
           "description": "Final published headline.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": true
         },
         {
           "name": "Final_Body",
           "description": "Final published body.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": true
         },
         {
           "name": "Run_Number",
           "description": "Occurrence number for repeated publication.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Manually_Placed",
           "description": "Staff changed section placement; automatic reassembly preserves it.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Source_Version_Id",
           "description": "Edit-version reference from which issue copy was assembled.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Edition_Edited",
           "description": "Staff changed issue copy; reassembly preserves the edition override.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Upstream_Reviewed_Version_Id",
           "description": "Approved revision reviewed and intentionally not applied to this issue.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         }
       ],
@@ -715,17 +829,20 @@
       "status": "Communications extension",
       "steward": "UCM editorial staff",
       "description": "Governed section taxonomy and layout requirements for each newsletter type.",
+      "apm3011Tier": "Low",
       "columns": [
         {
           "name": "Id",
           "description": "UUID primary key.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Newsletter_Type",
           "description": "Publication code.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false,
           "allowedValueGroup": "Newsletter_Type"
         },
@@ -733,42 +850,49 @@
           "name": "Name",
           "description": "Human-readable section name.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Slug",
           "description": "Machine-readable section identifier.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Display_Order",
           "description": "Default section order.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Description",
           "description": "Section purpose.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Requires_Image",
           "description": "Whether items in the section need an image.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Image_Dimensions",
           "description": "Expected image dimensions.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Is_Active",
           "description": "Soft-retirement flag.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         }
       ],
@@ -781,17 +905,20 @@
       "status": "Communications extension",
       "steward": "UCM editorial staff",
       "description": "Dated editions of The Daily Register or My UI.",
+      "apm3011Tier": "Low",
       "columns": [
         {
           "name": "Id",
           "description": "UUID primary key.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Newsletter_Type",
           "description": "Publication code.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false,
           "allowedValueGroup": "Newsletter_Type"
         },
@@ -799,12 +926,14 @@
           "name": "Publish_Date",
           "description": "Issue date.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Status",
           "description": "Issue lifecycle state.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false,
           "allowedValueGroup": "Newsletter_Status"
         },
@@ -812,12 +941,14 @@
           "name": "Created_At",
           "description": "Server creation timestamp.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Updated_At",
           "description": "Server update timestamp.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         }
       ],
@@ -830,23 +961,27 @@
       "status": "Communications extension",
       "steward": "Event Services",
       "description": "AI-suggested needs and staff verdicts for a harvested event.",
+      "apm3011Tier": "Moderate",
       "columns": [
         {
           "name": "Id",
           "description": "UUID primary key.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Harvested_Event_Id",
           "description": "Parent harvested event reference; assessment cascades on event deletion.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Need",
           "description": "Operational service code.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false,
           "allowedValueGroup": "Ops_Need_Type"
         },
@@ -854,6 +989,7 @@
           "name": "Confidence",
           "description": "AI confidence code; null for staff-added needs.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false,
           "allowedValueGroup": "Ops_Need_Confidence"
         },
@@ -861,12 +997,14 @@
           "name": "Rationale",
           "description": "Model or staff explanation; can quote source content and contain personal information.",
           "classification": "Internal",
+          "apm3011Tier": "Moderate",
           "pii": true
         },
         {
           "name": "Verdict",
           "description": "Staff judgment of the suggested need.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false,
           "allowedValueGroup": "Ops_Need_Verdict"
         },
@@ -874,6 +1012,7 @@
           "name": "Source",
           "description": "AI or staff origin of the assessment.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false,
           "allowedValueGroup": "Ops_Need_Source"
         },
@@ -881,6 +1020,7 @@
           "name": "Created_At",
           "description": "Record creation timestamp.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         }
       ],
@@ -893,131 +1033,153 @@
       "status": "Operational support",
       "steward": "UCM product support",
       "description": "User reports and diagnostic context; only staff review the queue.",
+      "apm3011Tier": "Moderate",
       "columns": [
         {
           "name": "Id",
           "description": "UUID primary key.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Feedback_Type",
           "description": "Reported bug or product idea.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Summary",
           "description": "User-entered short report summary; can contain incidental personal information.",
           "classification": "Confidential",
+          "apm3011Tier": "Moderate",
           "pii": true
         },
         {
           "name": "Details",
           "description": "User-entered report text; can contain incidental sensitive information.",
           "classification": "Confidential",
+          "apm3011Tier": "Moderate",
           "pii": true
         },
         {
           "name": "Contact_Email",
           "description": "Optional reporter email for follow-up.",
           "classification": "Confidential",
+          "apm3011Tier": "Moderate",
           "pii": true
         },
         {
           "name": "Submitter_Role",
           "description": "Client-reported UI role; not an authenticated actor identity.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Route",
           "description": "Reported page route; free text from client, potentially identifying.",
           "classification": "Internal",
+          "apm3011Tier": "Moderate",
           "pii": true
         },
         {
           "name": "App_Environment",
           "description": "Client-reported deployment label.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Host",
           "description": "Client-reported host; operational context.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": true
         },
         {
           "name": "Browser",
           "description": "Client-reported user agent.",
           "classification": "Internal",
+          "apm3011Tier": "Moderate",
           "pii": true
         },
         {
           "name": "Viewport",
           "description": "Reported viewport dimensions.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Status",
           "description": "Product-feedback workflow status.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "GitHub_URL",
           "description": "Optional engineering issue reference; review sharing permissions.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": true
         },
         {
           "name": "GitHub_Export_Reviewed_At",
           "description": "UTC time a staff-confirmed edited export was prepared; not proof an issue was posted.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "GitHub_Export_SHA256",
           "description": "Fingerprint of the exact reviewed export artifact; report originals remain unchanged.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Notification_Status",
           "description": "Pending, disabled, failed or sent delivery state.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Notification_Attempts",
           "description": "Number of attempted notification deliveries.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Notification_Sent_At",
           "description": "Latest successful delivery time, if any.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Notification_Last_Error",
           "description": "Exception class for latest delivery failure; older releases could store arbitrary error text.",
           "classification": "Confidential",
+          "apm3011Tier": "Moderate",
           "pii": true
         },
         {
           "name": "Created_At",
           "description": "Record creation timestamp.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Updated_At",
           "description": "Most recent record update timestamp.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         }
       ],
@@ -1030,35 +1192,41 @@
       "status": "Communications extension",
       "steward": "UCM editorial staff",
       "description": "Issue-specific exceptions, currently used to preserve skipped recurring messages.",
+      "apm3011Tier": "Low",
       "columns": [
         {
           "name": "Id",
           "description": "UUID primary key.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Recurring_Message_Id",
           "description": "Foreign key to recurring_messages.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Newsletter_Id",
           "description": "Foreign key to newsletters.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Override_Action",
           "description": "Issue-level action, currently skip.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Created_At",
           "description": "Server creation timestamp.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         }
       ],
@@ -1071,17 +1239,20 @@
       "status": "Communications extension",
       "steward": "UCM editorial staff",
       "description": "Staff-managed reusable copy surfaced on a configured cadence.",
+      "apm3011Tier": "Moderate",
       "columns": [
         {
           "name": "Id",
           "description": "UUID primary key.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Newsletter_Type",
           "description": "Publication code.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false,
           "allowedValueGroup": "Newsletter_Type"
         },
@@ -1089,66 +1260,77 @@
           "name": "Section_Id",
           "description": "Foreign key to newsletter_sections.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Headline",
           "description": "Reusable message headline.",
           "classification": "Internal",
+          "apm3011Tier": "Moderate",
           "pii": true
         },
         {
           "name": "Body",
           "description": "Reusable message body.",
           "classification": "Internal",
+          "apm3011Tier": "Moderate",
           "pii": true
         },
         {
           "name": "Start_Date",
           "description": "First eligible publish date.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Recurrence_Type",
           "description": "Recurrence rule type.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Recurrence_Interval",
           "description": "Interval for recurring messages.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "End_Date",
           "description": "Optional final eligible date.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Excluded_Dates",
           "description": "JSON list of skipped dates.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Is_Active",
           "description": "Soft-disable flag.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Created_At",
           "description": "Server creation timestamp.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Updated_At",
           "description": "Server update timestamp.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         }
       ],
@@ -1161,17 +1343,20 @@
       "status": "Communications extension",
       "steward": "UCM editorial staff",
       "description": "Publication cadence and submission deadline rules by newsletter type and schedule mode.",
+      "apm3011Tier": "Low",
       "columns": [
         {
           "name": "Id",
           "description": "UUID primary key.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Newsletter_Type",
           "description": "Publication code.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false,
           "allowedValueGroup": "Newsletter_Type"
         },
@@ -1179,6 +1364,7 @@
           "name": "Mode",
           "description": "Academic year, summer, or winter break schedule mode.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false,
           "allowedValueGroup": "Schedule_Mode"
         },
@@ -1186,48 +1372,56 @@
           "name": "Submission_Deadline_Description",
           "description": "Human-readable deadline rule.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Deadline_Day_Of_Week",
           "description": "Deadline weekday used in calculations.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Deadline_Time",
           "description": "Deadline time used in calculations.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Publish_Day_Of_Week",
           "description": "Publish weekday where applicable.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Is_Daily",
           "description": "Whether the mode publishes every weekday.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Active_Start_Month",
           "description": "Month when this mode starts.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Active_End_Month",
           "description": "Month when this mode ends.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Holiday_Shift_Enabled",
           "description": "Whether holiday-aware shifting applies.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         }
       ],
@@ -1240,17 +1434,20 @@
       "status": "Communications extension",
       "steward": "UCM editorial staff",
       "description": "Manual date-range override that forces a newsletter into a configured schedule mode.",
+      "apm3011Tier": "Moderate",
       "columns": [
         {
           "name": "Id",
           "description": "UUID primary key.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Newsletter_Type",
           "description": "Publication code.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false,
           "allowedValueGroup": "Newsletter_Type"
         },
@@ -1258,6 +1455,7 @@
           "name": "Override_Mode",
           "description": "Schedule mode to apply during the range.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false,
           "allowedValueGroup": "Schedule_Mode"
         },
@@ -1265,24 +1463,28 @@
           "name": "Start_Date",
           "description": "Inclusive override start date.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "End_Date",
           "description": "Inclusive override end date.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Description",
           "description": "Reason for the override.",
           "classification": "Internal",
+          "apm3011Tier": "Moderate",
           "pii": true
         },
         {
           "name": "Created_At",
           "description": "Server creation timestamp.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         }
       ],
@@ -1295,17 +1497,20 @@
       "status": "Communications extension",
       "steward": "UCM editorial staff",
       "description": "Database-managed style rules injected into the AI editing system prompt.",
+      "apm3011Tier": "Low",
       "columns": [
         {
           "name": "Id",
           "description": "UUID primary key.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Rule_Set",
           "description": "Shared, TDR, or My UI rule scope.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false,
           "allowedValueGroup": "Rule_Set"
         },
@@ -1313,30 +1518,35 @@
           "name": "Category",
           "description": "Editorial rule category.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Rule_Key",
           "description": "Machine-readable rule key.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Rule_Text",
           "description": "Natural-language editing instruction.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": true
         },
         {
           "name": "Is_Active",
           "description": "Whether future AI edits should use the rule.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Severity",
           "description": "Rule severity for editor attention.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false,
           "allowedValueGroup": "Severity"
         }
@@ -1350,35 +1560,41 @@
       "status": "Communications extension",
       "steward": "UCM editorial staff",
       "description": "Normalized hyperlinks attached to submitted content.",
+      "apm3011Tier": "Moderate",
       "columns": [
         {
           "name": "Id",
           "description": "UUID primary key.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Submission_Id",
           "description": "Foreign key to submissions.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Url",
           "description": "Destination URL supplied with the submission.",
           "classification": "Internal",
+          "apm3011Tier": "Moderate",
           "pii": true
         },
         {
           "name": "Anchor_Text",
           "description": "Optional display text for the link.",
           "classification": "Internal",
+          "apm3011Tier": "Moderate",
           "pii": true
         },
         {
           "name": "Display_Order",
           "description": "Ordering of links inside the submission.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false
         }
       ],
@@ -1391,83 +1607,97 @@
       "status": "Communications extension",
       "steward": "UCM editorial staff",
       "description": "Requested run dates, recurrence settings, flexibility notes, and skipped occurrence dates.",
+      "apm3011Tier": "Moderate",
       "columns": [
         {
           "name": "Id",
           "description": "UUID primary key.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Submission_Id",
           "description": "Foreign key to submissions.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Requested_Date",
           "description": "Primary requested publication date.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Second_Requested_Date",
           "description": "Secondary requested date when an item targets both newsletters.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Repeat_Count",
           "description": "Legacy number of requested runs.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Repeat_Note",
           "description": "Legacy free-text repeat instructions.",
           "classification": "Confidential",
+          "apm3011Tier": "Moderate",
           "pii": true
         },
         {
           "name": "Is_Flexible",
           "description": "Whether editors may choose an alternate date.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Flexible_Deadline",
           "description": "Optional text describing the latest flexible publication deadline.",
           "classification": "Confidential",
+          "apm3011Tier": "Moderate",
           "pii": true
         },
         {
           "name": "Recurrence_Type",
           "description": "Recurrence rule type for repeated runs.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Recurrence_Interval",
           "description": "Interval for recurring requests.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Recurrence_End_Date",
           "description": "End date for recurrence expansion.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Repeats_Indefinitely",
           "description": "Staff-only choice that a weekly or monthly schedule repeats with no end date; false keeps older open-ended rows running once.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Excluded_Dates",
           "description": "JSON list of skipped or rescheduled occurrence dates.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         }
       ],
@@ -1480,17 +1710,20 @@
       "status": "Communications extension",
       "steward": "UCM editorial staff",
       "description": "Submitted newsletter or SLC event content with workflow, submitter, image, and routing metadata.",
+      "apm3011Tier": "Moderate",
       "columns": [
         {
           "name": "Id",
           "description": "UUID primary key.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Category",
           "description": "Content category code.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false,
           "allowedValueGroup": "Submission_Category"
         },
@@ -1498,6 +1731,7 @@
           "name": "Target_Newsletter",
           "description": "Publication routing code: TDR, My UI, both, or SLC-only none.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false,
           "allowedValueGroup": "Target_Newsletter"
         },
@@ -1505,66 +1739,77 @@
           "name": "Original_Headline",
           "description": "Submitted headline text.",
           "classification": "Internal",
+          "apm3011Tier": "Moderate",
           "pii": true
         },
         {
           "name": "Original_Body",
           "description": "Submitted body text.",
           "classification": "Internal",
+          "apm3011Tier": "Moderate",
           "pii": true
         },
         {
           "name": "Submitter_Name",
           "description": "Submitter contact name.",
           "classification": "Confidential",
+          "apm3011Tier": "Moderate",
           "pii": true
         },
         {
           "name": "Submitter_Email",
           "description": "Submitter contact email.",
           "classification": "Confidential",
+          "apm3011Tier": "Moderate",
           "pii": true
         },
         {
           "name": "Submitter_Notes",
           "description": "Free-text instructions from submitter; may contain incidental PII.",
           "classification": "Confidential",
+          "apm3011Tier": "Moderate",
           "pii": true
         },
         {
           "name": "Assigned_Editor",
           "description": "Staff owner for editorial follow-up.",
           "classification": "Internal",
+          "apm3011Tier": "Moderate",
           "pii": true
         },
         {
           "name": "Editorial_Notes",
           "description": "Staff-only editorial notes; may contain incidental PII.",
           "classification": "Confidential",
+          "apm3011Tier": "Moderate",
           "pii": true
         },
         {
           "name": "Has_Image",
           "description": "Whether an uploaded image is attached.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Image_Path",
           "description": "Server-side image path using UUID naming.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Survey_End_Date",
           "description": "Optional survey close date used for survey handling.",
           "classification": "Public",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Status",
           "description": "Editorial workflow state.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false,
           "allowedValueGroup": "Submission_Status"
         },
@@ -1572,30 +1817,35 @@
           "name": "Show_In_SLC_Calendar",
           "description": "Whether the submission appears in the SLC calendar feed.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Event_Classification",
           "description": "Strategic or signature event label for SLC visibility.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Approved_Version_Id",
           "description": "Explicit approved edit-version reference; cleared when a later draft is saved.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Created_At",
           "description": "Server creation timestamp.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         },
         {
           "name": "Updated_At",
           "description": "Server update timestamp.",
           "classification": "Internal",
+          "apm3011Tier": "Low",
           "pii": false
         }
       ],

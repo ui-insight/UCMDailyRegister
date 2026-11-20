@@ -3,11 +3,14 @@ import catalog from '../data/governance-catalog.json';
 
 type DataClassification = 'Public' | 'Internal' | 'Confidential' | 'Restricted';
 type ExtensionStatus = 'UDM-derived pattern' | 'Communications extension' | 'Operational support';
+/** University of Idaho APM 30.11 tier; proposed until the Data Owner approves it (#176). */
+type Apm3011Tier = 'Low' | 'Moderate' | 'High';
 
 interface GovernanceColumn {
   name: string;
   description: string;
   classification: DataClassification;
+  apm3011Tier: Apm3011Tier;
   pii: boolean;
   allowedValueGroup?: string;
 }
@@ -18,6 +21,7 @@ interface GovernanceTable {
   status: ExtensionStatus;
   description: string;
   steward: string;
+  apm3011Tier: Apm3011Tier;
   columns: GovernanceColumn[];
   retentionCategory: string;
   sourceSystem: string;
@@ -28,6 +32,12 @@ const CLASSIFICATION_STYLES: Record<DataClassification, string> = {
   Internal: 'bg-status-info-100 text-status-info-800',
   Confidential: 'bg-status-warning-100 text-status-warning-800',
   Restricted: 'bg-status-error-100 text-status-error-800',
+};
+
+const APM_TIER_STYLES: Record<Apm3011Tier, string> = {
+  Low: 'border border-status-success-500 text-status-success-800',
+  Moderate: 'border border-status-warning-500 text-status-warning-800',
+  High: 'border border-status-error-500 text-status-error-800',
 };
 
 const STATUS_STYLES: Record<ExtensionStatus, string> = {
@@ -115,7 +125,9 @@ export default function DataGovernancePage() {
 
       <p className="text-sm text-gray-600">
         Catalog reviewed {catalog.reviewedAt}. Classifications are provisional pending Data Owner review.
-        PII flags include incidental personal information in free text.
+        PII flags include incidental personal information in free text. APM 30.11 tiers (Low, Moderate,
+        High) are proposed — Data Owner to confirm (#{catalog.apm3011.issue}); a table takes its highest
+        column tier.
       </p>
 
       <section className="rounded-lg bg-white p-4 shadow">
@@ -201,6 +213,9 @@ export default function DataGovernancePage() {
                       <span className={`rounded px-2 py-0.5 text-xs font-medium ${CLASSIFICATION_STYLES[tableClassification]}`}>
                         {tableClassification}
                       </span>
+                      <span className={`rounded px-2 py-0.5 text-xs font-medium ${APM_TIER_STYLES[table.apm3011Tier]}`}>
+                        APM 30.11: {table.apm3011Tier} (proposed)
+                      </span>
                       {piiCount > 0 && (
                         <span className="rounded bg-status-warning-100 px-2 py-0.5 text-xs font-medium text-status-warning-800">
                           {piiCount} PII
@@ -229,6 +244,7 @@ export default function DataGovernancePage() {
                               <th className="px-3 py-2 font-medium">Allowed Value</th>
                               <th className="px-3 py-2 text-center font-medium">PII</th>
                               <th className="px-3 py-2 font-medium">Classification</th>
+                              <th className="px-3 py-2 font-medium">APM 30.11 (proposed)</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-100">
@@ -257,6 +273,11 @@ export default function DataGovernancePage() {
                                 <td className="px-3 py-3 align-top">
                                   <span className={`rounded px-2 py-1 text-xs font-medium ${CLASSIFICATION_STYLES[column.classification]}`}>
                                     {column.classification}
+                                  </span>
+                                </td>
+                                <td className="px-3 py-3 align-top">
+                                  <span className={`rounded px-2 py-1 text-xs font-medium ${APM_TIER_STYLES[column.apm3011Tier]}`}>
+                                    {column.apm3011Tier}
                                   </span>
                                 </td>
                               </tr>

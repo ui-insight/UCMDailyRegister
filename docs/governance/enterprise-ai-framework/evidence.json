@@ -392,9 +392,9 @@
       "requirement_summary": "Use APM 30.11 Low/Moderate/High classification, classify mixed datasets at the highest level present, and classify prompt/completion logs with the underlying data.",
       "current_assertion": {
         "status": "partially_aligned",
-        "summary": "A complete provisional 20-table/209-column catalog records handling labels, PII risk, stewardship roles, lineage and retention categories and drives UI/docs with drift checks. Identity/browser/feedback and both AI workflows, including durable AI task instructions/results, are inventoried. Approved APM 30.11 mapping, named Data Owner acceptance and retention/disposal authorization remain pending.",
-        "validated_at": "2026-10-24",
-        "validated_by": "Codex repository review; institutional approval not asserted"
+        "summary": "A complete provisional 21-table/224-column catalog records handling labels, PII risk, stewardship roles, lineage, retention categories and a proposed APM 30.11 tier on every column and table (30 Moderate/194 Low columns; 11 Moderate/10 Low tables; none High), validated by drift checks and shown in the UI and data dictionary. The application is proposed Moderate overall; prompts/completions take the tier of their source copy. Regulated-data scope is documented: contact PII in scope; no FERPA education-record, HIPAA, SSN, payment or credential columns by design. Data Owner approval of the APM 30.11 tiers, named Data Owner acceptance and retention/disposal authorization remain pending.",
+        "validated_at": "2026-11-20",
+        "validated_by": "Claude Code repository review; institutional approval not asserted"
       },
       "github_issue": {
         "number": 176,
@@ -445,7 +445,8 @@
         "Security review or sign-off"
       ],
       "blockers": [
-        "Security review of whether submitter PII and incidental submitter-note PII require Moderate classification"
+        "Data Owner approval of the proposed APM 30.11 tiers, including Moderate for submitter contact PII and incidental free-text PII",
+        "FERPA scope review of student submitter contact data by institutional privacy review"
       ],
       "tags": [
         "security",

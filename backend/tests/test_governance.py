@@ -56,3 +56,37 @@ def test_catalog_rejects_new_undocumented_model_column():
     models['submissions'].append('Unreviewed_Field')
     with pytest.raises(ValueError, match='differ from ORM'):
         checks.validate_catalog(catalog, models, set())
+
+
+def seed_groups():
+    seed = json.loads((ROOT / "backend/data/allowed_values/allowed_values.json").read_text())
+    return {row['Value_Group'] for row in seed}
+
+
+def test_catalog_accepts_current_apm_tiers():
+    catalog = json.loads(checks.CATALOG_PATH.read_text())
+    checks.validate_catalog(catalog, checks.model_columns(), seed_groups())
+
+
+@pytest.mark.parametrize("mutation, message", [
+    ("missing_column_tier", "Missing or unknown APM 30.11 tier"),
+    ("unknown_column_tier", "Missing or unknown APM 30.11 tier"),
+    ("table_below_columns", "highest column tier"),
+    ("table_above_columns", "highest column tier"),
+    ("not_proposed", "apm3011 status 'proposed'"),
+])
+def test_catalog_rejects_invalid_apm_tiers(mutation, message):
+    catalog = json.loads(checks.CATALOG_PATH.read_text())
+    tables = {table['name']: table for table in catalog['tables']}
+    if mutation == "missing_column_tier":
+        del tables['submissions']['columns'][0]['apm3011Tier']
+    elif mutation == "unknown_column_tier":
+        tables['submissions']['columns'][0]['apm3011Tier'] = 'Confidential'
+    elif mutation == "table_below_columns":
+        tables['submissions']['apm3011Tier'] = 'Low'
+    elif mutation == "table_above_columns":
+        tables['allowed_values']['apm3011Tier'] = 'Moderate'
+    else:
+        catalog['apm3011']['status'] = 'approved'
+    with pytest.raises(ValueError, match=message):
+        checks.validate_catalog(catalog, checks.model_columns(), seed_groups())
