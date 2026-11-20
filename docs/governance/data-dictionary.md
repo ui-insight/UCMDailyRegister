@@ -49,6 +49,27 @@ Retention category: `configuration`. Extension: UDM-derived pattern.
 | `Visibility_Role` | Public or staff visibility scope for submission categories. | Internal | No | — |
 | `Description` | Steward-facing explanation of the value. | Public | No | — |
 
+## `audit_events`
+
+Append-only per-user trail of privileged-role API reads and exports, all writes and deletions, 401/403 refusals and sign-in outcomes. Holds no content, query strings, IP addresses or user agents; no update/delete API and no disposal job.
+
+Steward role: Security and operations owner / UCM Data Owner. Source: API middleware / SSO callback.
+Retention category: `security_audit`. Extension: Operational support.
+
+| Column | Meaning | Handling | PII risk | Vocabulary |
+| --- | --- | --- | --- | --- |
+| `Id` | Audit event UUID. | Internal | No | — |
+| `Occurred_At` | UTC time the request completed or the sign-in finished. | Internal | No | — |
+| `Actor_Ref` | Microsoft Entra object ID (oid) of the signed-in account; null in header mode, for anonymous callers and for sessions minted before the claim existed. Authorized Entra administrators can resolve it to a person, so it is handled as a personal identifier. | Confidential | Yes | — |
+| `Actor_Role` | Role resolved for the caller: staff, slc, ops, submitter or public. | Internal | No | — |
+| `Event_Type` | Code-validated event: record_read, record_export, record_change, record_delete, authorization_failure, sign_in_success or sign_in_failure. | Internal | No | — |
+| `Reason_Code` | Fixed reason for a refusal (unauthenticated, forbidden) or failed sign-in (sign_in_failed, no_account, misconfigured, unavailable). | Internal | No | — |
+| `Http_Method` | HTTP method of the audited request. | Internal | No | — |
+| `Route_Template` | Declared API route template, never the raw URL or query string. | Internal | No | — |
+| `Record_Ids` | Opaque path-parameter values (record IDs) keyed by parameter name. | Internal | No | — |
+| `Changed_Fields` | Top-level JSON body key names of a write; values are never stored. | Internal | No | — |
+| `Status_Code` | HTTP response status; null for sign-in events. | Internal | No | — |
+
 ## `blackout_dates`
 
 Dates when one or all newsletters should not publish.

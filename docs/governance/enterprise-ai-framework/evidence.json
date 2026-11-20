@@ -618,9 +618,9 @@
       "requirement_summary": "Model calls, sensitive data access, configuration changes, and deployments should be auditable without logging protected content.",
       "current_assertion": {
         "status": "partially_aligned",
-        "summary": "EditVersion and issue version references provide editorial provenance. Durable AI task state/results and atomic version commits support restart recovery; they are not a full actor/access audit trail. Content-minimized structured diagnostics and log-size limits are configured. End-to-end actor/access/model-call/config/deployment audit events, central storage/review and time-based retention remain incomplete.",
-        "validated_at": "2026-10-24",
-        "validated_by": "Codex repository review; institutional approval not asserted"
+        "summary": "EditVersion and issue version references provide editorial provenance. An append-only audit_events table now records, per Entra object ID and role, privileged-role reads and exports, all API writes and deletions (field names only), 401/403 refusals and sign-in outcomes, without content, query strings, IPs or user agents. Model-call, configuration and deployment events, an off-host/immutable store, alerting, review cadence and time-based retention remain incomplete.",
+        "validated_at": "2026-11-20",
+        "validated_by": "Claude Code repository review; institutional approval not asserted"
       },
       "github_issue": {
         "number": 179,
@@ -677,12 +677,26 @@
           "type": "repo_file",
           "label": "Synthetic restart/retry regression checks",
           "path": "backend/tests/test_ai_edit_recovery.py"
+        },
+        {
+          "type": "repo_file",
+          "label": "Audit event model",
+          "path": "backend/app/models/audit_event.py"
+        },
+        {
+          "type": "repo_file",
+          "label": "Audit trail middleware",
+          "path": "backend/app/api/audit_middleware.py"
+        },
+        {
+          "type": "repo_file",
+          "label": "Synthetic audit trail regression checks",
+          "path": "backend/tests/test_audit_trail.py"
         }
       ],
       "required_evidence": [
         "Structured application logging implementation",
         "Model-call audit records with prompt/content redaction",
-        "Data access audit records for staff-only views",
         "Deployment event records",
         "Retention and review procedure"
       ],

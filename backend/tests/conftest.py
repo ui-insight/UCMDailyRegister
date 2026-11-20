@@ -16,6 +16,7 @@ from app.api.deps import get_db
 from app.main import app as fastapi_app
 import app.models  # noqa: F401 — register all models
 from app.models.allowed_value import AllowedValue
+from app.services import audit as audit_service
 from app.utils import clock
 
 
@@ -50,6 +51,12 @@ async def setup_db():
     yield
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
+
+
+@pytest.fixture(autouse=True)
+def route_audit_writes_to_test_db(monkeypatch: pytest.MonkeyPatch):
+    """Audit events open their own session; point it at the test database."""
+    monkeypatch.setattr(audit_service, "audit_session_factory", TestSession)
 
 
 @pytest.fixture(autouse=True)

@@ -147,6 +147,83 @@
       "sourceSystem": "staff / system"
     },
     {
+      "name": "audit_events",
+      "area": "Security and accountability",
+      "status": "Operational support",
+      "steward": "Security and operations owner / UCM Data Owner",
+      "description": "Append-only per-user trail of privileged-role API reads and exports, all writes and deletions, 401/403 refusals and sign-in outcomes. Holds no content, query strings, IP addresses or user agents; no update/delete API and no disposal job.",
+      "retentionCategory": "security_audit",
+      "sourceSystem": "API middleware / SSO callback",
+      "columns": [
+        {
+          "name": "Id",
+          "description": "Audit event UUID.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Occurred_At",
+          "description": "UTC time the request completed or the sign-in finished.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Actor_Ref",
+          "description": "Microsoft Entra object ID (oid) of the signed-in account; null in header mode, for anonymous callers and for sessions minted before the claim existed. Authorized Entra administrators can resolve it to a person, so it is handled as a personal identifier.",
+          "classification": "Confidential",
+          "pii": true
+        },
+        {
+          "name": "Actor_Role",
+          "description": "Role resolved for the caller: staff, slc, ops, submitter or public.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Event_Type",
+          "description": "Code-validated event: record_read, record_export, record_change, record_delete, authorization_failure, sign_in_success or sign_in_failure.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Reason_Code",
+          "description": "Fixed reason for a refusal (unauthenticated, forbidden) or failed sign-in (sign_in_failed, no_account, misconfigured, unavailable).",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Http_Method",
+          "description": "HTTP method of the audited request.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Route_Template",
+          "description": "Declared API route template, never the raw URL or query string.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Record_Ids",
+          "description": "Opaque path-parameter values (record IDs) keyed by parameter name.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Changed_Fields",
+          "description": "Top-level JSON body key names of a write; values are never stored.",
+          "classification": "Internal",
+          "pii": false
+        },
+        {
+          "name": "Status_Code",
+          "description": "HTTP response status; null for sign-in events.",
+          "classification": "Internal",
+          "pii": false
+        }
+      ]
+    },
+    {
       "name": "blackout_dates",
       "area": "Publication schedule",
       "status": "Communications extension",

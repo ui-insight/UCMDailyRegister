@@ -19,8 +19,14 @@ from app.config import settings
 SESSION_TOKEN_ALGORITHM = "HS256"
 
 
-def create_session_token(*, subject: str, role: SignedInRole, name: str) -> str:
-    """Mint this app's signed session token for an authenticated identity."""
+def create_session_token(
+    *, subject: str, role: SignedInRole, name: str, object_id: str | None = None
+) -> str:
+    """Mint this app's signed session token for an authenticated identity.
+
+    `object_id`, the Entra `oid`, rides in the `oid` claim so each request
+    can be attributed in the audit trail without decoding an email address.
+    """
     now = datetime.now(UTC)
     payload = {
         "sub": subject,
@@ -29,6 +35,8 @@ def create_session_token(*, subject: str, role: SignedInRole, name: str) -> str:
         "iat": now,
         "exp": now + timedelta(minutes=settings.access_token_expire_minutes),
     }
+    if object_id:
+        payload["oid"] = object_id
     return jwt.encode(payload, settings.secret_key, algorithm=SESSION_TOKEN_ALGORITHM)
 
 
@@ -45,7 +53,11 @@ def decode_session_token(token: str) -> TokenIdentity:
 
     try:
         return TokenIdentity(
-            subject=payload["sub"], role=payload["role"], name=payload["name"]
+            subject=payload["sub"],
+            role=payload["role"],
+            name=payload["name"],
+            # Optional: sessions minted before the claim existed stay valid.
+            object_id=payload.get("oid"),
         )
     except (KeyError, ValidationError) as exc:
         raise HTTPException(

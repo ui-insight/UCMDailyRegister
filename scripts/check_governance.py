@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 CATALOG_PATH = ROOT / "frontend/src/data/governance-catalog.json"
 CATEGORIES = {
     "submission_source", "publication_archive", "external_working", "feedback", "configuration",
+    "security_audit",
 }
 
 
@@ -145,7 +146,8 @@ def render_reference(seed, models):
               "Some discriminators are still code-validated: SLC category/routing (`slc_event`, `none`)",
               "are used by staff/import paths but absent from bootstrap allowed values; event classification",
               "(`strategic`, `signature`), recurrence, override actions, auth roles, feedback states, AI task",
-              "states (`queued`, `running`, `succeeded`, `failed`) and AI",
+              "states (`queued`, `running`, `succeeded`, `failed`), audit event types and reason",
+              "codes (`app.services.audit`) and AI",
               "provider identifiers also have code-level contracts. Do not claim all enums are DB-backed.",
               "These need explicit schema/API/seed review before adding new values. Runtime additions",
               "must be reconciled through a reviewed seed/catalog change; no automatic production sync exists.", ""]
