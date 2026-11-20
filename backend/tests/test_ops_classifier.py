@@ -20,6 +20,9 @@ from app.services.ops_event_service import classify_pending_ops_events
 from tests.test_harvested_events import patch_feed
 from tests.test_ops_events import entry, get_event
 
+# These routes are retired and unmounted; mount them for these tests.
+pytestmark = pytest.mark.usefixtures("retired_tool_routes")
+
 NEED_CODES = ["catering", "alcohol_service", "room_setup", "tabling", "outdoor_space"]
 
 

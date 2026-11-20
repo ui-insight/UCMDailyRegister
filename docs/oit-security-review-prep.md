@@ -71,9 +71,11 @@ will want trust boundaries. The diagram should show:
   and the upload volume.
 - **Identity:** Microsoft Entra SSO and optional Graph group lookup. Show where
   tokens live: signed app JWT in browser localStorage and the session cookie.
-- **Off-campus egress:** submission text, including links, sent to Anthropic or
-  OpenAI. Content is not automatically sanitized of personal information.
-  MindRouter, if used.
+- **AI processing:** submission text, including links, sent to MindRouter, the
+  University-run AI service. Content is not automatically sanitized of
+  personal information. Anthropic and OpenAI were removed as options on
+  November 20, 2026, so no submission content leaves for an off-campus AI
+  provider.
 - **Inbound public reads:** Trumba calendar and the PageUp careers site.
 - **Data at rest and copies:** nightly backups (on-host, unencrypted, no
   off-host copy), .docx exports, staff-prepared GitHub feedback issues.
@@ -106,7 +108,7 @@ A short cover page linking to existing docs:
 - Backups are on-host only, unencrypted, with no failure alerting.
 - Prod restore has not been tested in an isolated environment (dev restore
   passed November 3, 2026).
-- No processor approval reference yet for Anthropic or OpenAI.
+- No recorded approval reference yet for MindRouter as the AI processor.
 - Data classification is provisional until Data Owner review.
 - Open items from the September 10, 2026 security review.
 
@@ -124,5 +126,5 @@ A short cover page linking to existing docs:
 - Does OIT have its own intake form or diagram template? If so, build to it.
 - Is a GitHub Enterprise migration planned after the transfer? (See the
   runbook's Phase 2 questions.)
-- Does OIT need to approve the AI processors (Anthropic or OpenAI versus
-  MindRouter) as part of this review?
+- Does OIT need to record approval of MindRouter as the AI processor as part
+  of this review?

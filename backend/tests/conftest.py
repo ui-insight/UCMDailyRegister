@@ -90,6 +90,28 @@ def ops_headers() -> dict[str, str]:
 
 
 @pytest.fixture
+def retired_tool_routes():
+    """Mount the retired SLC/Ops routers for the tests that still cover them.
+
+    The app no longer mounts them (see app/api/v1/router.py). Their code stays
+    until the Phase 2 removal, so its tests keep running against a temporarily
+    mounted copy, and the routes are taken off again afterwards.
+    """
+    from fastapi import APIRouter
+
+    from app.api.v1.ops_events import router as ops_events_router
+    from app.api.v1.slc_events import router as slc_events_router
+
+    saved_routes = list(fastapi_app.router.routes)
+    retired = APIRouter(prefix="/api/v1")
+    retired.include_router(slc_events_router)
+    retired.include_router(ops_events_router)
+    fastapi_app.include_router(retired)
+    yield
+    fastapi_app.router.routes[:] = saved_routes
+
+
+@pytest.fixture
 async def db() -> AsyncGenerator[AsyncSession, None]:
     """Provide an async DB session for direct model access in tests."""
     async with TestSession() as session:

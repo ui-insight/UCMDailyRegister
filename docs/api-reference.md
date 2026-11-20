@@ -234,14 +234,6 @@ The settings endpoint is staff-only. It returns read-only configuration data for
       "active_model": "moonshotai/kimi-k3",
       "endpoint_url": "https://mindrouter.uidaho.edu/v1/chat/completions",
       "providers": {
-        "claude": {
-          "model": "claude-sonnet-4-20250514",
-          "configured": false
-        },
-        "openai": {
-          "model": "gpt-4o",
-          "configured": false
-        },
         "mindrouter": {
           "model": "moonshotai/kimi-k3",
           "endpoint_url": "https://mindrouter.uidaho.edu/v1/chat/completions",

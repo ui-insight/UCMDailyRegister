@@ -549,7 +549,7 @@
       "requirement_summary": "AI model calls should use the approved gateway and models, with registry evidence for model selection, data classification, and exception handling.",
       "current_assertion": {
         "status": "needs_decision",
-        "summary": "Newsletter editing supports Anthropic/OpenAI/MindRouter; ops classification uses an independently configured MindRouter provider. Inputs, repair calls and persisted outputs are documented. Approved endpoint/model list, contracts, mandatory gateway and external-provider exceptions are pending; on-campus routing is not inferred from configurable URLs.",
+        "summary": "Newsletter editing uses MindRouter only (Anthropic and OpenAI removed 2026-11-20); ops classification uses an independently configured MindRouter provider. Inputs, repair calls and persisted outputs are documented. Approved endpoint/model list, contracts, mandatory gateway and external-provider exceptions are pending; on-campus routing is not inferred from configurable URLs.",
         "validated_at": "2026-10-22",
         "validated_by": "Codex repository review; institutional approval not asserted"
       },
