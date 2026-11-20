@@ -35,7 +35,7 @@ The following are in scope for security reports:
 The following are **out of scope**:
 
 - The University of Idaho network infrastructure
-- Third-party services (MindRouter, OpenAI, Trumba, PageUp careers site)
+- External services (MindRouter, Trumba, PageUp careers site)
 - Denial-of-service attacks
 - Social engineering
 
@@ -103,7 +103,6 @@ See `sbom/README.md` for the latest vulnerability audit results.
 | Secret | Storage | Rotation |
 |--------|---------|----------|
 | MINDROUTER_API_KEY | Environment variable | On compromise or annually |
-| OPENAI_API_KEY | Environment variable | On compromise or annually |
 | MINDROUTER_API_KEY | Environment variable | On compromise or annually |
 | DATABASE_URL | Environment variable | On credential change |
 

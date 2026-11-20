@@ -19,9 +19,7 @@ async def get_ai_settings(_staff: None = Depends(require_staff)):
         "active_provider": settings.llm_provider,
     }
 
-    if settings.llm_provider == "openai":
-        base["active_model"] = settings.openai_model
-    elif settings.llm_provider == "mindrouter":
+    if settings.llm_provider == "mindrouter":
         base["active_model"] = settings.mindrouter_model
         base["endpoint_url"] = settings.mindrouter_endpoint_url
     else:
@@ -29,10 +27,6 @@ async def get_ai_settings(_staff: None = Depends(require_staff)):
 
     # Expose all available provider configs (no secrets)
     base["providers"] = {
-        "openai": {
-            "model": settings.openai_model,
-            "configured": bool(settings.openai_api_key),
-        },
         "mindrouter": {
             "model": settings.mindrouter_model,
             "endpoint_url": settings.mindrouter_endpoint_url,

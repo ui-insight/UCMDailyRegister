@@ -8,7 +8,7 @@ AI-assisted newsletter production pipeline for the University of Idaho's Univers
 
 - **Backend:** FastAPI + SQLAlchemy 2.0 (async) + SQLite (dev) / PostgreSQL (prod)
 - **Frontend:** React + TypeScript + TailwindCSS + Vite
-- **AI:** Abstracted LLM provider (MindRouter default + OpenAI; no Anthropic), switchable via `LLM_PROVIDER` env var
+- **AI:** MindRouter (University-run) only, behind an `LLMProvider` abstraction; off-campus providers were removed 2026-11-20
 - **Docs:** MkDocs Material → GitHub Pages
 
 ## Quick Start

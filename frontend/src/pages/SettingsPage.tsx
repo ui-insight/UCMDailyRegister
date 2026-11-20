@@ -61,12 +61,6 @@ const MODE_LABELS: Record<string, string> = {
 };
 
 const PROVIDER_LABELS: Record<string, { name: string; envKey: string; envModel: string; description: string }> = {
-  openai: {
-    name: 'OpenAI',
-    envKey: 'OPENAI_API_KEY',
-    envModel: 'OPENAI_MODEL',
-    description: 'OpenAI cloud AI',
-  },
   mindrouter: {
     name: 'MindRouter',
     envKey: 'MINDROUTER_API_KEY',
@@ -362,8 +356,8 @@ export default function SettingsPage() {
       <div id="ai-provider" className="scroll-mt-4 bg-white rounded-lg shadow p-6 mb-6">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">AI Provider</h3>
         <p className="text-sm text-gray-600 mb-4">
-          The LLM provider is configured via environment variables. Set <code className="bg-gray-100 px-1 py-0.5 rounded text-xs">LLM_PROVIDER</code> to
-          &quot;mindrouter&quot; (the default) or &quot;openai&quot; and provide the corresponding API key.
+          AI editing uses MindRouter, the University of Idaho&apos;s on-premises AI service. Its model and
+          API key are set through environment variables.
         </p>
 
         {/* Active provider banner */}
@@ -386,8 +380,8 @@ export default function SettingsPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {(['mindrouter', 'openai'] as const).map((key) => {
+        <div className="grid grid-cols-1 gap-4">
+          {(['mindrouter'] as const).map((key) => {
             const meta = PROVIDER_LABELS[key];
             const providerInfo = aiSettings?.providers?.[key];
             const isActive = aiSettings?.active_provider === key;

@@ -5,7 +5,7 @@ AI-assisted newsletter production pipeline for the University of Idaho's Univers
 ## Features
 
 - **Submission Intake** — Web form for community members to submit announcements, events, job postings, and news items
-- **AI-Assisted Editing** — Automated style editing using MindRouter (the University-run default) or OpenAI with AP style and U of I style guide enforcement
+- **AI-Assisted Editing** — Automated style editing using MindRouter, the University-run AI service, with AP style and U of I style guide enforcement
 - **Editorial Review** — Word-level diff viewer, flag system, accept/reject/modify workflow
 - **Newsletter Assembly** — Auto-populate newsletters from approved submissions, organized by section
 - **Recurring Message Library** — Staff-managed reusable editorial content with cadence rules and issue-level skip/restore controls
@@ -18,7 +18,7 @@ AI-assisted newsletter production pipeline for the University of Idaho's Univers
 |-------|-----------|
 | Backend | FastAPI, SQLAlchemy 2.0 (async), Pydantic v2 |
 | Frontend | React 19, TypeScript, TailwindCSS, Vite |
-| AI | MindRouter (default) / OpenAI, switchable via env var |
+| AI | MindRouter (University-run), behind a provider abstraction |
 | Database | SQLite (local dev) / PostgreSQL via `insight-db` for Docker deployments |
 | Docs | MkDocs Material → GitHub Pages |
 

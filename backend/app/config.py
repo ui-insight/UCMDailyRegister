@@ -27,13 +27,11 @@ class Settings(BaseSettings):
     database_url: str = "sqlite+aiosqlite:///./ucm_newsletter.db"
 
     # LLM Provider
-    # MindRouter is the University-run default. Anthropic is deliberately not
-    # offered: it has no University security clearance for submission content.
-    llm_provider: Literal["mindrouter", "openai"] = "mindrouter"
-
-    # OpenAI
-    openai_api_key: str = ""
-    openai_model: str = "gpt-4o"
+    # MindRouter, the University-run AI service, is the only provider.
+    # Off-campus providers (Anthropic, OpenAI) were removed on 2026-11-20:
+    # neither has University security clearance for submission content.
+    # Any other value fails at startup.
+    llm_provider: Literal["mindrouter"] = "mindrouter"
 
     # MindRouter (University of Idaho on-prem AI services)
     mindrouter_api_key: str = ""

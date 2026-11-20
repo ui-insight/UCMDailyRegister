@@ -77,12 +77,8 @@ ENVIRONMENT=development
 # run in UTC; this keeps the date from rolling over at 4-5 p.m. Pacific.
 NEWSLETTER_TIMEZONE=America/Los_Angeles
 
-# LLM Provider ("mindrouter", the default, or "openai"). Anthropic is not offered.
+# LLM Provider. MindRouter is the only option; off-campus providers are not offered.
 LLM_PROVIDER=mindrouter
-
-# OpenAI (required when LLM_PROVIDER=openai)
-OPENAI_API_KEY=sk-...
-OPENAI_MODEL=gpt-4o
 
 # MindRouter — University of Idaho on-prem AI (required when LLM_PROVIDER=mindrouter)
 MINDROUTER_API_KEY=mr2_...
