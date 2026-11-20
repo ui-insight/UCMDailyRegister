@@ -7,7 +7,6 @@ import { getValidDates } from '../api/schedule';
 import { clearToken, setToken } from '../auth/tokenStore';
 import { resetSsoEnabledCache } from '../auth/useAuth';
 import RequireRole from '../auth/RequireRole';
-import { addDaysISO, formatAPDate, todayISO } from '../utils/date';
 import LandingPage from './LandingPage';
 
 function ShowLocation({ label }: { label: string }) {
@@ -84,32 +83,12 @@ describe('LandingPage', () => {
     expect(screen.queryByText(/Event Services/)).not.toBeInTheDocument();
   });
 
-  it('shows the next issue after today for each newsletter', async () => {
+  it('does not show upcoming publication dates', async () => {
     getAuthConfigMock.mockResolvedValue({ sso_enabled: true });
-    const tomorrow = addDaysISO(1);
-    const inThreeDays = addDaysISO(3);
-    getValidDatesMock.mockResolvedValue({
-      dates: [
-        { date: todayISO(), newsletters: ['tdr', 'myui'] },
-        { date: tomorrow, newsletters: ['tdr'] },
-        { date: inThreeDays, newsletters: ['tdr', 'myui'] },
-      ],
-      blackout_dates: [],
-    });
     renderApp();
-    expect(await screen.findByTestId('next-issue-tdr')).toHaveTextContent(formatAPDate(tomorrow));
-    expect(screen.getByTestId('next-issue-myui')).toHaveTextContent(formatAPDate(inThreeDays));
-  });
-
-  it('still renders when the schedule cannot be loaded', async () => {
-    getAuthConfigMock.mockResolvedValue({ sso_enabled: true });
-    getValidDatesMock.mockRejectedValue(new Error('offline'));
-    renderApp();
-    await waitFor(() => expect(getValidDatesMock).toHaveBeenCalled());
-    expect(
-      await screen.findByRole('button', { name: /Sign in with your University account/ }),
-    ).toBeInTheDocument();
-    expect(screen.queryByTestId('next-issue-tdr')).not.toBeInTheDocument();
+    await screen.findByRole('button', { name: /Sign in with your University account/ });
+    expect(getValidDatesMock).not.toHaveBeenCalled();
+    expect(screen.queryByText(/^Next /)).not.toBeInTheDocument();
   });
 
   describe('while the deployment mode is unknown', () => {
