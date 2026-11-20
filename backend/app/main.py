@@ -37,6 +37,9 @@ if settings.auth_provider == "oidc":
         secret_key=settings.session_cookie_secret_key,
         https_only=settings.is_production,
         same_site="lax",
+        # Holds OIDC state for one sign-in round trip only (the callback
+        # also clears it), not Starlette's 14-day default.
+        max_age=600,
     )
 
 # Per-user audit trail for /api/v1. Added before CORS so it sits inside it:

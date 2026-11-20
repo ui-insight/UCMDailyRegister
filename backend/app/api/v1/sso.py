@@ -212,7 +212,16 @@ async def sso_callback(request: Request) -> RedirectResponse:
     """Complete sign-in: verify the Entra response, then mint a session token.
 
     Registered with OIT as this app's reply URL, character-for-character.
+    The sign-in cookie holds only OIDC state and the `next` path, so it is
+    emptied once the callback is done, whatever the outcome.
     """
+    try:
+        return await _complete_sign_in(request)
+    finally:
+        request.session.clear()
+
+
+async def _complete_sign_in(request: Request) -> RedirectResponse:
     try:
         token = await oauth.entra.authorize_access_token(request)
     except OAuthError:

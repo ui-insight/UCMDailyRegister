@@ -13,6 +13,15 @@
 #     MANIFEST.txt    revision, release, sizes and SHA-256 checksums
 # and updates last-success (or last-failure) in ~/backups/ucmnews-<env>/.
 #
+# Encryption: when BACKUP_GPG_RECIPIENT names a public key in the devops
+# keyring (fingerprint), the verified dump and archive are encrypted to it as
+# database.dump.gpg and uploads.tgz.gpg and the plaintext files are removed.
+# Only the PUBLIC key lives on this server; the private key that a restore
+# needs is held off-server (docs/backup-and-recovery.md). It can be set in
+# ~/.config/ucmnews-backup.env so cron picks it up. If the variable is set but
+# the key is missing or encryption fails, the run fails rather than leaving
+# plaintext behind.
+#
 # The database is dumped before the uploads are archived, so every image the
 # dump references is already on disk when the archive is taken. pg_dump runs
 # inside the insight-db container so it matches the server version.
@@ -38,6 +47,13 @@ DB_CONTAINER="${DB_CONTAINER:-insight-db}"
 BACKUP_ROOT="${BACKUP_ROOT:-$HOME/backups/ucmnews-$ENV_NAME}"
 MAX_AGE_HOURS="${MAX_AGE_HOURS:-26}"
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# Optional settings file for cron (BACKUP_GPG_RECIPIENT=<fingerprint>).
+CONFIG_FILE="${BACKUP_CONFIG:-$HOME/.config/ucmnews-backup.env}"
+if [[ -f "$CONFIG_FILE" ]]; then
+  # shellcheck disable=SC1090
+  source "$CONFIG_FILE"
+fi
+GPG_RECIPIENT="${BACKUP_GPG_RECIPIENT:-}"
 
 mkdir -p "$BACKUP_ROOT/scheduled"
 chmod 700 "$BACKUP_ROOT" "$BACKUP_ROOT/scheduled"
@@ -115,11 +131,33 @@ CHECKOUT="$(git -C "$REPO_DIR" rev-parse --short HEAD 2>/dev/null || echo unknow
   (cd "$DEST" && sha256sum database.dump uploads.tgz) | sed 's/^/sha256 /'
 } > "$DEST/MANIFEST.txt" || fail "write manifest"
 
+# 5. Encrypt to the off-server key, then drop the plaintext. Checksums of the
+# plaintext stay in the manifest so a decrypted restore can be verified.
+ENCRYPTED="no"
+if [[ -n "$GPG_RECIPIENT" ]]; then
+  gpg --batch --list-keys "$GPG_RECIPIENT" > /dev/null 2>&1 \
+    || fail "backup encryption key $GPG_RECIPIENT is not in the devops keyring"
+  for f in database.dump uploads.tgz; do
+    gpg --batch --yes --trust-model always --recipient "$GPG_RECIPIENT" \
+      --output "$DEST/$f.gpg" --encrypt "$DEST/$f" \
+      || fail "gpg encryption of $f"
+    [[ -s "$DEST/$f.gpg" ]] || fail "empty $f.gpg"
+    shred -u "$DEST/$f" 2>/dev/null || rm -f "$DEST/$f"
+  done
+  ENCRYPTED="gpg:$GPG_RECIPIENT"
+  {
+    echo "encrypted=$ENCRYPTED"
+    (cd "$DEST" && sha256sum database.dump.gpg uploads.tgz.gpg) | sed 's/^/sha256 /'
+  } >> "$DEST/MANIFEST.txt" || fail "write manifest"
+else
+  echo "encrypted=no" >> "$DEST/MANIFEST.txt" || fail "write manifest"
+fi
+
 ELAPSED=$(( $(date +%s) - START ))
 {
   echo "$(date -u +%FT%TZ) SUCCESS $ENV_NAME in ${ELAPSED}s"
   echo "recovery_point=$DEST"
-  echo "dump_bytes=$(stat -c %s "$DEST/database.dump") tables=$TABLES schema=$SCHEMA"
-  echo "uploads_bytes=$(stat -c %s "$DEST/uploads.tgz") files=$UPLOAD_FILES"
+  echo "tables=$TABLES schema=$SCHEMA uploads_files=$UPLOAD_FILES"
+  echo "encrypted=$ENCRYPTED"
 } | tee "$BACKUP_ROOT/last-success"
 rm -f "$BACKUP_ROOT/last-failure"
