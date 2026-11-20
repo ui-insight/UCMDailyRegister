@@ -344,6 +344,10 @@ Unique constraint: `(Newsletter_Type, Publish_Date)`.
 - `product_feedback`: contact email, free-text report and client-provided browser
   context plus staff triage/GitHub references and disabled notification delivery
   state. Reported UI role is not a verified actor identity.
+- `audit_events`: append-only per-user audit trail keyed by Entra object ID and
+  role, with event type, route template, opaque record IDs, written field names
+  and status. No content, query strings, IPs or user agents. See
+  [Audit logging](audit-logging.md).
 
 See the [data dictionary](governance/data-dictionary.md) for all columns.
 

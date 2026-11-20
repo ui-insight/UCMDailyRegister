@@ -13,6 +13,8 @@ Mirrors campus-services-maintenance's `app/api/v1/sso.py` (ADR-004 there),
 which OIT has already reviewed. This app has no user table: the role is
 resolved from Entra on every sign-in and carried in the token, so no identity row is
 stored in the database. The browser persists the app token in localStorage.
+The only identifier the database keeps is the account's Entra object ID
+(`oid`), as the actor reference on audit events (`app.models.audit_event`).
 """
 
 import logging
@@ -27,6 +29,7 @@ from starlette.responses import RedirectResponse
 from app.auth.entra_roles import map_groups_to_role
 from app.auth.session_tokens import create_session_token
 from app.config import settings
+from app.services.audit import record_sign_in
 from app.services.graph_groups import (
     GraphGroupLookupError,
     GraphPermissionError,
@@ -66,6 +69,24 @@ _NEXT_SESSION_KEY = "sso_next"
 _SAFE_NEXT = re.compile(r"^/(?![/\\])[^\s]*$")
 
 
+# Entra object IDs are GUIDs. Anything else is dropped rather than carried
+# into the session token and the audit trail.
+_OBJECT_ID = re.compile(
+    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+)
+
+
+def _object_id(userinfo: dict) -> str | None:
+    """The account's Entra object ID (`oid`), the audit trail's actor reference.
+
+    Entra includes `oid` in the ID token when the `profile` scope is granted.
+    """
+    raw = userinfo.get("oid")
+    if not isinstance(raw, str) or not _OBJECT_ID.match(raw.strip()):
+        return None
+    return raw.strip().lower()
+
+
 def _sanitize_display_name(raw: object) -> str:
     if not isinstance(raw, str):
         return ""
@@ -91,6 +112,14 @@ def _error_redirect(reason: str) -> RedirectResponse:
         f"{settings.oidc_post_login_redirect}#{urlencode({'error': reason})}",
         status_code=status.HTTP_302_FOUND,
     )
+
+
+async def _failed_sign_in(reason: str, object_id: str | None = None) -> RedirectResponse:
+    """Audit a failed sign-in with its fixed reason code, then redirect."""
+    await record_sign_in(
+        succeeded=False, actor_ref=object_id, actor_role="public", reason_code=reason
+    )
+    return _error_redirect(reason)
 
 
 def _claim_values(*sources: dict, claim: str) -> list[object]:
@@ -189,7 +218,7 @@ async def sso_callback(request: Request) -> RedirectResponse:
     except OAuthError:
         # Mismatched state, a replayed or expired code, a refused client.
         logger.warning("Entra rejected the sign-in exchange")
-        return _error_redirect(ERROR_SIGN_IN_FAILED)
+        return await _failed_sign_in(ERROR_SIGN_IN_FAILED)
     except Exception:
         # authlib raises its own JOSE errors (bad ID-token signature, a
         # stale JWKS after key rotation) and httpx errors (discovery or token
@@ -197,16 +226,19 @@ async def sso_callback(request: Request) -> RedirectResponse:
         # these lands on a person mid-sign-in, and a raw 500 gives them
         # FastAPI's plain-text body with no way back.
         logger.error("Sign-in exchange with Entra failed")
-        return _error_redirect(ERROR_SIGN_IN_FAILED)
+        return await _failed_sign_in(ERROR_SIGN_IN_FAILED)
 
     userinfo = token.get("userinfo") or {}
+    object_id = _object_id(userinfo)
+    if object_id is None:
+        logger.warning("Entra returned no object ID claim; audit events will carry no actor")
     # `preferred_username` is the fallback because this tenant has been seen
     # to populate one or the other.
     subject = str(userinfo.get("email") or userinfo.get("preferred_username") or "")
     subject = subject.strip().lower()
     if not subject:
         logger.error("Entra returned neither an email nor a username claim")
-        return _error_redirect(ERROR_NO_ACCOUNT)
+        return await _failed_sign_in(ERROR_NO_ACCOUNT, object_id)
     name = _sanitize_display_name(userinfo.get("name")) or subject
 
     try:
@@ -218,18 +250,21 @@ async def sso_callback(request: Request) -> RedirectResponse:
         logger.error(
             "Graph refused group membership; check consent for GroupMember.Read.All"
         )
-        return _error_redirect(ERROR_MISCONFIGURED)
+        return await _failed_sign_in(ERROR_MISCONFIGURED, object_id)
     except GraphGroupLookupError:
         # Deliberately *not* "not authorized": failing to read membership is
         # an outage, and telling the user they lack access would send every
         # one of them chasing their own account instead of the incident.
         logger.error("Could not read group membership")
-        return _error_redirect(ERROR_UNAVAILABLE)
+        return await _failed_sign_in(ERROR_UNAVAILABLE, object_id)
 
     role = map_groups_to_role(group_names)
 
     logger.info("Sign-in succeeded role=%s", role)
-    session_token = create_session_token(subject=subject, role=role, name=name)
+    await record_sign_in(succeeded=True, actor_ref=object_id, actor_role=role)
+    session_token = create_session_token(
+        subject=subject, role=role, name=name, object_id=object_id
+    )
     # The fragment is never sent to a server, so the token stays out of
     # access logs, browser history, and the Referer header. The frontend
     # callback page reads it client-side and clears the address bar.

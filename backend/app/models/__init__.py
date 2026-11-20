@@ -13,6 +13,7 @@ group, enabling administrators to extend vocabularies without code changes.
 Models included:
     AIEditTask               -- Durable AI edit state/results and safe retry attempts
     AllowedValue             -- Controlled vocabulary lookup table
+    AuditEvent               -- Append-only per-user access/change/sign-in audit trail
     Submission               -- Content submitted for newsletter inclusion
     SubmissionLink           -- Hyperlinks attached to a submission
     SubmissionScheduleRequest -- Submitter date/repeat preferences
@@ -33,6 +34,7 @@ Models included:
 
 from app.models.allowed_value import AllowedValue
 from app.models.ai_edit_task import AIEditTask
+from app.models.audit_event import AuditEvent
 from app.models.blackout_date import BlackoutDate
 from app.models.custom_publish_date import CustomPublishDate
 from app.models.edit_history import EditVersion
@@ -50,6 +52,7 @@ from app.models.submission import Submission, SubmissionLink, SubmissionSchedule
 __all__ = [
     "AIEditTask",
     "AllowedValue",
+    "AuditEvent",
     "BlackoutDate",
     "CustomPublishDate",
     "EditVersion",

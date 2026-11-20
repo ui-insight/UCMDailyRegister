@@ -12,8 +12,16 @@ SignedInRole = Literal["staff", "slc", "ops", "submitter"]
 
 
 class TokenIdentity(BaseModel):
-    """Identity resolved from a verified bearer token."""
+    """Identity resolved from a verified bearer token.
+
+    `object_id` is the Microsoft Entra object ID (`oid`) of the signed-in
+    account. It is the actor reference written to the audit trail
+    (`app.services.audit`) in place of an email address. Tokens minted before
+    the claim existed decode with `None`, and their requests audit with a
+    null actor reference plus the role.
+    """
 
     subject: str
     role: SignedInRole
     name: str
+    object_id: str | None = None

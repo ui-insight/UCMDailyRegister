@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.audit_middleware import AuditTrailMiddleware
 from app.api.v1.router import router as v1_router
 from app.config import settings
 from app.services.ai_edit_service import recover_interrupted_tasks
@@ -37,6 +38,10 @@ if settings.auth_provider == "oidc":
         https_only=settings.is_production,
         same_site="lax",
     )
+
+# Per-user audit trail for /api/v1. Added before CORS so it sits inside it:
+# preflight requests are answered by CORS and never reach the audit.
+app.add_middleware(AuditTrailMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
