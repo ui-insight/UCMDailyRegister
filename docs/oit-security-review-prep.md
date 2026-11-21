@@ -105,7 +105,19 @@ A short cover page linking to existing docs:
 
 ### Known gaps to state up front
 
-- Backups are on-host only, unencrypted, with no failure alerting.
+Status 2026-11-20: the diagrams are in [Data Flow Diagrams](security/data-flow.md),
+the risk register in [Risk Assessment](security/risk-assessment.md), and operations
+in the [Runbook](runbook.md).
+
+- Backups are on-host only, unencrypted, with no failure alerting. Encryption
+  support exists but the key decision is on hold; an off-host copy to a second
+  IIDS server is built (PR #551) but not enabled until that host is named.
+- App session tokens last 8 hours in browser storage and cannot be revoked
+  server-side before they expire.
+- Traffic inside the VM (ingress to nginx, nginx to backend, backend to
+  PostgreSQL) is not encrypted.
+- Prod reads the calendar feed from `www.qatrumba.com` (the code default).
+- The openera clock is not NTP-synchronized.
 - Prod restore has not been tested in an isolated environment (dev restore
   passed November 3, 2026).
 - No recorded approval reference yet for MindRouter as the AI processor.
