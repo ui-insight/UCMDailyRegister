@@ -110,9 +110,10 @@ class Settings(BaseSettings):
     # Signs authlib's OIDC-state cookie. Must be set, and differ from
     # SECRET_KEY, in production; falls back to SECRET_KEY otherwise.
     session_cookie_secret: str = ""
-    calendar_source_url: str = (
-        "https://www.qatrumba.com/events-calendar/ui/uidaho/vandals/vandal/event/events/calendar/moscow/idaho/id/university-of-idaho"
-    )
+    # Public RSS feed of the "university-of-idaho" Trumba calendar, the same
+    # one uidaho.edu/events embeds. The qatrumba.com events-calendar page used
+    # from April 2026 now redirects to a sign-in gateway, which broke imports.
+    calendar_source_url: str = "https://www.trumba.com/calendars/university-of-idaho.rss"
     calendar_request_timeout_seconds: float = 10.0
     # PageUp's careers site replaced PeopleAdmin in fall 2026. UCM runs only
     # submitted jobs, so the tool reads one job page at a time, from a link
