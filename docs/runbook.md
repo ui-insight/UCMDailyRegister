@@ -148,7 +148,9 @@ people below.
    contact OIT.
 2. `docker compose --env-file .env.prod -p ucmnews-prod ps`. If a container is stopped or unhealthy,
    read its logs, then `docker compose --env-file .env.prod -p ucmnews-prod restart backend` (or
-   `frontend`). Restarting does not run migrations; rebuilding (`deploy.sh`) does.
+   `frontend`). Every backend start, including `restart`, runs `alembic upgrade head`
+   and reference-data seeding first (`backend/docker-entrypoint.sh`). After a
+   release that added a migration, take a database dump before restarting.
 3. If the backend logs show database connection errors, check `insight-db`:
    `docker ps --filter name=insight-db`. It is shared, so tell the other IIDS app
    owners before restarting it.
