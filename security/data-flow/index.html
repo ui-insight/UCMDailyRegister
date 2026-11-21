@@ -1,0 +1,2284 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="AI-assisted newsletter production for the University of Idaho">
+      
+      
+      
+      
+        <link rel="prev" href="../../oit-security-review-prep/">
+      
+      
+        <link rel="next" href="../risk-assessment/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
+    
+    
+      
+        <title>Data Flow Diagrams - UCM Daily Register</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#data-flow-diagrams" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="UCM Daily Register" class="md-header__button md-logo" aria-label="UCM Daily Register" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            UCM Daily Register
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Data Flow Diagrams
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/ui-insight/UCMDailyRegister" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ui-insight/UCMDailyRegister
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="UCM Daily Register" class="md-nav__button md-logo" aria-label="UCM Daily Register" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    UCM Daily Register
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ui-insight/UCMDailyRegister" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ui-insight/UCMDailyRegister
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reliability Review
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reliability Review
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reliability-plan-for-product-owners-2026-09-18/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    For Editors and Product Owners
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../architecture-review-2026-09-18/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Technical Findings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../udm-alignment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UDM Alignment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../ai-editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Model Evaluation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    AI Model Evaluation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../evaluations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How It Works
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../evaluations/editorial-2026-11-06/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2026-11-06 Baseline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../branding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Branding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../control-accessibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Accessible Controls
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_12" >
+        
+          
+          <label class="md-nav__link" for="__nav_12" id="__nav_12_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisions
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Decisions
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/001-entra-sso/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-001 Entra SSO
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../adr/002-everyone-signs-in/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-002 Everyone signs in
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../github-enterprise-migration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GitHub Enterprise Migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_14" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_14" id="__nav_14_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OIT Security Review
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_14_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_14">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    OIT Security Review
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../oit-security-review-prep/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Preparation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Flow Diagrams
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Flow Diagrams
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-system-context" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. System context
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-sign-in-session-tokens-and-audit-trail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Sign-in, session tokens and audit trail
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-submission-intake" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Submission intake
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-ai-editing-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. AI editing pipeline
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-newsletter-builder-and-word-export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Newsletter builder and Word export
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-schedule-and-recurring-messages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Schedule and recurring messages
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-calendar-events-and-jobs-inbound-public-reads" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Calendar events and jobs (inbound public reads)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-feedback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Feedback
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-backups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Backups
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#retired-flows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Retired flows
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#gaps-visible-in-these-flows" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Gaps visible in these flows
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../risk-assessment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Risk Assessment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../runbook/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operations Runbook
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../data-governance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Governance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_17" >
+        
+          
+          <label class="md-nav__link" for="__nav_17" id="__nav_17_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Governance Artifacts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_17_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_17">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Governance Artifacts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governance/data-dictionary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Dictionary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governance/reference-data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bootstrap Reference Inventory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governance/retention/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Retention and Disposal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governance/decisions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisions and Ownership
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governance/remediation-2026-10-22/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Audit Remediation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../documentation-governance-audit-2026-10-22/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentation and Governance Audit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_19" >
+        
+          
+          <label class="md-nav__link" for="__nav_19" id="__nav_19_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enterprise AI Framework
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_19_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_19">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Enterprise AI Framework
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governance/enterprise-ai-framework/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../governance/enterprise-ai-framework/approved-stack-evidence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Approved Stack Evidence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../backup-and-recovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backup & Recovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../audit-logging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Audit Logging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../staff-action-safety/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Staff Action Safety
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="data-flow-diagrams">Data Flow Diagrams<a class="headerlink" href="#data-flow-diagrams" title="Permanent link">&para;</a></h1>
+<p>Prepared for the OIT security review (see <a href="../../oit-security-review-prep/">OIT Security Review Prep</a>).
+Checked against the code on <code>main</code> at <code>52d156d</code> (2026-11-20). Two changes
+pending merge are marked where they apply:</p>
+<ul>
+<li><strong>PR #550:</strong> <code>submissions.Submitter_Account_Ref</code>, the Entra object ID of the
+  account that sent each submission.</li>
+<li><strong>PR #551:</strong> an opt-in off-host copy of backups to a second IIDS server. Not
+  enabled.</li>
+</ul>
+<p>Handling labels (Public / Internal / Confidential) come from
+<a href="../../data-governance/">Data Governance</a>. APM 30.11 tiers come from the
+<a href="../../governance/data-dictionary/">governance catalog</a>. The tiers are
+<strong>proposed</strong> (issue #176) until the Data Owner approves them. The application
+as a whole is proposed <strong>Moderate</strong>.</p>
+<p>What is in scope: the newsletter app as deployed on dev and prod. The SLC
+calendar harvest and the Ops needs classifier are retired. Their API routes are
+not mounted (<code>backend/app/api/v1/router.py</code>) and the SLC harvest cron lines on
+openera have been commented out since 2026-11-03. Their code and tables stay
+until the Phase 2 removal exports the data. They are listed in
+<a href="#retired-flows">Retired flows</a> and are not drawn.</p>
+<h2 id="1-system-context">1. System context<a class="headerlink" href="#1-system-context" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>flowchart LR
+  subgraph USER["Trust boundary: user device"]
+    B["Browser&lt;br/&gt;React app&lt;br/&gt;app JWT in localStorage"]
+  end
+
+  subgraph CAMPUS["Trust boundary: campus ingress, TLS terminates here"]
+    ING["Campus reverse proxy&lt;br/&gt;ucmnews.insight.uidaho.edu&lt;br/&gt;ucmnews-dev.insight.uidaho.edu"]
+  end
+
+  subgraph OPENERA["Trust boundary: openera VM, IIDS-managed"]
+    subgraph DNET["Docker network 10.x, internal only"]
+      FE["frontend container&lt;br/&gt;nginx, host port 9280 prod / 9290 dev&lt;br/&gt;static build + CSP"]
+      BE["backend container&lt;br/&gt;FastAPI uvicorn :8001&lt;br/&gt;no host port"]
+      UP[("uploads volume&lt;br/&gt;submission images")]
+    end
+    subgraph DBNET["Docker network insight-db-net, shared"]
+      DB[("PostgreSQL insight-db&lt;br/&gt;ucm_newsletter / ucm_newsletter_dev")]
+    end
+    BK[("Host backups&lt;br/&gt;~/backups/ucmnews-env&lt;br/&gt;nightly cron")]
+  end
+
+  subgraph UOFI["University-run services"]
+    ENTRA["Microsoft Entra ID&lt;br/&gt;+ Microsoft Graph"]
+    MR["MindRouter&lt;br/&gt;mindrouter.uidaho.edu"]
+    TR["Trumba calendar feed"]
+    PU["PageUp careers site&lt;br/&gt;careers.uidaho.edu"]
+  end
+
+  subgraph EXT["Outside the University"]
+    GH["GitHub&lt;br/&gt;ui-insight/UCMDailyRegister"]
+    GF["Google Fonts"]
+  end
+
+  B --&gt;|"HTTPS: submissions, staff edits, feedback&lt;br/&gt;Confidential, Moderate"| ING
+  ING --&gt;|"HTTP to host port"| FE
+  FE --&gt;|"proxy /api/ : JSON + bearer JWT"| BE
+  BE --&gt;|"SQL, no TLS on the Docker network&lt;br/&gt;Confidential, Moderate"| DB
+  BE --&gt;|"image files"| UP
+  B --&gt;|"OIDC redirect sign-in"| ENTRA
+  BE --&gt;|"HTTPS: code exchange, memberOf by group ID&lt;br/&gt;Internal"| ENTRA
+  BE --&gt;|"HTTPS + API key: submission copy, links, notes, style rules&lt;br/&gt;Moderate"| MR
+  BE --&gt;|"HTTPS GET, public events&lt;br/&gt;Public, Low"| TR
+  BE --&gt;|"HTTPS GET, one job page per staff paste&lt;br/&gt;Public, Low"| PU
+  B --&gt;|"staff opens prefilled new-issue URL&lt;br/&gt;reviewed text only"| GH
+  B --&gt;|"font CSS and files, no app data"| GF
+  DB --&gt;|"pg_dump"| BK
+  UP --&gt;|"tar, read-only mount"| BK</code></pre>
+<p>Notes:</p>
+<ul>
+<li>Only the frontend container publishes a host port. The backend and database
+  are reachable only on Docker networks (<code>docker-compose.yml</code>).</li>
+<li>Encryption in transit: browser to campus ingress is HTTPS. Ingress to the
+  nginx host port, nginx to the backend, and the backend to PostgreSQL are
+  plain HTTP/SQL inside the VM. Backend calls to Entra, Graph, MindRouter,
+  Trumba and PageUp are HTTPS.</li>
+<li>nginx sends a Content Security Policy (<code>frontend/nginx.conf</code>) that allows
+  scripts and API calls only from the app's own origin, fonts and font CSS from
+  Google Fonts, and <code>frame-ancestors 'none'</code>.</li>
+<li>No email, SMTP, Teams or webhook path exists. The feedback notifier is a
+  disabled stub (<code>FEEDBACK_NOTIFICATION_CHANNEL</code> only accepts <code>disabled</code>).</li>
+</ul>
+<h2 id="2-sign-in-session-tokens-and-audit-trail">2. Sign-in, session tokens and audit trail<a class="headerlink" href="#2-sign-in-session-tokens-and-audit-trail" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>flowchart LR
+  subgraph USER["User device"]
+    B["Browser"]
+    LS[("localStorage&lt;br/&gt;app JWT, 480 min default")]
+    CK[("OIDC state cookie&lt;br/&gt;10 min, HttpOnly, SameSite=Lax")]
+  end
+  subgraph OPENERA["openera Docker networks"]
+    SSO["/api/v1/auth/sso/*&lt;br/&gt;authlib, mounted only when AUTH_PROVIDER=oidc"]
+    DEP["deps.get_current_identity&lt;br/&gt;verifies JWT on each request"]
+    AUD["AuditTrailMiddleware"]
+    AE[("audit_events&lt;br/&gt;Confidential, Moderate")]
+  end
+  ENTRA["Microsoft Entra ID"]
+  GRAPH["Microsoft Graph&lt;br/&gt;/me/memberOf"]
+
+  B --&gt;|"1 start sign-in"| SSO
+  SSO --&gt;|"2 state cookie"| CK
+  B --&gt;|"3 authorize redirect"| ENTRA
+  ENTRA --&gt;|"4 code"| SSO
+  SSO --&gt;|"5 code + client secret, HTTPS"| ENTRA
+  ENTRA --&gt;|"6 ID token: email, name, oid, groups"| SSO
+  SSO --&gt;|"7 optional, user's own delegated token"| GRAPH
+  GRAPH --&gt;|"group object IDs"| SSO
+  SSO --&gt;|"8 app JWT: email, role, name, oid&lt;br/&gt;in URL fragment"| B
+  B --&gt; LS
+  B --&gt;|"bearer JWT"| DEP
+  DEP --&gt; AUD
+  SSO --&gt;|"sign_in_success / failure"| AE
+  AUD --&gt;|"oid, role, route template, record IDs, changed field names"| AE</code></pre>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Data stores</td>
+<td><code>audit_events</code> (append-only by convention). Browser localStorage holds the app JWT; the Entra token never reaches the browser.</td>
+</tr>
+<tr>
+<td>External entities</td>
+<td>Microsoft Entra ID, Microsoft Graph (only when <code>OIDC_GROUP_SOURCE=graph</code>).</td>
+</tr>
+<tr>
+<td>Crosses boundaries</td>
+<td>Browser ↔ Entra: OIDC redirect. Backend ↔ Entra: code exchange with client secret. Backend → Graph: group IDs for the signed-in user. Backend → browser: signed app JWT.</td>
+</tr>
+<tr>
+<td>Controls</td>
+<td>Roles mapped from Entra group <strong>object IDs</strong>, not display names (<code>graph_groups.py</code>). Graph pagination is restricted to <code>graph.microsoft.com</code>. JWT verified per request; an invalid or expired token is a 401, never a silent drop to the public role. Tokens are honored only under <code>AUTH_PROVIDER=oidc</code>. Audit rows store the <code>oid</code>, not email, and no content, query strings, IPs or user agents (<a href="../../audit-logging/">Audit Logging</a>).</td>
+</tr>
+<tr>
+<td>Gaps</td>
+<td>No server-side session revocation: a JWT stays valid until it expires. The audit table is in the app database, not an off-host or tamper-evident store.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="3-submission-intake">3. Submission intake<a class="headerlink" href="#3-submission-intake" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>flowchart LR
+  B["Browser&lt;br/&gt;signed-in submitter or staff"]
+  subgraph OPENERA["openera Docker networks"]
+    API["POST /api/v1/submissions/&lt;br/&gt;require_signed_in_under_sso"]
+    IMG["POST /submissions/id/image&lt;br/&gt;require_staff"]
+    S[("submissions, submission_links,&lt;br/&gt;submission_schedule_requests&lt;br/&gt;Confidential, Moderate")]
+    UP[("uploads volume&lt;br/&gt;UUID file names")]
+    AE[("audit_events")]
+  end
+
+  B --&gt;|"headline, body, contact name and email, notes,&lt;br/&gt;links, requested dates&lt;br/&gt;Confidential, Moderate"| API
+  API --&gt;|"plus Submitter_Account_Ref = oid from JWT&lt;br/&gt;pending PR #550"| S
+  API --&gt;|"record_change"| AE
+  B --&gt;|"staff only: image file"| IMG
+  IMG --&gt;|"verified image, EXIF and GIF metadata stripped"| UP
+  IMG --&gt;|"Image_Path"| S</code></pre>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Data stores</td>
+<td><code>submissions</code>, <code>submission_links</code>, <code>submission_schedule_requests</code>, uploads volume.</td>
+</tr>
+<tr>
+<td>External entities</td>
+<td>None.</td>
+</tr>
+<tr>
+<td>Crosses boundaries</td>
+<td>Browser → backend only.</td>
+</tr>
+<tr>
+<td>Controls</td>
+<td>Under SSO everyone signs in before submitting (ADR-002). Category, recurrence and "repeat indefinitely" options are checked against the caller's role server-side. Listing, detail, edit, delete and image read are <code>require_staff</code>. Non-staff list responses redact PII. Image upload is staff-only. Every write is an audit event. Pending PR #550: the submitting account's <code>oid</code> is stored from the token, never the request body, and is not returned by any API.</td>
+</tr>
+<tr>
+<td>Gaps</td>
+<td>Free-text fields can hold personal information the submitter typed; nothing strips it.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="4-ai-editing-pipeline">4. AI editing pipeline<a class="headerlink" href="#4-ai-editing-pipeline" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>flowchart LR
+  B["Browser, staff"]
+  subgraph OPENERA["openera Docker networks"]
+    API["POST /ai-edits/submission_id/edit&lt;br/&gt;require_staff"]
+    Q[("ai_edit_tasks&lt;br/&gt;durable queue&lt;br/&gt;Confidential, Moderate")]
+    W["ai_edit_service worker&lt;br/&gt;in the backend process"]
+    SR[("style_rules&lt;br/&gt;Internal, Low")]
+    S[("submissions + links&lt;br/&gt;Confidential, Moderate")]
+    EV[("edit_versions&lt;br/&gt;Confidential, Moderate")]
+  end
+  MR["MindRouter&lt;br/&gt;mindrouter.uidaho.edu/v1/chat/completions&lt;br/&gt;University-run"]
+
+  B --&gt;|"edit request, optional editor instructions"| API
+  API --&gt; Q
+  Q --&gt; W
+  SR --&gt;|"active rules"| W
+  S --&gt;|"headline, body, notes, links"| W
+  W --&gt;|"HTTPS + bearer API key:&lt;br/&gt;system prompt = style rules&lt;br/&gt;user prompt = category, submission date, headline,&lt;br/&gt;body, submitter notes, link URLs and anchor text,&lt;br/&gt;editor instructions&lt;br/&gt;Moderate"| MR
+  MR --&gt;|"JSON: edited copy, flags, changes"| W
+  W --&gt;|"repair pass if checks fail:&lt;br/&gt;original input + draft + findings"| MR
+  W --&gt;|"draft, flags, change summary, model name"| EV
+  W --&gt;|"result or error"| Q</code></pre>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Data stores</td>
+<td><code>ai_edit_tasks</code>, <code>edit_versions</code>, <code>style_rules</code>.</td>
+</tr>
+<tr>
+<td>External entities</td>
+<td>MindRouter (the only provider; <code>LLM_PROVIDER</code> accepts only <code>mindrouter</code>).</td>
+</tr>
+<tr>
+<td>Crosses boundaries</td>
+<td>Submission copy, submitter notes, link URLs with their query parameters, and editor instructions go to MindRouter. Email-gateway wrapped links (Proofpoint, Safe Links, Mimecast, Barracuda) are unwrapped locally first; no request is made to resolve them.</td>
+</tr>
+<tr>
+<td>Not sent</td>
+<td>The <code>Submitter_Name</code>, <code>Submitter_Email</code>, <code>Assigned_Editor</code> and <code>Editorial_Notes</code> columns are not put in the prompt (<code>prompts.build_edit_user_prompt</code>). Personal information typed into the copy or notes is sent as is.</td>
+</tr>
+<tr>
+<td>Controls</td>
+<td>Staff-only trigger. HTTPS to MindRouter with an API key from the environment file. Bounded concurrency and queue size (<code>AI_EDIT_MAX_CONCURRENCY</code>, <code>AI_EDIT_MAX_PENDING</code>). Logs record model and character counts, not content. Anthropic and OpenAI were removed on 2026-11-20.</td>
+</tr>
+<tr>
+<td>Gaps</td>
+<td>No recorded approval reference for MindRouter as the AI processor, or for its retention terms. Configurable endpoint URLs alone do not prove campus-only routing.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="5-newsletter-builder-and-word-export">5. Newsletter builder and Word export<a class="headerlink" href="#5-newsletter-builder-and-word-export" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>flowchart LR
+  B["Browser, staff"]
+  subgraph OPENERA["openera Docker networks"]
+    API["/api/v1/newsletters/*&lt;br/&gt;require_staff on every route"]
+    N[("newsletters, newsletter_items,&lt;br/&gt;newsletter_external_items&lt;br/&gt;Internal, Low")]
+    EV[("edit_versions, approved revision")]
+    RM[("recurring_messages")]
+    EXP["utils.export&lt;br/&gt;export_newsletter_docx"]
+  end
+
+  B --&gt;|"assemble, place, reorder"| API
+  EV --&gt;|"approved copy"| API
+  RM --&gt;|"due messages"| API
+  API --&gt; N
+  B --&gt;|"GET /newsletters/id/export"| API
+  API --&gt; EXP
+  EXP --&gt;|".docx streamed to the browser,&lt;br/&gt;not stored on the server&lt;br/&gt;Internal until published"| B</code></pre>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Data stores</td>
+<td><code>newsletters</code>, <code>newsletter_items</code>, <code>newsletter_external_items</code>.</td>
+</tr>
+<tr>
+<td>External entities</td>
+<td>None from the server. Staff take the .docx to the publishing process outside this app.</td>
+</tr>
+<tr>
+<td>Controls</td>
+<td>Every builder and export route is <code>require_staff</code>. Contact columns and internal notes are not exported; contact details written into the copy are. Export downloads are audit events.</td>
+</tr>
+<tr>
+<td>Gaps</td>
+<td>Downloaded .docx files on staff devices are outside the app's controls.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="6-schedule-and-recurring-messages">6. Schedule and recurring messages<a class="headerlink" href="#6-schedule-and-recurring-messages" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>flowchart LR
+  B["Browser"]
+  subgraph OPENERA["openera Docker networks"]
+    SCH["/api/v1/schedule/*&lt;br/&gt;reads open, writes require_staff"]
+    REC["/api/v1/recurring-messages/*&lt;br/&gt;require_staff"]
+    SC[("schedule_configs, blackout_dates,&lt;br/&gt;custom_publish_dates, schedule_mode_overrides&lt;br/&gt;Internal, Low to Moderate")]
+    RM[("recurring_messages, issue overrides&lt;br/&gt;Internal, Moderate")]
+  end
+  B --&gt;|"valid publish dates, read by the submission form"| SCH
+  B --&gt;|"staff: blackout and custom dates"| SCH
+  SCH --&gt; SC
+  B --&gt;|"staff: standing messages"| REC
+  REC --&gt; RM</code></pre>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Data stores</td>
+<td>Schedule tables, <code>recurring_messages</code>, <code>recurring_message_issue_overrides</code>.</td>
+</tr>
+<tr>
+<td>External entities</td>
+<td>None.</td>
+</tr>
+<tr>
+<td>Controls</td>
+<td>Schedule GET routes have no auth dependency so the submission form can show valid dates; they return publication calendars, not submissions. All writes and all recurring-message routes are <code>require_staff</code>.</td>
+</tr>
+<tr>
+<td>Gaps</td>
+<td><code>custom_publish_dates.Description</code> and <code>schedule_mode_overrides.Description</code> are free text tagged Moderate but served by the open GET routes. Confirm they never hold non-public notes, or put the read behind sign-in.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="7-calendar-events-and-jobs-inbound-public-reads">7. Calendar events and jobs (inbound public reads)<a class="headerlink" href="#7-calendar-events-and-jobs-inbound-public-reads" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>flowchart LR
+  B["Browser, staff"]
+  subgraph OPENERA["openera Docker networks"]
+    API["/api/v1/newsletters/* calendar and job routes&lt;br/&gt;require_staff"]
+    CAL["calendar_event_service"]
+    JOB["job_posting_service"]
+    X[("newsletter_external_items, submissions&lt;br/&gt;Internal")]
+  end
+  TR["Trumba calendar feed&lt;br/&gt;CALENDAR_SOURCE_URL"]
+  PU["PageUp careers site&lt;br/&gt;careers.uidaho.edu"]
+
+  B --&gt;|"import events for an issue"| API
+  API --&gt; CAL
+  CAL --&gt;|"HTTPS GET, no credentials"| TR
+  TR --&gt;|"public event RSS&lt;br/&gt;Public, Low"| CAL
+  B --&gt;|"paste a submitted job's link"| API
+  API --&gt; JOB
+  JOB --&gt;|"HTTPS GET one page, same host only"| PU
+  PU --&gt;|"public job posting&lt;br/&gt;Public, Low"| JOB
+  CAL --&gt; X
+  JOB --&gt; X</code></pre>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Data stores</td>
+<td><code>newsletter_external_items</code>; calendar events can also be turned into submissions.</td>
+</tr>
+<tr>
+<td>External entities</td>
+<td>Trumba, PageUp careers site.</td>
+</tr>
+<tr>
+<td>Crosses boundaries</td>
+<td>Outbound: GET requests with no credentials or user data. Inbound: public event and job text.</td>
+</tr>
+<tr>
+<td>Controls</td>
+<td>Staff-only, on demand, no scheduled fetch. Job links must be <code>https</code> on the configured careers host, and redirects off that host are refused. 10-second timeouts. The careers site's throttling response is handled with a back-off.</td>
+</tr>
+<tr>
+<td>Note</td>
+<td>The default <code>CALENDAR_SOURCE_URL</code> in <code>config.py</code> points at <code>www.qatrumba.com</code>, and as of 2026-11-20 the prod environment file does not override it, so prod reads from that host. Whether it should read from the production Trumba host is an open decision.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="8-feedback">8. Feedback<a class="headerlink" href="#8-feedback" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>flowchart LR
+  B["Browser, any signed-in user"]
+  BS["Browser, staff"]
+  subgraph OPENERA["openera Docker networks"]
+    API["POST /api/v1/feedback&lt;br/&gt;require_signed_in_under_sso"]
+    STAFF["GET, PATCH, github-export&lt;br/&gt;require_staff"]
+    F[("product_feedback&lt;br/&gt;Confidential, Moderate")]
+    NT["Notifier: disabled stub"]
+  end
+  GH["GitHub issues&lt;br/&gt;public repository"]
+
+  B --&gt;|"summary, details, optional contact email,&lt;br/&gt;route, browser, viewport, host"| API
+  API --&gt; F
+  F -.-&gt;|"no outbound channel approved"| NT
+  F --&gt; STAFF
+  STAFF --&gt;|"staff-reviewed title and body"| BS
+  BS --&gt;|"staff opens github.com/.../issues/new&lt;br/&gt;with prefilled text"| GH</code></pre>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Data stores</td>
+<td><code>product_feedback</code>. Export records keep a SHA-256 of the reviewed text and the review time, not a second copy.</td>
+</tr>
+<tr>
+<td>External entities</td>
+<td>GitHub, reached by the staff member's browser, not by the server.</td>
+</tr>
+<tr>
+<td>Controls</td>
+<td>Only reviewed text is prepared for export. The server never calls GitHub. The notifier cannot send.</td>
+</tr>
+<tr>
+<td>Gaps</td>
+<td>The GitHub repository is public. Anything staff leave in the reviewed text is published, and the prefilled URL itself carries the text to GitHub.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="9-backups">9. Backups<a class="headerlink" href="#9-backups" title="Permanent link">&para;</a></h2>
+<pre class="mermaid"><code>flowchart LR
+  subgraph OPENERA["openera VM"]
+    CRON["devops crontab&lt;br/&gt;02:30 prod, 02:40 dev"]
+    SCRIPT["scripts/backup.sh"]
+    DB[("PostgreSQL insight-db")]
+    UP[("uploads volume")]
+    BK[("~/backups/ucmnews-env/scheduled/stamp&lt;br/&gt;database.dump, uploads.tgz, MANIFEST&lt;br/&gt;mode 700, unencrypted today")]
+  end
+  OFF[("Second IIDS server&lt;br/&gt;not yet named&lt;br/&gt;pending PR #551, not enabled")]
+  KEY["Owner-held private key&lt;br/&gt;not yet created"]
+
+  CRON --&gt; SCRIPT
+  DB --&gt;|"pg_dump in the db container"| SCRIPT
+  UP --&gt;|"tar, read-only mount"| SCRIPT
+  SCRIPT --&gt;|"verified with pg_restore --list,&lt;br/&gt;SHA-256 in manifest&lt;br/&gt;Confidential, Moderate"| BK
+  BK -.-&gt;|"rsync over ssh, checksums compared;&lt;br/&gt;refuses plaintext unless allowed"| OFF
+  KEY -.-&gt;|"public key would encrypt each point"| SCRIPT</code></pre>
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Detail</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Data stores</td>
+<td>One directory per run on openera. Nothing is pruned.</td>
+</tr>
+<tr>
+<td>External entities</td>
+<td>None today. Planned: a second IIDS server (PR #551).</td>
+</tr>
+<tr>
+<td>Controls</td>
+<td><code>umask 077</code>, directories mode 700, archive readability and schema-version check, checksums, freshness check (<code>--check</code>, 26 hours). GPG encryption support exists but is off until an owner-held key is created.</td>
+</tr>
+<tr>
+<td>Gaps</td>
+<td>Backups are on the same VM as the database and unencrypted. No failure alerting. Environment files (secrets) are not backed up. Prod restore not yet tested in an isolated environment; dev restore passed 2026-11-03. See <a href="../../backup-and-recovery/">Backup &amp; Recovery</a>.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="retired-flows">Retired flows<a class="headerlink" href="#retired-flows" title="Permanent link">&para;</a></h2>
+<p>Not mounted on dev or prod; code and tables kept until Phase 2 removal.</p>
+<table>
+<thead>
+<tr>
+<th>Flow</th>
+<th>What it did</th>
+<th>State</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SLC calendar harvest</td>
+<td>Read the Trumba JSON feed into <code>harvested_events</code>; SLC users flagged events</td>
+<td>Routes unmounted; cron lines paused since 2026-11-03</td>
+</tr>
+<tr>
+<td>Ops needs classifier</td>
+<td>Sent event title, description (up to 4,000 characters), location and category to MindRouter; stored needs and rationale in <code>ops_need_assessments</code></td>
+<td>Routes unmounted; runs only as part of a harvest, which is paused</td>
+</tr>
+</tbody>
+</table>
+<h2 id="gaps-visible-in-these-flows">Gaps visible in these flows<a class="headerlink" href="#gaps-visible-in-these-flows" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Backups stay on openera, unencrypted, until an encryption key exists and the
+   second IIDS host is set up (PR #551 adds the copy step; not enabled).</li>
+<li>No recorded approval reference for MindRouter as the AI processor.</li>
+<li>Data classification and APM 30.11 tiers are proposed until the Data Owner
+   reviews them (issue #176).</li>
+<li>Traffic inside the VM (ingress to nginx, nginx to backend, backend to
+   PostgreSQL) is not encrypted.</li>
+<li>No server-side session revocation; the audit trail is not off-host.</li>
+<li>Free text from submitters goes to MindRouter without automatic removal of
+   personal information.</li>
+<li>Staff-prepared feedback exports go to a public GitHub repository.</li>
+<li>Fonts load from Google, so browsers contact Google on every page load.</li>
+</ol>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["content.code.copy", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+    
+  </body>
+</html>

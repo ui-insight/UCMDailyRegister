@@ -1,0 +1,2224 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="AI-assisted newsletter production for the University of Idaho">
+      
+      
+      
+      
+        <link rel="prev" href="../security/risk-assessment/">
+      
+      
+        <link rel="next" href="../data-governance/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.2">
+    
+    
+      
+        <title>Operations Runbook - UCM Daily Register</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.57a0d79d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.fb2fffe2.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="teal">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#operations-runbook" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="UCM Daily Register" class="md-header__button md-logo" aria-label="UCM Daily Register" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            UCM Daily Register
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Operations Runbook
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="custom" data-md-color-accent="teal"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="custom" data-md-color-accent="teal"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/ui-insight/UCMDailyRegister" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ui-insight/UCMDailyRegister
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="UCM Daily Register" class="md-nav__button md-logo" aria-label="UCM Daily Register" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    UCM Daily Register
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ui-insight/UCMDailyRegister" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ui-insight/UCMDailyRegister
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reliability Review
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Reliability Review
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reliability-plan-for-product-owners-2026-09-18/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    For Editors and Product Owners
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture-review-2026-09-18/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Technical Findings
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-model/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Model
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../udm-alignment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UDM Alignment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ai-editing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Editing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AI Model Evaluation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    AI Model Evaluation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../evaluations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    How It Works
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../evaluations/editorial-2026-11-06/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2026-11-06 Baseline
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../branding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Branding
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../control-accessibility/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Accessible Controls
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../deployment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Deployment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_12" >
+        
+          
+          <label class="md-nav__link" for="__nav_12" id="__nav_12_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisions
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Decisions
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adr/001-entra-sso/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-001 Entra SSO
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../adr/002-everyone-signs-in/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ADR-002 Everyone signs in
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../github-enterprise-migration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GitHub Enterprise Migration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_14" >
+        
+          
+          <label class="md-nav__link" for="__nav_14" id="__nav_14_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OIT Security Review
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_14_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_14">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    OIT Security Review
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../oit-security-review-prep/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Preparation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security/data-flow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Flow Diagrams
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../security/risk-assessment/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Risk Assessment
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operations Runbook
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operations Runbook
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#system-at-a-glance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        System at a glance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#access" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Access
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deploy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deploy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#roll-back" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Roll back
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#health-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Health checks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#scheduled-jobs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scheduled jobs
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#incidents" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Incidents
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Incidents">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#site-down" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Site down
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sign-in-failing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Sign-in failing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ai-editing-failing-or-slow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AI editing failing or slow
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#backup-failure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Backup failure
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#disk-full" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Disk full
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#suspected-account-compromise-or-data-exposure" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Suspected account compromise or data exposure
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rotate-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Rotate secrets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#restore" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Restore
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#contacts-and-escalation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Contacts and escalation
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-governance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Governance
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_17" >
+        
+          
+          <label class="md-nav__link" for="__nav_17" id="__nav_17_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Governance Artifacts
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_17_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_17">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Governance Artifacts
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../governance/data-dictionary/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Dictionary
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../governance/reference-data/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bootstrap Reference Inventory
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../governance/retention/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Retention and Disposal
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../governance/decisions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Decisions and Ownership
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../governance/remediation-2026-10-22/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Audit Remediation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../documentation-governance-audit-2026-10-22/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Documentation and Governance Audit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_19" >
+        
+          
+          <label class="md-nav__link" for="__nav_19" id="__nav_19_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Enterprise AI Framework
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_19_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_19">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Enterprise AI Framework
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../governance/enterprise-ai-framework/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../governance/enterprise-ai-framework/approved-stack-evidence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Approved Stack Evidence
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../backup-and-recovery/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backup & Recovery
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../audit-logging/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Audit Logging
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../staff-action-safety/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Staff Action Safety
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../contributing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Contributing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="operations-runbook">Operations runbook<a class="headerlink" href="#operations-runbook" title="Permanent link">&para;</a></h1>
+<p>For whoever is looking after UCM Daily Register in production. It covers what
+runs where, how to deploy and roll back, how to check health, and what to do in
+common incidents. Longer procedures live in the linked pages; this page does not
+repeat them.</p>
+<h2 id="system-at-a-glance">System at a glance<a class="headerlink" href="#system-at-a-glance" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Prod</th>
+<th>Dev</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>URL</td>
+<td><code>https://ucmnews.insight.uidaho.edu</code></td>
+<td><code>https://ucmnews-dev.insight.uidaho.edu</code></td>
+</tr>
+<tr>
+<td>Host port (nginx)</td>
+<td>9280</td>
+<td>9290</td>
+</tr>
+<tr>
+<td>Compose project</td>
+<td><code>ucmnews-prod</code></td>
+<td><code>ucmnews-dev</code></td>
+</tr>
+<tr>
+<td>Containers</td>
+<td><code>ucmnews-prod-frontend-1</code>, <code>ucmnews-prod-backend-1</code></td>
+<td><code>ucmnews-dev-frontend-1</code>, <code>ucmnews-dev-backend-1</code></td>
+</tr>
+<tr>
+<td>Environment file</td>
+<td><code>.env.prod</code></td>
+<td><code>.env</code></td>
+</tr>
+<tr>
+<td>Database</td>
+<td><code>ucm_newsletter</code> on <code>insight-db</code></td>
+<td><code>ucm_newsletter_dev</code> on <code>insight-db</code></td>
+</tr>
+<tr>
+<td>Uploads volume</td>
+<td><code>ucmnews-prod_uploads</code></td>
+<td><code>ucmnews-dev_uploads</code></td>
+</tr>
+<tr>
+<td>Docker subnet</td>
+<td>10.20.9.0/24</td>
+<td>10.20.10.0/24</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>Server: <code>openera.insight.uidaho.edu</code>, account <code>devops</code>, repository checkout at
+  <code>/home/devops/UCMDailyRegister</code>.</li>
+<li>Only the nginx frontend has a host port. The backend listens on 8001 inside
+  the Docker network. PostgreSQL runs in the shared <code>insight-db</code> container, which
+  other IIDS apps also use, reached over the external <code>insight-db-net</code> network.</li>
+<li>Sign-in: Microsoft Entra SSO (<code>AUTH_PROVIDER=oidc</code>). <code>deploy.sh</code> refuses to
+  deploy prod with any other setting.</li>
+<li>AI editing: MindRouter (<code>mindrouter.uidaho.edu</code>) only.</li>
+<li>Diagrams: <a href="../architecture/">Architecture</a> and the data flow diagrams in
+  <code>docs/security/</code>.</li>
+</ul>
+<h2 id="access">Access<a class="headerlink" href="#access" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Server access is SSH as <code>devops@openera.insight.uidaho.edu</code> with a personal SSH
+  key. People with access today: <em>record names here</em> (IIDS).</li>
+<li>Entra app registration and group membership: <em>record the Entra administrator
+  contact here</em> (OIT). UCM decides who is in the staff group.</li>
+<li>MindRouter API key holder: <em>record here</em>.</li>
+<li>GitHub repository: <code>ui-insight/UCMDailyRegister</code>; merging to <code>main</code> does not
+  deploy. Deploys are manual on the server.</li>
+</ul>
+<h2 id="deploy">Deploy<a class="headerlink" href="#deploy" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>ssh<span class="w"> </span>devops@openera.insight.uidaho.edu
+<span class="nb">cd</span><span class="w"> </span>/home/devops/UCMDailyRegister
+git<span class="w"> </span>pull<span class="w"> </span>origin<span class="w"> </span>main
+./deploy.sh<span class="w"> </span>dev<span class="w">          </span><span class="c1"># always dev first</span>
+./deploy.sh<span class="w"> </span>prod
+</code></pre></div>
+<p><code>deploy.sh</code> rebuilds both containers. On start the backend runs
+<code>alembic upgrade head</code> and seeds reference data (<code>backend/docker-entrypoint.sh</code>),
+so <strong>every prod deploy is a schema change if new migrations arrived</strong>. The script
+then smoke-tests the site, <code>/api/v1/health</code>, <code>/api/v1/readyz</code>, that staff routes
+refuse anonymous callers, and that SSO login redirects to Microsoft. It exits
+non-zero if any check fails.</p>
+<p>Before a prod deploy that includes migrations, take a dump outside the nightly
+series and note the current revision:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">STAMP</span><span class="o">=</span><span class="k">$(</span>date<span class="w"> </span>-u<span class="w"> </span>+%Y%m%dT%H%M%SZ<span class="k">)</span>
+<span class="nv">DIR</span><span class="o">=</span>~/backups/ucmnews-prod/pre-deploy-<span class="nv">$STAMP</span>
+mkdir<span class="w"> </span>-p<span class="w"> </span><span class="s2">"</span><span class="nv">$DIR</span><span class="s2">"</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>chmod<span class="w"> </span><span class="m">700</span><span class="w"> </span><span class="s2">"</span><span class="nv">$DIR</span><span class="s2">"</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>insight-db<span class="w"> </span>pg_dump<span class="w"> </span>-U<span class="w"> </span>postgres<span class="w"> </span>-Fc<span class="w"> </span>ucm_newsletter<span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$DIR</span><span class="s2">/database.dump"</span>
+docker<span class="w"> </span><span class="nb">exec</span><span class="w"> </span>insight-db<span class="w"> </span>psql<span class="w"> </span>-U<span class="w"> </span>postgres<span class="w"> </span>-d<span class="w"> </span>ucm_newsletter<span class="w"> </span>-tAc<span class="w"> </span><span class="s1">'select version_num from alembic_version'</span><span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$DIR</span><span class="s2">/alembic_revision.txt"</span>
+git<span class="w"> </span>rev-parse<span class="w"> </span>--short<span class="w"> </span>HEAD<span class="w"> </span>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$DIR</span><span class="s2">/checkout.txt"</span>
+</code></pre></div>
+<p>After deploying, sign in on the public URL as a staff user and open one
+submission. Record the deploy (commit, revision, date) in the PR or issue that
+asked for it.</p>
+<h2 id="roll-back">Roll back<a class="headerlink" href="#roll-back" title="Permanent link">&para;</a></h2>
+<p>Follow <a href="../backup-and-recovery/#container-recovery-and-release-rollback">Container recovery and release rollback</a>.
+The short version:</p>
+<ol>
+<li>If no migration ran, check out the last good commit and run
+   <code>./deploy.sh prod</code>.</li>
+<li>If a migration ran, check whether the old code works on the new schema
+   before starting it. Prefer a forward fix. Do not assume
+   <code>alembic downgrade -1</code> undoes a release: some migrations change data, and
+   downgrades are not tested for every revision. Only downgrade after testing
+   that exact path on a copy.</li>
+<li>Restoring the pre-deploy dump is the last resort and loses everything written
+   since it was taken. Restore into a new database first, as in the restore
+   exercise in <a href="../backup-and-recovery/">Backup and recovery</a>.</li>
+</ol>
+<p>Header mode is not a rollback for sign-in problems; production refuses it.</p>
+<h2 id="health-checks">Health checks<a class="headerlink" href="#health-checks" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="c1"># On the server, from /home/devops/UCMDailyRegister (bypasses campus ingress)</span>
+curl<span class="w"> </span>-fsS<span class="w"> </span>http://127.0.0.1:9280/api/v1/health<span class="w">    </span><span class="c1"># process is up</span>
+curl<span class="w"> </span>-fsS<span class="w"> </span>http://127.0.0.1:9280/api/v1/readyz<span class="w">    </span><span class="c1"># database reachable, reference tables seeded</span>
+<span class="c1"># Through the public URL</span>
+curl<span class="w"> </span>-fsS<span class="w"> </span>https://ucmnews.insight.uidaho.edu/api/v1/readyz
+docker<span class="w"> </span>compose<span class="w"> </span>--env-file<span class="w"> </span>.env.prod<span class="w"> </span>-p<span class="w"> </span>ucmnews-prod<span class="w"> </span>ps<span class="w">                 </span><span class="c1"># backend should be "healthy"</span>
+</code></pre></div>
+<p><code>/readyz</code> returns 503 with the empty tables listed when seeding failed. Neither
+check proves sign-in or AI editing work; a staff sign-in does.</p>
+<p>Backups:</p>
+<div class="highlight"><pre><span></span><code>/home/devops/UCMDailyRegister/scripts/backup.sh<span class="w"> </span>prod<span class="w"> </span>--check<span class="w">   </span><span class="c1"># exit 1 if older than 26 hours</span>
+</code></pre></div>
+<h2 id="logs">Logs<a class="headerlink" href="#logs" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>What</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Backend</td>
+<td><code>docker logs ucmnews-prod-backend-1 --tail 200</code> (JSON, rotated at 3 × 10 MB)</td>
+</tr>
+<tr>
+<td>nginx</td>
+<td><code>docker logs ucmnews-prod-frontend-1 --tail 200</code>. Access lines carry time, method, status, size and duration only: no URL, IP or user agent.</td>
+</tr>
+<tr>
+<td>Backups</td>
+<td><code>~/backups/ucmnews-&lt;env&gt;/backup.log</code>, <code>last-success</code>, <code>last-failure</code></td>
+</tr>
+<tr>
+<td>Who did what</td>
+<td><code>audit_events</code> table; see <a href="../audit-logging/#how-a-reviewer-queries-it">How a reviewer queries it</a></td>
+</tr>
+</tbody>
+</table>
+<p>Docker log rotation means backend logs cover days, not weeks. Copy what you need
+during an incident.</p>
+<h2 id="scheduled-jobs">Scheduled jobs<a class="headerlink" href="#scheduled-jobs" title="Permanent link">&para;</a></h2>
+<p><code>crontab -l</code> as <code>devops</code> on openera:</p>
+<table>
+<thead>
+<tr>
+<th>Time</th>
+<th>Job</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>02:30 daily</td>
+<td><code>scripts/backup.sh prod</code></td>
+</tr>
+<tr>
+<td>02:40 daily</td>
+<td><code>scripts/backup.sh dev</code></td>
+</tr>
+<tr>
+<td>(paused)</td>
+<td>SLC calendar harvest for prod and dev, commented out since 2026-11-03</td>
+</tr>
+</tbody>
+</table>
+<p>The same crontab runs RFD Companion backups at 02:10 and 02:20; leave those alone.</p>
+<h2 id="incidents">Incidents<a class="headerlink" href="#incidents" title="Permanent link">&para;</a></h2>
+<p>Severity targets and the general response sequence are in
+<a href="../backup-and-recovery/#incident-response">Incident response</a>. Security
+incidents go to the University Information Security Office as well as the
+people below.</p>
+<h3 id="site-down">Site down<a class="headerlink" href="#site-down" title="Permanent link">&para;</a></h3>
+<ol>
+<li><code>curl -fsS http://127.0.0.1:9280/api/v1/health</code> from the server. If it works
+   there but not on the public URL, the problem is the campus ingress or DNS:
+   contact OIT.</li>
+<li><code>docker compose --env-file .env.prod -p ucmnews-prod ps</code>. If a container is stopped or unhealthy,
+   read its logs, then <code>docker compose --env-file .env.prod -p ucmnews-prod restart backend</code> (or
+   <code>frontend</code>). Every backend start, including <code>restart</code>, runs <code>alembic upgrade head</code>
+   and reference-data seeding first (<code>backend/docker-entrypoint.sh</code>). After a
+   release that added a migration, take a database dump before restarting.</li>
+<li>If the backend logs show database connection errors, check <code>insight-db</code>:
+   <code>docker ps --filter name=insight-db</code>. It is shared, so tell the other IIDS app
+   owners before restarting it.</li>
+<li>If the backend exits at start with a configuration error (for example
+   <code>SECRET_KEY must be changed</code> or a missing <code>ENTRA_*</code> value), fix <code>.env.prod</code>
+   and run <code>./deploy.sh prod</code>.</li>
+</ol>
+<h3 id="sign-in-failing">Sign-in failing<a class="headerlink" href="#sign-in-failing" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Repeat the SSO checks from <code>deploy.sh</code> by hand:
+   <code>curl -s http://127.0.0.1:9280/api/v1/auth/config</code> should show
+   <code>"sso_enabled":true</code>, and
+   <code>curl -s -o /dev/null -w '%{redirect_url}\n' http://127.0.0.1:9280/api/v1/auth/sso/login</code>
+   should start with <code>https://login.microsoftonline.com/</code>.</li>
+<li>Backend logs show the sign-in failure reason. The audit trail records it too
+   (<code>sign_in_failure</code> with <code>Reason_Code</code> <code>sign_in_failed</code>, <code>no_account</code>,
+   <code>misconfigured</code> or <code>unavailable</code>).</li>
+<li>Everyone failing at once usually means: the Entra client secret expired
+   (it lasts 24 months), the redirect URL in Entra no longer matches
+   <code>ENTRA_REDIRECT_URI</code>, or Microsoft Graph refused the group lookup (log says
+   to check consent for <code>GroupMember.Read.All</code>). Contact the Entra administrator.</li>
+<li>Token validation errors that mention issued-at or expiry times point to
+   clock drift: check <code>timedatectl</code> on openera. As of 2026-11-20 it reports the
+   clock is not synchronized and the NTP service is inactive; IIDS should enable it.</li>
+<li>One person signed in but sees the wrong role: their Entra group membership is
+   wrong, or changed less than 8 hours ago and they have not signed in again.</li>
+</ol>
+<h3 id="ai-editing-failing-or-slow">AI editing failing or slow<a class="headerlink" href="#ai-editing-failing-or-slow" title="Permanent link">&para;</a></h3>
+<p>AI edits run as background tasks. When MindRouter is down or times out
+(120 seconds per call), the task is marked failed with "AI editing failed. Retry
+this edit." and staff retry it from the Editor. Nothing else in the app depends
+on MindRouter, so staff can keep editing by hand.</p>
+<ol>
+<li>Backend logs show the HTTP error from MindRouter.</li>
+<li>If many requests are queued, staff see "busy" (503) until the queue drains
+   (2 running, 50 queued by default).</li>
+<li>A key error (401/403 from MindRouter) means <code>MINDROUTER_API_KEY</code> needs
+   replacing; see <a href="#rotate-secrets">Rotate secrets</a>.</li>
+<li>A restart marks running tasks failed; staff retry them.</li>
+</ol>
+<h3 id="backup-failure">Backup failure<a class="headerlink" href="#backup-failure" title="Permanent link">&para;</a></h3>
+<ol>
+<li><code>cat ~/backups/ucmnews-prod/last-failure</code> and the end of <code>backup.log</code>.</li>
+<li>Common causes: <code>insight-db</code> not running, disk full, the uploads volume
+   missing, or (once encryption is enabled) the public key missing from the
+   <code>devops</code> keyring.</li>
+<li>Fix the cause, run <code>scripts/backup.sh prod</code> by hand, and confirm
+   <code>--check</code> passes.</li>
+<li>Nobody is alerted automatically, so check <code>--check</code> output after any server
+   maintenance.</li>
+</ol>
+<h3 id="disk-full">Disk full<a class="headerlink" href="#disk-full" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>df<span class="w"> </span>-h<span class="w"> </span>/<span class="w"> </span>/var
+du<span class="w"> </span>-sh<span class="w"> </span>~/backups/*<span class="w"> </span><span class="p">|</span><span class="w"> </span>sort<span class="w"> </span>-h
+docker<span class="w"> </span>system<span class="w"> </span>df
+</code></pre></div>
+<p>Backups are not pruned automatically (expiry awaits Data Owner approval). Do not
+delete recovery points to make room without the accountable owner's agreement.
+<code>docker builder prune</code> and removing unused images are safe. Unused volumes
+<code>ucmnews-dev_pgdata</code> and <code>ucmnews-prod_pgdata</code> are leftovers; ask before removing
+them.</p>
+<h3 id="suspected-account-compromise-or-data-exposure">Suspected account compromise or data exposure<a class="headerlink" href="#suspected-account-compromise-or-data-exposure" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Contain: remove the account from the Entra staff group. Because existing
+   tokens stay valid for up to 8 hours, also rotate <code>SECRET_KEY</code> (signs everyone
+   out) if the account had staff access.</li>
+<li>Preserve evidence: export the relevant <code>audit_events</code> rows to a restricted
+   location before anything else changes. Queries are in
+   <a href="../audit-logging/#how-a-reviewer-queries-it">Audit logging</a>; start with the
+   account's <code>Actor_Ref</code> over the last 30 days, then who touched each affected
+   record. Keep backend logs (<code>docker logs ... &gt; file</code>) before rotation drops them.</li>
+<li>Notify: the University Information Security Office, the Data Owner (UCM) and
+   the accountable owner, as in <code>SECURITY.md</code>. Do not put personal data in
+   GitHub issues.</li>
+<li>Review: which records were read or exported, whether exports (<code>record_export</code>)
+   left the system, and whether any change needs reverting from the edit history.</li>
+</ol>
+<h2 id="rotate-secrets">Rotate secrets<a class="headerlink" href="#rotate-secrets" title="Permanent link">&para;</a></h2>
+<p>All secrets are in the environment file (<code>.env.prod</code> or <code>.env</code>, mode 600) on
+openera. After editing it, run <code>./deploy.sh &lt;env&gt;</code> so the containers pick up the
+change, then sign in to confirm.</p>
+<table>
+<thead>
+<tr>
+<th>Secret</th>
+<th>Effect of rotating</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SECRET_KEY</code></td>
+<td>Every session token becomes invalid; everyone signs in again.</td>
+<td>At least 32 characters; must differ from <code>SESSION_COOKIE_SECRET</code>. Use <code>openssl rand -base64 48</code>.</td>
+</tr>
+<tr>
+<td><code>SESSION_COOKIE_SECRET</code></td>
+<td>Sign-ins in progress at that moment fail and must be retried.</td>
+<td>Must differ from <code>SECRET_KEY</code>.</td>
+</tr>
+<tr>
+<td><code>ENTRA_CLIENT_SECRET</code></td>
+<td>None if updated before the old one is removed in Entra.</td>
+<td>Issued by the Entra administrator; expires 24 months after issue. Record the expiry date in <a href="../deployment/">Deployment</a>.</td>
+</tr>
+<tr>
+<td><code>MINDROUTER_API_KEY</code></td>
+<td>AI edits fail until the new key is in place.</td>
+<td>From the MindRouter key holder. <code>OPS_CLASSIFIER_API_KEY</code> falls back to it.</td>
+</tr>
+<tr>
+<td>Database password (in <code>DATABASE_URL</code>)</td>
+<td>Backend cannot connect until both sides match.</td>
+<td>Change the role's password in <code>insight-db</code> (<code>ALTER ROLE ... PASSWORD ...</code>), update <code>DATABASE_URL</code>, redeploy straight away.</td>
+</tr>
+</tbody>
+</table>
+<p>Environment files are not in the nightly backup. Keep a copy in an approved
+vault whenever one changes.</p>
+<h2 id="restore">Restore<a class="headerlink" href="#restore" title="Permanent link">&para;</a></h2>
+<p>Use the procedure in <a href="../backup-and-recovery/">Backup and recovery</a>: restore into
+a new database and volume, verify checksums and schema revision, and only then
+switch the app over. Never restore over the live database as a first step.</p>
+<h2 id="contacts-and-escalation">Contacts and escalation<a class="headerlink" href="#contacts-and-escalation" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Role</th>
+<th>Who</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Accountable owner</td>
+<td>Barrie Robison</td>
+<td>Prod deploys, data loss, security incidents, any decision to delete data</td>
+</tr>
+<tr>
+<td>Technical operator (IIDS)</td>
+<td><em>record name</em></td>
+<td>Day-to-day operation, deploys, backups</td>
+</tr>
+<tr>
+<td>Second operator</td>
+<td><em>not yet named</em></td>
+<td>Cover when the technical operator is away</td>
+</tr>
+<tr>
+<td>Data Owner (UCM)</td>
+<td><em>record name</em></td>
+<td>Data exposure, retention, who may be staff</td>
+</tr>
+<tr>
+<td>Entra administrator (OIT)</td>
+<td><em>record contact</em></td>
+<td>Sign-in outages, client secret, group consent</td>
+</tr>
+<tr>
+<td>MindRouter support</td>
+<td><em>record contact</em></td>
+<td>AI service outages and keys</td>
+</tr>
+<tr>
+<td>University Information Security Office</td>
+<td><em>record contact</em></td>
+<td>Any suspected breach</td>
+</tr>
+<tr>
+<td>Vulnerability reports</td>
+<td><code>iids-security@uidaho.edu</code></td>
+<td>See <code>SECURITY.md</code></td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["content.code.copy", "navigation.sections", "navigation.expand", "toc.integrate"], "search": "../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.a5f9d56c.min.js"></script>
+      
+    
+  </body>
+</html>
