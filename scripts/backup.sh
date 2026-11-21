@@ -26,6 +26,15 @@
 # dump references is already on disk when the archive is taken. pg_dump runs
 # inside the insight-db container so it matches the server version.
 #
+# Off-host copy: when BACKUP_OFFHOST_HOST (an ssh destination such as
+# backup@other-iids-host) and BACKUP_OFFHOST_DIR are set, each verified recovery
+# point is copied there with rsync over ssh (key auth, BatchMode) to
+# <dir>/ucmnews-<env>/scheduled/<stamp>/, and the remote SHA-256 checksums are
+# compared with the local ones. Plaintext recovery points are not copied unless
+# BACKUP_OFFHOST_ALLOW_PLAINTEXT=1 is set as a recorded decision, because the
+# copy then carries readable personal information to a second host. A failed
+# copy keeps the local recovery point, writes last-offhost-failure and exits 3.
+#
 # Nothing is pruned: backup expiry is pending Data Owner approval
 # (docs/governance/decisions.md). Environment files are not copied here; they
 # hold secrets and need their own controlled, encrypted backup.
@@ -54,6 +63,14 @@ if [[ -f "$CONFIG_FILE" ]]; then
   source "$CONFIG_FILE"
 fi
 GPG_RECIPIENT="${BACKUP_GPG_RECIPIENT:-}"
+OFFHOST_HOST="${BACKUP_OFFHOST_HOST:-}"
+OFFHOST_DIR="${BACKUP_OFFHOST_DIR:-}"
+OFFHOST_ALLOW_PLAINTEXT="${BACKUP_OFFHOST_ALLOW_PLAINTEXT:-0}"
+SSH_OPTS=(-o BatchMode=yes -o ConnectTimeout=20)
+if [[ -n "$OFFHOST_HOST" && -z "$OFFHOST_DIR" ]] || [[ -z "$OFFHOST_HOST" && -n "$OFFHOST_DIR" ]]; then
+  echo "Set both BACKUP_OFFHOST_HOST and BACKUP_OFFHOST_DIR, or neither" >&2
+  exit 2
+fi
 
 mkdir -p "$BACKUP_ROOT/scheduled"
 chmod 700 "$BACKUP_ROOT" "$BACKUP_ROOT/scheduled"
@@ -71,6 +88,20 @@ if [[ "$MODE" == "--check" ]]; then
   fi
   echo "OK: last success $((age_s / 3600))h ago"
   cat "$marker"
+  if [[ -n "$OFFHOST_HOST" ]]; then
+    off="$BACKUP_ROOT/last-offhost-success"
+    if [[ ! -f "$off" ]]; then
+      echo "NO OFF-HOST COPY: $off does not exist" >&2
+      exit 1
+    fi
+    off_age_s=$(( $(date +%s) - $(stat -c %Y "$off") ))
+    if (( off_age_s > MAX_AGE_HOURS * 3600 )); then
+      echo "STALE OFF-HOST COPY: last success $((off_age_s / 3600))h ago" >&2
+      exit 1
+    fi
+    echo "OK: last off-host copy $((off_age_s / 3600))h ago"
+    cat "$off"
+  fi
   exit 0
 elif [[ -n "$MODE" ]]; then
   echo "Unknown option: $MODE" >&2
@@ -161,3 +192,32 @@ ELAPSED=$(( $(date +%s) - START ))
   echo "encrypted=$ENCRYPTED"
 } | tee "$BACKUP_ROOT/last-success"
 rm -f "$BACKUP_ROOT/last-failure"
+
+# 6. Off-host copy of the finished recovery point. The local point is already
+# recorded as a success; a failed copy is reported separately.
+if [[ -n "$OFFHOST_HOST" ]]; then
+  offhost_fail() {
+    echo "$(date -u +%FT%TZ) OFF-HOST FAILURE $ENV_NAME $STAMP: $*" \
+      | tee "$BACKUP_ROOT/last-offhost-failure" >&2
+    exit 3
+  }
+  if [[ "$ENCRYPTED" == "no" && "$OFFHOST_ALLOW_PLAINTEXT" != "1" ]]; then
+    offhost_fail "recovery point is not encrypted; set BACKUP_GPG_RECIPIENT or BACKUP_OFFHOST_ALLOW_PLAINTEXT=1"
+  fi
+  REMOTE_DIR="$OFFHOST_DIR/ucmnews-$ENV_NAME/scheduled/$STAMP"
+  # Paths are quoted for the remote shell; stamps and env names hold no spaces.
+  ssh "${SSH_OPTS[@]}" "$OFFHOST_HOST" "umask 077 && mkdir -p '$REMOTE_DIR'" \
+    || offhost_fail "could not create $OFFHOST_HOST:$REMOTE_DIR"
+  rsync -a --chmod=D700,F600 -e "ssh ${SSH_OPTS[*]}" "$DEST/" "$OFFHOST_HOST:$REMOTE_DIR/" \
+    || offhost_fail "rsync to $OFFHOST_HOST:$REMOTE_DIR"
+  LOCAL_SUMS="$(cd "$DEST" && sha256sum -- * | sort -k2)"
+  REMOTE_SUMS="$(ssh "${SSH_OPTS[@]}" "$OFFHOST_HOST" "cd '$REMOTE_DIR' && sha256sum -- * | sort -k2")" \
+    || offhost_fail "could not checksum $OFFHOST_HOST:$REMOTE_DIR"
+  [[ "$LOCAL_SUMS" == "$REMOTE_SUMS" ]] || offhost_fail "checksum mismatch at $OFFHOST_HOST:$REMOTE_DIR"
+  {
+    echo "$(date -u +%FT%TZ) OFF-HOST SUCCESS $ENV_NAME"
+    echo "copy=$OFFHOST_HOST:$REMOTE_DIR"
+    echo "encrypted=$ENCRYPTED"
+  } | tee "$BACKUP_ROOT/last-offhost-success"
+  rm -f "$BACKUP_ROOT/last-offhost-failure"
+fi
