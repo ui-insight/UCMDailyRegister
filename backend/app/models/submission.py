@@ -33,6 +33,15 @@ Version timestamps cannot order revisions reliably (several can share one
 transaction's time), so approval is an explicit pointer rather than "the
 newest final". Which revision each caller should use is decided in
 app.services.editorial_content, never by callers scanning Edit_Versions.
+
+Submitter_Name and Submitter_Email are what the submitter typed and can name
+anyone. Submitter_Account_Ref records which signed-in account actually sent
+the item: the Microsoft Entra object ID (`oid`), the same reference the audit
+trail uses (app.models.audit_event). The route sets it from the verified
+session token, never from the request body. It is null for items created in
+header mode, by sessions minted before the `oid` claim existed, and for
+everything submitted before the column was added. It is not returned by the
+API; staff resolve it through the audit trail when they need to.
 """
 
 import uuid
@@ -77,6 +86,9 @@ class Submission(Base):
     Submitter_Name: Mapped[str] = mapped_column(sa.String(255), nullable=False)
     Submitter_Email: Mapped[str] = mapped_column(sa.String(255), nullable=False)
     Submitter_Notes: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
+    Submitter_Account_Ref: Mapped[str | None] = mapped_column(
+        sa.String(64), nullable=True, index=True
+    )
     Assigned_Editor: Mapped[str | None] = mapped_column(sa.String(255), nullable=True)
     Editorial_Notes: Mapped[str | None] = mapped_column(sa.Text, nullable=True)
     Has_Image: Mapped[bool] = mapped_column(sa.Boolean, default=False)

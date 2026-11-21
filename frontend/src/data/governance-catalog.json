@@ -1771,6 +1771,13 @@
           "pii": true
         },
         {
+          "name": "Submitter_Account_Ref",
+          "description": "Microsoft Entra object ID (oid) of the signed-in account that sent the submission, set server-side from the session token; null in header mode, for pre-oid sessions and for submissions made before the column existed. Authorized Entra administrators can resolve it to a person, so it is handled as a personal identifier.",
+          "classification": "Confidential",
+          "apm3011Tier": "Moderate",
+          "pii": true
+        },
+        {
           "name": "Assigned_Editor",
           "description": "Staff owner for editorial follow-up.",
           "classification": "Internal",
