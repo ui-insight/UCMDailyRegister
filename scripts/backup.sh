@@ -71,6 +71,18 @@ if [[ -n "$OFFHOST_HOST" && -z "$OFFHOST_DIR" ]] || [[ -z "$OFFHOST_HOST" && -n 
   echo "Set both BACKUP_OFFHOST_HOST and BACKUP_OFFHOST_DIR, or neither" >&2
   exit 2
 fi
+# Both values reach a remote shell, so accept only plain characters: an ssh
+# destination ([user@]host or a ~/.ssh/config alias) and an absolute path.
+if [[ -n "$OFFHOST_HOST" ]]; then
+  [[ "$OFFHOST_HOST" =~ ^[A-Za-z0-9._@-]+$ && "$OFFHOST_HOST" != -* ]] || {
+    echo "BACKUP_OFFHOST_HOST may contain only letters, digits, '.', '_', '-' and '@'" >&2
+    exit 2
+  }
+  [[ "$OFFHOST_DIR" =~ ^/[A-Za-z0-9._/-]+$ && "$OFFHOST_DIR" != *..* ]] || {
+    echo "BACKUP_OFFHOST_DIR must be an absolute path of letters, digits, '.', '_', '-' and '/' with no '..'" >&2
+    exit 2
+  }
+fi
 
 mkdir -p "$BACKUP_ROOT/scheduled"
 chmod 700 "$BACKUP_ROOT" "$BACKUP_ROOT/scheduled"
@@ -205,12 +217,14 @@ if [[ -n "$OFFHOST_HOST" ]]; then
     offhost_fail "recovery point is not encrypted; set BACKUP_GPG_RECIPIENT or BACKUP_OFFHOST_ALLOW_PLAINTEXT=1"
   fi
   REMOTE_DIR="$OFFHOST_DIR/ucmnews-$ENV_NAME/scheduled/$STAMP"
-  # Paths are quoted for the remote shell; stamps and env names hold no spaces.
+  # REMOTE_DIR is built only from validated BACKUP_OFFHOST_DIR, the env name and
+  # the UTC stamp, so it is safe inside the single quotes of the remote command.
   ssh "${SSH_OPTS[@]}" "$OFFHOST_HOST" "umask 077 && mkdir -p '$REMOTE_DIR'" \
     || offhost_fail "could not create $OFFHOST_HOST:$REMOTE_DIR"
   rsync -a --chmod=D700,F600 -e "ssh ${SSH_OPTS[*]}" "$DEST/" "$OFFHOST_HOST:$REMOTE_DIR/" \
     || offhost_fail "rsync to $OFFHOST_HOST:$REMOTE_DIR"
-  LOCAL_SUMS="$(cd "$DEST" && sha256sum -- * | sort -k2)"
+  LOCAL_SUMS="$(cd "$DEST" && sha256sum -- * | sort -k2)" \
+    || offhost_fail "could not checksum local $DEST"
   REMOTE_SUMS="$(ssh "${SSH_OPTS[@]}" "$OFFHOST_HOST" "cd '$REMOTE_DIR' && sha256sum -- * | sort -k2")" \
     || offhost_fail "could not checksum $OFFHOST_HOST:$REMOTE_DIR"
   [[ "$LOCAL_SUMS" == "$REMOTE_SUMS" ]] || offhost_fail "checksum mismatch at $OFFHOST_HOST:$REMOTE_DIR"
