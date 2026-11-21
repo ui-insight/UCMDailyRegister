@@ -111,13 +111,45 @@ To restore, copy the `.gpg` files to the isolated recovery environment, decrypt
 with `gpg --decrypt <file>.gpg > <file>`, and check the plaintext SHA-256 against
 the manifest before step 2 of the restore exercise.
 
+### Off-host copy
+
+Barrie chose (2026-11-20) a second IIDS-managed server as the off-host
+destination. The job supports it; it is **not switched on** until that host is
+named and set up. When `BACKUP_OFFHOST_HOST` (an ssh destination such as
+`ucmbackup@<second-iids-host>`) and `BACKUP_OFFHOST_DIR` are set in
+`~/.config/ucmnews-backup.env`, each verified recovery point is copied with rsync
+over ssh to `<dir>/ucmnews-<env>/scheduled/<stamp>/` (directories 700, files 600),
+and the remote SHA-256 checksums must match the local ones. Success is recorded
+in `last-offhost-success`; a failure keeps the local recovery point, writes
+`last-offhost-failure` and exits 3 so cron logs it. With off-host settings
+present, `--check` also fails when the last off-host copy is older than 26 hours.
+
+The copy refuses plaintext. Until encryption is on (above), it runs only if
+`BACKUP_OFFHOST_ALLOW_PLAINTEXT=1` is set, which should be a recorded decision in
+[decisions](governance/decisions.md): the second host then holds readable
+Moderate-tier personal information and needs the same access controls as openera.
+
+One-time setup:
+
+1. On the second host: a dedicated account with no sudo, a backup directory
+   (mode 700) on a disk that is not shared with openera, and enough space (a
+   recovery point is under 1 MB today; nothing is pruned).
+2. On openera as `devops`: `ssh-keygen -t ed25519 -f ~/.ssh/ucmnews_backup -N ""`,
+   install the public key on the second host (restricted with
+   `restrict` in `authorized_keys` if rsync-only access is wanted), add a
+   `Host` entry in `~/.ssh/config` pointing at that key, and accept the host key
+   once by hand so BatchMode runs succeed.
+3. Add `BACKUP_OFFHOST_HOST`, `BACKUP_OFFHOST_DIR` (and, only if decided,
+   `BACKUP_OFFHOST_ALLOW_PLAINTEXT=1`) to `~/.config/ucmnews-backup.env`, run
+   `scripts/backup.sh dev`, and confirm `OFF-HOST SUCCESS`.
+
 What the job does not do yet:
 
 - **Expiry.** Nothing is pruned, because backup expiry is pending Data Owner
   approval. A recovery point is under 1 MB today; review disk use monthly.
-- **Off-host copies.** Backups stay on the same VM as the database host until an
-  approved off-host store for the data's tier is chosen. Encrypt first (above),
-  so the off-host copy carries ciphertext only.
+- **Off-host copies.** Supported (above) but not enabled: the second IIDS host
+  is not yet named or set up, and encryption is on hold, so enabling it now
+  would need the plaintext decision recorded.
 - **Environment files.** They hold secrets and need their own controlled,
   encrypted backup; the job does not copy them.
 - **Alerting.** Failures are logged but nobody is notified automatically.
