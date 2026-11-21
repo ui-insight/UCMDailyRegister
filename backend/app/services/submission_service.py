@@ -53,7 +53,16 @@ class OccurrenceFilterCache:
         return self.valid_dates_by_range[key]
 
 
-async def create_submission(db: AsyncSession, data: SubmissionCreate) -> Submission:
+async def create_submission(
+    db: AsyncSession,
+    data: SubmissionCreate,
+    submitter_account_ref: str | None = None,
+) -> Submission:
+    """Create a submission with its links and schedule requests.
+
+    `submitter_account_ref` is the signed-in account's Entra object ID, taken
+    from the verified session token by the route, never from `data`.
+    """
     submission = Submission(
         Category=data.Category,
         Target_Newsletter=data.Target_Newsletter,
@@ -62,6 +71,7 @@ async def create_submission(db: AsyncSession, data: SubmissionCreate) -> Submiss
         Submitter_Name=data.Submitter_Name,
         Submitter_Email=data.Submitter_Email,
         Submitter_Notes=data.Submitter_Notes,
+        Submitter_Account_Ref=submitter_account_ref,
         Survey_End_Date=data.Survey_End_Date,
         Show_In_SLC_Calendar=data.Show_In_SLC_Calendar,
         Event_Classification=data.Event_Classification,

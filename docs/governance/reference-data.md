@@ -7,7 +7,7 @@ normal seeding; deliberate overwrite requires `SEED_OVERWRITE=1`.
 | Inventory | Count |
 | --- | ---: |
 | ORM tables | 21 |
-| Mapped columns | 224 |
+| Mapped columns | 225 |
 | Newsletter sections | 15 |
 | Style rules | 113 |
 | Schedule configurations | 6 |

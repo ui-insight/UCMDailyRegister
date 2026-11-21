@@ -30,6 +30,17 @@ local deployments, anonymous callers, invalid tokens, and sessions minted before
 the `oid` claim existed (those audit with their role only until the user signs in
 again, at most `ACCESS_TOKEN_EXPIRE_MINUTES` later).
 
+### Submitting account on each submission
+
+The submitter name and email on a submission are typed into the form and can name
+anyone. `submissions.Submitter_Account_Ref` records the `oid` of the signed-in
+account that actually sent it, set by the server from the session token (a value
+in the request body is ignored). It is not returned by any API response. It is
+null for header-mode submissions, for sessions without the `oid` claim, and for
+submissions made before 2026-11-20 (no backfill: the account was never recorded).
+To find who sent a submission, compare this value with the `record_change` audit
+event for the same `POST /api/v1/submissions/` request, or resolve it in Entra.
+
 ### What is recorded
 
 `backend/app/api/audit_middleware.py` writes one row after the response for each

@@ -17,7 +17,7 @@ Handling is the app's local label; APM 30.11 is the proposed University tier. Se
 | APM 30.11 tier (proposed) | Tables | Columns |
 | --- | ---: | ---: |
 | Low | 10 | 194 |
-| Moderate | 11 | 30 |
+| Moderate | 11 | 31 |
 | High | 0 | 0 |
 
 ## `ai_edit_tasks`
@@ -463,6 +463,7 @@ APM 30.11 table tier: **Moderate** (proposed — Data Owner to confirm; highest 
 | `Submitter_Name` | Submitter contact name. | Confidential | Moderate | Yes | — |
 | `Submitter_Email` | Submitter contact email. | Confidential | Moderate | Yes | — |
 | `Submitter_Notes` | Free-text instructions from submitter; may contain incidental PII. | Confidential | Moderate | Yes | — |
+| `Submitter_Account_Ref` | Microsoft Entra object ID (oid) of the signed-in account that sent the submission, set server-side from the session token; null in header mode, for pre-oid sessions and for submissions made before the column existed. Authorized Entra administrators can resolve it to a person, so it is handled as a personal identifier. | Confidential | Moderate | Yes | — |
 | `Assigned_Editor` | Staff owner for editorial follow-up. | Internal | Moderate | Yes | — |
 | `Editorial_Notes` | Staff-only editorial notes; may contain incidental PII. | Confidential | Moderate | Yes | — |
 | `Has_Image` | Whether an uploaded image is attached. | Public | Low | No | — |

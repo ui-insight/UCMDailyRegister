@@ -12,6 +12,7 @@ from app.api.deps import (
     require_signed_in_under_sso,
     require_staff,
 )
+from app.auth.identity import TokenIdentity
 from app.config import settings
 from app.schemas.submission import (
     LinkCreate,
@@ -188,7 +189,7 @@ async def create_submission(
     data: SubmissionCreate,
     db: AsyncSession = Depends(get_db),
     submission_role: SubmitterRole = Depends(get_submitter_role),
-    _signed_in: object = Depends(require_signed_in_under_sso),
+    signed_in: TokenIdentity | None = Depends(require_signed_in_under_sso),
 ):
     if not await allowed_value_service.is_submission_category_allowed(
         db, data.Category, submission_role
@@ -207,7 +208,11 @@ async def create_submission(
         _apply_job_schedule_policy(data.Category, data.Target_Newsletter, sched)
         _ensure_staff_only_recurrence(submission_role, sched, data.Category)
         await _validate_schedule_request(db, data.Target_Newsletter, sched)
-    submission = await submission_service.create_submission(db, data)
+    submission = await submission_service.create_submission(
+        db,
+        data,
+        submitter_account_ref=signed_in.object_id if signed_in else None,
+    )
     return _to_submission_response(submission, submission_role)
 
 
